@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { useEvenements } from '@/hooks/useEvenements';

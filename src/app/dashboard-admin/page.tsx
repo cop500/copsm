@@ -1,7 +1,7 @@
 'use client'
 
-import DashboardAdminSettings from '@/components/DashboardAdminSettings'
+import DashboardAdmin from '@/components/dashboards/DashboardAdmin'
 
 export default function DashboardAdminPage() {
-  return <DashboardAdminSettings />
+  return <DashboardAdmin />
 }
