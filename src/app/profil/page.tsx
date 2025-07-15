@@ -32,7 +32,7 @@ export default function ProfilPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Utiliser profile.id pour la requête update
+      if (!profile) throw new Error("Profil non chargé");
       const { error } = await supabase
         .from("profiles")
         .update({ nom, prenom, avatar_url })
