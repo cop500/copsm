@@ -65,10 +65,10 @@ export default function DemandeEntreprisePage() {
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, files } = e.target as any;
+    const { name, value, type, files } = e.target as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
     if (type === "file") {
-      setForm(prev => ({ ...prev, fichier: files[0] }));
-      setFileName(files[0]?.name || "");
+      setForm(prev => ({ ...prev, fichier: files ? files[0] : null }));
+      setFileName(files && files[0] ? files[0].name : "");
     } else {
       setForm(prev => ({ ...prev, [name]: value }));
     }
@@ -122,7 +122,7 @@ export default function DemandeEntreprisePage() {
   };
 
   // Soumission du formulaire
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSending(true);
     setSuccess("");
@@ -131,10 +131,9 @@ export default function DemandeEntreprisePage() {
     try {
       // 1. Upload du fichier PDF si présent
       if (form.fichier) {
-        const fileExt = form.fichier.name.split('.').pop();
         const filePath = `fiches_poste/${Date.now()}_${form.fichier.name}`;
-        const { data, error } = await supabase.storage.from('fichiers').upload(filePath, form.fichier);
-        if (error) throw new Error("Erreur lors de l'upload du fichier PDF");
+        const uploadResult = await supabase.storage.from('fichiers').upload(filePath, form.fichier);
+        if (uploadResult.error) throw new Error("Erreur lors de l'upload du fichier PDF");
         const { data: publicUrlData } = supabase.storage.from('fichiers').getPublicUrl(filePath);
         fichier_url = publicUrlData.publicUrl;
       }
@@ -162,8 +161,8 @@ export default function DemandeEntreprisePage() {
       }
       setSuccess("Votre demande a bien été envoyée !");
       handleReset();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Erreur inconnue");
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || "Erreur inconnue");
     } finally {
       setSending(false);
     }
@@ -271,9 +270,9 @@ export default function DemandeEntreprisePage() {
                     </div>
                     <div>
                       <label className="block font-medium mb-1">Filière *</label>
-                      <select name="filiere_id" value={profil.filiere_id} onChange={e => handleProfilChange(idx, e)} className="input input-bordered w-full" required disabled={!profil.pole_id}>
+                      <select name="filiere_id" value={profil.filiere_id} onChange={e => handleProfilChange(idx, e)} className="input input-bordered w-full bg-gray-50 border border-gray-300" required disabled={!profil.pole_id}>
                         <option value="">Sélectionner...</option>
-                        {getFilieresForPole(profil.pole_id).map(f => <option key={f.id} value={f.id}>{f.name || f.nom}</option>)}
+                        {getFilieresForPole(profil.pole_id).map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
                       </select>
                     </div>
                     <div>

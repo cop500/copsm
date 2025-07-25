@@ -8,8 +8,8 @@ import { Calendar, Plus, X, Save, Edit3, Trash2, Eye, MapPin, Clock } from 'luci
 export const EvenementsModule = () => {
   const { eventTypes } = useSettings()
   const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState<any>({})
-  const [evenements, setEvenements] = useState<any[]>([])
+  const [formData, setFormData] = useState<Record<string, unknown>>({})
+  const [evenements, setEvenements] = useState<Array<Record<string, unknown>>>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
 
@@ -26,8 +26,10 @@ export const EvenementsModule = () => {
 
       if (error) throw error
       setEvenements(data || [])
-    } catch (err: any) {
-      console.error('Erreur chargement:', err)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Erreur chargement:', err)
+      }
     } finally {
       setLoading(false)
     }
@@ -78,9 +80,11 @@ export const EvenementsModule = () => {
       setShowForm(false)
       setFormData({})
       await loadEvenements() // Recharger la liste
-    } catch (err: any) {
-      console.error('💥 Erreur:', err)
-      alert('Erreur: ' + err.message)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('💥 Erreur:', err)
+        alert('Erreur: ' + err.message)
+      }
     }
   }
 
@@ -98,13 +102,15 @@ export const EvenementsModule = () => {
       
       alert('Événement supprimé!')
       await loadEvenements()
-    } catch (err: any) {
-      alert('Erreur: ' + err.message)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert('Erreur: ' + err.message)
+      }
     }
   }
 
   // Modifier un événement
-  const handleEdit = (evenement: any) => {
+  const handleEdit = (evenement: Record<string, unknown>) => {
     setFormData(evenement)
     setShowForm(true)
   }
@@ -225,8 +231,8 @@ export const EvenementsModule = () => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <h3 className="text-lg font-medium text-gray-900">{evenement.titre}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatutColor(evenement.statut)}`}>
-                          {getStatutLabel(evenement.statut)}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatutColor(evenement.statut as string)}`}>
+                          {getStatutLabel(evenement.statut as string)}
                         </span>
                         {evenement.event_types?.nom && (
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
@@ -238,7 +244,7 @@ export const EvenementsModule = () => {
                       <div className="flex items-center space-x-6 text-sm text-gray-600 mb-2">
                         <div className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1" />
-                          {new Date(evenement.date_debut).toLocaleDateString('fr-FR', {
+                          {new Date(evenement.date_debut as string).toLocaleDateString('fr-FR', {
                             day: 'numeric',
                             month: 'long',
                             year: 'numeric'
@@ -271,7 +277,7 @@ export const EvenementsModule = () => {
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(evenement.id, evenement.titre)}
+                        onClick={() => handleDelete(evenement.id as string, evenement.titre as string)}
                         className="p-1 text-red-600 hover:bg-red-50 rounded"
                         title="Supprimer"
                       >

@@ -282,8 +282,12 @@ export const SettingsModule = () => {
       } else {
         showMessage(result.error, 'error')
       }
-    } catch (err: any) {
-      showMessage('Erreur lors de la sauvegarde', 'error')
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showMessage('Erreur lors de la sauvegarde', 'error')
+      } else {
+        showMessage('Erreur inconnue lors de la sauvegarde', 'error')
+      }
     } finally {
       setSaving(false)
     }

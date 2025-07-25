@@ -10,14 +10,14 @@ const GeneralSettingsModule = () => {
   const [selectedPoleId, setSelectedPoleId] = useState<string | null>(null);
   const [showPoleModal, setShowPoleModal] = useState(false);
   const [showFiliereModal, setShowFiliereModal] = useState(false);
-  const [editPole, setEditPole] = useState<any>(null);
-  const [editFiliere, setEditFiliere] = useState<any>(null);
+  const [editPole, setEditPole] = useState<unknown>(null);
+  const [editFiliere, setEditFiliere] = useState<unknown>(null);
   const [poleForm, setPoleForm] = useState({ nom: '', code: '', description: '', couleur: '#1D3557' });
   const [filiereForm, setFiliereForm] = useState({ nom: '', code: '', description: '', color: '#457B9D', pole_id: '' });
   const [feedback, setFeedback] = useState<string | null>(null);
 
   // Gestion modale pôle
-  const openPoleModal = (pole?: any) => {
+  const openPoleModal = (pole?: unknown) => {
     setEditPole(pole || null);
     setPoleForm(pole ? { ...pole } : { nom: '', code: '', description: '', couleur: '#1D3557' });
     setShowPoleModal(true);
@@ -25,7 +25,7 @@ const GeneralSettingsModule = () => {
   const closePoleModal = () => setShowPoleModal(false);
 
   // Gestion modale filière
-  const openFiliereModal = (filiere?: any) => {
+  const openFiliereModal = (filiere?: unknown) => {
     if (!selectedPoleId && activeTab === 'filieres') {
       setFeedback('Veuillez sélectionner un pôle pour ajouter une filière.');
       return;
@@ -39,7 +39,7 @@ const GeneralSettingsModule = () => {
   // Soumission pôle
   const handlePoleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await savePole(editPole ? { ...poleForm, id: editPole.id } : poleForm);
+    const res = await savePole(editPole ? { ...poleForm, id: (editPole as any).id } : poleForm);
     if (res.success) {
       setFeedback('Pôle enregistré avec succès');
       closePoleModal();
@@ -52,7 +52,7 @@ const GeneralSettingsModule = () => {
   const handleFiliereSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const filiereData = { ...filiereForm, pole_id: selectedPoleId };
-    const res = await saveFiliere(editFiliere ? { ...filiereData, id: editFiliere.id } : filiereData);
+    const res = await saveFiliere(editFiliere ? { ...filiereData, id: (editFiliere as any).id } : filiereData);
     if (res.success) {
       setFeedback('Filière enregistrée avec succès');
       closeFiliereModal();

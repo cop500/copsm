@@ -12,7 +12,7 @@ const EntreprisesForm = () => {
   } = useEntreprises();
 
   const [showForm, setShowForm] = useState(false);
-  const [editingEntreprise, setEditingEntreprise] = useState<any>(null);
+  const [editingEntreprise, setEditingEntreprise] = useState<unknown>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSecteur, setFilterSecteur] = useState('');
   
@@ -43,7 +43,7 @@ const EntreprisesForm = () => {
     if (editingEntreprise) {
       // Modifier entreprise existante
       const mappedData = {
-        id: editingEntreprise.id,
+        id: (editingEntreprise as any).id,
         nom: formData.nom,
         secteur: formData.secteur,
         adresse: formData.adresse,
@@ -101,16 +101,16 @@ const EntreprisesForm = () => {
     setEditingEntreprise(null);
   };
 
-  const handleEdit = (entreprise: any) => {
+  const handleEdit = (entreprise: unknown) => {
     setFormData({
-      nom: entreprise.nom,
-      secteur: entreprise.secteur,
-      adresse: entreprise.adresse,
-      telephone: entreprise.telephone,
-      email: entreprise.email,
-      contact_personne: entreprise.contact_personne,
-      description: entreprise.description || '',
-      statut: entreprise.statut
+      nom: (entreprise as any).nom,
+      secteur: (entreprise as any).secteur,
+      adresse: (entreprise as any).adresse,
+      telephone: (entreprise as any).telephone,
+      email: (entreprise as any).email,
+      contact_personne: (entreprise as any).contact_personne,
+      description: (entreprise as any).description || '',
+      statut: (entreprise as any).statut
     });
     setEditingEntreprise(entreprise);
     setShowForm(true);

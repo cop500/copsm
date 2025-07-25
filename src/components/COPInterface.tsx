@@ -16,7 +16,7 @@ import { useRole } from '@/hooks/useRole';
 interface NavigationItem {
   id: string;
   name: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
   href: string;
   active: boolean;
 }
@@ -26,7 +26,7 @@ interface KPICard {
   value: string | number;
   trend: string;
   color: 'green' | 'blue' | 'purple' | 'orange';
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
 }
 
 interface ActivityItem {
@@ -34,7 +34,7 @@ interface ActivityItem {
   action: string;
   detail: string;
   time: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
   color: string;
 }
 
@@ -44,7 +44,7 @@ interface AlertItem {
   title: string;
   message: string;
   date: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
 }
 
 const COPInterface: React.FC = () => {
@@ -418,7 +418,7 @@ function IndicateursDashboardCards() {
   const { isAdmin } = useRole();
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [editData, setEditData] = useState<any[]>([]);
+  const [editData, setEditData] = useState<unknown[]>([]);
   const [addData, setAddData] = useState({ titre: '', valeur: '', trend: '', couleur: 'blue', icone: 'TrendingUp' });
 
   // Icônes disponibles
@@ -453,7 +453,7 @@ function IndicateursDashboardCards() {
     reload();
   };
   // Ajout d'un indicateur
-  const handleAdd = async (e: any) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const { supabase } = await import('@/lib/supabase');
     await supabase.from('indicateurs_dashboard').insert([

@@ -24,9 +24,9 @@ export default function StagiairesPage() {
   const [showEntretienForm, setShowEntretienForm] = useState(false)
   const [showCandidatureForm, setShowCandidatureForm] = useState(false)
   const [showImportForm, setShowImportForm] = useState(false)
-  const [formData, setFormData] = useState<any>({})
-  const [entretienFormData, setEntretienFormData] = useState<any>({})
-  const [candidatureFormData, setCandidatureFormData] = useState<any>({})
+  const [formData, setFormData] = useState<Record<string, unknown>>({})
+  const [entretienFormData, setEntretienFormData] = useState<Record<string, unknown>>({})
+  const [candidatureFormData, setCandidatureFormData] = useState<Record<string, unknown>>({})
   const [importData, setImportData] = useState('')
   const [importFiliere, setImportFiliere] = useState('')
   const [importPole, setImportPole] = useState('')
@@ -151,8 +151,12 @@ export default function StagiairesPage() {
       setImportFiliere('')
       setImportPole('')
       
-    } catch (err: any) {
-      showMessage('Erreur lors de l\'import: ' + err.message, 'error')
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showMessage('Erreur lors de l\'import: ' + err.message, 'error')
+      } else {
+        showMessage('Erreur lors de l\'import: Type inconnu', 'error')
+      }
     }
   }
 

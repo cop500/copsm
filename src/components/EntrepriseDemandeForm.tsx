@@ -65,7 +65,7 @@ export default function EntrepriseDemandeForm() {
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, files } = e.target as any;
+    const { name, value, type, files } = e.target as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
     if (type === "file") {
       setForm(prev => ({ ...prev, fichier: files[0] }));
       setFileName(files[0]?.name || "");
