@@ -10,9 +10,4 @@ const nextConfig = {
   generateBuildId: () => 'build',
 }
 
-export default {
-  output: 'export',
-  images: {
-    unoptimized: true
-  }
-}
+export default nextConfig
