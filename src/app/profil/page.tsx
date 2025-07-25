@@ -40,7 +40,9 @@ export default function ProfilPage() {
       if (error) throw error;
       toast.success("Profil mis à jour !");
       // Forcer le rechargement de la page
-      router.refresh && router.refresh();
+      if (router.refresh) {
+        router.refresh();
+      }
     } catch (err) {
       toast.error("Erreur lors de la mise à jour : " + (err?.message || err));
     } finally {
