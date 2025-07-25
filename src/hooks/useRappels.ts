@@ -27,8 +27,8 @@ export const useRappels = () => {
         .order('created_at', { ascending: false });
       if (error) throw error;
       setRappels(data || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -44,8 +44,8 @@ export const useRappels = () => {
       if (error) throw error;
       await loadRappels();
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      return { success: false, error: (err as Error).message };
     }
   };
 

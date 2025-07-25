@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 // T = type de la ligne (ex: Stagiaire, Entreprise, etc.)
 type ChangeHandler<T> = (payload: { eventType: string; new: T | null; old: T | null }) => void;
 
-export function useRealTime<T = any>(table: string, onChange: ChangeHandler<T>) {
+export function useRealTime<T = unknown>(table: string, onChange: ChangeHandler<T>) {
   useEffect(() => {
     const channel = supabase
       .channel(`realtime:${table}`)

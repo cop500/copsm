@@ -10,7 +10,7 @@ import { supabase, getUserPermissions } from '@/lib/supabase'
 import type { Profile, UserPermissions } from '@/types'
 
 interface AuthState {
-  user: any | null
+  user: unknown | null
   profile: Profile | null
   permissions: UserPermissions | null
   loading: boolean

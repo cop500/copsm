@@ -19,18 +19,19 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   
-  const { signIn, isAuthenticated, loading: authLoading } = useAuth()
+  const { signIn, loading: authLoading } = useAuth()
   const router = useRouter()
 
   // Rediriger si déjà connecté
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      router.push('/dashboard')
+    if (authLoading) {
+      return
     }
-  }, [isAuthenticated, authLoading, router])
+    router.push('/dashboard')
+  }, [authLoading, router])
 
   // Afficher un spinner si en cours de chargement ou déjà authentifié
-  if (authLoading || (isAuthenticated && !loading)) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -69,7 +70,7 @@ export default function LoginPage() {
             COP
           </h1>
           <p className="text-gray-600">
-            Centre d'Orientation Professionnelle
+            Centre d&apos;Orientation Professionnelle
           </p>
         </div>
         
@@ -146,7 +147,7 @@ export default function LoginPage() {
                   href="mailto:admin@cop.com"
                   className="text-blue-600 hover:text-blue-500 font-medium"
                 >
-                  Contactez l'administrateur
+                  Contactez l&apos;administrateur
                 </a>
               </p>
             </div>
@@ -155,7 +156,7 @@ export default function LoginPage() {
         
         <div className="text-center mt-6">
           <p className="text-sm text-gray-500">
-            © 2024 COP - Centre d'Orientation Professionnelle
+            © 2024 COP - Centre d&apos;Orientation Professionnelle
           </p>
         </div>
       </div>

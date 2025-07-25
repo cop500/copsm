@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import './globals.css'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth()
+  const { loading } = useAuth()
   
   if (loading) {
     return (

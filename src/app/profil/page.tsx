@@ -19,10 +19,10 @@ const AVATARS = [
 ];
 
 export default function ProfilPage() {
-  const { user, profile, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const [nom, setNom] = useState(profile?.nom || "");
   const [prenom, setPrenom] = useState(profile?.prenom || "");
-  const [avatar_url, setAvatarUrl] = useState(profile?.avatar_url || AVATARS[0]);
+  const [avatar_url] = useState(profile?.avatar_url || AVATARS[0]);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);

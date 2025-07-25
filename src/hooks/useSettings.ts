@@ -107,9 +107,11 @@ export const useSettings = () => {
       if (cvStatusError) throw cvStatusError
       setCvStatus(cvStatusData || [])
 
-    } catch (err: any) {
-      setError(err.message)
-      console.error('Erreur lors du chargement des paramètres:', err)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message)
+        console.error('Erreur lors du chargement des paramètres:', err)
+      }
     } finally {
       setLoading(false)
     }
@@ -154,9 +156,11 @@ export const useSettings = () => {
       }
       
       return { success: true }
-    } catch (err: any) {
-      console.error('Erreur lors de la sauvegarde du pôle:', err)
-      return { success: false, error: err.message }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Erreur lors de la sauvegarde du pôle:', err)
+        return { success: false, error: err.message }
+      }
     }
   }
 
@@ -201,8 +205,10 @@ export const useSettings = () => {
       }
       
       return { success: true }
-    } catch (err: any) {
-      return { success: false, error: err.message }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return { success: false, error: err.message }
+      }
     }
   }
 
@@ -220,8 +226,10 @@ export const useSettings = () => {
       await loadSettings()
       
       return { success: true }
-    } catch (err: any) {
-      return { success: false, error: err.message }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return { success: false, error: err.message }
+      }
     }
   }
 
@@ -239,8 +247,10 @@ export const useSettings = () => {
       await loadSettings()
       
       return { success: true }
-    } catch (err: any) {
-      return { success: false, error: err.message }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return { success: false, error: err.message }
+      }
     }
   }
 

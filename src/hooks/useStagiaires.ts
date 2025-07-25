@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useRealTime } from './useRealTime';
 
 export function useStagiaires() {
-  const [stagiaires, setStagiaires] = useState<any[]>([]);
+  const [stagiaires, setStagiaires] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStagiaires = useCallback(async () => {
@@ -31,7 +31,7 @@ export function useStagiaires() {
   });
 
   // Ajout ou modification d’un stagiaire
-  const saveStagiaire = async (stagiaire: any) => {
+  const saveStagiaire = async (stagiaire: Record<string, unknown>) => {
     if (stagiaire.id) {
       // Mise à jour
       const { error } = await supabase

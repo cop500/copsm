@@ -14,6 +14,20 @@ const secteurs = [
   "Informatique & Digital",
   "Logistique & Transport"
 ];
+type FormData = {
+  secteur: string;
+  entreprise_nom: string;
+  entreprise_adresse: string;
+  entreprise_ville: string;
+  entreprise_email: string;
+  contact_nom: string;
+  contact_email: string;
+  contact_tel: string;
+  evenement_date: string;
+  evenement_type: "cv" | "jobday";
+  fichier: File | null;
+};
+
 const defaultProfil = {
   pole_id: "",
   filiere_id: "",
@@ -30,7 +44,7 @@ const defaultProfil = {
 export default function DemandeEntreprisePage() {
   const { poles, filieres, loading, error } = useSettings();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormData>({
     secteur: "",
     entreprise_nom: "",
     entreprise_adresse: "",
@@ -40,8 +54,8 @@ export default function DemandeEntreprisePage() {
     contact_email: "",
     contact_tel: "",
     evenement_date: "",
-    evenement_type: "cv" as "jobday" | "cv",
-    fichier: null as File | null,
+    evenement_type: "cv",
+    fichier: null,
   });
   const [fileName, setFileName] = useState("");
   const [profils, setProfils] = useState([ { ...defaultProfil } ]);
@@ -65,12 +79,15 @@ export default function DemandeEntreprisePage() {
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, files } = e.target as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
-    if (type === "file") {
+    const { name, value } = e.target;
+    
+    // Vérifier si c'est un input de type file
+    if (e.target instanceof HTMLInputElement && e.target.type === "file") {
+      const files = e.target.files;
       setForm(prev => ({ ...prev, fichier: files ? files[0] : null }));
       setFileName(files && files[0] ? files[0].name : "");
     } else {
-      setForm(prev => ({ ...prev, [name]: value }));
+      setForm(prev => ({ ...prev, [name]: value } as FormData));
     }
   };
 
