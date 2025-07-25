@@ -40,15 +40,9 @@ const navigation = [
     current: false
   },
   {
-    name: 'Demandes CV',
-    href: '/demandes-cv',
-    icon: FileText,
-    current: false
-  },
-  {
-    name: 'CV',
-    href: '/cv-envoyes',
-    icon: FileText,
+    name: 'Demandes entreprises',
+    href: '/dashboard-admin',
+    icon: Users,
     current: false
   },
   {

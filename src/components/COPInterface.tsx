@@ -61,7 +61,7 @@ const COPInterface: React.FC = () => {
     { id: 'entreprises', name: 'Entreprises', icon: Building2, href: '/entreprises', active: false },
     { id: 'evenements', name: 'Événements', icon: Calendar, href: '/evenements', active: false },
     { id: 'stagiaires', name: 'Stagiaires', icon: GraduationCap, href: '/stagiaires', active: false },
-    { id: 'cv-envoyes', name: 'CV', icon: FileText, href: '/cv-envoyes', active: false },
+    { id: 'demandes-entreprises', name: 'Demandes entreprises', icon: Users, href: '/dashboard-admin', active: false },
     // Ajout du lien Paramètres pour les admins
     ...(profile?.role === 'business_developer' ? [
       { id: 'parametres', name: 'Paramètres', icon: Settings, href: '/parametres', active: false }
@@ -168,8 +168,8 @@ const COPInterface: React.FC = () => {
   const quickActions = [
     { name: 'Ajouter stagiaire', icon: Users, color: 'bg-blue-500 hover:bg-blue-600', href: '/stagiaires' },
     { name: 'Nouvelle entreprise', icon: Building2, color: 'bg-green-500 hover:bg-green-600', href: '/entreprises' },
-    { name: 'Planifier événement', icon: Calendar, color: 'bg-purple-500 hover:bg-purple-600', href: '/evenements' },
-    { name: 'Envoyer CV', icon: Mail, color: 'bg-orange-500 hover:bg-orange-600', href: '/cv-envoyes' }
+    { name: 'Planifier événement', icon: Calendar, color: 'bg-purple-500 hover:bg-purple-600', href: '/evenements' }
+    // Action 'Envoyer CV' supprimée
   ];
 
   // Handlers
@@ -378,7 +378,7 @@ const COPInterface: React.FC = () => {
               <Target className="w-5 h-5 text-blue-600 mr-2" />
               Actions rapides
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex flex-col md:flex-row justify-center items-center gap-4">
               {quickActions.map((action, index) => {
                 const Icon = action.icon;
                 return (
