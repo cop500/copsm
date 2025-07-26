@@ -7,15 +7,30 @@ const BLEU_FONCE = "#004080";
 const dureesContrat = ["1 mois", "3 mois", "6 mois", "12 mois", "Autre"];
 const secteurs = [
   "Administration & Gestion",
-  "Industrie",
-  "BTP & Énergies",
-  "Tourisme & Hôtellerie",
-  "Santé & Action sociale",
+  "Agriculture & Agroalimentaire",
+  "Artisanat & Métiers d'art",
+  "Automobile & Transport",
+  "Banque & Assurance",
+  "BTP & Construction",
+  "Commerce & Distribution",
+  "Communication & Marketing",
+  "Conseil & Services aux entreprises",
+  "Éducation & Formation",
+  "Énergie & Environnement",
+  "Hôtellerie & Restauration",
+  "Industrie manufacturière",
   "Informatique & Digital",
-  "Logistique & Transport"
+  "Logistique & Transport",
+  "Médical & Paramédical",
+  "Métallurgie & Mécanique",
+  "Services à la personne",
+  "Textile & Habillement",
+  "Tourisme & Loisirs",
+  "Autre"
 ];
 type FormData = {
   secteur: string;
+  secteur_autre?: string;
   entreprise_nom: string;
   entreprise_adresse: string;
   entreprise_ville: string;
@@ -46,6 +61,7 @@ export default function DemandeEntreprisePage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>({
     secteur: "",
+    secteur_autre: "",
     entreprise_nom: "",
     entreprise_adresse: "",
     entreprise_ville: "",
@@ -105,6 +121,7 @@ export default function DemandeEntreprisePage() {
   const handleReset = () => {
     setForm({
       secteur: "",
+      secteur_autre: "",
       entreprise_nom: "",
       entreprise_adresse: "",
       entreprise_ville: "",
@@ -168,7 +185,7 @@ export default function DemandeEntreprisePage() {
       // 2. Insertion dans la table demandes_entreprises
       const { error: insertError } = await supabase.from('demandes_entreprises').insert([
         {
-          secteur: form.secteur,
+          secteur: form.secteur === "Autre" ? form.secteur_autre : form.secteur,
           entreprise_nom: form.entreprise_nom,
           entreprise_adresse: form.entreprise_adresse,
           entreprise_ville: form.entreprise_ville,
@@ -239,6 +256,20 @@ export default function DemandeEntreprisePage() {
                     {secteurs.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
+                {form.secteur === "Autre" && (
+                  <div>
+                    <label className="block font-medium mb-1">Préciser le secteur *</label>
+                    <input 
+                      type="text" 
+                      name="secteur_autre" 
+                      value={form.secteur_autre || ""} 
+                      onChange={handleChange} 
+                      className="input input-bordered w-full bg-gray-50 border border-gray-300" 
+                      required 
+                      placeholder="Ex: Immobilier, Événementiel, etc." 
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block font-medium mb-1">Nom de l’entreprise *</label>
                   <input type="text" name="entreprise_nom" value={form.entreprise_nom} onChange={handleChange} className="input input-bordered w-full bg-gray-50 border border-gray-300" required placeholder="Saisir le nom de l’entreprise" />
