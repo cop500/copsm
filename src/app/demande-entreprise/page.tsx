@@ -71,12 +71,22 @@ export default function DemandeEntreprisePage() {
     setProfils(prev => prev.map((p, i) => i === idx ? { ...p, [name]: value, ...(name === "pole_id" ? { filiere_id: "" } : {}) } : p));
   };
   const getFilieresForPole = (pole_id: string) => {
+    // Debug: afficher les données pour comprendre le problème
+    console.log('Pole ID:', pole_id);
+    console.log('Poles:', poles);
+    console.log('Filieres:', filieres);
+    
     // Trouver le pôle correspondant
     const pole = poles.find(p => p.id === pole_id);
+    console.log('Pole trouvé:', pole);
+    
     if (!pole) return [];
     
     // Filtrer les filières par le nom du pôle
-    return filieres.filter(f => f.pole_name === pole.nom);
+    const filieresFiltrees = filieres.filter(f => f.pole_name === pole.nom);
+    console.log('Filieres filtrées:', filieresFiltrees);
+    
+    return filieresFiltrees;
   };
 
   const steps = [
