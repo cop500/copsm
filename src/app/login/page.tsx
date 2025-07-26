@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -22,16 +23,8 @@ export default function LoginPage() {
   const { signIn, loading: authLoading } = useAuth()
   const router = useRouter()
 
-  // Rediriger si déjà connecté
-  useEffect(() => {
-    if (authLoading) {
-      return
-    }
-    router.push('/dashboard')
-  }, [authLoading, router])
-
-  // Afficher un spinner si en cours de chargement ou déjà authentifié
-  if (authLoading || loading) {
+  // Afficher un spinner si en cours de chargement
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -90,7 +83,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="h-11"
-                disabled={loading}
+                disabled={loading || authLoading}
               />
             </div>
 
@@ -105,13 +98,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="h-11 pr-10"
-                  disabled={loading}
+                  disabled={loading || authLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  disabled={loading}
+                  disabled={loading || authLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -125,7 +118,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full h-11 bg-blue-600 hover:bg-blue-700"
-              disabled={loading}
+              disabled={loading || authLoading}
             >
               {loading ? (
                 <div className="flex items-center space-x-2">
