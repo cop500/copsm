@@ -70,7 +70,14 @@ export default function DemandeEntreprisePage() {
     const { name, value } = e.target;
     setProfils(prev => prev.map((p, i) => i === idx ? { ...p, [name]: value, ...(name === "pole_id" ? { filiere_id: "" } : {}) } : p));
   };
-  const getFilieresForPole = (pole_id: string) => filieres.filter(f => f.pole_id === pole_id);
+  const getFilieresForPole = (pole_id: string) => {
+    // Trouver le pôle correspondant
+    const pole = poles.find(p => p.id === pole_id);
+    if (!pole) return [];
+    
+    // Filtrer les filières par le nom du pôle
+    return filieres.filter(f => f.pole_name === pole.nom);
+  };
 
   const steps = [
     "Informations entreprise",
