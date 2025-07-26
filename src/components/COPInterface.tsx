@@ -58,7 +58,7 @@ const COPInterface: React.FC = () => {
   // Navigation items
   const navigation: NavigationItem[] = [
     { id: 'dashboard', name: 'Tableau de bord', icon: Home, href: '/dashboard', active: true },
-    { id: 'entreprises', name: 'Entreprises', icon: Building2, href: '/entreprises', active: false },
+    { id: 'entreprises', name: 'Entreprises', icon: Building2, href: '/entreprises-gestion', active: false },
     { id: 'evenements', name: 'Événements', icon: Calendar, href: '/evenements', active: false },
     { id: 'stagiaires', name: 'Stagiaires', icon: GraduationCap, href: '/stagiaires', active: false },
     { id: 'demandes-entreprises', name: 'Demandes entreprises', icon: Users, href: '/dashboard-admin', active: false },
@@ -167,7 +167,7 @@ const COPInterface: React.FC = () => {
   // Quick actions
   const quickActions = [
     { name: 'Ajouter stagiaire', icon: Users, color: 'bg-blue-500 hover:bg-blue-600', href: '/stagiaires' },
-    { name: 'Nouvelle entreprise', icon: Building2, color: 'bg-green-500 hover:bg-green-600', href: '/entreprises' },
+    { name: 'Nouvelle entreprise', icon: Building2, color: 'bg-green-500 hover:bg-green-600', href: '/entreprises-gestion' },
     { name: 'Planifier événement', icon: Calendar, color: 'bg-purple-500 hover:bg-purple-600', href: '/evenements' }
     // Action 'Envoyer CV' supprimée
   ];

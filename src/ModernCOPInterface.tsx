@@ -75,7 +75,7 @@ const ModernCOPInterface = () => {
   // 🎯 FONCTION DE NAVIGATION VERS LES AUTRES PAGES
   const handleNavClick = (navId: string) => {
     if (navId === 'entreprises') {
-      window.location.href = '/entreprises';
+      window.location.href = '/entreprises-gestion';
     } else if (navId === 'parametres') {
       window.location.href = '/parametres';
     } else if (navId === 'stagiaires') {
