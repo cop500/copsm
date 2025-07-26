@@ -76,15 +76,9 @@ export default function DemandeEntreprisePage() {
     console.log('Poles:', poles);
     console.log('Filieres:', filieres);
     
-    // Trouver le pôle correspondant
-    const pole = poles.find(p => p.id === pole_id);
-    console.log('Pole trouvé:', pole);
-    
-    if (!pole) return [];
-    
-    // Filtrer les filières par le nom du pôle
-    const filieresFiltrees = filieres.filter(f => f.pole_name === pole.nom);
-    console.log('Filieres filtrées:', filieresFiltrees);
+    // Filtrer directement par pole_id
+    const filieresFiltrees = filieres.filter(f => f.pole_id === pole_id);
+    console.log('Filieres filtrées par pole_id:', filieresFiltrees);
     
     return filieresFiltrees;
   };

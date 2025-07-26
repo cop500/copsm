@@ -80,11 +80,11 @@ export const useSettings = () => {
       if (polesError) throw polesError
       setPoles(polesData || [])
 
-      // Charger les filières avec infos du pôle
+      // Charger les filières directement depuis la table
       const { data: filieresData, error: filieresError } = await supabase
-        .from('v_filieres_complete')
+        .from('filieres')
         .select('*')
-        .order('pole_name, name')
+        .order('nom')
       
       if (filieresError) throw filieresError
       setFilieres(filieresData || [])
