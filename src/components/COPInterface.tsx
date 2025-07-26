@@ -238,13 +238,13 @@ const COPInterface: React.FC = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-white shadow-lg transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-full sm:w-80 bg-white shadow-lg transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between px-6 py-6 border-b border-gray-200">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                <img src="/logo.png" alt="Logo MyWay" className="w-10 h-10 object-contain" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                <img src="/logo.png" alt="Logo MyWay" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-black">Centre d’Orientation Professionnelle</h1>
@@ -259,7 +259,7 @@ const COPInterface: React.FC = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto">
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = activeView === item.id;
@@ -267,7 +267,7 @@ const COPInterface: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => handleNavigation(item.href)}
-                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`w-full flex items-center px-3 sm:px-4 py-3 sm:py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-r-4 border-blue-500 shadow-sm'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:translate-x-1'
@@ -341,12 +341,24 @@ const COPInterface: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="flex flex-col items-center justify-center px-6 py-4">
-            <div className="flex flex-col items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-900 text-center">Tableau de bord</h2>
-              <p className="text-gray-600 text-center">Bienvenue dans votre espace COP ! 👋</p>
+          <div className="flex flex-col items-center justify-center px-4 sm:px-6 py-3 sm:py-4">
+            {/* Mobile menu button */}
+            <div className="flex items-center justify-between w-full mb-3 sm:hidden">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <h2 className="text-lg font-bold text-gray-900">COP Dashboard</h2>
+              <div className="w-10"></div> {/* Spacer for centering */}
             </div>
-            <div className="flex items-center space-x-4">
+            
+            <div className="flex flex-col items-center mb-3 sm:mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 text-center">Tableau de bord</h2>
+              <p className="text-sm sm:text-base text-gray-600 text-center">Bienvenue dans votre espace COP ! 👋</p>
+            </div>
+            <div className="flex items-center space-x-3 sm:space-x-4">
               {/* Search */}
               <div className="relative hidden md:block">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -358,9 +370,13 @@ const COPInterface: React.FC = () => {
                   className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+              {/* Mobile search button */}
+              <button className="md:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                <Search className="w-5 h-5" />
+              </button>
               {/* Notifications */}
               <button className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                <Bell className="w-6 h-6" />
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
               </button>
             </div>
@@ -368,27 +384,27 @@ const COPInterface: React.FC = () => {
         </header>
 
         {/* Dashboard Content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
           {/* Indicateurs dynamiques avec ajout admin */}
           <IndicateursDashboardCards />
 
           {/* Quick Actions */}
-          <div className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Target className="w-5 h-5 text-blue-600 mr-2" />
+          <div className="mb-6 sm:mb-8">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
+              <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-2" />
               Actions rapides
             </h3>
-            <div className="flex flex-col md:flex-row justify-center items-center gap-4">
+            <div className="grid grid-cols-2 sm:flex sm:flex-col md:flex-row justify-center items-center gap-3 sm:gap-4">
               {quickActions.map((action, index) => {
                 const Icon = action.icon;
                 return (
                   <button
                     key={index}
                     onClick={() => handleNavigation(action.href)}
-                    className={`p-6 rounded-xl text-white ${action.color} transition-all duration-300 flex flex-col items-center text-center group hover:scale-105 hover:shadow-lg`}
+                    className={`p-4 sm:p-6 rounded-xl text-white ${action.color} transition-all duration-300 flex flex-col items-center text-center group hover:scale-105 hover:shadow-lg`}
                   >
-                    <Icon className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="text-sm font-medium">{action.name}</span>
+                    <Icon className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs sm:text-sm font-medium">{action.name}</span>
                   </button>
                 );
               })}
@@ -396,7 +412,7 @@ const COPInterface: React.FC = () => {
           </div>
 
           {/* Zone centrale avec fond créatif */}
-          <div className="relative flex justify-center items-center min-h-[400px]">
+          <div className="relative flex justify-center items-center min-h-[300px] sm:min-h-[400px]">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-blue-100" />
             <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-200 opacity-30 rounded-full blur-2xl pointer-events-none" />
             <div className="relative z-10 w-full max-w-2xl">
@@ -478,13 +494,13 @@ function IndicateursDashboardCards() {
           </div>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {indicateurs.map((ind, idx) => (
-          <div key={ind.id} className={`bg-white rounded-xl p-6 border-l-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group border-${ind.couleur || 'blue'}-500`}>
+          <div key={ind.id} className={`bg-white rounded-xl p-4 sm:p-6 border-l-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group border-${ind.couleur || 'blue'}-500`}>
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm text-gray-500">{ind.titre}</p>
-                <p className={`text-3xl font-bold text-${ind.couleur || 'blue'}-600`}>{ind.valeur}</p>
+                <p className={`text-2xl sm:text-3xl font-bold text-${ind.couleur || 'blue'}-600`}>{ind.valeur}</p>
               </div>
               <div className={`rounded-full p-3 bg-${ind.couleur || 'blue'}-100`}>{iconMap[ind.icone as keyof typeof iconMap] || <TrendingUp className="w-7 h-7" />}</div>
             </div>
@@ -503,8 +519,8 @@ function IndicateursDashboardCards() {
       </div>
       {/* Modale édition admin */}
       {editOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-2xl flex flex-col gap-6">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl p-4 sm:p-8 w-full max-w-2xl flex flex-col gap-4 sm:gap-6">
             <div className="text-xl font-bold text-[#1D3557] mb-4">Modifier les indicateurs</div>
             {editData.map((ind, idx) => (
               <div key={ind.id} className="flex gap-4 items-center mb-2">
@@ -536,8 +552,8 @@ function IndicateursDashboardCards() {
       )}
       {/* Modale ajout admin */}
       {addOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <form onSubmit={handleAdd} className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md flex flex-col gap-4">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleAdd} className="bg-white rounded-xl shadow-xl p-4 sm:p-8 w-full max-w-md flex flex-col gap-4">
             <div className="text-xl font-bold text-[#1D3557] mb-4">Ajouter un indicateur</div>
             <input className="border rounded p-2" placeholder="Titre" value={addData.titre} onChange={e => setAddData(f => ({ ...f, titre: e.target.value }))} required />
             <input className="border rounded p-2" placeholder="Valeur" value={addData.valeur} onChange={e => setAddData(f => ({ ...f, valeur: e.target.value }))} required />

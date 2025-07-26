@@ -92,8 +92,8 @@ const DashboardAdmin = () => {
   const [selectedDemande, setSelectedDemande] = useState<DemandeEntreprise | null>(null);
 
   return (
-    <div className="max-w-7xl mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
+    <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
       
       {loading ? (
@@ -102,15 +102,15 @@ const DashboardAdmin = () => {
           <p className="mt-4 text-gray-600">Chargement des demandes...</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {demandes.map((demande) => {
             const assignedProfile = profiles.find((p) => p.id === demande.traite_par);
             const isExpanded = selectedDemande?.id === demande.id;
                 return (
                   <div key={demande.id} className="bg-white rounded-xl shadow-lg border border-gray-200">
                     {/* En-tête de la demande */}
-                    <div className="p-6 border-b border-gray-200">
-                      <div className="flex justify-between items-start">
+                    <div className="p-4 sm:p-6 border-b border-gray-200">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-0">
                         <div>
                           <h3 className="text-xl font-bold text-[#004080]">{demande.entreprise_nom}</h3>
                           <p className="text-gray-600 mt-1">{demande.secteur}</p>
@@ -124,17 +124,17 @@ const DashboardAdmin = () => {
                             })}
                           </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <button
                             onClick={() => setSelectedDemande(isExpanded ? null : demande)}
-                            className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                           >
                             {isExpanded ? "Masquer détails" : "Voir détails"}
                           </button>
                           {isAdmin && (
                             <button
                               onClick={() => handleDelete(demande.id)}
-                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm sm:text-base"
                             >
                               Supprimer
                             </button>
@@ -145,8 +145,8 @@ const DashboardAdmin = () => {
 
                     {/* Détails de la demande */}
                     {isExpanded && (
-                      <div className="p-6 bg-gray-50">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div className="p-4 sm:p-6 bg-gray-50">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                           {/* Informations entreprise */}
                           <div>
                             <h4 className="text-lg font-semibold text-[#004080] mb-4">Informations entreprise</h4>
