@@ -109,8 +109,8 @@ export const useSettings = () => {
 
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message)
-        console.error('Erreur lors du chargement des paramètres:', err)
+      setError(err.message)
+      console.error('Erreur lors du chargement des paramètres:', err)
       }
     } finally {
       setLoading(false)
@@ -158,8 +158,8 @@ export const useSettings = () => {
       return { success: true }
     } catch (err: unknown) {
       if (err instanceof Error) {
-        console.error('Erreur lors de la sauvegarde du pôle:', err)
-        return { success: false, error: err.message }
+      console.error('Erreur lors de la sauvegarde du pôle:', err)
+      return { success: false, error: err.message }
       }
     }
   }
@@ -207,7 +207,7 @@ export const useSettings = () => {
       return { success: true }
     } catch (err: unknown) {
       if (err instanceof Error) {
-        return { success: false, error: err.message }
+      return { success: false, error: err.message }
       }
     }
   }
@@ -228,7 +228,7 @@ export const useSettings = () => {
       return { success: true }
     } catch (err: unknown) {
       if (err instanceof Error) {
-        return { success: false, error: err.message }
+      return { success: false, error: err.message }
       }
     }
   }
@@ -249,7 +249,7 @@ export const useSettings = () => {
       return { success: true }
     } catch (err: unknown) {
       if (err instanceof Error) {
-        return { success: false, error: err.message }
+      return { success: false, error: err.message }
       }
     }
   }
