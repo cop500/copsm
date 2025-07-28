@@ -22,7 +22,7 @@ export default function EntreprisesPage() {
           </p>
 
           <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
-            <div className="bg-gradient-to-r from-orange-500 to-yellow-400 p-4 sm:p-5 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] flex flex-col justify-center">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-400 p-4 sm:p-5 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] flex flex-col justify-center">
               <h3 className="font-bold text-white mb-2 text-base sm:text-lg">📋 Demande de recrutement</h3>
               <p className="text-white font-medium text-sm sm:text-base">Décrivez vos besoins en recrutement</p>
             </div>
