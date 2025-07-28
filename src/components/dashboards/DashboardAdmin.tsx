@@ -293,18 +293,18 @@ const DashboardAdmin = () => {
                         </div>
 
                         {/* Assignation (admin seulement) */}
-                        {isAdmin && (
+                        {isAdmin ? (
                           <div className="mt-8 pt-6 border-t border-gray-200">
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Assignation</h4>
+                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Suivi du dossier</h4>
                             <div className="flex items-center gap-4">
-                              <span className="font-medium">Assigné à :</span>
+                              <span className="font-medium">Suivi par :</span>
                               <select
                                 value={demande.traite_par || ""}
                                 onChange={(e) => handleAssign(demande.id, e.target.value)}
                                 disabled={assigning === demande.id}
                                 className="border rounded-lg px-3 py-2"
                               >
-                                <option value="">Non assigné</option>
+                                <option value="">Non suivi</option>
                                 {profiles.map((profile) => (
                                   <option key={profile.id} value={profile.id}>
                                     {profile.prenom} {profile.nom} ({profile.role})
@@ -312,8 +312,18 @@ const DashboardAdmin = () => {
                                 ))}
                               </select>
                               {assigning === demande.id && (
-                                <span className="text-sm text-gray-500">Assignation en cours...</span>
+                                <span className="text-sm text-gray-500">Mise à jour...</span>
                               )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-8 pt-6 border-t border-gray-200">
+                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Suivi du dossier</h4>
+                            <div className="flex items-center gap-4">
+                              <span className="font-medium">Suivi par :</span>
+                              <span className="text-gray-800 font-semibold">
+                                {assignedProfile ? `${assignedProfile.prenom} ${assignedProfile.nom}` : <span className="text-gray-400">Non suivi</span>}
+                              </span>
                             </div>
                           </div>
                         )}
