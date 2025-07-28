@@ -22,13 +22,13 @@ export default function EntreprisesPage() {
           </p>
 
           <div className="space-y-4 mb-8">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-400 p-4 rounded-lg">
+            <div className="bg-gradient-to-r from-orange-500 to-yellow-400 p-4 rounded-lg">
               <h3 className="font-semibold text-white mb-2">📋 Demande de recrutement</h3>
               <p className="text-white">Décrivez votre besoin en profil</p>
             </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-[#004080] mb-2">🎯 Organisation d'événement</h3>
-              <p className="text-gray-600">Planifiez un job day ou un événement de recrutement</p>
+            <div className="bg-gradient-to-r from-green-500 to-emerald-400 p-4 rounded-lg">
+              <h3 className="font-semibold text-white mb-2">🎯 Organisation d'événement</h3>
+              <p className="text-white">Planifiez un job day ou un événement de recrutement</p>
             </div>
           </div>
 
