@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Profile } from "@/types";
 import { useUser } from '@/contexts/UserContext';
+import { useSettings } from '@/hooks/useSettings';
 
 interface DemandeEntreprise {
   id: string;
@@ -21,7 +22,16 @@ interface DemandeEntreprise {
   type_demande: string;
   created_at: string;
   traite_par?: string | null;
+  statut?: string; // Ajout du statut
 }
+
+const STATUTS = [
+  { value: 'en_attente', label: 'En attente', color: 'bg-gray-400' },
+  { value: 'en_cours', label: 'En cours', color: 'bg-blue-500' },
+  { value: 'terminee', label: 'Terminée', color: 'bg-green-500' },
+  { value: 'refusee', label: 'Refusée', color: 'bg-red-500' },
+  { value: 'annulee', label: 'Annulée', color: 'bg-yellow-500' },
+];
 
 const DashboardAdmin = () => {
   const [demandes, setDemandes] = useState<DemandeEntreprise[]>([]);
@@ -31,6 +41,7 @@ const DashboardAdmin = () => {
   const [message, setMessage] = useState<string>("");
   const { currentUser } = useUser();
   const isAdmin = currentUser?.role === 'business_developer';
+  const { poles, filieres, loading: loadingSettings } = useSettings();
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -89,6 +100,20 @@ const DashboardAdmin = () => {
     setTimeout(() => setMessage(""), 3000);
   };
 
+  const handleStatutChange = async (demandeId: string, newStatut: string) => {
+    const { error } = await supabase
+      .from('demandes_entreprises')
+      .update({ statut: newStatut })
+      .eq('id', demandeId);
+    if (!error) {
+      setMessage('Statut mis à jour !');
+      loadDemandes();
+    } else {
+      setMessage("Erreur lors de la mise à jour du statut.");
+    }
+    setTimeout(() => setMessage(""), 3000);
+  };
+
   const [selectedDemande, setSelectedDemande] = useState<DemandeEntreprise | null>(null);
 
   return (
@@ -96,7 +121,7 @@ const DashboardAdmin = () => {
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
       
-      {loading ? (
+      {loading || loadingSettings ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004080] mx-auto"></div>
           <p className="mt-4 text-gray-600">Chargement des demandes...</p>
@@ -106,6 +131,7 @@ const DashboardAdmin = () => {
           {demandes.map((demande) => {
             const assignedProfile = profiles.find((p) => p.id === demande.traite_par);
             const isExpanded = selectedDemande?.id === demande.id;
+            const statutObj = STATUTS.find(s => s.value === demande.statut) || STATUTS[0];
                 return (
                   <div key={demande.id} className="bg-white rounded-xl shadow-lg border border-gray-200">
                     {/* En-tête de la demande */}
@@ -146,6 +172,23 @@ const DashboardAdmin = () => {
                     {/* Détails de la demande */}
                     {isExpanded && (
                       <div className="p-4 sm:p-6 bg-gray-50">
+                        {/* Statut de la demande */}
+                        <div className="mb-6 flex items-center gap-4">
+                          <span className="font-medium">Statut :</span>
+                          {isAdmin ? (
+                            <select
+                              value={demande.statut || 'en_attente'}
+                              onChange={e => handleStatutChange(demande.id, e.target.value)}
+                              className="border rounded px-3 py-2 text-sm"
+                            >
+                              {STATUTS.map(s => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${statutObj.color}`}>{statutObj.label}</span>
+                          )}
+                        </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                           {/* Informations entreprise */}
                           <div>
@@ -190,21 +233,27 @@ const DashboardAdmin = () => {
                         <div className="mt-8">
                           <h4 className="text-lg font-semibold text-[#004080] mb-4">Profils demandés</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {demande.profils && demande.profils.map((profil: any, index: number) => (
-                              <div key={index} className="bg-white p-4 rounded-lg border">
-                                <h5 className="font-semibold text-[#004080] mb-2">Profil {index + 1}</h5>
-                                <div className="space-y-2 text-sm">
-                                  <p><span className="font-medium">Poste :</span> {profil.poste_intitule}</p>
-                                  <p><span className="font-medium">Description :</span> {profil.poste_description}</p>
-                                  <p><span className="font-medium">Nombre :</span> {profil.nb_profils}</p>
-                                  <p><span className="font-medium">Type contrat :</span> {profil.type_contrat}</p>
-                                  <p><span className="font-medium">Salaire :</span> {profil.salaire}</p>
-                                  <p><span className="font-medium">Durée :</span> {profil.duree}</p>
-                                  <p><span className="font-medium">Compétences :</span> {profil.competences}</p>
-                                  <p><span className="font-medium">Date début :</span> {profil.date_debut}</p>
+                            {demande.profils && demande.profils.map((profil: any, index: number) => {
+                              const pole = poles.find(p => p.id === profil.pole_id);
+                              const filiere = filieres.find(f => f.id === profil.filiere_id);
+                              return (
+                                <div key={index} className="bg-white p-4 rounded-lg border">
+                                  <h5 className="font-semibold text-[#004080] mb-2">Profil {index + 1}</h5>
+                                  <div className="space-y-2 text-sm">
+                                    <p><span className="font-medium">Pôle :</span> {pole ? pole.nom : <span className="text-gray-400">Non renseigné</span>}</p>
+                                    <p><span className="font-medium">Filière :</span> {filiere ? filiere.nom : <span className="text-gray-400">Non renseignée</span>}</p>
+                                    <p><span className="font-medium">Poste :</span> {profil.poste_intitule}</p>
+                                    <p><span className="font-medium">Description :</span> {profil.poste_description}</p>
+                                    <p><span className="font-medium">Nombre :</span> {profil.nb_profils}</p>
+                                    <p><span className="font-medium">Type contrat :</span> {profil.type_contrat}</p>
+                                    <p><span className="font-medium">Salaire :</span> {profil.salaire}</p>
+                                    <p><span className="font-medium">Durée :</span> {profil.duree}</p>
+                                    <p><span className="font-medium">Compétences :</span> {profil.competences}</p>
+                                    <p><span className="font-medium">Date début :</span> {profil.date_debut}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
 
