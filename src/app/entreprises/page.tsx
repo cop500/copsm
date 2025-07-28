@@ -3,7 +3,7 @@
 export default function EntreprisesPage() {
   return (
     <div
-      className="min-h-screen w-full flex flex-col items-center justify-center relative"
+      className="min-h-screen w-full flex flex-col items-center justify-center relative bg-gradient-to-br from-blue-900 to-blue-700"
       style={{
         backgroundImage: "url('/bg-entreprise.jpg')",
         backgroundSize: "cover",
