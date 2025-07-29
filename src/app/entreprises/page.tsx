@@ -17,18 +17,18 @@ export default function EntreprisesPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">
             Vous êtes une entreprise partenaire !
           </h1>
-          <p className="mb-6 sm:mb-8 text-base sm:text-lg text-gray-800 font-medium">
+          <p className="mb-6 sm:mb-8 text-base sm:text-lg text-white font-medium">
             Déposez votre demande en quelques clics.
           </p>
 
           <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-400 p-4 sm:p-5 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] flex flex-col justify-center">
-              <h3 className="font-bold text-white mb-2 text-base sm:text-lg">📋 Demande de recrutement</h3>
-              <p className="text-white font-medium text-sm sm:text-base">Décrivez vos besoins en recrutement</p>
+            <div className="bg-yellow-400 p-4 sm:p-5 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] flex flex-col justify-center">
+              <h3 className="font-bold text-gray-800 mb-2 text-base sm:text-lg">📋 Demande de recrutement</h3>
+              <p className="text-gray-800 font-medium text-sm sm:text-base">Décrivez vos besoins en recrutement</p>
             </div>
-            <div className="bg-gradient-to-r from-blue-600 to-blue-400 p-4 sm:p-5 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] flex flex-col justify-center">
-              <h3 className="font-bold text-white mb-2 text-base sm:text-lg">🎯 Organisation d'événement</h3>
-              <p className="text-white font-medium text-sm sm:text-base">Planifiez un job day ou un événement de recrutement</p>
+            <div className="bg-yellow-400 p-4 sm:p-5 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer min-h-[80px] sm:min-h-[90px] flex flex-col justify-center">
+              <h3 className="font-bold text-gray-800 mb-2 text-base sm:text-lg">🎯 Organisation d'événement</h3>
+              <p className="text-gray-800 font-medium text-sm sm:text-base">Planifiez un job day ou un événement de recrutement</p>
             </div>
           </div>
 
