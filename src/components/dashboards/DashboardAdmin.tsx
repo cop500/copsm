@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Profile } from "@/types";
 import { useUser } from '@/contexts/UserContext';
 import { useSettings } from '@/hooks/useSettings';
+import { MessageSquare, Send, User, Calendar } from 'lucide-react';
 
 interface DemandeEntreprise {
   id: string;
@@ -42,6 +43,11 @@ const DashboardAdmin = () => {
   const { currentUser } = useUser();
   const isAdmin = currentUser?.role === 'business_developer';
   const { poles, filieres, loading: loadingSettings } = useSettings();
+  
+  // États pour les commentaires
+  const [commentaires, setCommentaires] = useState<any[]>([]);
+  const [nouveauCommentaire, setNouveauCommentaire] = useState('');
+  const [loadingCommentaires, setLoadingCommentaires] = useState(false);
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -114,6 +120,53 @@ const DashboardAdmin = () => {
     setTimeout(() => setMessage(""), 3000);
   };
 
+  // Charger les commentaires d'une demande
+  const loadCommentaires = async (demandeId: string) => {
+    try {
+      setLoadingCommentaires(true);
+      
+      const { data, error } = await supabase
+        .from('commentaires_demandes_entreprises')
+        .select('*')
+        .eq('demande_id', demandeId)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      setCommentaires(data || []);
+    } catch (err: any) {
+      console.error('Erreur chargement commentaires:', err);
+      setMessage('Erreur lors du chargement des commentaires');
+    } finally {
+      setLoadingCommentaires(false);
+    }
+  };
+
+  // Ajouter un commentaire
+  const ajouterCommentaire = async (demandeId: string) => {
+    if (!nouveauCommentaire.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('commentaires_demandes_entreprises')
+        .insert([{
+          demande_id: demandeId,
+          contenu: nouveauCommentaire.trim(),
+          auteur: currentUser?.email || 'Utilisateur COP',
+          auteur_id: currentUser?.id
+        }]);
+      
+      if (error) throw error;
+      
+      setNouveauCommentaire('');
+      await loadCommentaires(demandeId);
+      setMessage('Commentaire ajouté avec succès!');
+    } catch (err: any) {
+      console.error('Erreur ajout commentaire:', err);
+      setMessage('Erreur lors de l\'ajout du commentaire');
+    }
+    setTimeout(() => setMessage(""), 3000);
+  };
+
   const [selectedDemande, setSelectedDemande] = useState<DemandeEntreprise | null>(null);
 
   return (
@@ -152,7 +205,14 @@ const DashboardAdmin = () => {
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">
                           <button
-                            onClick={() => setSelectedDemande(isExpanded ? null : demande)}
+                            onClick={async () => {
+                              if (isExpanded) {
+                                setSelectedDemande(null);
+                              } else {
+                                setSelectedDemande(demande);
+                                await loadCommentaires(demande.id);
+                              }
+                            }}
                             className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                           >
                             {isExpanded ? "Masquer détails" : "Voir détails"}
@@ -229,31 +289,101 @@ const DashboardAdmin = () => {
                           </div>
                         </div>
 
-                        {/* Profils demandés */}
-                        <div className="mt-8">
-                          <h4 className="text-lg font-semibold text-[#004080] mb-4">Profils demandés</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {demande.profils && demande.profils.map((profil: any, index: number) => {
-                              const pole = poles.find(p => p.id === profil.pole_id);
-                              const filiere = filieres.find(f => f.id === profil.filiere_id);
-                              return (
-                                <div key={index} className="bg-white p-4 rounded-lg border">
-                                  <h5 className="font-semibold text-[#004080] mb-2">Profil {index + 1}</h5>
-                                  <div className="space-y-2 text-sm">
-                                    <p><span className="font-medium">Pôle :</span> {pole ? pole.nom : <span className="text-gray-400">Non renseigné</span>}</p>
-                                    <p><span className="font-medium">Filière :</span> {filiere ? filiere.nom : <span className="text-gray-400">Non renseignée</span>}</p>
-                                    <p><span className="font-medium">Poste :</span> {profil.poste_intitule}</p>
-                                    <p><span className="font-medium">Description :</span> {profil.poste_description}</p>
-                                    <p><span className="font-medium">Nombre :</span> {profil.nb_profils}</p>
-                                    <p><span className="font-medium">Type contrat :</span> {profil.type_contrat}</p>
-                                    <p><span className="font-medium">Salaire :</span> {profil.salaire}</p>
-                                    <p><span className="font-medium">Durée :</span> {profil.duree}</p>
-                                    <p><span className="font-medium">Compétences :</span> {profil.competences}</p>
-                                    <p><span className="font-medium">Date début :</span> {profil.date_debut}</p>
+                        {/* Profils demandés et Commentaires */}
+                        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                          {/* Profils demandés */}
+                          <div>
+                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Profils demandés</h4>
+                            <div className="space-y-4">
+                              {demande.profils && demande.profils.map((profil: any, index: number) => {
+                                const pole = poles.find(p => p.id === profil.pole_id);
+                                const filiere = filieres.find(f => f.id === profil.filiere_id);
+                                return (
+                                  <div key={index} className="bg-white p-4 rounded-lg border">
+                                    <h5 className="font-semibold text-[#004080] mb-2">Profil {index + 1}</h5>
+                                    <div className="space-y-2 text-sm">
+                                      <p><span className="font-medium">Pôle :</span> {pole ? pole.nom : <span className="text-gray-400">Non renseigné</span>}</p>
+                                      <p><span className="font-medium">Filière :</span> {filiere ? filiere.nom : <span className="text-gray-400">Non renseignée</span>}</p>
+                                      <p><span className="font-medium">Poste :</span> {profil.poste_intitule}</p>
+                                      <p><span className="font-medium">Description :</span> {profil.poste_description}</p>
+                                      <p><span className="font-medium">Nombre :</span> {profil.nb_profils}</p>
+                                      <p><span className="font-medium">Type contrat :</span> {profil.type_contrat}</p>
+                                      <p><span className="font-medium">Salaire :</span> {profil.salaire}</p>
+                                      <p><span className="font-medium">Durée :</span> {profil.duree}</p>
+                                      <p><span className="font-medium">Compétences :</span> {profil.competences}</p>
+                                      <p><span className="font-medium">Date début :</span> {profil.date_debut}</p>
+                                    </div>
                                   </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Section Commentaires */}
+                          <div>
+                            <h4 className="text-lg font-semibold text-[#004080] mb-4 flex items-center">
+                              <MessageSquare className="w-5 h-5 mr-2" />
+                              Commentaires
+                            </h4>
+                            
+                            {/* Liste des commentaires */}
+                            <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                              {loadingCommentaires ? (
+                                <div className="text-center py-4">
+                                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#004080] mx-auto"></div>
+                                  <p className="text-sm text-gray-500 mt-2">Chargement des commentaires...</p>
                                 </div>
-                              );
-                            })}
+                              ) : commentaires.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                  <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                                  <p className="text-sm">Aucun commentaire pour le moment</p>
+                                </div>
+                              ) : (
+                                commentaires.map((commentaire, index) => (
+                                  <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
+                                    <div className="flex items-start justify-between mb-2">
+                                      <div className="flex items-center">
+                                        <User className="w-4 h-4 text-gray-500 mr-2" />
+                                        <span className="font-medium text-sm text-gray-700">{commentaire.auteur}</span>
+                                      </div>
+                                      <div className="flex items-center text-xs text-gray-500">
+                                        <Calendar className="w-3 h-3 mr-1" />
+                                        {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-gray-800">{commentaire.contenu}</p>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            {/* Formulaire d'ajout de commentaire */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                              <div className="flex items-end gap-2">
+                                <div className="flex-1">
+                                  <textarea
+                                    value={nouveauCommentaire}
+                                    onChange={(e) => setNouveauCommentaire(e.target.value)}
+                                    placeholder="Ajouter un commentaire..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent resize-none"
+                                    rows={3}
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => ajouterCommentaire(demande.id)}
+                                  disabled={!nouveauCommentaire.trim()}
+                                  className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                                >
+                                  <Send className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
 

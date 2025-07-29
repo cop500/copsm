@@ -10,7 +10,8 @@ import { supabase } from '@/lib/supabase'
 import { 
   FileText, Plus, X, Save, Edit3, Trash2, Eye, Clock, AlertTriangle,
   Building2, User, Mail, Phone, MapPin, Calendar, Target, Flag,
-  Search, Filter, ChevronRight, CheckCircle, XCircle, Loader2
+  Search, Filter, ChevronRight, CheckCircle, XCircle, Loader2,
+  MessageSquare, Send, ArrowLeft
 } from 'lucide-react'
 
 export const DemandesCVModule = () => {
@@ -23,6 +24,12 @@ export const DemandesCVModule = () => {
   const [filterStatut, setFilterStatut] = useState('tous')
   const [filterUrgence, setFilterUrgence] = useState('tous')
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
+  
+  // États pour la vue détail et commentaires
+  const [selectedDemande, setSelectedDemande] = useState<any>(null)
+  const [commentaires, setCommentaires] = useState<any[]>([])
+  const [nouveauCommentaire, setNouveauCommentaire] = useState('')
+  const [loadingCommentaires, setLoadingCommentaires] = useState(false)
 
   const typesContrat = ['Stage', 'CDI', 'CDD', 'Alternance', 'Freelance', 'Interim']
   const niveauxUrgence = ['normale', 'urgent', 'tres_urgent']
@@ -55,6 +62,67 @@ export const DemandesCVModule = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Charger les commentaires d'une demande
+  const loadCommentaires = async (demandeId: string) => {
+    try {
+      setLoadingCommentaires(true)
+      
+      const { data, error } = await supabase
+        .from('commentaires_demandes')
+        .select('*')
+        .eq('demande_id', demandeId)
+        .order('created_at', { ascending: true })
+      
+      if (error) throw error
+      setCommentaires(data || [])
+    } catch (err: any) {
+      console.error('Erreur chargement commentaires:', err)
+      showMessage('Erreur lors du chargement des commentaires', 'error')
+    } finally {
+      setLoadingCommentaires(false)
+    }
+  }
+
+  // Ajouter un commentaire
+  const ajouterCommentaire = async () => {
+    if (!nouveauCommentaire.trim() || !selectedDemande) return
+
+    try {
+      const { data: user } = await supabase.auth.getUser()
+      
+      const { error } = await supabase
+        .from('commentaires_demandes')
+        .insert([{
+          demande_id: selectedDemande.id,
+          contenu: nouveauCommentaire.trim(),
+          auteur: user?.user?.email || 'Utilisateur COP',
+          auteur_id: user?.user?.id
+        }])
+      
+      if (error) throw error
+      
+      setNouveauCommentaire('')
+      await loadCommentaires(selectedDemande.id)
+      showMessage('Commentaire ajouté avec succès!')
+    } catch (err: any) {
+      console.error('Erreur ajout commentaire:', err)
+      showMessage('Erreur lors de l\'ajout du commentaire', 'error')
+    }
+  }
+
+  // Ouvrir la vue détail d'une demande
+  const ouvrirDetailDemande = async (demande: any) => {
+    setSelectedDemande(demande)
+    await loadCommentaires(demande.id)
+  }
+
+  // Fermer la vue détail
+  const fermerDetailDemande = () => {
+    setSelectedDemande(null)
+    setCommentaires([])
+    setNouveauCommentaire('')
   }
 
   // Sauvegarder une demande
@@ -430,6 +498,15 @@ export const DemandesCVModule = () => {
                     </div>
                     
                     <div className="flex items-center space-x-2 ml-4">
+                      {/* Bouton vue détail */}
+                      <button
+                        onClick={() => ouvrirDetailDemande(demande)}
+                        className="p-1 text-purple-600 hover:bg-purple-50 rounded"
+                        title="Voir le détail"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      
                       {/* Actions rapides statut */}
                       {demande.statut === 'nouvelle' && (
                         <button
