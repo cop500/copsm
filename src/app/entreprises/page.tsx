@@ -15,10 +15,10 @@ export default function EntreprisesPage() {
       <div className="relative z-10 flex flex-col items-center justify-center w-full min-h-screen">
         <div className="bg-white bg-opacity-95 rounded-xl shadow-2xl p-6 sm:p-8 md:p-10 text-center max-w-2xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#004080] mb-3 sm:mb-4">
-            Vous êtes une entreprise partenaire
+            Vous êtes une entreprise partenaire !
           </h1>
           <p className="mb-6 sm:mb-8 text-base sm:text-lg text-gray-800 font-medium">
-            Déposez votre demande de recrutement ou d'événement en quelques clics.
+            Déposez votre demande en quelques clics.
           </p>
 
           <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
