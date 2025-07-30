@@ -474,7 +474,6 @@ const DashboardAdmin = () => {
                                       const newStats = { ...statistiques[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
                                       setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
                                     }}
-                                    onBlur={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
                                     placeholder="0"
                                   />
@@ -491,7 +490,6 @@ const DashboardAdmin = () => {
                                       const newStats = { ...statistiques[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
                                       setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
                                     }}
-                                    onBlur={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
                                     placeholder="0"
                                   />
@@ -510,18 +508,34 @@ const DashboardAdmin = () => {
                                     const newStats = { ...statistiques[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
                                     setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
                                   }}
-                                  onBlur={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
                                   placeholder="0"
                                 />
                               </div>
                             )}
-                            {updatingStats === demande.id && (
-                              <div className="mt-2 text-sm text-gray-500 flex items-center">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#004080] mr-2"></div>
-                                Mise à jour...
-                              </div>
-                            )}
+                            
+                            {/* Bouton de validation */}
+                            <div className="mt-4 flex justify-end">
+                              <button
+                                onClick={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
+                                disabled={updatingStats === demande.id}
+                                className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                              >
+                                {updatingStats === demande.id ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Sauvegarde...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Valider les statistiques
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
 
