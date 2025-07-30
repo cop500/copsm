@@ -48,6 +48,11 @@ const DashboardAdmin = () => {
   const [commentaires, setCommentaires] = useState<any[]>([]);
   const [nouveauCommentaire, setNouveauCommentaire] = useState('');
   const [loadingCommentaires, setLoadingCommentaires] = useState(false);
+  
+  // États pour les filtres et statistiques
+  const [filterStatut, setFilterStatut] = useState<string>('tous');
+  const [statistiques, setStatistiques] = useState<{[key: string]: any}>({});
+  const [updatingStats, setUpdatingStats] = useState<string | null>(null);
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -167,12 +172,73 @@ const DashboardAdmin = () => {
     setTimeout(() => setMessage(""), 3000);
   };
 
+  // Charger les statistiques d'une demande
+  const loadStatistiques = async (demandeId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('statistiques_demandes')
+        .select('*')
+        .eq('demande_id', demandeId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+      
+      if (data) {
+        setStatistiques(prev => ({ ...prev, [demandeId]: data }));
+      }
+    } catch (err: any) {
+      console.error('Erreur chargement statistiques:', err);
+    }
+  };
+
+  // Mettre à jour les statistiques
+  const updateStatistiques = async (demandeId: string, stats: any) => {
+    setUpdatingStats(demandeId);
+    try {
+      const { error } = await supabase
+        .from('statistiques_demandes')
+        .upsert({
+          demande_id: demandeId,
+          ...stats
+        });
+      
+      if (error) throw error;
+      
+      setStatistiques(prev => ({ ...prev, [demandeId]: { demande_id: demandeId, ...stats } }));
+      setMessage('Statistiques mises à jour !');
+    } catch (err: any) {
+      console.error('Erreur mise à jour statistiques:', err);
+      setMessage('Erreur lors de la mise à jour des statistiques');
+    }
+    setUpdatingStats(null);
+    setTimeout(() => setMessage(""), 3000);
+  };
+
   const [selectedDemande, setSelectedDemande] = useState<DemandeEntreprise | null>(null);
 
   return (
     <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
+      
+      {/* Filtres */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par statut</label>
+          <select
+            value={filterStatut}
+            onChange={(e) => setFilterStatut(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+          >
+            <option value="tous">Tous les statuts</option>
+            <option value="en_attente">En attente</option>
+            <option value="en_cours">En cours</option>
+            <option value="terminee">Terminée</option>
+            <option value="refusee">Refusée</option>
+            <option value="annulee">Annulée</option>
+          </select>
+        </div>
+      </div>
       
       {loading || loadingSettings ? (
         <div className="text-center py-8">
@@ -181,7 +247,9 @@ const DashboardAdmin = () => {
         </div>
       ) : (
         <div className="space-y-4 sm:space-y-6">
-          {demandes.map((demande) => {
+          {demandes
+            .filter(demande => filterStatut === 'tous' || demande.statut === filterStatut)
+            .map((demande) => {
             const assignedProfile = profiles.find((p) => p.id === demande.traite_par);
             const isExpanded = selectedDemande?.id === demande.id;
             const statutObj = STATUTS.find(s => s.value === demande.statut) || STATUTS[0];
@@ -211,6 +279,7 @@ const DashboardAdmin = () => {
                               } else {
                                 setSelectedDemande(demande);
                                 await loadCommentaires(demande.id);
+                                await loadStatistiques(demande.id);
                               }
                             }}
                             className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
@@ -384,6 +453,75 @@ const DashboardAdmin = () => {
                                 </button>
                               </div>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* Section Statistiques */}
+                        <div className="mt-8">
+                          <h4 className="text-lg font-semibold text-[#004080] mb-4">Statistiques</h4>
+                          <div className="bg-white p-6 rounded-lg border border-gray-200">
+                            {demande.evenement_type === 'jobday' ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Nombre de candidats
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={statistiques[demande.id]?.nombre_candidats || ''}
+                                    onChange={(e) => {
+                                      const newStats = { ...statistiques[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
+                                      setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                    }}
+                                    onBlur={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                    placeholder="0"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Nombre de candidats retenus
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={statistiques[demande.id]?.nombre_candidats_retenus || ''}
+                                    onChange={(e) => {
+                                      const newStats = { ...statistiques[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
+                                      setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                    }}
+                                    onBlur={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                    placeholder="0"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Nombre de CV envoyés
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={statistiques[demande.id]?.nombre_cv_envoyes || ''}
+                                  onChange={(e) => {
+                                    const newStats = { ...statistiques[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
+                                    setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                  }}
+                                  onBlur={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                  placeholder="0"
+                                />
+                              </div>
+                            )}
+                            {updatingStats === demande.id && (
+                              <div className="mt-2 text-sm text-gray-500 flex items-center">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#004080] mr-2"></div>
+                                Mise à jour...
+                              </div>
+                            )}
                           </div>
                         </div>
 

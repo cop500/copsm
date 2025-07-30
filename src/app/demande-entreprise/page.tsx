@@ -157,7 +157,6 @@ export default function DemandeEntreprisePage() {
         p.filiere_id &&
         p.nb_profils > 0 &&
         p.type_contrat &&
-        p.salaire &&
         p.duree &&
         p.competences &&
         p.date_debut
@@ -356,8 +355,8 @@ export default function DemandeEntreprisePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block font-medium mb-1">Salaire ou indemnité *</label>
-                      <input type="text" name="salaire" value={profil.salaire} onChange={e => handleProfilChange(idx, e)} className="input input-bordered w-full" required placeholder="Ex : 3000 MAD/mois ou Indemnité selon profil" />
+                      <label className="block font-medium mb-1">Salaire ou indemnité</label>
+                      <input type="text" name="salaire" value={profil.salaire} onChange={e => handleProfilChange(idx, e)} className="input input-bordered w-full" placeholder="Ex : 3000 MAD/mois ou Indemnité selon profil" />
                     </div>
                     <div>
                       <label className="block font-medium mb-1">Date de début souhaitée *</label>
