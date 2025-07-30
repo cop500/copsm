@@ -511,12 +511,7 @@ const DashboardAdmin = () => {
 
                         {/* Section Statistiques */}
                         <div className="mt-8">
-                          <h4 className="text-lg font-semibold text-[#004080] mb-4">
-                            Statistiques 
-                            <span className="text-sm text-gray-500 ml-2">
-                              (Debug: {statistiques[demande.id] ? 'Avec données' : 'Sans données'})
-                            </span>
-                          </h4>
+                          <h4 className="text-lg font-semibold text-[#004080] mb-4">Statistiques</h4>
                           <div className="bg-white p-6 rounded-lg border border-gray-200">
                             {editingStats === demande.id ? (
                               // Mode édition
@@ -658,10 +653,10 @@ const DashboardAdmin = () => {
                                           <input
                                             type="number"
                                             min="0"
-                                            value={statistiques[demande.id]?.nombre_candidats || ''}
+                                            value={tempStats[demande.id]?.nombre_candidats || ''}
                                             onChange={(e) => {
-                                              const newStats = { ...statistiques[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
-                                              setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                              const newStats = { ...tempStats[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
+                                              setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
                                             placeholder="0"
@@ -674,10 +669,10 @@ const DashboardAdmin = () => {
                                           <input
                                             type="number"
                                             min="0"
-                                            value={statistiques[demande.id]?.nombre_candidats_retenus || ''}
+                                            value={tempStats[demande.id]?.nombre_candidats_retenus || ''}
                                             onChange={(e) => {
-                                              const newStats = { ...statistiques[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
-                                              setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                              const newStats = { ...tempStats[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
+                                              setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
                                             placeholder="0"
@@ -692,10 +687,10 @@ const DashboardAdmin = () => {
                                         <input
                                           type="number"
                                           min="0"
-                                          value={statistiques[demande.id]?.nombre_cv_envoyes || ''}
+                                          value={tempStats[demande.id]?.nombre_cv_envoyes || ''}
                                           onChange={(e) => {
-                                            const newStats = { ...statistiques[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
-                                            setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                            const newStats = { ...tempStats[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
+                                            setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
                                           }}
                                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
                                           placeholder="0"
