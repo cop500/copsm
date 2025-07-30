@@ -55,6 +55,10 @@ const DashboardAdmin = () => {
   const [updatingStats, setUpdatingStats] = useState<string | null>(null);
   const [editingStats, setEditingStats] = useState<string | null>(null);
   const [tempStats, setTempStats] = useState<{[key: string]: any}>({});
+  
+  // États pour les nouvelles demandes
+  const [nouvellesDemandes, setNouvellesDemandes] = useState<DemandeEntreprise[]>([]);
+  const [showNouvellesDemandes, setShowNouvellesDemandes] = useState(false);
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -94,6 +98,7 @@ const DashboardAdmin = () => {
   useEffect(() => {
     loadDemandes();
     loadProfiles();
+    loadNouvellesDemandes();
   }, []);
 
   // Assigner une demande à un membre
@@ -267,12 +272,96 @@ const DashboardAdmin = () => {
     setTimeout(() => setMessage(""), 3000);
   };
 
+  // Charger les nouvelles demandes
+  const loadNouvellesDemandes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('demandes_entreprises')
+        .select('*')
+        .eq('statut', 'en_attente')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      setNouvellesDemandes(data || []);
+    } catch (err: any) {
+      console.error('Erreur chargement nouvelles demandes:', err);
+    }
+  };
+
+  // Marquer une demande comme vue
+  const marquerCommeVue = async (demandeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('demandes_entreprises')
+        .update({ statut: 'en_cours' })
+        .eq('id', demandeId);
+      
+      if (error) throw error;
+      
+      await loadNouvellesDemandes();
+      await loadDemandes();
+      setMessage('Demande marquée comme vue !');
+    } catch (err: any) {
+      console.error('Erreur marquage demande:', err);
+      setMessage('Erreur lors du marquage');
+    }
+    setTimeout(() => setMessage(""), 3000);
+  };
+
   const [selectedDemande, setSelectedDemande] = useState<DemandeEntreprise | null>(null);
 
   return (
     <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
+      
+      {/* Section Nouvelles demandes */}
+      {nouvellesDemandes.length > 0 && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-blue-800 flex items-center">
+              <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">
+                {nouvellesDemandes.length}
+              </span>
+              Nouvelles demandes
+            </h2>
+            <button
+              onClick={() => setShowNouvellesDemandes(!showNouvellesDemandes)}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              {showNouvellesDemandes ? 'Masquer' : 'Voir'}
+            </button>
+          </div>
+          
+          {showNouvellesDemandes && (
+            <div className="space-y-2">
+              {nouvellesDemandes.map((demande) => (
+                <div key={demande.id} className="bg-white p-3 rounded border border-blue-100 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">{demande.entreprise_nom}</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(demande.created_at).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => marquerCommeVue(demande.id)}
+                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                  >
+                    Marquer comme vue
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Filtres */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
