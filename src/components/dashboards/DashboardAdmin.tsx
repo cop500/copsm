@@ -66,7 +66,10 @@ const DashboardAdmin = () => {
       .from("demandes_entreprises")
       .select("*")
       .order("created_at", { ascending: false });
-    if (!error) setDemandes(data || []);
+    if (!error) {
+      setDemandes(data || []);
+      console.log('Toutes les demandes:', data?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprise_nom })));
+    }
     setLoading(false);
   };
 
@@ -282,6 +285,7 @@ const DashboardAdmin = () => {
         .limit(5);
       
       if (error) throw error;
+      console.log('Nouvelles demandes trouvées:', data?.length || 0);
       setNouvellesDemandes(data || []);
     } catch (err: any) {
       console.error('Erreur chargement nouvelles demandes:', err);
@@ -296,6 +300,11 @@ const DashboardAdmin = () => {
     <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
+      
+      {/* Debug temporaire */}
+      <div className="mb-4 p-3 bg-gray-100 text-gray-700 rounded-lg">
+        Debug: nouvellesDemandes.length = {nouvellesDemandes.length}
+      </div>
       
       {/* Message pour les demandes en attente */}
       {nouvellesDemandes.length > 0 && (
