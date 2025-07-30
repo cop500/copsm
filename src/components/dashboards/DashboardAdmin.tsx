@@ -56,9 +56,8 @@ const DashboardAdmin = () => {
   const [editingStats, setEditingStats] = useState<string | null>(null);
   const [tempStats, setTempStats] = useState<{[key: string]: any}>({});
   
-  // États pour les nouvelles demandes
+  // État pour les nouvelles demandes
   const [nouvellesDemandes, setNouvellesDemandes] = useState<DemandeEntreprise[]>([]);
-  const [showNouvellesDemandes, setShowNouvellesDemandes] = useState(false);
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -289,95 +288,36 @@ const DashboardAdmin = () => {
     }
   };
 
-  // Marquer une demande comme vue
-  const marquerCommeVue = async (demandeId: string) => {
-    try {
-      const { error } = await supabase
-        .from('demandes_entreprises')
-        .update({ statut: 'en_cours' })
-        .eq('id', demandeId);
-      
-      if (error) throw error;
-      
-      await loadNouvellesDemandes();
-      await loadDemandes();
-      setMessage('Demande marquée comme vue !');
-    } catch (err: any) {
-      console.error('Erreur marquage demande:', err);
-      setMessage('Erreur lors du marquage');
-    }
-    setTimeout(() => setMessage(""), 3000);
-  };
+
 
   const [selectedDemande, setSelectedDemande] = useState<DemandeEntreprise | null>(null);
 
   return (
     <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#004080]">Gestion des demandes entreprises</h1>
-        <button
-          onClick={() => {
-            // Test de notification
-            const event = new CustomEvent('test-notification', {
-              detail: {
-                type: 'info',
-                title: 'Test de notification',
-                message: 'Le système de notifications fonctionne !'
-              }
-            });
-            window.dispatchEvent(event);
-          }}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-        >
-          Test Notifications
-        </button>
-      </div>
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
       
-      {/* Section Nouvelles demandes */}
+      {/* Message pour les demandes en attente */}
       {nouvellesDemandes.length > 0 && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-blue-800 flex items-center">
-              <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">
-                {nouvellesDemandes.length}
-              </span>
-              Nouvelles demandes
-            </h2>
-            <button
-              onClick={() => setShowNouvellesDemandes(!showNouvellesDemandes)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              {showNouvellesDemandes ? 'Masquer' : 'Voir'}
-            </button>
-          </div>
-          
-          {showNouvellesDemandes && (
-            <div className="space-y-2">
-              {nouvellesDemandes.map((demande) => (
-                <div key={demande.id} className="bg-white p-3 rounded border border-blue-100 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">{demande.entreprise_nom}</p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(demande.created_at).toLocaleDateString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => marquerCommeVue(demande.id)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                  >
-                    Marquer comme vue
-                  </button>
-                </div>
-              ))}
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
             </div>
-          )}
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Nouvelle(s) demande(s) entreprise en attente
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>
+                  {nouvellesDemandes.length} nouvelle(s) demande(s) nécessite(nt) votre attention.
+                  Veuillez traiter ces demandes pour les faire passer en statut "en cours".
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       

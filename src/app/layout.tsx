@@ -1,7 +1,6 @@
 'use client'
 import { UserProvider } from '@/contexts/UserContext'
 import { useAuth } from '@/hooks/useAuth'
-import NotificationManager from '@/components/ui/NotificationManager'
 import './globals.css'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -29,11 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <UserProvider>
-          <NotificationManager>
-            <main>
-              {children}
-            </main>
-          </NotificationManager>
+          <main>
+            {children}
+          </main>
         </UserProvider>
       </body>
     </html>
