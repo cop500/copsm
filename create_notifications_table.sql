@@ -12,15 +12,9 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications_demande
 -- Activer RLS
 ALTER TABLE notifications_demandes ENABLE ROW LEVEL SECURITY;
 
--- Politiques RLS
-CREATE POLICY "Permettre lecture notifications" ON notifications_demandes
-    FOR SELECT USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Permettre insertion notifications" ON notifications_demandes
-    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
-CREATE POLICY "Permettre suppression notifications" ON notifications_demandes
-    FOR DELETE USING (auth.role() = 'authenticated');
+-- Politiques RLS - Permettre toutes les opérations pour les utilisateurs authentifiés
+CREATE POLICY "Permettre toutes les opérations notifications" ON notifications_demandes
+    FOR ALL USING (auth.role() = 'authenticated');
 
 -- Fonction pour créer automatiquement une notification quand une nouvelle demande est créée
 CREATE OR REPLACE FUNCTION create_notification_on_new_demande()
@@ -30,7 +24,7 @@ BEGIN
     VALUES (NEW.id);
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger pour créer automatiquement une notification
 CREATE TRIGGER trigger_create_notification
@@ -50,7 +44,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger pour supprimer automatiquement les notifications
 CREATE TRIGGER trigger_delete_notification
