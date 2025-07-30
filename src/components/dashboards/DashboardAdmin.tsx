@@ -56,8 +56,10 @@ const DashboardAdmin = () => {
   const [editingStats, setEditingStats] = useState<string | null>(null);
   const [tempStats, setTempStats] = useState<{[key: string]: any}>({});
   
-  // État pour les nouvelles demandes
-  const [nouvellesDemandes, setNouvellesDemandes] = useState<DemandeEntreprise[]>([]);
+  // États pour les notifications
+  const [notifications, setNotifications] = useState<any[]>([]);
+  
+
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -68,7 +70,6 @@ const DashboardAdmin = () => {
       .order("created_at", { ascending: false });
     if (!error) {
       setDemandes(data || []);
-      console.log('Toutes les demandes:', data?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprise_nom })));
     }
     setLoading(false);
   };
@@ -100,7 +101,7 @@ const DashboardAdmin = () => {
   useEffect(() => {
     loadDemandes();
     loadProfiles();
-    loadNouvellesDemandes();
+    loadNotifications();
   }, []);
 
   // Assigner une demande à un membre
@@ -274,31 +275,41 @@ const DashboardAdmin = () => {
     setTimeout(() => setMessage(""), 3000);
   };
 
-  // Charger les nouvelles demandes
-  const loadNouvellesDemandes = async () => {
+  // Charger les notifications
+  const loadNotifications = async () => {
     try {
-      // D'abord, récupérer toutes les demandes pour voir leurs statuts
-      const { data: allData, error: allError } = await supabase
-        .from('demandes_entreprises')
-        .select('*')
+      const { data, error } = await supabase
+        .from('notifications_demandes')
+        .select(`
+          *,
+          demande:demandes_entreprises(entreprise_nom, statut)
+        `)
         .order('created_at', { ascending: false });
       
-      if (allError) throw allError;
-      
-      console.log('Toutes les demandes avec statuts:', allData?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprise_nom })));
-      
-      // Filtrer manuellement les demandes en attente ou sans statut
-      const nouvellesDemandes = allData?.filter(demande => 
-        !demande.statut || demande.statut === 'en_attente'
-      ) || [];
-      
-      console.log('Nouvelles demandes trouvées:', nouvellesDemandes.length);
-      console.log('Détails nouvelles demandes:', nouvellesDemandes);
-      setNouvellesDemandes(nouvellesDemandes);
+      if (error) throw error;
+      setNotifications(data || []);
     } catch (err: any) {
-      console.error('Erreur chargement nouvelles demandes:', err);
+      console.error('Erreur chargement notifications:', err);
     }
   };
+
+  // Supprimer une notification
+  const supprimerNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications_demandes')
+        .delete()
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+      await loadNotifications();
+    } catch (err: any) {
+      console.error('Erreur suppression notification:', err);
+    }
+  };
+
+  // Charger les nouvelles demandes
+
 
 
 
@@ -309,34 +320,45 @@ const DashboardAdmin = () => {
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
       
-      {/* Debug temporaire */}
-      <div className="mb-4 p-3 bg-gray-100 text-gray-700 rounded-lg">
-        Debug: nouvellesDemandes.length = {nouvellesDemandes.length}
-      </div>
-      
-      {/* Message pour les demandes en attente */}
-      {nouvellesDemandes.length > 0 && (
-        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Nouvelle(s) demande(s) entreprise en attente
-              </h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>
-                  {nouvellesDemandes.length} nouvelle(s) demande(s) nécessite(nt) votre attention.
-                  Veuillez traiter ces demandes pour les faire passer en statut "en cours".
-                </p>
+      {/* Section Notifications */}
+      {notifications.length > 0 && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h2 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+            <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">
+              {notifications.length}
+            </span>
+            Nouvelles demandes entreprises
+          </h2>
+          <div className="space-y-2">
+            {notifications.map((notification) => (
+              <div key={notification.id} className="bg-white p-3 rounded border border-blue-100 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {notification.demande?.entreprise_nom || 'Entreprise inconnue'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Nouvelle demande reçue le {new Date(notification.created_at).toLocaleDateString('fr-FR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => supprimerNotification(notification.id)}
+                  className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                >
+                  Marquer comme vue
+                </button>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
+      
+
       
       {/* Filtres */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
