@@ -277,17 +277,24 @@ const DashboardAdmin = () => {
   // Charger les nouvelles demandes
   const loadNouvellesDemandes = async () => {
     try {
-      // Chercher les demandes en attente OU sans statut défini
-      const { data, error } = await supabase
+      // D'abord, récupérer toutes les demandes pour voir leurs statuts
+      const { data: allData, error: allError } = await supabase
         .from('demandes_entreprises')
         .select('*')
-        .or('statut.eq.en_attente,statut.is.null')
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      console.log('Nouvelles demandes trouvées:', data?.length || 0);
-      setNouvellesDemandes(data || []);
+      if (allError) throw allError;
+      
+      console.log('Toutes les demandes avec statuts:', allData?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprise_nom })));
+      
+      // Filtrer manuellement les demandes en attente ou sans statut
+      const nouvellesDemandes = allData?.filter(demande => 
+        !demande.statut || demande.statut === 'en_attente'
+      ) || [];
+      
+      console.log('Nouvelles demandes trouvées:', nouvellesDemandes.length);
+      console.log('Détails nouvelles demandes:', nouvellesDemandes);
+      setNouvellesDemandes(nouvellesDemandes);
     } catch (err: any) {
       console.error('Erreur chargement nouvelles demandes:', err);
     }
