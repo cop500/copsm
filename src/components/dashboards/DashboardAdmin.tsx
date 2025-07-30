@@ -53,6 +53,8 @@ const DashboardAdmin = () => {
   const [filterStatut, setFilterStatut] = useState<string>('tous');
   const [statistiques, setStatistiques] = useState<{[key: string]: any}>({});
   const [updatingStats, setUpdatingStats] = useState<string | null>(null);
+  const [editingStats, setEditingStats] = useState<string | null>(null);
+  const [tempStats, setTempStats] = useState<{[key: string]: any}>({});
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -205,10 +207,53 @@ const DashboardAdmin = () => {
       if (error) throw error;
       
       setStatistiques(prev => ({ ...prev, [demandeId]: { demande_id: demandeId, ...stats } }));
+      setEditingStats(null);
+      setTempStats(prev => ({ ...prev, [demandeId]: {} }));
       setMessage('Statistiques mises à jour !');
     } catch (err: any) {
       console.error('Erreur mise à jour statistiques:', err);
       setMessage('Erreur lors de la mise à jour des statistiques');
+    }
+    setUpdatingStats(null);
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  // Modifier les statistiques
+  const editStatistiques = (demandeId: string) => {
+    setEditingStats(demandeId);
+    setTempStats(prev => ({ ...prev, [demandeId]: { ...statistiques[demandeId] } }));
+  };
+
+  // Annuler la modification
+  const cancelEditStatistiques = (demandeId: string) => {
+    setEditingStats(null);
+    setTempStats(prev => ({ ...prev, [demandeId]: {} }));
+  };
+
+  // Supprimer les statistiques (admin seulement)
+  const deleteStatistiques = async (demandeId: string) => {
+    if (!isAdmin) return;
+    
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ces statistiques ?')) return;
+    
+    setUpdatingStats(demandeId);
+    try {
+      const { error } = await supabase
+        .from('statistiques_demandes')
+        .delete()
+        .eq('demande_id', demandeId);
+      
+      if (error) throw error;
+      
+      setStatistiques(prev => {
+        const newStats = { ...prev };
+        delete newStats[demandeId];
+        return newStats;
+      });
+      setMessage('Statistiques supprimées !');
+    } catch (err: any) {
+      console.error('Erreur suppression statistiques:', err);
+      setMessage('Erreur lors de la suppression des statistiques');
     }
     setUpdatingStats(null);
     setTimeout(() => setMessage(""), 3000);
@@ -460,82 +505,217 @@ const DashboardAdmin = () => {
                         <div className="mt-8">
                           <h4 className="text-lg font-semibold text-[#004080] mb-4">Statistiques</h4>
                           <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            {demande.evenement_type === 'jobday' ? (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Nombre de candidats
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={statistiques[demande.id]?.nombre_candidats || ''}
-                                    onChange={(e) => {
-                                      const newStats = { ...statistiques[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
-                                      setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                    placeholder="0"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Nombre de candidats retenus
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={statistiques[demande.id]?.nombre_candidats_retenus || ''}
-                                    onChange={(e) => {
-                                      const newStats = { ...statistiques[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
-                                      setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                    placeholder="0"
-                                  />
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Nombre de CV envoyés
-                                </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={statistiques[demande.id]?.nombre_cv_envoyes || ''}
-                                  onChange={(e) => {
-                                    const newStats = { ...statistiques[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
-                                    setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
-                                  }}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                  placeholder="0"
-                                />
-                              </div>
-                            )}
-                            
-                            {/* Bouton de validation */}
-                            <div className="mt-4 flex justify-end">
-                              <button
-                                onClick={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
-                                disabled={updatingStats === demande.id}
-                                className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
-                              >
-                                {updatingStats === demande.id ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    Sauvegarde...
-                                  </>
+                            {editingStats === demande.id ? (
+                              // Mode édition
+                              <>
+                                {demande.evenement_type === 'jobday' ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Nombre de candidats
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={tempStats[demande.id]?.nombre_candidats || ''}
+                                        onChange={(e) => {
+                                          const newStats = { ...tempStats[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
+                                          setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                        placeholder="0"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Nombre de candidats retenus
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={tempStats[demande.id]?.nombre_candidats_retenus || ''}
+                                        onChange={(e) => {
+                                          const newStats = { ...tempStats[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
+                                          setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                        placeholder="0"
+                                      />
+                                    </div>
+                                  </div>
                                 ) : (
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Nombre de CV envoyés
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={tempStats[demande.id]?.nombre_cv_envoyes || ''}
+                                      onChange={(e) => {
+                                        const newStats = { ...tempStats[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
+                                        setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
+                                      }}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                )}
+                                
+                                {/* Boutons d'édition */}
+                                <div className="mt-4 flex justify-end gap-2">
+                                  <button
+                                    onClick={() => cancelEditStatistiques(demande.id)}
+                                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                                  >
+                                    Annuler
+                                  </button>
+                                  <button
+                                    onClick={() => updateStatistiques(demande.id, tempStats[demande.id] || {})}
+                                    disabled={updatingStats === demande.id}
+                                    className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                                  >
+                                    {updatingStats === demande.id ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Sauvegarde...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Valider
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              // Mode affichage
+                              <>
+                                {statistiques[demande.id] ? (
+                                  <div className="space-y-3">
+                                    {demande.evenement_type === 'jobday' ? (
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                          <span className="text-sm font-medium text-gray-700">Nombre de candidats :</span>
+                                          <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_candidats || 0}</span>
+                                        </div>
+                                        <div className="bg-gray-50 p-3 rounded-lg">
+                                          <span className="text-sm font-medium text-gray-700">Nombre de candidats retenus :</span>
+                                          <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_candidats_retenus || 0}</span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="bg-gray-50 p-3 rounded-lg">
+                                        <span className="text-sm font-medium text-gray-700">Nombre de CV envoyés :</span>
+                                        <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_cv_envoyes || 0}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Boutons d'action */}
+                                    <div className="flex justify-end gap-2 pt-2">
+                                      <button
+                                        onClick={() => editStatistiques(demande.id)}
+                                        className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                      >
+                                        Modifier
+                                      </button>
+                                      {isAdmin && (
+                                        <button
+                                          onClick={() => deleteStatistiques(demande.id)}
+                                          disabled={updatingStats === demande.id}
+                                          className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:bg-gray-300"
+                                        >
+                                          {updatingStats === demande.id ? 'Suppression...' : 'Supprimer'}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  // Pas de statistiques - mode saisie initiale
                                   <>
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Valider les statistiques
+                                    {demande.evenement_type === 'jobday' ? (
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Nombre de candidats
+                                          </label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            value={statistiques[demande.id]?.nombre_candidats || ''}
+                                            onChange={(e) => {
+                                              const newStats = { ...statistiques[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
+                                              setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Nombre de candidats retenus
+                                          </label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            value={statistiques[demande.id]?.nombre_candidats_retenus || ''}
+                                            onChange={(e) => {
+                                              const newStats = { ...statistiques[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
+                                              setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                          Nombre de CV envoyés
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          value={statistiques[demande.id]?.nombre_cv_envoyes || ''}
+                                          onChange={(e) => {
+                                            const newStats = { ...statistiques[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
+                                            setStatistiques(prev => ({ ...prev, [demande.id]: newStats }));
+                                          }}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                          placeholder="0"
+                                        />
+                                      </div>
+                                    )}
+                                    
+                                    {/* Bouton de validation initiale */}
+                                    <div className="mt-4 flex justify-end">
+                                      <button
+                                        onClick={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
+                                        disabled={updatingStats === demande.id}
+                                        className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                                      >
+                                        {updatingStats === demande.id ? (
+                                          <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Sauvegarde...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Valider les statistiques
+                                          </>
+                                        )}
+                                      </button>
+                                    </div>
                                   </>
                                 )}
-                              </button>
-                            </div>
+                              </>
+                            )}
                           </div>
                         </div>
 
