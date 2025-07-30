@@ -277,10 +277,11 @@ const DashboardAdmin = () => {
   // Charger les nouvelles demandes
   const loadNouvellesDemandes = async () => {
     try {
+      // Chercher les demandes en attente OU sans statut défini
       const { data, error } = await supabase
         .from('demandes_entreprises')
         .select('*')
-        .eq('statut', 'en_attente')
+        .or('statut.eq.en_attente,statut.is.null')
         .order('created_at', { ascending: false })
         .limit(5);
       
