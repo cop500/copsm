@@ -313,7 +313,25 @@ const DashboardAdmin = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
-      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-[#004080]">Gestion des demandes entreprises</h1>
+        <button
+          onClick={() => {
+            // Test de notification
+            const event = new CustomEvent('test-notification', {
+              detail: {
+                type: 'info',
+                title: 'Test de notification',
+                message: 'Le système de notifications fonctionne !'
+              }
+            });
+            window.dispatchEvent(event);
+          }}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+        >
+          Test Notifications
+        </button>
+      </div>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
       
       {/* Section Nouvelles demandes */}
