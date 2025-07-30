@@ -183,10 +183,18 @@ const DashboardAdmin = () => {
         .eq('demande_id', demandeId)
         .single();
       
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Pas de données trouvées - c'est normal pour une nouvelle demande
+          console.log('Aucune statistique trouvée pour la demande:', demandeId);
+          return;
+        }
+        throw error;
+      }
       
       if (data) {
         setStatistiques(prev => ({ ...prev, [demandeId]: data }));
+        console.log('Statistiques chargées:', data);
       }
     } catch (err: any) {
       console.error('Erreur chargement statistiques:', err);
@@ -503,7 +511,12 @@ const DashboardAdmin = () => {
 
                         {/* Section Statistiques */}
                         <div className="mt-8">
-                          <h4 className="text-lg font-semibold text-[#004080] mb-4">Statistiques</h4>
+                          <h4 className="text-lg font-semibold text-[#004080] mb-4">
+                            Statistiques 
+                            <span className="text-sm text-gray-500 ml-2">
+                              (Debug: {statistiques[demande.id] ? 'Avec données' : 'Sans données'})
+                            </span>
+                          </h4>
                           <div className="bg-white p-6 rounded-lg border border-gray-200">
                             {editingStats === demande.id ? (
                               // Mode édition
@@ -594,7 +607,7 @@ const DashboardAdmin = () => {
                             ) : (
                               // Mode affichage
                               <>
-                                {statistiques[demande.id] ? (
+                                {statistiques[demande.id] && Object.keys(statistiques[demande.id]).length > 0 ? (
                                   <div className="space-y-3">
                                     {demande.evenement_type === 'jobday' ? (
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
