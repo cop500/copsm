@@ -315,6 +315,10 @@ const DashboardAdmin = () => {
       const commentairesDemande = commentaires.filter(c => c.demande_id === demande.id);
       const statistiquesDemande = statistiques[demande.id] || null;
       
+      // Debug pour voir la structure des profils
+      console.log('Profils de la demande:', demande.profils);
+      console.log('Structure complète de la demande:', demande);
+      
       await downloadDemandePDF(demande, commentairesDemande, statistiquesDemande);
       setMessage('PDF téléchargé avec succès !');
     } catch (error) {

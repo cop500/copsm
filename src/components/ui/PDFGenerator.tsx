@@ -109,7 +109,17 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
     pdf.setFontSize(12);
     pdf.setTextColor(0, 0, 0);
     demande.profils.forEach((profil: any) => {
-      pdf.text(`• ${profil.nom}`, margin + 5, yPosition);
+      // Gérer différents formats de profils
+      let nomProfil = '';
+      if (typeof profil === 'string') {
+        nomProfil = profil;
+      } else if (profil && typeof profil === 'object') {
+        nomProfil = profil.nom || profil.name || profil.libelle || profil.label || JSON.stringify(profil);
+      } else {
+        nomProfil = String(profil);
+      }
+      
+      pdf.text(`• ${nomProfil}`, margin + 5, yPosition);
       yPosition += 6;
     });
   }
@@ -244,7 +254,17 @@ export const printDemande = (demande: DemandeEntreprise, commentaires: any[] = [
       ${demande.profils && demande.profils.length > 0 ? `
         <div class="section">
           <div class="section-title">Profils demandés</div>
-          ${demande.profils.map((profil: any) => `<div class="info">• ${profil.nom}</div>`).join('')}
+          ${demande.profils.map((profil: any) => {
+            let nomProfil = '';
+            if (typeof profil === 'string') {
+              nomProfil = profil;
+            } else if (profil && typeof profil === 'object') {
+              nomProfil = profil.nom || profil.name || profil.libelle || profil.label || JSON.stringify(profil);
+            } else {
+              nomProfil = String(profil);
+            }
+            return `<div class="info">• ${nomProfil}</div>`;
+          }).join('')}
         </div>
       ` : ''}
       
