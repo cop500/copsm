@@ -320,9 +320,16 @@ const DashboardAdmin = () => {
         if (profil && typeof profil === 'object' && profil.pole_id) {
           // Chercher le nom du pôle dans les settings
           const pole = poles?.find((p: any) => p.id === profil.pole_id);
+          // Chercher la filière si disponible
+          const filiere = filieres?.find((f: any) => f.id === profil.filiere_id);
+          // Chercher le poste si disponible
+          const poste = profil.poste || profil.titre || profil.fonction || '';
+          
           return {
             ...profil,
             nom: pole?.nom || `Pôle ${profil.pole_id}`,
+            filiere: filiere?.nom || profil.filiere || 'Non spécifiée',
+            poste: poste,
             duree: profil.duree || 'Non spécifiée',
             salaire: profil.salaire || 'Non spécifié'
           };
@@ -356,9 +363,16 @@ const DashboardAdmin = () => {
         if (profil && typeof profil === 'object' && profil.pole_id) {
           // Chercher le nom du pôle dans les settings
           const pole = poles?.find((p: any) => p.id === profil.pole_id);
+          // Chercher la filière si disponible
+          const filiere = filieres?.find((f: any) => f.id === profil.filiere_id);
+          // Chercher le poste si disponible
+          const poste = profil.poste || profil.titre || profil.fonction || '';
+          
           return {
             ...profil,
             nom: pole?.nom || `Pôle ${profil.pole_id}`,
+            filiere: filiere?.nom || profil.filiere || 'Non spécifiée',
+            poste: poste,
             duree: profil.duree || 'Non spécifiée',
             salaire: profil.salaire || 'Non spécifié'
           };
