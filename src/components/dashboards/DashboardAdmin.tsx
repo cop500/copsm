@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { Profile } from "@/types";
 import { useUser } from '@/contexts/UserContext';
 import { useSettings } from '@/hooks/useSettings';
-import { MessageSquare, Send, User, Calendar } from 'lucide-react';
+import { MessageSquare, Send, User, Calendar, Download, Printer } from 'lucide-react';
+import { downloadDemandePDF, printDemande } from '@/components/ui/PDFGenerator';
 
 interface DemandeEntreprise {
   id: string;
@@ -308,6 +309,36 @@ const DashboardAdmin = () => {
     }
   };
 
+  // Télécharger PDF de la demande
+  const handleDownloadPDF = async (demande: DemandeEntreprise) => {
+    try {
+      const commentairesDemande = commentaires.filter(c => c.demande_id === demande.id);
+      const statistiquesDemande = statistiques[demande.id] || null;
+      
+      await downloadDemandePDF(demande, commentairesDemande, statistiquesDemande);
+      setMessage('PDF téléchargé avec succès !');
+    } catch (error) {
+      console.error('Erreur téléchargement PDF:', error);
+      setMessage('Erreur lors du téléchargement du PDF');
+    }
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  // Imprimer la demande
+  const handlePrint = (demande: DemandeEntreprise) => {
+    try {
+      const commentairesDemande = commentaires.filter(c => c.demande_id === demande.id);
+      const statistiquesDemande = statistiques[demande.id] || null;
+      
+      printDemande(demande, commentairesDemande, statistiquesDemande);
+      setMessage('Impression lancée !');
+    } catch (error) {
+      console.error('Erreur impression:', error);
+      setMessage('Erreur lors de l\'impression');
+    }
+    setTimeout(() => setMessage(""), 3000);
+  };
+
   // Charger les nouvelles demandes
 
 
@@ -425,6 +456,27 @@ const DashboardAdmin = () => {
                           >
                             {isExpanded ? "Masquer détails" : "Voir détails"}
                           </button>
+                          
+                          {/* Boutons PDF et Impression */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDownloadPDF(demande)}
+                              className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex items-center gap-1"
+                              title="Télécharger PDF"
+                            >
+                              <Download className="w-4 h-4" />
+                              PDF
+                            </button>
+                            <button
+                              onClick={() => handlePrint(demande)}
+                              className="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm flex items-center gap-1"
+                              title="Imprimer"
+                            >
+                              <Printer className="w-4 h-4" />
+                              Imprimer
+                            </button>
+                          </div>
+                          
                           {isAdmin && (
                             <button
                               onClick={() => handleDelete(demande.id)}
