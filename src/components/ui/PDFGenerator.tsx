@@ -111,15 +111,25 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
     demande.profils.forEach((profil: any) => {
       // Gérer différents formats de profils
       let nomProfil = '';
+      let detailsProfil = '';
+      
       if (typeof profil === 'string') {
         nomProfil = profil;
       } else if (profil && typeof profil === 'object') {
-        nomProfil = profil.nom || profil.name || profil.libelle || profil.label || JSON.stringify(profil);
+        nomProfil = profil.nom || profil.name || profil.libelle || profil.label || 'Profil non spécifié';
+        
+        // Ajouter les détails si disponibles
+        const details = [];
+        if (profil.duree) details.push(`Durée: ${profil.duree}`);
+        if (profil.salaire) details.push(`Salaire: ${profil.salaire}`);
+        if (details.length > 0) {
+          detailsProfil = ` (${details.join(', ')})`;
+        }
       } else {
         nomProfil = String(profil);
       }
       
-      pdf.text(`• ${nomProfil}`, margin + 5, yPosition);
+      pdf.text(`• ${nomProfil}${detailsProfil}`, margin + 5, yPosition);
       yPosition += 6;
     });
   }
@@ -256,14 +266,25 @@ export const printDemande = (demande: DemandeEntreprise, commentaires: any[] = [
           <div class="section-title">Profils demandés</div>
           ${demande.profils.map((profil: any) => {
             let nomProfil = '';
+            let detailsProfil = '';
+            
             if (typeof profil === 'string') {
               nomProfil = profil;
             } else if (profil && typeof profil === 'object') {
-              nomProfil = profil.nom || profil.name || profil.libelle || profil.label || JSON.stringify(profil);
+              nomProfil = profil.nom || profil.name || profil.libelle || profil.label || 'Profil non spécifié';
+              
+              // Ajouter les détails si disponibles
+              const details = [];
+              if (profil.duree) details.push(`Durée: ${profil.duree}`);
+              if (profil.salaire) details.push(`Salaire: ${profil.salaire}`);
+              if (details.length > 0) {
+                detailsProfil = ` (${details.join(', ')})`;
+              }
             } else {
               nomProfil = String(profil);
             }
-            return `<div class="info">• ${nomProfil}</div>`;
+            
+            return `<div class="info">• ${nomProfil}${detailsProfil}</div>`;
           }).join('')}
         </div>
       ` : ''}

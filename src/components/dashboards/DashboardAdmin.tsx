@@ -315,11 +315,28 @@ const DashboardAdmin = () => {
       const commentairesDemande = commentaires.filter(c => c.demande_id === demande.id);
       const statistiquesDemande = statistiques[demande.id] || null;
       
-      // Debug pour voir la structure des profils
-      console.log('Profils de la demande:', demande.profils);
-      console.log('Structure complète de la demande:', demande);
+      // Traiter les profils pour récupérer les noms
+      const profilsTraites = demande.profils.map((profil: any) => {
+        if (profil && typeof profil === 'object' && profil.pole_id) {
+          // Chercher le nom du pôle dans les settings
+          const pole = poles?.find((p: any) => p.id === profil.pole_id);
+          return {
+            ...profil,
+            nom: pole?.nom || `Pôle ${profil.pole_id}`,
+            duree: profil.duree || 'Non spécifiée',
+            salaire: profil.salaire || 'Non spécifié'
+          };
+        }
+        return profil;
+      });
       
-      await downloadDemandePDF(demande, commentairesDemande, statistiquesDemande);
+      // Créer une copie de la demande avec les profils traités
+      const demandeTraitee = {
+        ...demande,
+        profils: profilsTraites
+      };
+      
+      await downloadDemandePDF(demandeTraitee, commentairesDemande, statistiquesDemande);
       setMessage('PDF téléchargé avec succès !');
     } catch (error) {
       console.error('Erreur téléchargement PDF:', error);
@@ -334,7 +351,28 @@ const DashboardAdmin = () => {
       const commentairesDemande = commentaires.filter(c => c.demande_id === demande.id);
       const statistiquesDemande = statistiques[demande.id] || null;
       
-      printDemande(demande, commentairesDemande, statistiquesDemande);
+      // Traiter les profils pour récupérer les noms
+      const profilsTraites = demande.profils.map((profil: any) => {
+        if (profil && typeof profil === 'object' && profil.pole_id) {
+          // Chercher le nom du pôle dans les settings
+          const pole = poles?.find((p: any) => p.id === profil.pole_id);
+          return {
+            ...profil,
+            nom: pole?.nom || `Pôle ${profil.pole_id}`,
+            duree: profil.duree || 'Non spécifiée',
+            salaire: profil.salaire || 'Non spécifié'
+          };
+        }
+        return profil;
+      });
+      
+      // Créer une copie de la demande avec les profils traités
+      const demandeTraitee = {
+        ...demande,
+        profils: profilsTraites
+      };
+      
+      printDemande(demandeTraitee, commentairesDemande, statistiquesDemande);
       setMessage('Impression lancée !');
     } catch (error) {
       console.error('Erreur impression:', error);
