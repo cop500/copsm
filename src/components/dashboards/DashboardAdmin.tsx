@@ -224,25 +224,51 @@ const DashboardAdmin = () => {
       console.log('📊 Données à sauvegarder:', stats);
       console.log('👤 Utilisateur actuel:', currentUser?.email, 'Role:', currentUser?.role);
       
-      const dataToInsert = {
-        demande_id: demandeId,
-        ...stats
-      };
-      console.log('📝 Données complètes à insérer:', dataToInsert);
-      
-      const { data, error } = await supabase
+      // Vérifier d'abord si des statistiques existent déjà
+      const { data: existingStats, error: checkError } = await supabase
         .from('statistiques_demandes')
-        .upsert(dataToInsert)
-        .select();
+        .select('*')
+        .eq('demande_id', demandeId)
+        .maybeSingle();
       
-      console.log('📊 Résultat de l\'upsert:', { data, error });
+      console.log('🔍 Statistiques existantes:', existingStats);
       
-      if (error) {
-        console.error('❌ Erreur lors de l\'upsert:', error);
-        throw error;
+      let result;
+      if (existingStats) {
+        // Mettre à jour les statistiques existantes
+        console.log('🔄 Mise à jour des statistiques existantes');
+        result = await supabase
+          .from('statistiques_demandes')
+          .update({
+            nombre_candidats: stats.nombre_candidats || 0,
+            nombre_candidats_retenus: stats.nombre_candidats_retenus || 0,
+            nombre_cv_envoyes: stats.nombre_cv_envoyes || 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('demande_id', demandeId)
+          .select();
+      } else {
+        // Insérer de nouvelles statistiques
+        console.log('➕ Insertion de nouvelles statistiques');
+        result = await supabase
+          .from('statistiques_demandes')
+          .insert({
+            demande_id: demandeId,
+            nombre_candidats: stats.nombre_candidats || 0,
+            nombre_candidats_retenus: stats.nombre_candidats_retenus || 0,
+            nombre_cv_envoyes: stats.nombre_cv_envoyes || 0
+          })
+          .select();
       }
       
-      console.log('✅ Statistiques sauvegardées avec succès:', data);
+      console.log('📊 Résultat de l\'opération:', result);
+      
+      if (result.error) {
+        console.error('❌ Erreur lors de l\'opération:', result.error);
+        throw result.error;
+      }
+      
+      console.log('✅ Statistiques sauvegardées avec succès:', result.data);
       
       setStatistiques(prev => ({ ...prev, [demandeId]: { demande_id: demandeId, ...stats } }));
       setEditingStats(null);
