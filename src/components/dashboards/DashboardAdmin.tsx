@@ -220,21 +220,36 @@ const DashboardAdmin = () => {
   const updateStatistiques = async (demandeId: string, stats: any) => {
     setUpdatingStats(demandeId);
     try {
-      const { error } = await supabase
-        .from('statistiques_demandes')
-        .upsert({
-          demande_id: demandeId,
-          ...stats
-        });
+      console.log('💾 Sauvegarde des statistiques pour la demande:', demandeId);
+      console.log('📊 Données à sauvegarder:', stats);
+      console.log('👤 Utilisateur actuel:', currentUser?.email, 'Role:', currentUser?.role);
       
-      if (error) throw error;
+      const dataToInsert = {
+        demande_id: demandeId,
+        ...stats
+      };
+      console.log('📝 Données complètes à insérer:', dataToInsert);
+      
+      const { data, error } = await supabase
+        .from('statistiques_demandes')
+        .upsert(dataToInsert)
+        .select();
+      
+      console.log('📊 Résultat de l\'upsert:', { data, error });
+      
+      if (error) {
+        console.error('❌ Erreur lors de l\'upsert:', error);
+        throw error;
+      }
+      
+      console.log('✅ Statistiques sauvegardées avec succès:', data);
       
       setStatistiques(prev => ({ ...prev, [demandeId]: { demande_id: demandeId, ...stats } }));
       setEditingStats(null);
       setTempStats(prev => ({ ...prev, [demandeId]: {} }));
       setMessage('Statistiques mises à jour !');
     } catch (err: any) {
-      console.error('Erreur mise à jour statistiques:', err);
+      console.error('💥 Erreur mise à jour statistiques:', err);
       setMessage('Erreur lors de la mise à jour des statistiques');
     }
     setUpdatingStats(null);
