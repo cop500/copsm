@@ -45,20 +45,20 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
   pdf.setTextColor(...primaryColor);
   pdf.text('COP - Centre d\'Orientation Professionnelle', margin, yPosition);
   
-  yPosition += 15;
+  yPosition += 10;
   pdf.setFontSize(14);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(...textColor);
   pdf.text('Détail de la demande entreprise', margin, yPosition);
   
-  yPosition += 25;
+  yPosition += 15;
 
   // Informations entreprise
   pdf.setFontSize(14);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(...primaryColor);
   pdf.text('Informations entreprise', margin, yPosition);
-  yPosition += 12;
+  yPosition += 8;
 
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
@@ -74,17 +74,17 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
 
   entrepriseInfo.forEach(info => {
     pdf.text(`${info.label} : ${info.value}`, margin, yPosition);
-    yPosition += 8;
+    yPosition += 6;
   });
 
-  yPosition += 15;
+  yPosition += 10;
 
   // Informations contact
   pdf.setFontSize(14);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(...primaryColor);
   pdf.text('Informations contact', margin, yPosition);
-  yPosition += 12;
+  yPosition += 8;
 
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
@@ -98,17 +98,17 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
 
   contactInfo.forEach(info => {
     pdf.text(`${info.label} : ${info.value}`, margin, yPosition);
-    yPosition += 8;
+    yPosition += 6;
   });
 
-  yPosition += 15;
+  yPosition += 10;
 
   // Détails de la demande
   pdf.setFontSize(14);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(...primaryColor);
   pdf.text('Détails de la demande', margin, yPosition);
-  yPosition += 12;
+  yPosition += 8;
 
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
@@ -128,17 +128,17 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
 
   demandeInfo.forEach(info => {
     pdf.text(`${info.label} : ${info.value}`, margin, yPosition);
-    yPosition += 8;
+    yPosition += 6;
   });
 
   // Profils demandés
   if (demande.profils && demande.profils.length > 0) {
-    yPosition += 15;
+    yPosition += 10;
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(...primaryColor);
     pdf.text('Profils demandés', margin, yPosition);
-    yPosition += 12;
+    yPosition += 8;
 
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'normal');
@@ -147,7 +147,7 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
     demande.profils.forEach((profil: any, index: number) => {
       pdf.setFont('helvetica', 'bold');
       pdf.text(`Profil ${index + 1} :`, margin, yPosition);
-      yPosition += 8;
+      yPosition += 6;
       
       pdf.setFont('helvetica', 'normal');
       
@@ -161,21 +161,21 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
 
       profilDetails.forEach(detail => {
         pdf.text(`  ${detail}`, margin + 5, yPosition);
-        yPosition += 6;
+        yPosition += 5;
       });
       
-      yPosition += 8;
+      yPosition += 6;
     });
   }
 
   // Statistiques si disponibles
   if (statistiques) {
-    yPosition += 10;
+    yPosition += 8;
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(...primaryColor);
     pdf.text('Statistiques', margin, yPosition);
-    yPosition += 12;
+    yPosition += 8;
 
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'normal');
@@ -184,28 +184,28 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
     if (demande.evenement_type === 'Job Day') {
       if (statistiques.nombre_candidats) {
         pdf.text(`Nombre de candidats : ${statistiques.nombre_candidats}`, margin, yPosition);
-        yPosition += 8;
+        yPosition += 6;
       }
       if (statistiques.nombre_candidats_retenus) {
         pdf.text(`Nombre de candidats retenus : ${statistiques.nombre_candidats_retenus}`, margin, yPosition);
-        yPosition += 8;
+        yPosition += 6;
       }
     } else if (demande.evenement_type === 'CV seulement') {
       if (statistiques.nombre_cv_envoyes) {
         pdf.text(`Nombre de CV envoyés : ${statistiques.nombre_cv_envoyes}`, margin, yPosition);
-        yPosition += 8;
+        yPosition += 6;
       }
     }
   }
 
   // Commentaires si disponibles
   if (commentaires && commentaires.length > 0) {
-    yPosition += 15;
+    yPosition += 10;
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(...primaryColor);
     pdf.text('Commentaires', margin, yPosition);
-    yPosition += 12;
+    yPosition += 8;
 
     commentaires.forEach((commentaire: any) => {
       const date = new Date(commentaire.created_at).toLocaleDateString('fr-FR');
@@ -214,7 +214,7 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...primaryColor);
       pdf.text(`${commentaire.auteur} - ${date}`, margin, yPosition);
-      yPosition += 8;
+      yPosition += 6;
 
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...textColor);
@@ -222,21 +222,12 @@ export const generateDemandePDF = async (demande: DemandeEntreprise, commentaire
       const lines = pdf.splitTextToSize(commentaire.contenu, contentWidth);
       lines.forEach((line: string) => {
         pdf.text(line, margin, yPosition);
-        yPosition += 6;
+        yPosition += 5;
       });
       
-      yPosition += 10;
+      yPosition += 8;
     });
   }
-
-  // Pied de page
-  const footerY = pageHeight - 25;
-  pdf.setFontSize(10);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(128, 128, 128);
-  pdf.text(`Demande créée le : ${new Date(demande.created_at).toLocaleDateString('fr-FR')}`, margin, footerY);
-  pdf.text(`Statut : ${demande.statut || 'Non défini'}`, margin + 80, footerY);
-  pdf.text('Document généré automatiquement par COP', pageWidth - margin - 80, footerY);
 
   return pdf;
 };
@@ -264,8 +255,8 @@ export const printDemande = (demande: DemandeEntreprise, commentaires: any[] = [
       <style>
         body { 
           font-family: Arial, sans-serif; 
-          margin: 30px; 
-          line-height: 1.6;
+          margin: 20px; 
+          line-height: 1.4;
           color: #333;
         }
         
@@ -283,7 +274,7 @@ export const printDemande = (demande: DemandeEntreprise, commentaires: any[] = [
         }
         
         .section {
-          margin-bottom: 25px;
+          margin-bottom: 15px;
         }
         
         .section-title {
@@ -294,12 +285,12 @@ export const printDemande = (demande: DemandeEntreprise, commentaires: any[] = [
         }
         
         .info-line {
-          margin-bottom: 8px;
+          margin-bottom: 5px;
           font-size: 12px;
         }
         
         .profil {
-          margin-bottom: 15px;
+          margin-bottom: 10px;
           padding-left: 15px;
         }
         
@@ -316,8 +307,8 @@ export const printDemande = (demande: DemandeEntreprise, commentaires: any[] = [
         }
         
         .comment {
-          margin-bottom: 15px;
-          padding: 10px;
+          margin-bottom: 10px;
+          padding: 8px;
           background: #f9f9f9;
           border-left: 3px solid #004080;
         }
@@ -334,13 +325,7 @@ export const printDemande = (demande: DemandeEntreprise, commentaires: any[] = [
         }
         
         .footer {
-          margin-top: 30px;
-          padding-top: 15px;
-          border-top: 1px solid #ccc;
-          font-size: 10px;
-          color: #666;
-          display: flex;
-          justify-content: space-between;
+          display: none;
         }
         
         @media print {
