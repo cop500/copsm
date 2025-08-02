@@ -186,27 +186,33 @@ const DashboardAdmin = () => {
   // Charger les statistiques d'une demande
   const loadStatistiques = async (demandeId: string) => {
     try {
+      console.log('🔍 Chargement des statistiques pour la demande:', demandeId);
+      console.log('👤 Utilisateur actuel:', currentUser?.email, 'Role:', currentUser?.role);
+      
       const { data, error } = await supabase
         .from('statistiques_demandes')
         .select('*')
         .eq('demande_id', demandeId)
         .single();
       
+      console.log('📊 Résultat de la requête:', { data, error });
+      
       if (error) {
         if (error.code === 'PGRST116') {
           // Pas de données trouvées - c'est normal pour une nouvelle demande
-          console.log('Aucune statistique trouvée pour la demande:', demandeId);
+          console.log('ℹ️ Aucune statistique trouvée pour la demande:', demandeId);
           return;
         }
+        console.error('❌ Erreur lors du chargement des statistiques:', error);
         throw error;
       }
       
       if (data) {
         setStatistiques(prev => ({ ...prev, [demandeId]: data }));
-        console.log('Statistiques chargées:', data);
+        console.log('✅ Statistiques chargées avec succès:', data);
       }
     } catch (err: any) {
-      console.error('Erreur chargement statistiques:', err);
+      console.error('💥 Erreur chargement statistiques:', err);
     }
   };
 
@@ -705,7 +711,14 @@ const DashboardAdmin = () => {
 
                         {/* Section Statistiques */}
                         <div className="mt-8">
-                          <h4 className="text-lg font-semibold text-[#004080] mb-4">Statistiques</h4>
+                          <h4 className="text-lg font-semibold text-[#004080] mb-4">
+                            Statistiques
+                            {process.env.NODE_ENV === 'development' && (
+                              <span className="text-xs text-gray-500 ml-2">
+                                (Debug: {statistiques[demande.id] ? 'Avec données' : 'Sans données'})
+                              </span>
+                            )}
+                          </h4>
                           <div className="bg-white p-6 rounded-lg border border-gray-200">
                             {editingStats === demande.id ? (
                               // Mode édition
