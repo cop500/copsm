@@ -71,46 +71,28 @@ export const useSettings = () => {
     try {
       setLoading(true)
       
-      // Charger les pôles
-      const { data: polesData, error: polesError } = await supabase
-        .from('poles')
-        .select('*')
-        .order('nom')
+      // Charger toutes les données en parallèle pour améliorer les performances
+      const [polesResult, filieresResult, eventTypesResult, cvStatusResult] = await Promise.all([
+        supabase.from('poles').select('*').order('nom'),
+        supabase.from('filieres').select('*').order('nom'),
+        supabase.from('event_types').select('*').order('nom'),
+        supabase.from('cv_status').select('*').order('position')
+      ])
       
-      if (polesError) throw polesError
-      setPoles(polesData || [])
-
-      // Charger les filières directement depuis la table
-      const { data: filieresData, error: filieresError } = await supabase
-        .from('filieres')
-        .select('*')
-        .order('nom')
+      if (polesResult.error) throw polesResult.error
+      if (filieresResult.error) throw filieresResult.error
+      if (eventTypesResult.error) throw eventTypesResult.error
+      if (cvStatusResult.error) throw cvStatusResult.error
       
-      if (filieresError) throw filieresError
-      setFilieres(filieresData || [])
-
-      // Charger les types d'événements
-      const { data: eventTypesData, error: eventTypesError } = await supabase
-        .from('event_types')
-        .select('*')
-        .order('nom')
-      
-      if (eventTypesError) throw eventTypesError
-      setEventTypes(eventTypesData || [])
-
-      // Charger les statuts CV
-      const { data: cvStatusData, error: cvStatusError } = await supabase
-        .from('cv_status')
-        .select('*')
-        .order('position')
-      
-      if (cvStatusError) throw cvStatusError
-      setCvStatus(cvStatusData || [])
+      setPoles(polesResult.data || [])
+      setFilieres(filieresResult.data || [])
+      setEventTypes(eventTypesResult.data || [])
+      setCvStatus(cvStatusResult.data || [])
 
     } catch (err: unknown) {
       if (err instanceof Error) {
-      setError(err.message)
-      console.error('Erreur lors du chargement des paramètres:', err)
+        setError(err.message)
+        console.error('Erreur lors du chargement des paramètres:', err)
       }
     } finally {
       setLoading(false)
@@ -258,20 +240,44 @@ export const useSettings = () => {
   useEffect(() => {
     loadSettings()
 
-    // Abonnements Realtime
+    // Abonnements Realtime optimisés - mise à jour locale au lieu de recharger tout
     const subscription = supabase
       .channel('settings-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'poles' }, () => {
-        loadSettings()
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'poles' }, (payload) => {
+        setPoles(prev => [...prev, payload.new as Pole])
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'filieres' }, () => {
-        loadSettings()
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poles' }, (payload) => {
+        setPoles(prev => prev.map(p => p.id === payload.new.id ? payload.new as Pole : p))
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_types' }, () => {
-        loadSettings()
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'poles' }, (payload) => {
+        setPoles(prev => prev.filter(p => p.id !== payload.old.id))
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cv_status' }, () => {
-        loadSettings()
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'filieres' }, (payload) => {
+        setFilieres(prev => [...prev, payload.new as Filiere])
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'filieres' }, (payload) => {
+        setFilieres(prev => prev.map(f => f.id === payload.new.id ? payload.new as Filiere : f))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'filieres' }, (payload) => {
+        setFilieres(prev => prev.filter(f => f.id !== payload.old.id))
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event_types' }, (payload) => {
+        setEventTypes(prev => [...prev, payload.new as EventType])
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'event_types' }, (payload) => {
+        setEventTypes(prev => prev.map(e => e.id === payload.new.id ? payload.new as EventType : e))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'event_types' }, (payload) => {
+        setEventTypes(prev => prev.filter(e => e.id !== payload.old.id))
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'cv_status' }, (payload) => {
+        setCvStatus(prev => [...prev, payload.new as CvStatus])
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'cv_status' }, (payload) => {
+        setCvStatus(prev => prev.map(c => c.id === payload.new.id ? payload.new as CvStatus : c))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'cv_status' }, (payload) => {
+        setCvStatus(prev => prev.filter(c => c.id !== payload.old.id))
       })
       .subscribe()
 

@@ -1,4 +1,4 @@
--- Nettoyage des statistiques dupliquées
+-- Script simplifié pour corriger les statistiques dupliquées
 
 -- 1. Voir les demandes qui ont des statistiques dupliquées
 SELECT 
@@ -25,25 +25,13 @@ FROM statistiques_demandes
 GROUP BY demande_id
 HAVING COUNT(*) > 1;
 
--- 4. Ajouter la contrainte UNIQUE (supprimer d'abord si elle existe)
-DO $$ 
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
-        WHERE constraint_name = 'unique_demande_id' 
-        AND table_name = 'statistiques_demandes'
-    ) THEN
-        ALTER TABLE statistiques_demandes DROP CONSTRAINT unique_demande_id;
-    END IF;
-    
-    ALTER TABLE statistiques_demandes ADD CONSTRAINT unique_demande_id UNIQUE (demande_id);
-EXCEPTION
-    WHEN duplicate_object THEN
-        -- La contrainte existe déjà, on ne fait rien
-        NULL;
-END $$;
+-- 4. Supprimer la contrainte si elle existe (pour éviter l'erreur)
+ALTER TABLE statistiques_demandes DROP CONSTRAINT IF EXISTS unique_demande_id;
 
--- 5. Vérifier la structure finale
+-- 5. Ajouter la contrainte UNIQUE
+ALTER TABLE statistiques_demandes ADD CONSTRAINT unique_demande_id UNIQUE (demande_id);
+
+-- 6. Vérifier la structure finale
 SELECT 
     demande_id,
     nombre_candidats,

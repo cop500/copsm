@@ -86,36 +86,81 @@ const DashboardAdmin = () => {
   // Supprimer une demande
   const handleDelete = async (demandeId: string) => {
     if (!window.confirm("Confirmer la suppression de cette demande ?")) return;
+    
+    // Mise à jour optimiste
+    const demandeToDelete = demandes.find(d => d.id === demandeId);
+    setDemandes(prev => prev.filter(d => d.id !== demandeId));
+    
     const { error } = await supabase
       .from("demandes_entreprises")
       .delete()
       .eq("id", demandeId);
+    
     if (!error) {
       setMessage("Demande supprimée avec succès !");
-      loadDemandes();
     } else {
+      // Restaurer si erreur
+      if (demandeToDelete) {
+        setDemandes(prev => [demandeToDelete, ...prev]);
+      }
       setMessage("Erreur lors de la suppression.");
     }
     setTimeout(() => setMessage(""), 3000);
   };
 
   useEffect(() => {
-    loadDemandes();
-    loadProfiles();
-    loadNotifications();
+    // Charger toutes les données en parallèle pour améliorer les performances
+    const loadAllData = async () => {
+      setLoading(true);
+      try {
+        const [demandesResult, profilesResult, notificationsResult] = await Promise.all([
+          supabase.from("demandes_entreprises").select("*").order("created_at", { ascending: false }),
+          supabase.from("profiles").select("id, nom, prenom, role"),
+          supabase.from('notifications_demandes').select(`
+            *,
+            demande:demandes_entreprises(entreprise_nom, statut)
+          `).order('created_at', { ascending: false })
+        ]);
+
+        if (!demandesResult.error) setDemandes(demandesResult.data || []);
+        if (!profilesResult.error) setProfiles(profilesResult.data || []);
+        if (!notificationsResult.error) setNotifications(notificationsResult.data || []);
+      } catch (error) {
+        console.error('Erreur lors du chargement des données:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllData();
   }, []);
 
   // Assigner une demande à un membre
   const handleAssign = async (demandeId: string, userId: string) => {
     setAssigning(demandeId);
+    
+    // Mise à jour optimiste
+    const assignedProfile = profiles.find(p => p.id === userId);
+    setDemandes(prev => prev.map(d => 
+      d.id === demandeId 
+        ? { ...d, traite_par: userId }
+        : d
+    ));
+    
     const { error } = await supabase
       .from("demandes_entreprises")
       .update({ traite_par: userId })
       .eq("id", demandeId);
+    
     if (!error) {
       setMessage("Demande assignée avec succès !");
-      loadDemandes();
     } else {
+      // Restaurer si erreur
+      setDemandes(prev => prev.map(d => 
+        d.id === demandeId 
+          ? { ...d, traite_par: d.traite_par }
+          : d
+      ));
       setMessage("Erreur lors de l'assignation.");
     }
     setAssigning(null);
@@ -123,14 +168,28 @@ const DashboardAdmin = () => {
   };
 
   const handleStatutChange = async (demandeId: string, newStatut: string) => {
+    // Mise à jour optimiste
+    const oldStatut = demandes.find(d => d.id === demandeId)?.statut;
+    setDemandes(prev => prev.map(d => 
+      d.id === demandeId 
+        ? { ...d, statut: newStatut }
+        : d
+    ));
+    
     const { error } = await supabase
       .from('demandes_entreprises')
       .update({ statut: newStatut })
       .eq('id', demandeId);
+    
     if (!error) {
       setMessage('Statut mis à jour !');
-      loadDemandes();
     } else {
+      // Restaurer si erreur
+      setDemandes(prev => prev.map(d => 
+        d.id === demandeId 
+          ? { ...d, statut: oldStatut }
+          : d
+      ));
       setMessage("Erreur lors de la mise à jour du statut.");
     }
     setTimeout(() => setMessage(""), 3000);
