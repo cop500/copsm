@@ -647,6 +647,11 @@ export default function StagiairesPage() {
 
      {/* Modal de détails de candidature - Version simple */}
      {showCandidatureDetail && selectedCandidature && (
+       <div style={{ position: 'fixed', top: '10px', right: '10px', background: 'red', color: 'white', padding: '10px', zIndex: 10001 }}>
+         DEBUG: Modal active - {selectedCandidature.entreprise_nom}
+       </div>
+     )}
+     {showCandidatureDetail && selectedCandidature && (
        <div 
          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
