@@ -229,15 +229,20 @@ const CandidaturePage = () => {
       
       console.log('Insertion candidature en cours...')
       
-      // Insérer la candidature avec seulement les champs qui ne dépendent pas de clés étrangères
-      const candidatureData = {
-        entreprise_nom: selectedDemande.display_nom,
-        poste: selectedDemande.display_poste,
-        type_contrat: selectedDemande.display_type,
-        date_candidature: new Date().toISOString().split('T')[0],
-        source_offre: 'Site web COP',
-        statut_candidature: 'envoye'
-      }
+             // Insérer la candidature avec les informations personnelles
+       const candidatureData = {
+         entreprise_nom: selectedDemande.display_nom,
+         poste: selectedDemande.display_poste,
+         type_contrat: selectedDemande.display_type,
+         date_candidature: new Date().toISOString().split('T')[0],
+         source_offre: 'Site web COP',
+         statut_candidature: 'envoye',
+         nom: formData.nom,
+         prenom: formData.prenom,
+         email: formData.email,
+         telephone: formData.telephone,
+         cv_url: cvUrl
+       }
       
       console.log('Données candidature à insérer:', candidatureData)
       
@@ -252,18 +257,18 @@ const CandidaturePage = () => {
       
       console.log('Candidature insérée avec succès')
       
-      // Afficher un message de succès avec les informations
-      alert(`Candidature envoyée avec succès !
-      
-Entreprise: ${selectedDemande.display_nom}
-Poste: ${selectedDemande.display_poste}
-Type: ${selectedDemande.display_type}
-Nom: ${formData.nom}
-Prénom: ${formData.prenom}
-Email: ${formData.email}
-Téléphone: ${formData.telephone}
-
-Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegardés dans la base de données pour des raisons de confidentialité et de contraintes techniques.`)
+             // Afficher un message de succès avec les informations
+       alert(`Candidature envoyée avec succès !
+       
+ Entreprise: ${selectedDemande.display_nom}
+ Poste: ${selectedDemande.display_poste}
+ Type: ${selectedDemande.display_type}
+ Nom: ${formData.nom}
+ Prénom: ${formData.prenom}
+ Email: ${formData.email}
+ Téléphone: ${formData.telephone}
+ 
+ Votre candidature a été enregistrée et sera traitée dans les plus brefs délais.`)
       
       setSuccess(true)
       setFormData({
