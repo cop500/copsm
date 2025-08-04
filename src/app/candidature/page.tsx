@@ -95,6 +95,7 @@ const CandidaturePage = () => {
       
       // Filtrer les demandes entreprises actives
       const activeDemandesEntreprises = demandesEntreprises?.filter(d => 
+        d.statut === 'nouvelle' || 
         d.statut === 'en_cours' || 
         d.statut === 'en_attente' || 
         !d.statut || 
