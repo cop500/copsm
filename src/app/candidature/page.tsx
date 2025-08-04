@@ -112,7 +112,13 @@ const CandidaturePage = () => {
         throw new Error('Le fichier est trop volumineux (max 5MB)')
       }
       
-      const fileName = `cv_${Date.now()}_${file.name}`
+      // Nettoyer le nom du fichier pour éviter les caractères spéciaux
+      const cleanFileName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Remplacer les caractères spéciaux par des underscores
+        .replace(/_{2,}/g, '_') // Remplacer les underscores multiples par un seul
+        .replace(/^_|_$/g, '') // Supprimer les underscores au début et à la fin
+      
+      const fileName = `cv_${Date.now()}_${cleanFileName}`
       console.log('Tentative upload vers bucket cv-stagiaires:', fileName)
       
       const { data, error } = await supabase.storage
