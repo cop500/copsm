@@ -96,6 +96,7 @@ const CandidaturePage = () => {
       
       // Maintenant, filtrons pour les demandes actives
       const activeDemandes = allData?.filter(d => 
+        d.statut === 'nouvelle' || 
         d.statut === 'en_cours' || 
         d.statut === 'en_attente' || 
         !d.statut || 

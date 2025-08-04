@@ -7,14 +7,13 @@ SELECT
     dc.created_at,
     dc.updated_at,
     dc.statut,
-    dc.id_stagiaire,
-    dc.id_entreprise,
-    s.nom as nom_stagiaire,
-    s.prenom as prenom_stagiaire,
-    e.nom as nom_entreprise
+    dc.nom_entreprise,
+    dc.poste_recherche,
+    dc.type_contrat,
+    dc.niveau_requis,
+    dc.contact_nom,
+    dc.contact_email
 FROM demandes_cv dc
-LEFT JOIN stagiaires s ON dc.id_stagiaire = s.id
-LEFT JOIN entreprises e ON dc.id_entreprise = e.id
 ORDER BY dc.created_at DESC;
 
 -- 2. Compter les demandes par statut
@@ -31,14 +30,11 @@ SELECT
     dc.created_at,
     dc.updated_at,
     dc.statut,
-    dc.id_stagiaire,
-    dc.id_entreprise,
-    s.nom as nom_stagiaire,
-    s.prenom as prenom_stagiaire,
-    e.nom as nom_entreprise
+    dc.nom_entreprise,
+    dc.poste_recherche,
+    dc.type_contrat,
+    dc.niveau_requis
 FROM demandes_cv dc
-LEFT JOIN stagiaires s ON dc.id_stagiaire = s.id
-LEFT JOIN entreprises e ON dc.id_entreprise = e.id
 WHERE dc.statut IS NULL
 ORDER BY dc.created_at DESC;
 
