@@ -278,15 +278,15 @@ const CandidaturePage = () => {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <div className="inline-block p-10 bg-gradient-to-r from-indigo-600/20 to-blue-600/20 backdrop-blur-md rounded-3xl border-2 border-white/30 shadow-2xl mb-8">
-              <h1 className="text-6xl font-black text-white mb-6 drop-shadow-2xl tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>
+            <div className="inline-block p-8 bg-white/10 backdrop-blur-sm rounded-3xl border border-white/20 mb-8">
+              <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-lg">
                 ESPACE Candidature
               </h1>
-              <h2 className="text-4xl font-bold text-yellow-300 mb-4 drop-shadow-lg tracking-wide" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <h2 className="text-3xl font-semibold text-indigo-200 mb-3">
                 COP CMC SM
               </h2>
-              <div className="w-32 h-2 bg-gradient-to-r from-yellow-400 to-orange-400 mx-auto mb-6 rounded-full shadow-lg"></div>
-              <p className="text-3xl text-cyan-200 font-bold tracking-wider drop-shadow-lg" style={{ fontFamily: 'Verdana, sans-serif' }}>
+              <div className="w-24 h-1 bg-gradient-to-r from-indigo-400 to-blue-400 mx-auto mb-4"></div>
+              <p className="text-2xl text-white/90 font-medium">
                 DÉPOSER VOTRE CANDIDATURE
               </p>
             </div>
@@ -294,16 +294,11 @@ const CandidaturePage = () => {
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Liste des demandes */}
-            <div className="bg-gradient-to-br from-white/95 to-indigo-50/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 border-2 border-indigo-200/50 relative overflow-hidden">
-              {/* Background pattern */}
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/30 to-blue-100/30 opacity-50"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full -translate-y-16 translate-x-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/20 to-indigo-400/20 rounded-full translate-y-12 -translate-x-12"></div>
-              
-              <div className="relative z-10 mb-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-3" style={{ fontFamily: 'Georgia, serif' }}>Demandes disponibles</h2>
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Demandes disponibles</h2>
                 <p className="text-gray-600 text-lg">Sélectionnez une offre pour postuler</p>
-                <div className="w-20 h-2 bg-gradient-to-r from-indigo-500 to-blue-500 mt-4 rounded-full shadow-md"></div>
+                <div className="w-16 h-1 bg-gradient-to-r from-indigo-500 to-blue-500 mt-4"></div>
               </div>
               <div className="space-y-4">
                 {demandes.map((demande) => (
@@ -339,16 +334,11 @@ const CandidaturePage = () => {
             </div>
 
             {/* Formulaire de candidature */}
-            <div className="bg-gradient-to-br from-white/95 to-blue-50/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50 relative overflow-hidden">
-              {/* Background pattern */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-100/30 to-indigo-100/30 opacity-50"></div>
-              <div className="absolute top-0 left-0 w-28 h-28 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full -translate-y-14 -translate-x-14"></div>
-              <div className="absolute bottom-0 right-0 w-20 h-20 bg-gradient-to-tl from-indigo-400/20 to-blue-400/20 rounded-full translate-y-10 translate-x-10"></div>
-              
-              <div className="relative z-10 mb-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-3" style={{ fontFamily: 'Georgia, serif' }}>Formulaire de candidature</h2>
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Formulaire de candidature</h2>
                 <p className="text-gray-600 text-lg">Remplissez vos informations personnelles</p>
-                <div className="w-20 h-2 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4 rounded-full shadow-md"></div>
+                <div className="w-16 h-1 bg-gradient-to-r from-indigo-500 to-blue-500 mt-4"></div>
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-6">
