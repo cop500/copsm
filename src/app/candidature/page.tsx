@@ -364,24 +364,32 @@ const CandidaturePage = () => {
               <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-lg">
                 ESPACE Candidature
               </h1>
-              <h2 className="text-3xl font-semibold text-blue-200 mb-3">
-                COP CMC SM
-              </h2>
-              <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4"></div>
-              <p className="text-2xl text-white/90 font-medium">
-                DÉPOSER VOTRE CANDIDATURE
-              </p>
+                             <h2 className="text-3xl font-semibold text-yellow-300 mb-3 drop-shadow-lg">
+                 COP CMC SM
+               </h2>
+               <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-green-400 mx-auto mb-4"></div>
+               <p className="text-2xl text-green-300 font-medium drop-shadow-lg">
+                 DÉPOSER VOTRE CANDIDATURE
+               </p>
             </div>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Liste des demandes */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50">
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-3">Demandes disponibles</h2>
-                <p className="text-gray-600 text-lg">Sélectionnez une offre pour postuler</p>
-                <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"></div>
-              </div>
+            <div className="relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
+              {/* Background avec image */}
+              <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+                style={{
+                  backgroundImage: "url('/bg-entreprise.jpg')"
+                }}
+              ></div>
+              
+              <div className="relative z-10">
+                <div className="mb-8">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-3">Demandes disponibles</h2>
+                  <p className="text-gray-600 text-lg">Sélectionnez une offre pour postuler</p>
+                  <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"></div>
+                </div>
               <div className="space-y-4">
                 {demandes.map((demande) => (
                   <div
@@ -411,17 +419,26 @@ const CandidaturePage = () => {
                       </span>
                     </div>
                   </div>
-                ))}
+                                 ))}
+               </div>
               </div>
             </div>
 
             {/* Formulaire de candidature */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50">
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-3">Formulaire de candidature</h2>
-                <p className="text-gray-600 text-lg">Remplissez vos informations personnelles</p>
-                <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"></div>
-              </div>
+            <div className="relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
+              {/* Background avec image */}
+              <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+                style={{
+                  backgroundImage: "url('/bg-entreprise.jpg')"
+                }}
+              ></div>
+              
+              <div className="relative z-10">
+                <div className="mb-8">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-3">Formulaire de candidature</h2>
+                  <p className="text-gray-600 text-lg">Remplissez vos informations personnelles</p>
+                  <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"></div>
+                </div>
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
@@ -619,6 +636,7 @@ const CandidaturePage = () => {
                   )}
                 </button>
               </form>
+              </div>
             </div>
           </div>
         </div>
