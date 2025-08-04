@@ -7,21 +7,63 @@ import {
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
   ChevronRight, ChevronDown, Star, Flag, Download, ExternalLink, Users,
   Briefcase, FileText, MessageSquare, TrendingUp, UserCheck, Building2,
-  Send, Printer
+  Send, Printer, CalendarDays, PhoneCall, Mail as MailIcon, Star as StarIcon,
+  EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
+  FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw
 } from 'lucide-react'
+
+// Types pour les nouveaux statuts
+type CandidatureStatus = 
+  | 'envoye' 
+  | 'en_etude' 
+  | 'invite_entretien' 
+  | 'entretien_programme' 
+  | 'entretien_realise' 
+  | 'acceptee' 
+  | 'refusee' 
+  | 'en_attente'
+
+interface CandidatureAction {
+  id: string
+  type: 'status_change' | 'note_added' | 'interview_scheduled' | 'contact_made'
+  description: string
+  date: string
+  user?: string
+}
 
 export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature } = useCandidatures()
   
-  // Debug: vérifier les candidatures
-  console.log('Candidatures chargées:', candidaturesStagiaires)
-
+  // États pour les filtres et actions
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
   const [candidatureSearch, setCandidatureSearch] = useState('')
+  const [dateFilter, setDateFilter] = useState('tous')
+  const [entrepriseFilter, setEntrepriseFilter] = useState('')
   const [selectedCandidature, setSelectedCandidature] = useState<any>(null)
   const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
   const [candidatureNotes, setCandidatureNotes] = useState('')
+  const [showInterviewModal, setShowInterviewModal] = useState(false)
+  const [interviewData, setInterviewData] = useState({
+    date: '',
+    time: '',
+    type: 'telephone',
+    notes: ''
+  })
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
+  const [selectedCandidatures, setSelectedCandidatures] = useState<string[]>([])
+  const [showBulkActions, setShowBulkActions] = useState(false)
+
+  // Configuration des statuts
+  const statusConfig = {
+    envoye: { label: 'Envoyée', color: 'bg-blue-100 text-blue-800', icon: Send },
+    en_etude: { label: 'En cours d\'étude', color: 'bg-yellow-100 text-yellow-800', icon: Eye },
+    invite_entretien: { label: 'Invitée en entretien', color: 'bg-purple-100 text-purple-800', icon: CalendarDays },
+    entretien_programme: { label: 'Entretien programmé', color: 'bg-indigo-100 text-indigo-800', icon: Clock },
+    entretien_realise: { label: 'Entretien réalisé', color: 'bg-orange-100 text-orange-800', icon: CheckCircle },
+    acceptee: { label: 'Acceptée', color: 'bg-green-100 text-green-800', icon: CheckSquare },
+    refusee: { label: 'Refusée', color: 'bg-red-100 text-red-800', icon: XSquare },
+    en_attente: { label: 'En attente', color: 'bg-gray-100 text-gray-800', icon: ClockIcon }
+  }
 
   const showMessage = (text: string, type: 'success' | 'error' = 'success') => {
     setMessage({ text, type })
@@ -63,6 +105,153 @@ export default function StagiairesPage() {
     }
   }
 
+  // Actions rapides
+  const handleQuickAction = async (candidatureId: string, action: string) => {
+    try {
+      let newStatus: CandidatureStatus = 'envoye'
+      let message = ''
+
+      switch (action) {
+        case 'invite_entretien':
+          newStatus = 'invite_entretien'
+          message = 'Candidat invité en entretien'
+          break
+        case 'programmer_entretien':
+          setSelectedCandidature(candidaturesStagiaires.find(c => c.id === candidatureId))
+          setShowInterviewModal(true)
+          return
+        case 'accepter':
+          newStatus = 'acceptee'
+          message = 'Candidature acceptée'
+          break
+        case 'refuser':
+          newStatus = 'refusee'
+          message = 'Candidature refusée'
+          break
+        case 'en_etude':
+          newStatus = 'en_etude'
+          message = 'Candidature en cours d\'étude'
+          break
+        case 'contacter':
+          // Ouvrir email client
+          const candidature = candidaturesStagiaires.find(c => c.id === candidatureId)
+          if (candidature?.email) {
+            window.open(`mailto:${candidature.email}?subject=Réponse à votre candidature - ${candidature.entreprise_nom}`, '_blank')
+          }
+          return
+      }
+
+      const result = await updateStatutCandidature(candidatureId, newStatus)
+      if (result.success) {
+        showMessage(message)
+      } else {
+        showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
+      }
+    } catch (error) {
+      showMessage('Erreur lors de l\'action', 'error')
+    }
+  }
+
+  // Programmer un entretien
+  const handleScheduleInterview = async () => {
+    if (!selectedCandidature || !interviewData.date || !interviewData.time) {
+      showMessage('Veuillez remplir tous les champs', 'error')
+      return
+    }
+
+    try {
+      const result = await updateStatutCandidature(
+        selectedCandidature.id,
+        'entretien_programme',
+        `Entretien programmé le ${interviewData.date} à ${interviewData.time} (${interviewData.type}). ${interviewData.notes}`
+      )
+      
+      if (result.success) {
+        showMessage('Entretien programmé avec succès')
+        setShowInterviewModal(false)
+        setInterviewData({ date: '', time: '', type: 'telephone', notes: '' })
+      } else {
+        showMessage(result.error || 'Erreur lors de la programmation', 'error')
+      }
+    } catch (error) {
+      showMessage('Erreur lors de la programmation', 'error')
+    }
+  }
+
+  // Actions en lot
+  const handleBulkAction = async (action: string) => {
+    if (selectedCandidatures.length === 0) {
+      showMessage('Aucune candidature sélectionnée', 'error')
+      return
+    }
+
+    try {
+      let newStatus: CandidatureStatus = 'envoye'
+      let message = ''
+
+      switch (action) {
+        case 'accepter':
+          newStatus = 'acceptee'
+          message = `${selectedCandidatures.length} candidature(s) acceptée(s)`
+          break
+        case 'refuser':
+          newStatus = 'refusee'
+          message = `${selectedCandidatures.length} candidature(s) refusée(s)`
+          break
+        case 'en_etude':
+          newStatus = 'en_etude'
+          message = `${selectedCandidatures.length} candidature(s) en cours d'étude`
+          break
+      }
+
+      // Mettre à jour toutes les candidatures sélectionnées
+      for (const candidatureId of selectedCandidatures) {
+        await updateStatutCandidature(candidatureId, newStatus)
+      }
+
+      showMessage(message)
+      setSelectedCandidatures([])
+      setShowBulkActions(false)
+    } catch (error) {
+      showMessage('Erreur lors de l\'action en lot', 'error')
+    }
+  }
+
+  // Filtrage des candidatures
+  const filteredCandidatures = candidaturesStagiaires.filter(candidature => {
+    const matchesSearch = candidatureSearch === '' || 
+      candidature.entreprise_nom.toLowerCase().includes(candidatureSearch.toLowerCase()) ||
+      candidature.poste.toLowerCase().includes(candidatureSearch.toLowerCase()) ||
+      candidature.nom?.toLowerCase().includes(candidatureSearch.toLowerCase()) ||
+      candidature.prenom?.toLowerCase().includes(candidatureSearch.toLowerCase())
+    
+    const matchesFilter = candidatureFilter === 'tous' || 
+      candidature.statut_candidature === candidatureFilter
+
+    const matchesEntreprise = entrepriseFilter === '' ||
+      candidature.entreprise_nom.toLowerCase().includes(entrepriseFilter.toLowerCase())
+
+    const matchesDate = (() => {
+      if (dateFilter === 'tous') return true
+      const candidatureDate = new Date(candidature.created_at)
+      const now = new Date()
+      const diffDays = Math.floor((now.getTime() - candidatureDate.getTime()) / (1000 * 60 * 60 * 24))
+      
+      switch (dateFilter) {
+        case 'aujourd_hui': return diffDays === 0
+        case 'cette_semaine': return diffDays <= 7
+        case 'ce_mois': return diffDays <= 30
+        default: return true
+      }
+    })()
+
+    return matchesSearch && matchesFilter && matchesEntreprise && matchesDate
+  })
+
+  // Statistiques
+  const getStatusCount = (status: CandidatureStatus) => 
+    candidaturesStagiaires.filter(c => c.statut_candidature === status).length
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Messages */}
@@ -81,7 +270,7 @@ export default function StagiairesPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">📥 Candidatures reçues</h1>
-          <p className="text-gray-600">Gestion des candidatures des stagiaires via le formulaire de candidature</p>
+          <p className="text-gray-600">Gestion avancée des candidatures avec workflow automatisé</p>
         </div>
         <div className="flex items-center space-x-3">
           <div className="text-right">
@@ -92,117 +281,169 @@ export default function StagiairesPage() {
       </div>
 
       {/* Statistiques des candidatures */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <Send className="w-8 h-8 text-blue-600 mr-3" />
-            <div>
-              <p className="text-sm text-gray-600">Envoyées</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {candidaturesStagiaires.filter(c => c.statut_candidature === 'envoye').length}
-              </p>
+      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+        {Object.entries(statusConfig).map(([status, config]) => {
+          const Icon = config.icon
+          return (
+            <div key={status} className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <Icon className="w-6 h-6 text-gray-600 mr-2" />
+                <div>
+                  <p className="text-xs text-gray-600">{config.label}</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {getStatusCount(status as CandidatureStatus)}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
-            <div>
-              <p className="text-sm text-gray-600">Acceptées</p>
-              <p className="text-2xl font-bold text-green-600">
-                {candidaturesStagiaires.filter(c => c.statut_candidature === 'acceptee').length}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <X className="w-8 h-8 text-red-600 mr-3" />
-            <div>
-              <p className="text-sm text-gray-600">Refusées</p>
-              <p className="text-2xl font-bold text-red-600">
-                {candidaturesStagiaires.filter(c => c.statut_candidature === 'refusee').length}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <Clock className="w-8 h-8 text-orange-600 mr-3" />
-            <div>
-              <p className="text-sm text-gray-600">En attente</p>
-              <p className="text-2xl font-bold text-orange-600">
-                {candidaturesStagiaires.filter(c => !c.statut_candidature || c.statut_candidature === 'en_attente').length}
-              </p>
-            </div>
-          </div>
-        </div>
+          )
+        })}
       </div>
+
+      {/* Actions en lot */}
+      {selectedCandidatures.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <CheckSquare className="w-5 h-5 text-blue-600" />
+              <span className="font-medium text-blue-900">
+                {selectedCandidatures.length} candidature(s) sélectionnée(s)
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleBulkAction('en_etude')}
+                className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-sm hover:bg-yellow-200"
+              >
+                En étude
+              </button>
+              <button
+                onClick={() => handleBulkAction('accepter')}
+                className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm hover:bg-green-200"
+              >
+                Accepter
+              </button>
+              <button
+                onClick={() => handleBulkAction('refuser')}
+                className="px-3 py-1 bg-red-100 text-red-800 rounded text-sm hover:bg-red-200"
+              >
+                Refuser
+              </button>
+              <button
+                onClick={() => setSelectedCandidatures([])}
+                className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm hover:bg-gray-200"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filtres et recherche */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-2">
             <div className="relative">
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="Rechercher par entreprise, poste..."
+                placeholder="Rechercher par entreprise, poste, nom..."
                 value={candidatureSearch}
                 onChange={(e) => setCandidatureSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
-          <select
-            value={candidatureFilter}
-            onChange={(e) => setCandidatureFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="tous">Tous les statuts</option>
-            <option value="envoye">Envoyées</option>
-            <option value="acceptee">Acceptées</option>
-            <option value="refusee">Refusées</option>
-            <option value="en_attente">En attente</option>
-          </select>
+          
+          <div>
+            <select
+              value={candidatureFilter}
+              onChange={(e) => setCandidatureFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="tous">Tous les statuts</option>
+              {Object.entries(statusConfig).map(([status, config]) => (
+                <option key={status} value={status}>{config.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="tous">Toutes dates</option>
+              <option value="aujourd_hui">Aujourd'hui</option>
+              <option value="cette_semaine">Cette semaine</option>
+              <option value="ce_mois">Ce mois</option>
+            </select>
+          </div>
+
+          <div>
+            <input
+              type="text"
+              placeholder="Filtrer par entreprise"
+              value={entrepriseFilter}
+              onChange={(e) => setEntrepriseFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
       </div>
 
       {/* Liste des candidatures */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            Candidatures reçues
+            Candidatures reçues ({filteredCandidatures.length})
           </h2>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowBulkActions(!showBulkActions)}
+              className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+            >
+              Actions en lot
+            </button>
+          </div>
         </div>
         
         <div className="divide-y divide-gray-200">
-          {candidaturesStagiaires.length === 0 ? (
+          {filteredCandidatures.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <Send className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>Aucune candidature reçue pour le moment</p>
-              <p className="text-sm mt-2">Les candidatures apparaîtront ici quand les étudiants utiliseront le formulaire</p>
+              <p>Aucune candidature trouvée</p>
+              <p className="text-sm mt-2">Ajustez vos filtres pour voir plus de résultats</p>
             </div>
           ) : (
-            candidaturesStagiaires
-              .filter(candidature => {
-                const matchesSearch = candidatureSearch === '' || 
-                  candidature.entreprise_nom.toLowerCase().includes(candidatureSearch.toLowerCase()) ||
-                  candidature.poste.toLowerCase().includes(candidatureSearch.toLowerCase())
-                
-                const matchesFilter = candidatureFilter === 'tous' || 
-                  candidature.statut_candidature === candidatureFilter
-                
-                return matchesSearch && matchesFilter
-              })
-              .map((candidature) => (
+            filteredCandidatures.map((candidature) => {
+              const statusInfo = statusConfig[candidature.statut_candidature as CandidatureStatus] || statusConfig.envoye
+              const StatusIcon = statusInfo.icon
+              
+              return (
                 <div key={candidature.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start">
+                  <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedCandidatures.includes(candidature.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCandidatures([...selectedCandidatures, candidature.id])
+                            } else {
+                              setSelectedCandidatures(selectedCandidatures.filter(id => id !== candidature.id))
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        
                         <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                           <Building2 className="w-5 h-5 text-white" />
                         </div>
+                        
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
                             {candidature.entreprise_nom}
@@ -211,16 +452,10 @@ export default function StagiairesPage() {
                             Reçue le {new Date(candidature.created_at).toLocaleDateString('fr-FR')}
                           </p>
                         </div>
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                          candidature.statut_candidature === 'envoye' ? 'bg-blue-100 text-blue-800' :
-                          candidature.statut_candidature === 'acceptee' ? 'bg-green-100 text-green-800' :
-                          candidature.statut_candidature === 'refusee' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {candidature.statut_candidature === 'envoye' ? 'Envoyée' :
-                           candidature.statut_candidature === 'acceptee' ? 'Acceptée' :
-                           candidature.statut_candidature === 'refusee' ? 'Refusée' :
-                           candidature.statut_candidature || 'En attente'}
+                        
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                          <StatusIcon className="w-3 h-3 mr-1" />
+                          {statusInfo.label}
                         </span>
                       </div>
                       
@@ -230,16 +465,16 @@ export default function StagiairesPage() {
                           <span className="font-medium">Poste :</span> {candidature.poste}
                         </div>
                         <div className="flex items-center">
+                          <User className="w-4 h-4 mr-2 text-gray-400" />
+                          <span className="font-medium">Candidat :</span> {candidature.nom} {candidature.prenom}
+                        </div>
+                        <div className="flex items-center">
+                          <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                          <span className="font-medium">Email :</span> {candidature.email}
+                        </div>
+                        <div className="flex items-center">
                           <FileText className="w-4 h-4 mr-2 text-gray-400" />
                           <span className="font-medium">Type :</span> {candidature.type_contrat || 'Non spécifié'}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          <span className="font-medium">Date :</span> {candidature.date_candidature || 'Non spécifiée'}
-                        </div>
-                        <div className="flex items-center">
-                          <ExternalLink className="w-4 h-4 mr-2 text-gray-400" />
-                          <span className="font-medium">Source :</span> {candidature.source_offre || 'Site web COP'}
                         </div>
                       </div>
                       
@@ -247,59 +482,107 @@ export default function StagiairesPage() {
                         <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center mb-2">
                             <MessageSquare className="w-4 h-4 mr-2 text-gray-400" />
-                            <span className="font-medium text-sm">Feedback :</span>
+                            <span className="font-medium text-sm">Notes :</span>
                           </div>
                           <p className="text-sm text-gray-600">{candidature.feedback_entreprise}</p>
                         </div>
                       )}
                     </div>
                     
-                    <div className="flex items-center space-x-2 ml-4">
-                      <button
-                        onClick={() => handleCandidatureDetail(candidature)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                      >
-                        Détails de la candidature
-                      </button>
-                      
-                      <select
-                        value={candidature.statut_candidature || 'envoye'}
-                        onChange={async (e) => {
-                          const result = await updateStatutCandidature(candidature.id, e.target.value)
-                          if (result.success) {
-                            showMessage('Statut mis à jour avec succès')
-                          } else {
-                            showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
-                          }
-                        }}
-                        className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="envoye">Envoyée</option>
-                        <option value="acceptee">Acceptée</option>
-                        <option value="refusee">Refusée</option>
-                        <option value="en_attente">En attente</option>
-                      </select>
-                      
-                      <button
-                        onClick={async () => {
-                          if (window.confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
-                            const result = await deleteCandidature(candidature.id)
+                    <div className="flex flex-col items-end space-y-2 ml-4">
+                      {/* Actions rapides */}
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => handleQuickAction(candidature.id, 'invite_entretien')}
+                          className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-md transition-colors"
+                          title="Inviter en entretien"
+                        >
+                          <CalendarDays className="w-4 h-4" />
+                        </button>
+                        
+                        <button
+                          onClick={() => handleQuickAction(candidature.id, 'programmer_entretien')}
+                          className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
+                          title="Programmer entretien"
+                        >
+                          <Clock className="w-4 h-4" />
+                        </button>
+                        
+                        <button
+                          onClick={() => handleQuickAction(candidature.id, 'contacter')}
+                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                          title="Contacter"
+                        >
+                          <MailIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => handleQuickAction(candidature.id, 'accepter')}
+                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors"
+                          title="Accepter"
+                        >
+                          <CheckSquare className="w-4 h-4" />
+                        </button>
+                        
+                        <button
+                          onClick={() => handleQuickAction(candidature.id, 'refuser')}
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                          title="Refuser"
+                        >
+                          <XSquare className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Actions principales */}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleCandidatureDetail(candidature)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          Détails
+                        </button>
+                        
+                        <select
+                          value={candidature.statut_candidature || 'envoye'}
+                          onChange={async (e) => {
+                            const result = await updateStatutCandidature(candidature.id, e.target.value)
                             if (result.success) {
-                              showMessage('Candidature supprimée avec succès')
+                              showMessage('Statut mis à jour avec succès')
                             } else {
-                              showMessage(result.error || 'Erreur lors de la suppression', 'error')
+                              showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
                             }
-                          }
-                        }}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                          }}
+                          className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500"
+                        >
+                          {Object.entries(statusConfig).map(([status, config]) => (
+                            <option key={status} value={status}>{config.label}</option>
+                          ))}
+                        </select>
+                        
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
+                              const result = await deleteCandidature(candidature.id)
+                              if (result.success) {
+                                showMessage('Candidature supprimée avec succès')
+                              } else {
+                                showMessage(result.error || 'Erreur lors de la suppression', 'error')
+                              }
+                            }
+                          }}
+                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))
+              )
+            })
           )}
         </div>
       </div>
@@ -307,7 +590,7 @@ export default function StagiairesPage() {
       {/* Modal de détails de candidature */}
       {showCandidatureDetail && selectedCandidature && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -326,11 +609,11 @@ export default function StagiairesPage() {
             </div>
 
             <div className="p-6">
-              <div className="space-y-6">
-                {/* Informations principales */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Informations de la candidature */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Informations de la candidature</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Entreprise</label>
                       <p className="text-gray-900">{selectedCandidature.entreprise_nom}</p>
@@ -357,15 +640,9 @@ export default function StagiairesPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                        selectedCandidature.statut_candidature === 'envoye' ? 'bg-blue-100 text-blue-800' :
-                        selectedCandidature.statut_candidature === 'acceptee' ? 'bg-green-100 text-green-800' :
-                        selectedCandidature.statut_candidature === 'refusee' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                        statusConfig[selectedCandidature.statut_candidature as CandidatureStatus]?.color || 'bg-gray-100 text-gray-800'
                       }`}>
-                        {selectedCandidature.statut_candidature === 'envoye' ? 'Envoyée' :
-                         selectedCandidature.statut_candidature === 'acceptee' ? 'Acceptée' :
-                         selectedCandidature.statut_candidature === 'refusee' ? 'Refusée' :
-                         selectedCandidature.statut_candidature || 'En attente'}
+                        {statusConfig[selectedCandidature.statut_candidature as CandidatureStatus]?.label || 'En attente'}
                       </span>
                     </div>
                   </div>
@@ -374,18 +651,18 @@ export default function StagiairesPage() {
                 {/* Informations du candidat */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Informations du candidat</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
-                      <p className="text-gray-900">{selectedCandidature.nom_candidat} {selectedCandidature.prenom_candidat}</p>
+                      <p className="text-gray-900">{selectedCandidature.nom} {selectedCandidature.prenom}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                      <p className="text-gray-900">{selectedCandidature.email_candidat}</p>
+                      <p className="text-gray-900">{selectedCandidature.email}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                      <p className="text-gray-900">{selectedCandidature.telephone_candidat || 'Non renseigné'}</p>
+                      <p className="text-gray-900">{selectedCandidature.telephone || 'Non renseigné'}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">CV</label>
@@ -401,7 +678,7 @@ export default function StagiairesPage() {
                             onClick={() => {
                               const link = document.createElement('a')
                               link.href = selectedCandidature.cv_url
-                              link.download = `CV_${selectedCandidature.nom_candidat}_${selectedCandidature.prenom_candidat}.pdf`
+                              link.download = `CV_${selectedCandidature.nom}_${selectedCandidature.prenom}_${selectedCandidature.entreprise_nom}.pdf`
                               link.click()
                             }}
                             className="text-green-600 hover:text-green-800 text-sm underline"
@@ -415,38 +692,132 @@ export default function StagiairesPage() {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Notes et feedback */}
+              {/* Notes et feedback */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes et feedback</h3>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes et feedback</h3>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes internes</label>
+                  <textarea
+                    value={candidatureNotes}
+                    onChange={(e) => setCandidatureNotes(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                    placeholder="Ajoutez vos notes sur cette candidature..."
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                <button
+                  onClick={() => setShowCandidatureDetail(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                >
+                  Fermer
+                </button>
+                <button
+                  onClick={handleUpdateCandidatureNotes}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Sauvegarder les notes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de programmation d'entretien */}
+      {showInterviewModal && selectedCandidature && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">Programmer un entretien</h2>
+                <button
+                  onClick={() => setShowInterviewModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Candidat</label>
+                  <p className="text-gray-900">{selectedCandidature.nom} {selectedCandidature.prenom}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Entreprise</label>
+                  <p className="text-gray-900">{selectedCandidature.entreprise_nom} - {selectedCandidature.poste}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes internes</label>
-                    <textarea
-                      value={candidatureNotes}
-                      onChange={(e) => setCandidatureNotes(e.target.value)}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                    <input
+                      type="date"
+                      value={interviewData.date}
+                      onChange={(e) => setInterviewData({...interviewData, date: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                      rows={4}
-                      placeholder="Ajoutez vos notes sur cette candidature..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Heure *</label>
+                    <input
+                      type="time"
+                      value={interviewData.time}
+                      onChange={(e) => setInterviewData({...interviewData, time: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex justify-end space-x-3 pt-4 border-t">
-                  <button
-                    onClick={() => setShowCandidatureDetail(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type d'entretien</label>
+                  <select
+                    value={interviewData.type}
+                    onChange={(e) => setInterviewData({...interviewData, type: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                   >
-                    Fermer
-                  </button>
-                  <button
-                    onClick={handleUpdateCandidatureNotes}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Sauvegarder les notes
-                  </button>
+                    <option value="telephone">Téléphone</option>
+                    <option value="video">Vidéo</option>
+                    <option value="presentiel">Présentiel</option>
+                  </select>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                  <textarea
+                    value={interviewData.notes}
+                    onChange={(e) => setInterviewData({...interviewData, notes: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                    placeholder="Notes sur l'entretien..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                <button
+                  onClick={() => setShowInterviewModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleScheduleInterview}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center"
+                >
+                  <CalendarDays className="w-4 h-4 mr-2" />
+                  Programmer
+                </button>
               </div>
             </div>
           </div>
