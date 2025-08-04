@@ -58,7 +58,6 @@ export default function StagiairesPage() {
   // Ouvrir les détails d'une candidature
   const handleCandidatureDetail = (candidature: any) => {
     console.log('Clic sur candidature:', candidature)
-    alert('Ouverture des détails de la candidature...')
     setSelectedCandidature(candidature)
     setCandidatureNotes(candidature.feedback_entreprise || '')
     setShowCandidatureDetail(true)
@@ -637,8 +636,8 @@ export default function StagiairesPage() {
 
      {/* Modal de détails de candidature */}
      {showCandidatureDetail && selectedCandidature && (
-       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-         <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+         <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto" style={{ position: 'relative', zIndex: 10000 }}>
            <div className="p-6 border-b border-gray-200">
              <div className="flex items-center justify-between">
                <div>
