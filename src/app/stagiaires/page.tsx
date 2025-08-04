@@ -21,6 +21,9 @@ export default function StagiairesPage() {
 
   const { filieres, poles } = useSettings()
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature } = useCandidatures()
+  
+  // Debug: vérifier les candidatures
+  console.log('Candidatures chargées:', candidaturesStagiaires)
 
   const [activeView, setActiveView] = useState<'liste' | 'detail' | 'candidatures'>('liste')
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
@@ -929,7 +932,12 @@ export default function StagiairesPage() {
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => handleCandidatureDetail(candidature)}
+                            onClick={() => {
+                              console.log('Bouton cliqué!')
+                              console.log('Candidature:', candidature)
+                              alert(`Candidature: ${candidature.entreprise_nom}`)
+                              handleCandidatureDetail(candidature)
+                            }}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer"
                             style={{ cursor: 'pointer' }}
                           >
