@@ -8,7 +8,8 @@ import {
   GraduationCap, Plus, X, Save, Edit3, Trash2, Eye, Clock, CheckCircle, AlertTriangle,
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
   ChevronRight, ChevronDown, Star, Flag, Download, ExternalLink, Users,
-  Briefcase, FileText, MessageSquare, TrendingUp, UserCheck, Building2
+  Briefcase, FileText, MessageSquare, TrendingUp, UserCheck, Building2,
+  Send, Printer
 } from 'lucide-react'
 
 export default function StagiairesPage() {
