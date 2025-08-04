@@ -22,6 +22,8 @@ export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature } = useCandidatures()
 
   const [activeView, setActiveView] = useState<'liste' | 'detail' | 'candidatures'>('liste')
+  const [candidatureFilter, setCandidatureFilter] = useState('tous')
+  const [candidatureSearch, setCandidatureSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [showEntretienForm, setShowEntretienForm] = useState(false)
   const [showCandidatureForm, setShowCandidatureForm] = useState(false)
@@ -592,7 +594,90 @@ export default function StagiairesPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Candidatures reçues</h1>
-              <p className="text-gray-600">Gestion des candidatures des stagiaires</p>
+              <p className="text-gray-600">Gestion des candidatures des étudiants via le formulaire</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">{candidaturesStagiaires.length}</div>
+                <div className="text-sm text-gray-600">Candidatures</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Statistiques des candidatures */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <Send className="w-8 h-8 text-blue-600 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-600">Envoyées</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {candidaturesStagiaires.filter(c => c.statut_candidature === 'envoye').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-600">Acceptées</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {candidaturesStagiaires.filter(c => c.statut_candidature === 'acceptee').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <X className="w-8 h-8 text-red-600 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-600">Refusées</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {candidaturesStagiaires.filter(c => c.statut_candidature === 'refusee').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="flex items-center">
+                <Clock className="w-8 h-8 text-orange-600 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-600">En attente</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {candidaturesStagiaires.filter(c => !c.statut_candidature || c.statut_candidature === 'en_attente').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtres et recherche */}
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par entreprise, poste..."
+                    value={candidatureSearch}
+                    onChange={(e) => setCandidatureSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <select
+                value={candidatureFilter}
+                onChange={(e) => setCandidatureFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="tous">Tous les statuts</option>
+                <option value="envoye">Envoyées</option>
+                <option value="acceptee">Acceptées</option>
+                <option value="refusee">Refusées</option>
+                <option value="en_attente">En attente</option>
+              </select>
             </div>
           </div>
 
@@ -600,7 +685,7 @@ export default function StagiairesPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold">
-                {candidaturesStagiaires.length} candidature{candidaturesStagiaires.length > 1 ? 's' : ''}
+                Candidatures reçues
               </h2>
             </div>
             
@@ -609,87 +694,118 @@ export default function StagiairesPage() {
                 <div className="p-8 text-center text-gray-500">
                   <Send className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p>Aucune candidature reçue pour le moment</p>
+                  <p className="text-sm mt-2">Les candidatures apparaîtront ici quand les étudiants utiliseront le formulaire</p>
                 </div>
               ) : (
-                candidaturesStagiaires.map((candidature) => (
-                  <div key={candidature.id} className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {candidature.entreprise_nom}
-                          </h3>
-                          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                            candidature.statut_candidature === 'envoye' ? 'bg-blue-100 text-blue-800' :
-                            candidature.statut_candidature === 'acceptee' ? 'bg-green-100 text-green-800' :
-                            candidature.statut_candidature === 'refusee' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {candidature.statut_candidature === 'envoye' ? 'Envoyée' :
-                             candidature.statut_candidature === 'acceptee' ? 'Acceptée' :
-                             candidature.statut_candidature === 'refusee' ? 'Refusée' :
-                             candidature.statut_candidature || 'En attente'}
-                          </span>
+                candidaturesStagiaires
+                  .filter(candidature => {
+                    const matchesSearch = candidatureSearch === '' || 
+                      candidature.entreprise_nom.toLowerCase().includes(candidatureSearch.toLowerCase()) ||
+                      candidature.poste.toLowerCase().includes(candidatureSearch.toLowerCase())
+                    
+                    const matchesFilter = candidatureFilter === 'tous' || 
+                      candidature.statut_candidature === candidatureFilter
+                    
+                    return matchesSearch && matchesFilter
+                  })
+                  .map((candidature) => (
+                    <div key={candidature.id} className="p-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                              <Building2 className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {candidature.entreprise_nom}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                Reçue le {new Date(candidature.created_at).toLocaleDateString('fr-FR')}
+                              </p>
+                            </div>
+                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                              candidature.statut_candidature === 'envoye' ? 'bg-blue-100 text-blue-800' :
+                              candidature.statut_candidature === 'acceptee' ? 'bg-green-100 text-green-800' :
+                              candidature.statut_candidature === 'refusee' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {candidature.statut_candidature === 'envoye' ? 'Envoyée' :
+                               candidature.statut_candidature === 'acceptee' ? 'Acceptée' :
+                               candidature.statut_candidature === 'refusee' ? 'Refusée' :
+                               candidature.statut_candidature || 'En attente'}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
+                            <div className="flex items-center">
+                              <Briefcase className="w-4 h-4 mr-2 text-gray-400" />
+                              <span className="font-medium">Poste :</span> {candidature.poste}
+                            </div>
+                            <div className="flex items-center">
+                              <FileText className="w-4 h-4 mr-2 text-gray-400" />
+                              <span className="font-medium">Type :</span> {candidature.type_contrat || 'Non spécifié'}
+                            </div>
+                            <div className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                              <span className="font-medium">Date :</span> {candidature.date_candidature || 'Non spécifiée'}
+                            </div>
+                            <div className="flex items-center">
+                              <ExternalLink className="w-4 h-4 mr-2 text-gray-400" />
+                              <span className="font-medium">Source :</span> {candidature.source_offre || 'Site web COP'}
+                            </div>
+                          </div>
+                          
+                          {candidature.feedback_entreprise && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center mb-2">
+                                <MessageSquare className="w-4 h-4 mr-2 text-gray-400" />
+                                <span className="font-medium text-sm">Feedback :</span>
+                              </div>
+                              <p className="text-sm text-gray-600">{candidature.feedback_entreprise}</p>
+                            </div>
+                          )}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                          <div>
-                            <span className="font-medium">Poste :</span> {candidature.poste}
-                          </div>
-                          <div>
-                            <span className="font-medium">Type :</span> {candidature.type_contrat || 'Non spécifié'}
-                          </div>
-                          <div>
-                            <span className="font-medium">Date :</span> {candidature.date_candidature || 'Non spécifiée'}
-                          </div>
-                        </div>
-                        
-                        {candidature.feedback_entreprise && (
-                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                            <span className="font-medium text-sm">Feedback :</span>
-                            <p className="text-sm text-gray-600 mt-1">{candidature.feedback_entreprise}</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 ml-4">
-                        <select
-                          value={candidature.statut_candidature || 'envoye'}
-                          onChange={async (e) => {
-                            const result = await updateStatutCandidature(candidature.id, e.target.value)
-                            if (result.success) {
-                              showMessage('Statut mis à jour')
-                            } else {
-                              showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
-                            }
-                          }}
-                          className="px-3 py-1 border border-gray-300 rounded text-sm"
-                        >
-                          <option value="envoye">Envoyée</option>
-                          <option value="acceptee">Acceptée</option>
-                          <option value="refusee">Refusée</option>
-                        </select>
-                        
-                        <button
-                          onClick={async () => {
-                            if (window.confirm('Supprimer cette candidature ?')) {
-                              const result = await deleteCandidature(candidature.id)
+                        <div className="flex items-center space-x-2 ml-4">
+                          <select
+                            value={candidature.statut_candidature || 'envoye'}
+                            onChange={async (e) => {
+                              const result = await updateStatutCandidature(candidature.id, e.target.value)
                               if (result.success) {
-                                showMessage('Candidature supprimée')
+                                showMessage('Statut mis à jour avec succès')
                               } else {
-                                showMessage(result.error || 'Erreur lors de la suppression', 'error')
+                                showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
                               }
-                            }
-                          }}
-                          className="p-1 text-red-600 hover:text-red-800"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="envoye">Envoyée</option>
+                            <option value="acceptee">Acceptée</option>
+                            <option value="refusee">Refusée</option>
+                            <option value="en_attente">En attente</option>
+                          </select>
+                          
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
+                                const result = await deleteCandidature(candidature.id)
+                                if (result.success) {
+                                  showMessage('Candidature supprimée avec succès')
+                                } else {
+                                  showMessage(result.error || 'Erreur lors de la suppression', 'error')
+                                }
+                              }
+                            }}
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))
               )}
             </div>
           </div>
