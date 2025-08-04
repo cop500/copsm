@@ -58,18 +58,13 @@ export default function StagiairesPage() {
   // Ouvrir les détails d'une candidature
   const handleCandidatureDetail = (candidature: any) => {
     console.log('Clic sur candidature:', candidature)
-    console.log('État avant:', { showCandidatureDetail, selectedCandidature })
     
+    // Forcer l'ouverture de la modal
+    setShowCandidatureDetail(true)
     setSelectedCandidature(candidature)
     setCandidatureNotes(candidature.feedback_entreprise || '')
-    setShowCandidatureDetail(true)
     
     console.log('Modal ouverte:', true)
-    
-    // Debug: vérifier l'état après
-    setTimeout(() => {
-      console.log('État après:', { showCandidatureDetail, selectedCandidature })
-    }, 100)
   }
 
   // Mettre à jour les notes d'une candidature
@@ -644,8 +639,19 @@ export default function StagiairesPage() {
 
      {/* Modal de détails de candidature - Version simple */}
      {showCandidatureDetail && selectedCandidature && (
-       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-         <div className="bg-white rounded-lg w-full max-w-2xl p-6">
+       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'red', color: 'white', padding: '20px', zIndex: 10000 }}>
+         DEBUG: Modal ouverte - {selectedCandidature.entreprise_nom}
+       </div>
+     )}
+     {showCandidatureDetail && selectedCandidature && (
+       <div 
+         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+         style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
+       >
+         <div 
+           className="bg-white rounded-lg w-full max-w-2xl p-6"
+           style={{ position: 'relative', zIndex: 10000 }}
+         >
            <div className="p-6 border-b border-gray-200">
              <div className="flex items-center justify-between">
                <div>
