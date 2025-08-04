@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-// Select component not used in this version
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+// Temporarily use simple HTML elements instead of UI components
+// import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+// import { Button } from '@/components/ui/button'
+// import { Input } from '@/components/ui/input'
+// import { Label } from '@/components/ui/label'
+// import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useSettings } from '@/hooks/useSettings'
 import { Upload, Send, CheckCircle } from 'lucide-react'
 
@@ -203,7 +203,7 @@ const CandidaturePage = () => {
   if (loading || settingsLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <LoadingSpinner />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
@@ -211,18 +211,21 @@ const CandidaturePage = () => {
   if (success) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="text-center py-12">
+        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-8">
+          <div className="text-center py-12">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-4">Candidature envoyée avec succès !</h2>
             <p className="text-gray-600 mb-6">
               Votre candidature a été reçue. Nous vous contacterons bientôt.
             </p>
-            <Button onClick={() => setSuccess(false)}>
+            <button 
+              onClick={() => setSuccess(false)}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
               Postuler à une autre demande
-            </Button>
-          </CardContent>
-        </Card>
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -239,116 +242,113 @@ const CandidaturePage = () => {
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Liste des demandes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Demandes disponibles</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {demandes.map((demande) => (
-                  <div
-                    key={demande.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedDemande?.id === demande.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setSelectedDemande(demande)}
-                  >
-                    <h3 className="font-semibold text-lg">{demande.entreprise_nom}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{demande.secteur}</p>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>{demande.type_demande}</span>
-                      <span>{demande.evenement_type}</span>
-                    </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Demandes disponibles</h2>
+            </div>
+            <div className="space-y-3">
+              {demandes.map((demande) => (
+                <div
+                  key={demande.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    selectedDemande?.id === demande.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedDemande(demande)}
+                >
+                  <h3 className="font-semibold text-lg">{demande.entreprise_nom}</h3>
+                  <p className="text-sm text-gray-600 mb-2">{demande.secteur}</p>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{demande.type_demande}</span>
+                    <span>{demande.evenement_type}</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Formulaire de candidature */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Formulaire de candidature</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded">
-                    {error}
-                  </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Formulaire de candidature</h2>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="entreprise" className="block text-sm font-medium mb-2">Entreprise sélectionnée</label>
+                <input
+                  id="entreprise"
+                  type="text"
+                  disabled
+                  value={selectedDemande?.entreprise_nom || ''}
+                  className="w-full px-3 py-2 border rounded bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="poste" className="block text-sm font-medium mb-2">Poste</label>
+                <input
+                  id="poste"
+                  type="text"
+                  disabled
+                  value={selectedDemande?.profils?.[0]?.poste_intitule || 'Stage'}
+                  className="w-full px-3 py-2 border rounded bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="type_contrat" className="block text-sm font-medium mb-2">Type de contrat</label>
+                <input
+                  id="type_contrat"
+                  type="text"
+                  disabled
+                  value={selectedDemande?.type_demande || ''}
+                  className="w-full px-3 py-2 border rounded bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="cv" className="block text-sm font-medium mb-2">CV (PDF) *</label>
+                <div className="mt-1">
+                  <input
+                    id="cv"
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setCvFile(e.target.files?.[0] || null)}
+                    required
+                    className="w-full px-3 py-2 border rounded"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Format PDF uniquement, max 5MB
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting || uploading || !selectedDemande}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {submitting || uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {uploading ? 'Upload en cours...' : 'Envoi en cours...'}
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Postuler à cette offre
+                  </>
                 )}
-
-                <div>
-                  <Label htmlFor="entreprise">Entreprise sélectionnée</Label>
-                  <Input
-                    id="entreprise"
-                    type="text"
-                    disabled
-                    value={selectedDemande?.entreprise_nom || ''}
-                    className="bg-gray-50"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="poste">Poste</Label>
-                  <Input
-                    id="poste"
-                    type="text"
-                    disabled
-                    value={selectedDemande?.profils?.[0]?.poste_intitule || 'Stage'}
-                    className="bg-gray-50"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="type_contrat">Type de contrat</Label>
-                  <Input
-                    id="type_contrat"
-                    type="text"
-                    disabled
-                    value={selectedDemande?.type_demande || ''}
-                    className="bg-gray-50"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="cv">CV (PDF) *</Label>
-                  <div className="mt-1">
-                    <Input
-                      id="cv"
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => setCvFile(e.target.files?.[0] || null)}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Format PDF uniquement, max 5MB
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={submitting || uploading || !selectedDemande}
-                  className="w-full"
-                >
-                  {submitting || uploading ? (
-                    <>
-                      <LoadingSpinner className="w-4 h-4 mr-2" />
-                      {uploading ? 'Upload en cours...' : 'Envoi en cours...'}
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Postuler à cette offre
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
