@@ -642,11 +642,6 @@ export default function StagiairesPage() {
 
      {/* Modal de détails de candidature - Version simple */}
      {showCandidatureDetail && selectedCandidature && (
-       <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'red', color: 'white', padding: '20px', zIndex: 10000 }}>
-         DEBUG: Modal ouverte - {selectedCandidature.entreprise_nom}
-       </div>
-     )}
-     {showCandidatureDetail && selectedCandidature && (
        <div 
          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
@@ -935,7 +930,6 @@ export default function StagiairesPage() {
                             onClick={() => {
                               console.log('Bouton cliqué!')
                               console.log('Candidature:', candidature)
-                              alert(`Candidature: ${candidature.entreprise_nom}`)
                               handleCandidatureDetail(candidature)
                             }}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer"
