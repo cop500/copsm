@@ -667,29 +667,64 @@ export default function StagiairesPage() {
              <h3 className="text-lg font-semibold text-gray-900 mb-4">Détails de la candidature</h3>
              
              <div className="space-y-4">
-               <div>
-                 <strong>Entreprise :</strong> {selectedCandidature.entreprise_nom}
-               </div>
-               <div>
-                 <strong>Poste :</strong> {selectedCandidature.poste}
-               </div>
-               <div>
-                 <strong>Type de contrat :</strong> {selectedCandidature.type_contrat || 'Non spécifié'}
-               </div>
-               <div>
-                 <strong>Date :</strong> {selectedCandidature.date_candidature || 
-                  new Date(selectedCandidature.created_at).toLocaleDateString('fr-FR')}
-               </div>
-               <div>
-                 <strong>Statut :</strong> {selectedCandidature.statut_candidature || 'En attente'}
+               <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <strong>Entreprise :</strong> {selectedCandidature.entreprise_nom}
+                 </div>
+                 <div>
+                   <strong>Poste :</strong> {selectedCandidature.poste}
+                 </div>
+                 <div>
+                   <strong>Type de contrat :</strong> {selectedCandidature.type_contrat || 'Non spécifié'}
+                 </div>
+                 <div>
+                   <strong>Date :</strong> {selectedCandidature.date_candidature || 
+                    new Date(selectedCandidature.created_at).toLocaleDateString('fr-FR')}
+                 </div>
+                 <div>
+                   <strong>Source :</strong> {selectedCandidature.source_offre || 'Site web COP'}
+                 </div>
+                 <div>
+                   <strong>Statut :</strong> 
+                   <span className={`ml-2 inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                     selectedCandidature.statut_candidature === 'envoye' ? 'bg-blue-100 text-blue-800' :
+                     selectedCandidature.statut_candidature === 'acceptee' ? 'bg-green-100 text-green-800' :
+                     selectedCandidature.statut_candidature === 'refusee' ? 'bg-red-100 text-red-800' :
+                     'bg-gray-100 text-gray-800'
+                   }`}>
+                     {selectedCandidature.statut_candidature === 'envoye' ? 'Envoyée' :
+                      selectedCandidature.statut_candidature === 'acceptee' ? 'Acceptée' :
+                      selectedCandidature.statut_candidature === 'refusee' ? 'Refusée' :
+                      selectedCandidature.statut_candidature || 'En attente'}
+                   </span>
+                 </div>
                </div>
                
-               <div className="pt-4">
+               {selectedCandidature.feedback_entreprise && (
+                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                   <strong>Notes :</strong>
+                   <p className="mt-1 text-gray-700">{selectedCandidature.feedback_entreprise}</p>
+                 </div>
+               )}
+               
+               <div className="pt-4 flex space-x-3">
                  <button
                    onClick={() => setShowCandidatureDetail(false)}
-                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                   className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
                  >
                    Fermer
+                 </button>
+                 <button
+                   onClick={() => {
+                     if (selectedCandidature.cv_url) {
+                       window.open(selectedCandidature.cv_url, '_blank')
+                     } else {
+                       alert('CV non disponible')
+                     }
+                   }}
+                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                 >
+                   Voir CV
                  </button>
                </div>
              </div>
@@ -888,11 +923,7 @@ export default function StagiairesPage() {
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => {
-                              console.log('Bouton cliqué!')
-                              alert('Bouton cliqué!')
-                              handleCandidatureDetail(candidature)
-                            }}
+                            onClick={() => handleCandidatureDetail(candidature)}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer"
                             style={{ cursor: 'pointer' }}
                           >
