@@ -9,7 +9,8 @@ import {
   Briefcase, FileText, MessageSquare, TrendingUp, UserCheck, Building2,
   Send, Printer, CalendarDays, PhoneCall, Mail as MailIcon, Star as StarIcon,
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
-  FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw
+  FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
+  ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon
 } from 'lucide-react'
 
 // Types pour les nouveaux statuts
@@ -52,6 +53,18 @@ export default function StagiairesPage() {
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
   const [selectedCandidatures, setSelectedCandidatures] = useState<string[]>([])
   const [showBulkActions, setShowBulkActions] = useState(false)
+
+  // États pour le visualiseur PDF
+  const [showPdfViewer, setShowPdfViewer] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState('')
+  const [pdfTitle, setPdfTitle] = useState('')
+
+  // États pour le visualiseur PDF
+  const [showPdfViewer, setShowPdfViewer] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState('')
+  const [pdfTitle, setPdfTitle] = useState('')
+  const [pdfScale, setPdfScale] = useState(1.0)
+  const [pdfRotation, setPdfRotation] = useState(0)
 
   // Configuration des statuts
   const statusConfig = {
@@ -96,10 +109,60 @@ export default function StagiairesPage() {
     }
   }
 
+  // Ouvrir le visualiseur PDF
+  const handleViewPdf = (cvUrl: string, candidatName: string, entrepriseName: string) => {
+    if (cvUrl) {
+      setPdfUrl(cvUrl)
+      setPdfTitle(`CV - ${candidatName} - ${entrepriseName}`)
+      setPdfScale(1.0)
+      setPdfRotation(0)
+      setShowPdfViewer(true)
+    } else {
+      showMessage('CV non disponible', 'error')
+    }
+  }
+
+  // Ouvrir le visualiseur PDF
+  const handleViewPdf = (cvUrl: string, candidatName: string, entrepriseName: string) => {
+    if (cvUrl) {
+      setPdfUrl(cvUrl)
+      setPdfTitle(`CV - ${candidatName} - ${entrepriseName}`)
+      setShowPdfViewer(true)
+    } else {
+      showMessage('CV non disponible', 'error')
+    }
+  }
+
   // Ouvrir le CV dans une nouvelle fenêtre
   const handleViewCv = (cvUrl: string) => {
     if (cvUrl) {
       window.open(cvUrl, '_blank')
+    } else {
+      showMessage('CV non disponible', 'error')
+    }
+  }
+
+  // Télécharger le CV avec nom personnalisé
+  const handleDownloadCv = (cvUrl: string, candidatName: string, entrepriseName: string) => {
+    if (cvUrl) {
+      const link = document.createElement('a')
+      link.href = cvUrl
+      link.download = `CV_${candidatName.replace(/\s+/g, '_')}_${entrepriseName.replace(/\s+/g, '_')}.pdf`
+      link.click()
+      showMessage('CV téléchargé avec succès')
+    } else {
+      showMessage('CV non disponible', 'error')
+    }
+  }
+
+  // Télécharger le CV avec nom personnalisé
+  const handleDownloadCv = (cvUrl: string, candidatName: string, entrepriseName: string) => {
+    if (cvUrl) {
+      const link = document.createElement('a')
+      link.href = cvUrl
+      link.download = `CV_${candidatName.replace(/\s+/g, '_')}_${entrepriseName.replace(/\s+/g, '_')}.pdf`
+      link.click()
+      showMessage('CV téléchargé avec succès')
     } else {
       showMessage('CV non disponible', 'error')
     }
@@ -421,6 +484,7 @@ export default function StagiairesPage() {
             filteredCandidatures.map((candidature) => {
               const statusInfo = statusConfig[candidature.statut_candidature as CandidatureStatus] || statusConfig.envoye
               const StatusIcon = statusInfo.icon
+              const candidatName = `${candidature.nom} ${candidature.prenom}`
               
               return (
                 <div key={candidature.id} className="p-6 hover:bg-gray-50 transition-colors">
@@ -466,7 +530,7 @@ export default function StagiairesPage() {
                         </div>
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-2 text-gray-400" />
-                          <span className="font-medium">Candidat :</span> {candidature.nom} {candidature.prenom}
+                          <span className="font-medium">Candidat :</span> {candidatName}
                         </div>
                         <div className="flex items-center">
                           <Mail className="w-4 h-4 mr-2 text-gray-400" />
@@ -485,6 +549,47 @@ export default function StagiairesPage() {
                             <span className="font-medium text-sm">Notes :</span>
                           </div>
                           <p className="text-sm text-gray-600">{candidature.feedback_entreprise}</p>
+                        </div>
+                      )}
+
+                      {/* Actions CV */}
+                      {candidature.cv_url && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center mb-2">
+                            <FileTextIcon className="w-4 h-4 mr-2 text-blue-600" />
+                            <span className="font-medium text-sm text-blue-900">Actions CV :</span>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleViewPdf(
+                                candidature.cv_url,
+                                `${candidature.nom} ${candidature.prenom}`,
+                                candidature.entreprise_nom
+                              )}
+                              className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Voir le CV
+                            </button>
+                            <button
+                              onClick={() => handleViewCv(candidature.cv_url)}
+                              className="text-green-600 hover:text-green-800 text-sm underline flex items-center"
+                            >
+                              <ExternalLink className="w-4 h-4 mr-1" />
+                              Ouvrir
+                            </button>
+                            <button
+                              onClick={() => handleDownloadCv(
+                                candidature.cv_url,
+                                `${candidature.nom} ${candidature.prenom}`,
+                                candidature.entreprise_nom
+                              )}
+                              className="text-purple-600 hover:text-purple-800 text-sm underline flex items-center"
+                            >
+                              <Download className="w-4 h-4 mr-1" />
+                              Télécharger
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -669,20 +774,32 @@ export default function StagiairesPage() {
                       {selectedCandidature.cv_url ? (
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => handleViewCv(selectedCandidature.cv_url)}
-                            className="text-blue-600 hover:text-blue-800 text-sm underline"
+                            onClick={() => handleViewPdf(
+                              selectedCandidature.cv_url, 
+                              `${selectedCandidature.nom} ${selectedCandidature.prenom}`,
+                              selectedCandidature.entreprise_nom
+                            )}
+                            className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center"
                           >
+                            <Eye className="w-4 h-4 mr-1" />
                             Voir le CV
                           </button>
                           <button
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.href = selectedCandidature.cv_url
-                              link.download = `CV_${selectedCandidature.nom}_${selectedCandidature.prenom}_${selectedCandidature.entreprise_nom}.pdf`
-                              link.click()
-                            }}
-                            className="text-green-600 hover:text-green-800 text-sm underline"
+                            onClick={() => handleViewCv(selectedCandidature.cv_url)}
+                            className="text-green-600 hover:text-green-800 text-sm underline flex items-center"
                           >
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Ouvrir
+                          </button>
+                          <button
+                            onClick={() => handleDownloadCv(
+                              selectedCandidature.cv_url,
+                              `${selectedCandidature.nom} ${selectedCandidature.prenom}`,
+                              selectedCandidature.entreprise_nom
+                            )}
+                            className="text-purple-600 hover:text-purple-800 text-sm underline flex items-center"
+                          >
+                            <Download className="w-4 h-4 mr-1" />
                             Télécharger
                           </button>
                         </div>
@@ -817,6 +934,180 @@ export default function StagiairesPage() {
                 >
                   <CalendarDays className="w-4 h-4 mr-2" />
                   Programmer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal visualiseur PDF */}
+      {showPdfViewer && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg w-full max-w-6xl h-[90vh] flex flex-col">
+            {/* Header du visualiseur */}
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+              <div className="flex items-center space-x-3">
+                <FileTextIcon className="w-6 h-6 text-blue-600" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{pdfTitle}</h2>
+                  <p className="text-sm text-gray-600">Visualiseur PDF intégré</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {/* Contrôles de zoom */}
+                <div className="flex items-center space-x-1 bg-white border border-gray-300 rounded-lg px-2 py-1">
+                  <button
+                    onClick={() => setPdfScale(Math.max(0.5, pdfScale - 0.1))}
+                    className="p-1 hover:bg-gray-100 rounded"
+                    title="Zoom arrière"
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm font-medium min-w-[60px] text-center">
+                    {Math.round(pdfScale * 100)}%
+                  </span>
+                  <button
+                    onClick={() => setPdfScale(Math.min(3, pdfScale + 0.1))}
+                    className="p-1 hover:bg-gray-100 rounded"
+                    title="Zoom avant"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Contrôles de rotation */}
+                <button
+                  onClick={() => setPdfRotation((pdfRotation + 90) % 360)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="Rotation"
+                >
+                  <RotateCw className="w-4 h-4" />
+                </button>
+
+                {/* Bouton plein écran */}
+                <button
+                  onClick={() => window.open(pdfUrl, '_blank')}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="Ouvrir dans un nouvel onglet"
+                >
+                  <Maximize className="w-4 h-4" />
+                </button>
+
+                {/* Bouton fermer */}
+                <button
+                  onClick={() => setShowPdfViewer(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="Fermer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenu PDF */}
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=${pdfScale * 100}`}
+                className="w-full h-full border-0"
+                title="Visualiseur PDF"
+                style={{
+                  transform: `rotate(${pdfRotation}deg)`,
+                  transformOrigin: 'center center'
+                }}
+              />
+            </div>
+
+            {/* Footer avec actions */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Utilisez les contrôles ci-dessus pour naviguer dans le document
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleDownloadCv(pdfUrl, pdfTitle, '')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Télécharger
+                </button>
+                <button
+                  onClick={() => window.open(pdfUrl, '_blank')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Ouvrir dans un nouvel onglet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal visualiseur PDF */}
+      {showPdfViewer && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg w-full max-w-6xl h-[90vh] flex flex-col">
+            {/* Header du visualiseur */}
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+              <div className="flex items-center space-x-3">
+                <FileTextIcon className="w-6 h-6 text-blue-600" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{pdfTitle}</h2>
+                  <p className="text-sm text-gray-600">Visualiseur PDF intégré</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {/* Bouton plein écran */}
+                <button
+                  onClick={() => window.open(pdfUrl, '_blank')}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="Ouvrir dans un nouvel onglet"
+                >
+                  <Maximize className="w-4 h-4" />
+                </button>
+
+                {/* Bouton fermer */}
+                <button
+                  onClick={() => setShowPdfViewer(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  title="Fermer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenu PDF */}
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                className="w-full h-full border-0"
+                title="Visualiseur PDF"
+              />
+            </div>
+
+            {/* Footer avec actions */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Utilisez les contrôles du navigateur pour naviguer dans le document
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleDownloadCv(pdfUrl, pdfTitle, '')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Télécharger
+                </button>
+                <button
+                  onClick={() => window.open(pdfUrl, '_blank')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Ouvrir dans un nouvel onglet
                 </button>
               </div>
             </div>
