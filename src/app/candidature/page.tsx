@@ -311,12 +311,12 @@ const CandidaturePage = () => {
       <div className="min-h-screen relative">
         {/* Background avec image et overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/90 to-blue-900/90">
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-            style={{
-              backgroundImage: "url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')"
-            }}
-          ></div>
+                  <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{
+            backgroundImage: "url('/bg-entreprise.jpg')"
+          }}
+        ></div>
         </div>
         
         <div className="relative z-10 flex items-center justify-center px-4 py-12">
@@ -350,7 +350,7 @@ const CandidaturePage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')"
+            backgroundImage: "url('/bg-entreprise.jpg')"
           }}
         ></div>
       </div>
@@ -358,16 +358,16 @@ const CandidaturePage = () => {
       {/* Contenu principal */}
       <div className="relative z-10 container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
+          {/* Header avec carreau central */}
           <div className="text-center mb-16">
-            <div className="inline-block p-8 bg-white/10 backdrop-blur-sm rounded-3xl border border-white/20 mb-8">
+            <div className="inline-block p-8 bg-gradient-to-br from-blue-900/95 to-indigo-900/95 backdrop-blur-sm rounded-3xl border-2 border-white/30 shadow-2xl mb-8">
               <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-lg">
                 ESPACE Candidature
               </h1>
-              <h2 className="text-3xl font-semibold text-indigo-200 mb-3">
+              <h2 className="text-3xl font-semibold text-blue-200 mb-3">
                 COP CMC SM
               </h2>
-              <div className="w-24 h-1 bg-gradient-to-r from-indigo-400 to-blue-400 mx-auto mb-4"></div>
+              <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4"></div>
               <p className="text-2xl text-white/90 font-medium">
                 DÉPOSER VOTRE CANDIDATURE
               </p>
@@ -376,11 +376,11 @@ const CandidaturePage = () => {
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Liste des demandes */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50">
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-3">Demandes disponibles</h2>
                 <p className="text-gray-600 text-lg">Sélectionnez une offre pour postuler</p>
-                <div className="w-16 h-1 bg-gradient-to-r from-indigo-500 to-blue-500 mt-4"></div>
+                <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"></div>
               </div>
               <div className="space-y-4">
                 {demandes.map((demande) => (
@@ -416,11 +416,11 @@ const CandidaturePage = () => {
             </div>
 
             {/* Formulaire de candidature */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50">
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-3">Formulaire de candidature</h2>
                 <p className="text-gray-600 text-lg">Remplissez vos informations personnelles</p>
-                <div className="w-16 h-1 bg-gradient-to-r from-indigo-500 to-blue-500 mt-4"></div>
+                <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"></div>
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-6">
