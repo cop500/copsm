@@ -356,27 +356,27 @@ const CandidaturePage = () => {
       </div>
       
       {/* Contenu principal */}
-      <div className="relative z-10 container mx-auto px-4 py-12">
+      <div className="relative z-10 container mx-auto px-4 py-8 sm:py-12">
         <div className="max-w-6xl mx-auto">
           {/* Header avec carreau central */}
-          <div className="text-center mb-16">
-            <div className="inline-block p-8 bg-gradient-to-br from-blue-900/95 to-indigo-900/95 backdrop-blur-sm rounded-3xl border-2 border-white/30 shadow-2xl mb-8">
-              <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+          <div className="text-center mb-8 sm:mb-16">
+            <div className="inline-block p-4 sm:p-8 bg-gradient-to-br from-blue-900/95 to-indigo-900/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl border-2 border-white/30 shadow-2xl mb-4 sm:mb-8">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 drop-shadow-lg">
                 ESPACE Candidature
               </h1>
-                             <h2 className="text-3xl font-semibold text-yellow-300 mb-3 drop-shadow-lg">
+                             <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-yellow-300 mb-3 drop-shadow-lg">
                  COP CMC SM
                </h2>
-               <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-green-400 mx-auto mb-4"></div>
-               <p className="text-2xl text-green-300 font-medium drop-shadow-lg">
+               <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-yellow-400 to-green-400 mx-auto mb-4"></div>
+               <p className="text-lg sm:text-xl lg:text-2xl text-green-300 font-medium drop-shadow-lg">
                  DÉPOSER VOTRE CANDIDATURE
                </p>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
             {/* Liste des demandes */}
-            <div className="relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
+            <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8 border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
               {/* Background avec image */}
               <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
                 style={{
@@ -385,10 +385,10 @@ const CandidaturePage = () => {
               ></div>
               
               <div className="relative z-10">
-                <div className="mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-3">Demandes disponibles</h2>
-                  <p className="text-gray-600 text-lg">Sélectionnez une offre pour postuler</p>
-                  <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"></div>
+                <div className="mb-6 sm:mb-8 text-center">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Demandes disponibles</h2>
+                  <p className="text-gray-600 text-base sm:text-lg">Sélectionnez une offre pour postuler</p>
+                  <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4 mx-auto"></div>
                 </div>
               <div className="space-y-4">
                 {demandes.map((demande) => (
@@ -410,11 +410,11 @@ const CandidaturePage = () => {
                       )}
                     </div>
                     <p className="text-gray-600 mb-4">{demande.display_poste}</p>
-                    <div className="flex justify-between text-sm">
-                      <span className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 rounded-full font-medium shadow-md">
+                    <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0 text-sm">
+                      <span className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-3 sm:px-4 py-2 rounded-full font-medium shadow-md text-center">
                         {demande.display_type}
                       </span>
-                      <span className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-medium">
+                      <span className="bg-gray-100 text-gray-700 px-3 sm:px-4 py-2 rounded-full font-medium text-center">
                         {demande.secteur}
                       </span>
                     </div>
@@ -425,7 +425,7 @@ const CandidaturePage = () => {
             </div>
 
             {/* Formulaire de candidature */}
-            <div className="relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
+            <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8 border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
               {/* Background avec image */}
               <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
                 style={{
@@ -434,10 +434,10 @@ const CandidaturePage = () => {
               ></div>
               
               <div className="relative z-10">
-                <div className="mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-3">Formulaire de candidature</h2>
-                  <p className="text-gray-600 text-lg">Remplissez vos informations personnelles</p>
-                  <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"></div>
+                <div className="mb-6 sm:mb-8 text-center">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Formulaire de candidature</h2>
+                  <p className="text-gray-600 text-base sm:text-lg">Remplissez vos informations personnelles</p>
+                  <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4 mx-auto"></div>
                 </div>
               
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -611,8 +611,11 @@ const CandidaturePage = () => {
                       <p className="text-gray-700 mb-2 font-medium text-lg">
                         {cvFile ? cvFile.name : 'Cliquez pour sélectionner votre CV'}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 mb-2">
                         Format PDF uniquement, max 5MB
+                      </p>
+                      <p className="text-xs text-blue-600 font-medium">
+                        💡 Conseil : Nommez votre CV "Nom_Prénom_CV.pdf" avant l'upload
                       </p>
                     </label>
                   </div>
