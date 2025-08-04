@@ -643,7 +643,6 @@ export default function StagiairesPage() {
      )}
 
      {/* Modal de détails de candidature - Version simple */}
-     {console.log('Rendu modal:', { showCandidatureDetail, selectedCandidature })}
      {showCandidatureDetail && selectedCandidature && (
        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
          <div className="bg-white rounded-lg w-full max-w-2xl p-6">
@@ -828,9 +827,7 @@ export default function StagiairesPage() {
                     
                     return matchesSearch && matchesFilter
                   })
-                  .map((candidature) => {
-                    console.log('Rendu candidature:', candidature)
-                    return (
+                  .map((candidature) => (
                     <div key={candidature.id} className="p-6 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
