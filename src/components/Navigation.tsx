@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { 
   Home, Users, Building2, Calendar, FileText, Settings,
   GraduationCap, UserCheck, Mail, Bell, Menu, X,
-  User, LogOut, Send
+  User, LogOut, Send, FileDown
 } from 'lucide-react'
 import { useState } from 'react'
 import { useUser } from '@/contexts/UserContext'
@@ -43,6 +43,12 @@ const navigation = [
     name: 'Candidature',
     href: '/candidature',
     icon: Send,
+    current: false
+  },
+  {
+    name: 'CV envoyés',
+    href: '/cv-envoyes',
+    icon: FileDown,
     current: false
   },
   {
