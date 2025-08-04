@@ -58,6 +58,7 @@ export default function StagiairesPage() {
   // Ouvrir les détails d'une candidature
   const handleCandidatureDetail = (candidature: any) => {
     console.log('Clic sur candidature:', candidature)
+    alert('Ouverture des détails de la candidature...')
     setSelectedCandidature(candidature)
     setCandidatureNotes(candidature.feedback_entreprise || '')
     setShowCandidatureDetail(true)
@@ -635,9 +636,8 @@ export default function StagiairesPage() {
      )}
 
      {/* Modal de détails de candidature */}
-     {console.log('Render modal:', { showCandidatureDetail, selectedCandidature })}
      {showCandidatureDetail && selectedCandidature && (
-       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
            <div className="p-6 border-b border-gray-200">
              <div className="flex items-center justify-between">
@@ -1009,10 +1009,9 @@ export default function StagiairesPage() {
                         <div className="flex items-center space-x-2 ml-4">
                           <button
                             onClick={() => handleCandidatureDetail(candidature)}
-                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
-                            title="Voir détails"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                           >
-                            <Eye className="w-5 h-5" />
+                            Détails de la candidature
                           </button>
                           
                           <select
