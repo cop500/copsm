@@ -100,6 +100,7 @@ const CandidaturePage = () => {
     
     try {
       setUploading(true)
+      console.log('Début upload CV:', file.name)
       
       // Vérifier le type de fichier
       if (file.type !== 'application/pdf') {
@@ -112,21 +113,29 @@ const CandidaturePage = () => {
       }
       
       const fileName = `cv_${Date.now()}_${file.name}`
+      console.log('Tentative upload vers bucket cv-stagiaires:', fileName)
+      
       const { data, error } = await supabase.storage
         .from('cv-stagiaires')
         .upload(fileName, file)
       
-      if (error) throw error
+      if (error) {
+        console.error('Erreur upload Supabase:', error)
+        throw new Error(`Erreur upload: ${error.message}`)
+      }
+      
+      console.log('Upload réussi, récupération URL publique')
       
       // Récupérer l'URL publique
       const { data: urlData } = supabase.storage
         .from('cv-stagiaires')
         .getPublicUrl(fileName)
       
+      console.log('URL publique récupérée:', urlData.publicUrl)
       return urlData.publicUrl
     } catch (err: any) {
-      console.error('Erreur upload:', err)
-      setError(err.message)
+      console.error('Erreur upload complète:', err)
+      setError(`Erreur upload CV: ${err.message}`)
       return null
     } finally {
       setUploading(false)
@@ -137,6 +146,10 @@ const CandidaturePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('Début soumission candidature')
+    console.log('Demande sélectionnée:', selectedDemande)
+    console.log('CV file:', cvFile)
+    
     if (!selectedDemande || !cvFile) {
       setError('Veuillez sélectionner une demande et uploader votre CV')
       return
@@ -146,28 +159,39 @@ const CandidaturePage = () => {
       setSubmitting(true)
       setError(null)
       
+      console.log('Upload du CV en cours...')
       // Upload du CV
       const cvUrl = await handleFileUpload(cvFile)
       if (!cvUrl) {
+        console.log('Échec upload CV')
         setError('Erreur lors de l\'upload du CV')
         return
       }
       
+      console.log('CV uploadé avec succès:', cvUrl)
+      console.log('Vérification candidature existante...')
+      
       // Vérifier si candidature déjà existante (par email et entreprise)
-      const { data: existingCandidature } = await supabase
+      const { data: existingCandidature, error: checkError } = await supabase
         .from('candidatures_stagiaires')
         .select('id')
+        .eq('email', formData.email)
         .eq('entreprise_nom', selectedDemande.entreprise_nom)
-        .eq('poste', selectedDemande.profils?.[0]?.poste_intitule || 'Stage')
-        .single()
+        .maybeSingle()
+      
+      if (checkError) {
+        console.error('Erreur vérification candidature existante:', checkError)
+      }
       
       if (existingCandidature) {
         setError('Vous avez déjà postulé à cette demande')
         return
       }
       
+      console.log('Insertion candidature en cours...')
+      
       // Insérer la candidature
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('candidatures_stagiaires')
         .insert([{
           demande_cv_id: selectedDemande.id,
@@ -186,8 +210,12 @@ const CandidaturePage = () => {
           statut_candidature: 'envoye'
         }])
       
-      if (error) throw error
+      if (insertError) {
+        console.error('Erreur insertion candidature:', insertError)
+        throw new Error(`Erreur insertion: ${insertError.message}`)
+      }
       
+      console.log('Candidature insérée avec succès')
       setSuccess(true)
       setFormData({
         nom: '',
@@ -205,8 +233,8 @@ const CandidaturePage = () => {
       setSelectedDemande(null)
       
     } catch (err: any) {
-      console.error('Erreur soumission:', err)
-      setError(err.message || 'Erreur lors de la soumission')
+      console.error('Erreur soumission complète:', err)
+      setError(`Erreur lors de la soumission: ${err.message}`)
     } finally {
       setSubmitting(false)
     }
