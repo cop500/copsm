@@ -196,9 +196,8 @@ const CandidaturePage = () => {
       
       console.log('Insertion candidature en cours...')
       
-      // Insérer la candidature avec seulement les champs existants
+      // Insérer la candidature avec seulement les champs qui ne dépendent pas de clés étrangères
       const candidatureData = {
-        demande_cv_id: selectedDemande.id,
         entreprise_nom: selectedDemande.entreprise_nom,
         poste: selectedDemande.profils?.[0]?.poste_intitule || 'Stage',
         type_contrat: selectedDemande.type_demande,
@@ -230,7 +229,7 @@ Prénom: ${formData.prenom}
 Email: ${formData.email}
 Téléphone: ${formData.telephone}
 
-Note: Les informations personnelles ne sont pas sauvegardées dans la base de données pour des raisons de confidentialité.`)
+Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegardés dans la base de données pour des raisons de confidentialité et de contraintes techniques.`)
       
       setSuccess(true)
       setFormData({
