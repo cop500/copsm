@@ -78,20 +78,12 @@ const CandidaturePage = () => {
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  // Charger les demandes actives (CV + Entreprises)
+  // Charger les demandes entreprises actives
   const loadDemandes = async () => {
     try {
-      console.log('🔍 Chargement des demandes...')
+      console.log('🔍 Chargement des demandes entreprises...')
       
-      // 1. Charger les demandes CV
-      const { data: demandesCV, error: errorCV } = await supabase
-        .from('demandes_cv')
-        .select('*')
-        .order('created_at', { ascending: false })
-      
-      if (errorCV) throw errorCV
-      
-      // 2. Charger les demandes entreprises
+      // Charger les demandes entreprises
       const { data: demandesEntreprises, error: errorEntreprises } = await supabase
         .from('demandes_entreprises')
         .select('*')
@@ -99,19 +91,9 @@ const CandidaturePage = () => {
       
       if (errorEntreprises) throw errorEntreprises
       
-      console.log('📊 Demandes CV:', demandesCV?.length || 0)
-      console.log('🏢 Demandes entreprises:', demandesEntreprises?.length || 0)
+      console.log('🏢 Toutes les demandes entreprises:', demandesEntreprises?.length || 0)
       
-      // 3. Filtrer les demandes CV actives
-      const activeDemandesCV = demandesCV?.filter(d => 
-        d.statut === 'nouvelle' || 
-        d.statut === 'en_cours' || 
-        d.statut === 'en_attente' || 
-        !d.statut || 
-        d.statut === ''
-      ) || []
-      
-      // 4. Filtrer les demandes entreprises actives
+      // Filtrer les demandes entreprises actives
       const activeDemandesEntreprises = demandesEntreprises?.filter(d => 
         d.statut === 'en_cours' || 
         d.statut === 'en_attente' || 
@@ -119,26 +101,17 @@ const CandidaturePage = () => {
         d.statut === ''
       ) || []
       
-      // 5. Combiner et formater les demandes
-      const allActiveDemandes = [
-        ...activeDemandesCV.map(d => ({
-          ...d,
-          type: 'cv',
-          display_nom: d.nom_entreprise,
-          display_poste: d.poste_recherche,
-          display_type: d.type_contrat
-        })),
-        ...activeDemandesEntreprises.map(d => ({
-          ...d,
-          type: 'entreprise',
-          display_nom: d.entreprise_nom,
-          display_poste: d.profils?.[0]?.poste_intitule || 'Stage',
-          display_type: d.type_demande
-        }))
-      ]
+      // Formater les demandes
+      const allActiveDemandes = activeDemandesEntreprises.map(d => ({
+        ...d,
+        type: 'entreprise',
+        display_nom: d.entreprise_nom,
+        display_poste: d.profils?.[0]?.poste_intitule || 'Stage',
+        display_type: d.type_demande
+      }))
       
-      console.log('✅ Demandes actives totales:', allActiveDemandes.length)
-      console.log('📋 Types de demandes:', [...new Set(allActiveDemandes.map(d => d.type))])
+      console.log('✅ Demandes entreprises actives:', allActiveDemandes.length)
+      console.log('📋 Statuts trouvés:', [...new Set(activeDemandesEntreprises.map(d => d.statut))])
       
       setDemandes(allActiveDemandes)
     } catch (err) {
@@ -428,7 +401,7 @@ Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegard�
                         {demande.display_type}
                       </span>
                       <span className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-medium">
-                        {demande.type === 'cv' ? demande.niveau_requis : demande.secteur}
+                        {demande.secteur}
                       </span>
                     </div>
                   </div>
