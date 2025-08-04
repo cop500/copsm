@@ -74,14 +74,29 @@ const CandidaturePage = () => {
   // Charger les demandes actives
   const loadDemandes = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('🔍 Chargement des demandes...')
+      
+      // D'abord, essayons de charger toutes les demandes pour debug
+      const { data: allData, error: allError } = await supabase
         .from('demandes_entreprises')
         .select('*')
-        .in('statut', ['en_cours', 'en_attente'])
         .order('created_at', { ascending: false })
       
-      if (error) throw error
-      setDemandes(data || [])
+      if (allError) throw allError
+      
+      console.log('📊 Toutes les demandes:', allData?.length || 0)
+      console.log('📋 Statuts trouvés:', [...new Set(allData?.map(d => d.statut) || [])])
+      
+      // Maintenant, filtrons pour les demandes actives
+      const activeDemandes = allData?.filter(d => 
+        d.statut === 'en_cours' || 
+        d.statut === 'en_attente' || 
+        !d.statut || 
+        d.statut === ''
+      ) || []
+      
+      console.log('✅ Demandes actives:', activeDemandes.length)
+      setDemandes(activeDemandes)
     } catch (err) {
       console.error('Erreur chargement demandes:', err)
       setError('Erreur lors du chargement des demandes')
