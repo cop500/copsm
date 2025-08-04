@@ -1,7 +1,7 @@
--- Requête pour vérifier les statuts des demandes de candidature
+-- Requête pour vérifier la table demandes_cv (la vraie table !)
 -- Exécutez cette requête dans l'éditeur SQL de Supabase
 
--- 1. Voir toutes les demandes avec leurs statuts
+-- 1. Voir toutes les demandes CV avec leurs statuts
 SELECT 
     dc.id,
     dc.created_at,
@@ -12,7 +12,7 @@ SELECT
     s.nom as nom_stagiaire,
     s.prenom as prenom_stagiaire,
     e.nom as nom_entreprise
-FROM demandes_candidature dc
+FROM demandes_cv dc
 LEFT JOIN stagiaires s ON dc.id_stagiaire = s.id
 LEFT JOIN entreprises e ON dc.id_entreprise = e.id
 ORDER BY dc.created_at DESC;
@@ -21,7 +21,7 @@ ORDER BY dc.created_at DESC;
 SELECT 
     statut,
     COUNT(*) as nombre_demandes
-FROM demandes_candidature
+FROM demandes_cv
 GROUP BY statut
 ORDER BY nombre_demandes DESC;
 
@@ -36,18 +36,18 @@ SELECT
     s.nom as nom_stagiaire,
     s.prenom as prenom_stagiaire,
     e.nom as nom_entreprise
-FROM demandes_candidature dc
+FROM demandes_cv dc
 LEFT JOIN stagiaires s ON dc.id_stagiaire = s.id
 LEFT JOIN entreprises e ON dc.id_entreprise = e.id
 WHERE dc.statut IS NULL
 ORDER BY dc.created_at DESC;
 
--- 4. Voir la structure de la table
+-- 4. Voir la structure de la table demandes_cv
 SELECT 
     column_name,
     data_type,
     is_nullable,
     column_default
 FROM information_schema.columns
-WHERE table_name = 'demandes_candidature'
+WHERE table_name = 'demandes_cv'
 ORDER BY ordinal_position; 

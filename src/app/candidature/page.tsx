@@ -13,16 +13,23 @@ import { Upload, Send, CheckCircle } from 'lucide-react'
 
 interface DemandeEntreprise {
   id: string
-  entreprise_nom: string
-  secteur: string
+  nom_entreprise: string
+  poste_recherche: string
   contact_nom: string
   contact_email: string
-  profils: any[]
-  evenement_type: string
-  evenement_date?: string
-  type_demande: string
+  type_contrat: string
+  filiere_id: string
+  pole_id: string
+  niveau_requis: string
+  competences_requises: string
+  description_poste: string
+  lieu_travail: string
+  salaire_propose: string
+  date_limite: string
+  urgence: string
+  statut: string
   created_at: string
-  statut?: string
+  updated_at: string
 }
 
 interface Candidature {
@@ -78,7 +85,7 @@ const CandidaturePage = () => {
       
       // D'abord, essayons de charger toutes les demandes pour debug
       const { data: allData, error: allError } = await supabase
-        .from('demandes_entreprises')
+        .from('demandes_cv')
         .select('*')
         .order('created_at', { ascending: false })
       
@@ -196,8 +203,8 @@ const CandidaturePage = () => {
       const { data: existingCandidature, error: checkError } = await supabase
         .from('candidatures_stagiaires')
         .select('id')
-        .eq('entreprise_nom', selectedDemande.entreprise_nom)
-        .eq('poste', selectedDemande.profils?.[0]?.poste_intitule || 'Stage')
+        .eq('entreprise_nom', selectedDemande.nom_entreprise)
+        .eq('poste', selectedDemande.poste_recherche)
         .maybeSingle()
       
       if (checkError) {
@@ -213,9 +220,9 @@ const CandidaturePage = () => {
       
       // Insérer la candidature avec seulement les champs qui ne dépendent pas de clés étrangères
       const candidatureData = {
-        entreprise_nom: selectedDemande.entreprise_nom,
-        poste: selectedDemande.profils?.[0]?.poste_intitule || 'Stage',
-        type_contrat: selectedDemande.type_demande,
+        entreprise_nom: selectedDemande.nom_entreprise,
+        poste: selectedDemande.poste_recherche,
+        type_contrat: selectedDemande.type_contrat,
         date_candidature: new Date().toISOString().split('T')[0],
         source_offre: 'Site web COP',
         statut_candidature: 'envoye'
@@ -237,8 +244,8 @@ const CandidaturePage = () => {
       // Afficher un message de succès avec les informations
       alert(`Candidature envoyée avec succès !
       
-Entreprise: ${selectedDemande.entreprise_nom}
-Poste: ${selectedDemande.profils?.[0]?.poste_intitule || 'Stage'}
+Entreprise: ${selectedDemande.nom_entreprise}
+Poste: ${selectedDemande.poste_recherche}
 Nom: ${formData.nom}
 Prénom: ${formData.prenom}
 Email: ${formData.email}
@@ -370,20 +377,20 @@ Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegard�
                     onClick={() => setSelectedDemande(demande)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <h3 className="font-bold text-xl text-gray-900">{demande.entreprise_nom}</h3>
+                      <h3 className="font-bold text-xl text-gray-900">{demande.nom_entreprise}</h3>
                       {selectedDemande?.id === demande.id && (
                         <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
                           <div className="w-2 h-2 bg-white rounded-full"></div>
                         </div>
                       )}
                     </div>
-                    <p className="text-gray-600 mb-4">{demande.secteur}</p>
+                    <p className="text-gray-600 mb-4">{demande.poste_recherche}</p>
                     <div className="flex justify-between text-sm">
                       <span className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 rounded-full font-medium shadow-md">
-                        {demande.type_demande}
+                        {demande.type_contrat}
                       </span>
                       <span className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-medium">
-                        {demande.evenement_type}
+                        {demande.niveau_requis}
                       </span>
                     </div>
                   </div>
@@ -532,7 +539,7 @@ Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegard�
                       <input
                         type="text"
                         disabled
-                        value={selectedDemande?.entreprise_nom || 'Aucune offre sélectionnée'}
+                        value={selectedDemande?.nom_entreprise || 'Aucune offre sélectionnée'}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-900"
                       />
                     </div>
@@ -542,7 +549,7 @@ Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegard�
                       <input
                         type="text"
                         disabled
-                        value={selectedDemande?.profils?.[0]?.poste_intitule || 'Stage'}
+                        value={selectedDemande?.poste_recherche || 'Aucune offre sélectionnée'}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-900"
                       />
                     </div>
