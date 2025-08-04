@@ -78,12 +78,20 @@ export default function Navigation() {
   const { isAdmin, role } = useRole();
 
   // Mise à jour de l'état "current" basé sur le pathname
+  console.log('🔍 Navigation items:', navigation.map(item => item.name))
+  console.log('🔍 Is admin:', isAdmin)
+  
   const navigationWithCurrent = navigation
-    .filter(item => item.name !== 'Paramètres' || isAdmin) // Onglet Paramètres seulement pour admin
+    .filter(item => {
+      console.log(`🔍 Filtering ${item.name}:`, item.name !== 'Paramètres' || isAdmin)
+      return item.name !== 'Paramètres' || isAdmin
+    })
     .map(item => ({
       ...item,
       current: pathname === item.href
     }))
+  
+  console.log('🔍 Final navigation:', navigationWithCurrent.map(item => item.name))
 
   // 🎯 FONCTION POUR GÉRER LA DÉCONNEXION
   const handleLogout = async () => {
