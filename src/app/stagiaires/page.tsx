@@ -369,7 +369,7 @@ export default function StagiairesPage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Candidatures reçues ({candidaturesStagiaires.length})
+                📥 Candidatures reçues ({candidaturesStagiaires.length})
               </button>
             </div>
           </div>
@@ -763,8 +763,8 @@ export default function StagiairesPage() {
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Candidatures reçues</h1>
-              <p className="text-gray-600">Gestion des candidatures des étudiants via le formulaire</p>
+              <h1 className="text-2xl font-bold text-gray-900">📥 Candidatures reçues</h1>
+              <p className="text-gray-600">Gestion des candidatures des stagiaires via le formulaire de candidature</p>
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-right">

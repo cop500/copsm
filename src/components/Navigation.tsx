@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { 
   Home, Users, Building2, Calendar, FileText, Settings,
   GraduationCap, UserCheck, Mail, Bell, Menu, X,
-  User, LogOut, Send, FileDown
+  User, LogOut, Send
 } from 'lucide-react'
 import { useState } from 'react'
 import { useUser } from '@/contexts/UserContext'
@@ -46,12 +46,6 @@ const navigation = [
     current: false
   },
   {
-    name: 'CV envoyés',
-    href: '/cv-envoyes',
-    icon: FileDown,
-    current: false
-  },
-  {
     name: 'Demandes entreprises',
     href: '/dashboard-admin',
     icon: Users,
@@ -78,17 +72,12 @@ export default function Navigation() {
   const { isAdmin, role } = useRole();
 
   // Mise à jour de l'état "current" basé sur le pathname
-  console.log('🔍 Navigation items:', navigation.map(item => item.name))
-  console.log('🔍 Is admin:', isAdmin)
-  
-  // Temporairement, afficher tous les éléments sans filtrage
   const navigationWithCurrent = navigation
+    .filter(item => item.name !== 'Paramètres' || isAdmin) // Onglet Paramètres seulement pour admin
     .map(item => ({
       ...item,
       current: pathname === item.href
     }))
-  
-  console.log('🔍 Final navigation:', navigationWithCurrent.map(item => item.name))
 
   // 🎯 FONCTION POUR GÉRER LA DÉCONNEXION
   const handleLogout = async () => {
