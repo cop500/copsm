@@ -58,11 +58,6 @@ export default function StagiairesPage() {
   const [showPdfViewer, setShowPdfViewer] = useState(false)
   const [pdfUrl, setPdfUrl] = useState('')
   const [pdfTitle, setPdfTitle] = useState('')
-
-  // États pour le visualiseur PDF
-  const [showPdfViewer, setShowPdfViewer] = useState(false)
-  const [pdfUrl, setPdfUrl] = useState('')
-  const [pdfTitle, setPdfTitle] = useState('')
   const [pdfScale, setPdfScale] = useState(1.0)
   const [pdfRotation, setPdfRotation] = useState(0)
 
@@ -122,34 +117,10 @@ export default function StagiairesPage() {
     }
   }
 
-  // Ouvrir le visualiseur PDF
-  const handleViewPdf = (cvUrl: string, candidatName: string, entrepriseName: string) => {
-    if (cvUrl) {
-      setPdfUrl(cvUrl)
-      setPdfTitle(`CV - ${candidatName} - ${entrepriseName}`)
-      setShowPdfViewer(true)
-    } else {
-      showMessage('CV non disponible', 'error')
-    }
-  }
-
   // Ouvrir le CV dans une nouvelle fenêtre
   const handleViewCv = (cvUrl: string) => {
     if (cvUrl) {
       window.open(cvUrl, '_blank')
-    } else {
-      showMessage('CV non disponible', 'error')
-    }
-  }
-
-  // Télécharger le CV avec nom personnalisé
-  const handleDownloadCv = (cvUrl: string, candidatName: string, entrepriseName: string) => {
-    if (cvUrl) {
-      const link = document.createElement('a')
-      link.href = cvUrl
-      link.download = `CV_${candidatName.replace(/\s+/g, '_')}_${entrepriseName.replace(/\s+/g, '_')}.pdf`
-      link.click()
-      showMessage('CV téléchargé avec succès')
     } else {
       showMessage('CV non disponible', 'error')
     }
@@ -1045,75 +1016,6 @@ export default function StagiairesPage() {
         </div>
       )}
 
-      {/* Modal visualiseur PDF */}
-      {showPdfViewer && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-lg w-full max-w-6xl h-[90vh] flex flex-col">
-            {/* Header du visualiseur */}
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-              <div className="flex items-center space-x-3">
-                <FileTextIcon className="w-6 h-6 text-blue-600" />
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{pdfTitle}</h2>
-                  <p className="text-sm text-gray-600">Visualiseur PDF intégré</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                {/* Bouton plein écran */}
-                <button
-                  onClick={() => window.open(pdfUrl, '_blank')}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
-                  title="Ouvrir dans un nouvel onglet"
-                >
-                  <Maximize className="w-4 h-4" />
-                </button>
-
-                {/* Bouton fermer */}
-                <button
-                  onClick={() => setShowPdfViewer(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
-                  title="Fermer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Contenu PDF */}
-            <div className="flex-1 overflow-hidden">
-              <iframe
-                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                className="w-full h-full border-0"
-                title="Visualiseur PDF"
-              />
-            </div>
-
-            {/* Footer avec actions */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Utilisez les contrôles du navigateur pour naviguer dans le document
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handleDownloadCv(pdfUrl, pdfTitle, '')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Télécharger
-                </button>
-                <button
-                  onClick={() => window.open(pdfUrl, '_blank')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Ouvrir dans un nouvel onglet
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
