@@ -57,9 +57,11 @@ export default function StagiairesPage() {
 
   // Ouvrir les détails d'une candidature
   const handleCandidatureDetail = (candidature: any) => {
+    console.log('Clic sur candidature:', candidature)
     setSelectedCandidature(candidature)
     setCandidatureNotes(candidature.feedback_entreprise || '')
     setShowCandidatureDetail(true)
+    console.log('Modal ouverte:', true)
   }
 
   // Mettre à jour les notes d'une candidature
@@ -633,6 +635,7 @@ export default function StagiairesPage() {
      )}
 
      {/* Modal de détails de candidature */}
+     {console.log('Render modal:', { showCandidatureDetail, selectedCandidature })}
      {showCandidatureDetail && selectedCandidature && (
        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
