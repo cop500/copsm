@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { 
   Home, Users, Building2, Calendar, FileText, Settings,
   GraduationCap, UserCheck, Mail, Bell, Menu, X,
-  User, LogOut
+  User, LogOut, Send
 } from 'lucide-react'
 import { useState } from 'react'
 import { useUser } from '@/contexts/UserContext'
@@ -37,6 +37,12 @@ const navigation = [
     name: 'Stagiaires',
     href: '/stagiaires',
     icon: GraduationCap,
+    current: false
+  },
+  {
+    name: 'Candidature',
+    href: '/candidature',
+    icon: Send,
     current: false
   },
   {

@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useStagiaires } from '@/hooks/useStagiaires'
 import { useSettings } from '@/hooks/useSettings'
+import { useCandidatures } from '@/hooks/useCandidatures'
 import { 
   GraduationCap, Plus, X, Save, Edit3, Trash2, Eye, Clock, CheckCircle, AlertTriangle,
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
@@ -18,8 +19,9 @@ export default function StagiairesPage() {
   } = useStagiaires()
 
   const { filieres, poles } = useSettings()
+  const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature } = useCandidatures()
 
-  const [activeView, setActiveView] = useState<'liste' | 'detail'>('liste')
+  const [activeView, setActiveView] = useState<'liste' | 'detail' | 'candidatures'>('liste')
   const [showForm, setShowForm] = useState(false)
   const [showEntretienForm, setShowEntretienForm] = useState(false)
   const [showCandidatureForm, setShowCandidatureForm] = useState(false)
@@ -274,6 +276,32 @@ export default function StagiairesPage() {
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Nouveau Stagiaire
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation par onglets */}
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setActiveView('liste')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  activeView === 'liste'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Liste des stagiaires
+              </button>
+              <button
+                onClick={() => setActiveView('candidatures')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  activeView === 'candidatures'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Candidatures reçues ({candidaturesStagiaires.length})
               </button>
             </div>
           </div>
@@ -552,6 +580,116 @@ export default function StagiairesPage() {
                     )
                   })}
                 </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeView === 'candidatures' && (
+        <>
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Candidatures reçues</h1>
+              <p className="text-gray-600">Gestion des candidatures des stagiaires</p>
+            </div>
+          </div>
+
+          {/* Liste des candidatures */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold">
+                {candidaturesStagiaires.length} candidature{candidaturesStagiaires.length > 1 ? 's' : ''}
+              </h2>
+            </div>
+            
+            <div className="divide-y divide-gray-200">
+              {candidaturesStagiaires.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <Send className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>Aucune candidature reçue pour le moment</p>
+                </div>
+              ) : (
+                candidaturesStagiaires.map((candidature) => (
+                  <div key={candidature.id} className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {candidature.entreprise_nom}
+                          </h3>
+                          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                            candidature.statut_candidature === 'envoye' ? 'bg-blue-100 text-blue-800' :
+                            candidature.statut_candidature === 'acceptee' ? 'bg-green-100 text-green-800' :
+                            candidature.statut_candidature === 'refusee' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {candidature.statut_candidature === 'envoye' ? 'Envoyée' :
+                             candidature.statut_candidature === 'acceptee' ? 'Acceptée' :
+                             candidature.statut_candidature === 'refusee' ? 'Refusée' :
+                             candidature.statut_candidature || 'En attente'}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium">Poste :</span> {candidature.poste}
+                          </div>
+                          <div>
+                            <span className="font-medium">Type :</span> {candidature.type_contrat || 'Non spécifié'}
+                          </div>
+                          <div>
+                            <span className="font-medium">Date :</span> {candidature.date_candidature || 'Non spécifiée'}
+                          </div>
+                        </div>
+                        
+                        {candidature.feedback_entreprise && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                            <span className="font-medium text-sm">Feedback :</span>
+                            <p className="text-sm text-gray-600 mt-1">{candidature.feedback_entreprise}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 ml-4">
+                        <select
+                          value={candidature.statut_candidature || 'envoye'}
+                          onChange={async (e) => {
+                            const result = await updateStatutCandidature(candidature.id, e.target.value)
+                            if (result.success) {
+                              showMessage('Statut mis à jour')
+                            } else {
+                              showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
+                            }
+                          }}
+                          className="px-3 py-1 border border-gray-300 rounded text-sm"
+                        >
+                          <option value="envoye">Envoyée</option>
+                          <option value="acceptee">Acceptée</option>
+                          <option value="refusee">Refusée</option>
+                        </select>
+                        
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Supprimer cette candidature ?')) {
+                              const result = await deleteCandidature(candidature.id)
+                              if (result.success) {
+                                showMessage('Candidature supprimée')
+                              } else {
+                                showMessage(result.error || 'Erreur lors de la suppression', 'error')
+                              }
+                            }
+                          }}
+                          className="p-1 text-red-600 hover:text-red-800"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
