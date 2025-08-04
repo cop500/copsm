@@ -643,6 +643,7 @@ export default function StagiairesPage() {
      )}
 
      {/* Modal de détails de candidature - Version simple */}
+     {console.log('Rendu modal:', { showCandidatureDetail, selectedCandidature })}
      {showCandidatureDetail && selectedCandidature && (
        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
          <div className="bg-white rounded-lg w-full max-w-2xl p-6">
@@ -827,7 +828,9 @@ export default function StagiairesPage() {
                     
                     return matchesSearch && matchesFilter
                   })
-                  .map((candidature) => (
+                  .map((candidature) => {
+                    console.log('Rendu candidature:', candidature)
+                    return (
                     <div key={candidature.id} className="p-6 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -888,8 +891,13 @@ export default function StagiairesPage() {
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => handleCandidatureDetail(candidature)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                            onClick={() => {
+                              console.log('Bouton cliqué!')
+                              alert('Bouton cliqué!')
+                              handleCandidatureDetail(candidature)
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer"
+                            style={{ cursor: 'pointer' }}
                           >
                             Détails de la candidature
                           </button>
