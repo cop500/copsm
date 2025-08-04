@@ -23,6 +23,11 @@ interface Candidature {
   date_resultat?: string
   motif_refus?: string
   feedback_entreprise?: string
+  cv_url?: string
+  nom?: string
+  prenom?: string
+  email?: string
+  telephone?: string
   created_at: string
   updated_at?: string
 }
