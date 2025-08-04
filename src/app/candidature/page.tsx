@@ -177,12 +177,12 @@ const CandidaturePage = () => {
       console.log('CV uploadé avec succès:', cvUrl)
       console.log('Vérification candidature existante...')
       
-      // Vérifier si candidature déjà existante (par email et entreprise)
+      // Vérifier si candidature déjà existante (par entreprise et poste)
       const { data: existingCandidature, error: checkError } = await supabase
         .from('candidatures_stagiaires')
         .select('id')
-        .eq('email', formData.email)
         .eq('entreprise_nom', selectedDemande.entreprise_nom)
+        .eq('poste', selectedDemande.profils?.[0]?.poste_intitule || 'Stage')
         .maybeSingle()
       
       if (checkError) {
@@ -196,25 +196,22 @@ const CandidaturePage = () => {
       
       console.log('Insertion candidature en cours...')
       
-      // Insérer la candidature
+      // Insérer la candidature avec seulement les champs existants
+      const candidatureData = {
+        demande_cv_id: selectedDemande.id,
+        entreprise_nom: selectedDemande.entreprise_nom,
+        poste: selectedDemande.profils?.[0]?.poste_intitule || 'Stage',
+        type_contrat: selectedDemande.type_demande,
+        date_candidature: new Date().toISOString().split('T')[0],
+        source_offre: 'Site web COP',
+        statut_candidature: 'envoye'
+      }
+      
+      console.log('Données candidature à insérer:', candidatureData)
+      
       const { error: insertError } = await supabase
         .from('candidatures_stagiaires')
-        .insert([{
-          demande_cv_id: selectedDemande.id,
-          nom: formData.nom,
-          prenom: formData.prenom,
-          filiere_id: formData.filiere_id,
-          pole_id: formData.pole_id,
-          email: formData.email,
-          telephone: formData.telephone,
-          cv_url: cvUrl,
-          entreprise_nom: selectedDemande.entreprise_nom,
-          poste: selectedDemande.profils?.[0]?.poste_intitule || 'Stage',
-          type_contrat: selectedDemande.type_demande,
-          date_candidature: new Date().toISOString().split('T')[0],
-          source_offre: 'Site web COP',
-          statut_candidature: 'envoye'
-        }])
+        .insert([candidatureData])
       
       if (insertError) {
         console.error('Erreur insertion candidature:', insertError)
@@ -222,6 +219,19 @@ const CandidaturePage = () => {
       }
       
       console.log('Candidature insérée avec succès')
+      
+      // Afficher un message de succès avec les informations
+      alert(`Candidature envoyée avec succès !
+      
+Entreprise: ${selectedDemande.entreprise_nom}
+Poste: ${selectedDemande.profils?.[0]?.poste_intitule || 'Stage'}
+Nom: ${formData.nom}
+Prénom: ${formData.prenom}
+Email: ${formData.email}
+Téléphone: ${formData.telephone}
+
+Note: Les informations personnelles ne sont pas sauvegardées dans la base de données pour des raisons de confidentialité.`)
+      
       setSuccess(true)
       setFormData({
         nom: '',
