@@ -78,24 +78,32 @@ const CandidaturePage = () => {
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  // Charger les demandes actives
+  // Charger les demandes actives (CV + Entreprises)
   const loadDemandes = async () => {
     try {
       console.log('🔍 Chargement des demandes...')
       
-      // D'abord, essayons de charger toutes les demandes pour debug
-      const { data: allData, error: allError } = await supabase
+      // 1. Charger les demandes CV
+      const { data: demandesCV, error: errorCV } = await supabase
         .from('demandes_cv')
         .select('*')
         .order('created_at', { ascending: false })
       
-      if (allError) throw allError
+      if (errorCV) throw errorCV
       
-      console.log('📊 Toutes les demandes:', allData?.length || 0)
-      console.log('📋 Statuts trouvés:', [...new Set(allData?.map(d => d.statut) || [])])
+      // 2. Charger les demandes entreprises
+      const { data: demandesEntreprises, error: errorEntreprises } = await supabase
+        .from('demandes_entreprises')
+        .select('*')
+        .order('created_at', { ascending: false })
       
-      // Maintenant, filtrons pour les demandes actives
-      const activeDemandes = allData?.filter(d => 
+      if (errorEntreprises) throw errorEntreprises
+      
+      console.log('📊 Demandes CV:', demandesCV?.length || 0)
+      console.log('🏢 Demandes entreprises:', demandesEntreprises?.length || 0)
+      
+      // 3. Filtrer les demandes CV actives
+      const activeDemandesCV = demandesCV?.filter(d => 
         d.statut === 'nouvelle' || 
         d.statut === 'en_cours' || 
         d.statut === 'en_attente' || 
@@ -103,8 +111,36 @@ const CandidaturePage = () => {
         d.statut === ''
       ) || []
       
-      console.log('✅ Demandes actives:', activeDemandes.length)
-      setDemandes(activeDemandes)
+      // 4. Filtrer les demandes entreprises actives
+      const activeDemandesEntreprises = demandesEntreprises?.filter(d => 
+        d.statut === 'en_cours' || 
+        d.statut === 'en_attente' || 
+        !d.statut || 
+        d.statut === ''
+      ) || []
+      
+      // 5. Combiner et formater les demandes
+      const allActiveDemandes = [
+        ...activeDemandesCV.map(d => ({
+          ...d,
+          type: 'cv',
+          display_nom: d.nom_entreprise,
+          display_poste: d.poste_recherche,
+          display_type: d.type_contrat
+        })),
+        ...activeDemandesEntreprises.map(d => ({
+          ...d,
+          type: 'entreprise',
+          display_nom: d.entreprise_nom,
+          display_poste: d.profils?.[0]?.poste_intitule || 'Stage',
+          display_type: d.type_demande
+        }))
+      ]
+      
+      console.log('✅ Demandes actives totales:', allActiveDemandes.length)
+      console.log('📋 Types de demandes:', [...new Set(allActiveDemandes.map(d => d.type))])
+      
+      setDemandes(allActiveDemandes)
     } catch (err) {
       console.error('Erreur chargement demandes:', err)
       setError('Erreur lors du chargement des demandes')
@@ -204,8 +240,8 @@ const CandidaturePage = () => {
       const { data: existingCandidature, error: checkError } = await supabase
         .from('candidatures_stagiaires')
         .select('id')
-        .eq('entreprise_nom', selectedDemande.nom_entreprise)
-        .eq('poste', selectedDemande.poste_recherche)
+        .eq('entreprise_nom', selectedDemande.display_nom)
+        .eq('poste', selectedDemande.display_poste)
         .maybeSingle()
       
       if (checkError) {
@@ -221,9 +257,9 @@ const CandidaturePage = () => {
       
       // Insérer la candidature avec seulement les champs qui ne dépendent pas de clés étrangères
       const candidatureData = {
-        entreprise_nom: selectedDemande.nom_entreprise,
-        poste: selectedDemande.poste_recherche,
-        type_contrat: selectedDemande.type_contrat,
+        entreprise_nom: selectedDemande.display_nom,
+        poste: selectedDemande.display_poste,
+        type_contrat: selectedDemande.display_type,
         date_candidature: new Date().toISOString().split('T')[0],
         source_offre: 'Site web COP',
         statut_candidature: 'envoye'
@@ -245,8 +281,9 @@ const CandidaturePage = () => {
       // Afficher un message de succès avec les informations
       alert(`Candidature envoyée avec succès !
       
-Entreprise: ${selectedDemande.nom_entreprise}
-Poste: ${selectedDemande.poste_recherche}
+Entreprise: ${selectedDemande.display_nom}
+Poste: ${selectedDemande.display_poste}
+Type: ${selectedDemande.display_type}
 Nom: ${formData.nom}
 Prénom: ${formData.prenom}
 Email: ${formData.email}
@@ -378,20 +415,20 @@ Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegard�
                     onClick={() => setSelectedDemande(demande)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <h3 className="font-bold text-xl text-gray-900">{demande.nom_entreprise}</h3>
+                      <h3 className="font-bold text-xl text-gray-900">{demande.display_nom}</h3>
                       {selectedDemande?.id === demande.id && (
                         <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
                           <div className="w-2 h-2 bg-white rounded-full"></div>
                         </div>
                       )}
                     </div>
-                    <p className="text-gray-600 mb-4">{demande.poste_recherche}</p>
+                    <p className="text-gray-600 mb-4">{demande.display_poste}</p>
                     <div className="flex justify-between text-sm">
                       <span className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 rounded-full font-medium shadow-md">
-                        {demande.type_contrat}
+                        {demande.display_type}
                       </span>
                       <span className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-medium">
-                        {demande.niveau_requis}
+                        {demande.type === 'cv' ? demande.niveau_requis : demande.secteur}
                       </span>
                     </div>
                   </div>
@@ -540,7 +577,7 @@ Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegard�
                       <input
                         type="text"
                         disabled
-                        value={selectedDemande?.nom_entreprise || 'Aucune offre sélectionnée'}
+                        value={selectedDemande?.display_nom || 'Aucune offre sélectionnée'}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-900"
                       />
                     </div>
@@ -550,7 +587,7 @@ Note: Les informations personnelles et l'ID de la demande ne sont pas sauvegard�
                       <input
                         type="text"
                         disabled
-                        value={selectedDemande?.poste_recherche || 'Aucune offre sélectionnée'}
+                        value={selectedDemande?.display_poste || 'Aucune offre sélectionnée'}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-900"
                       />
                     </div>
