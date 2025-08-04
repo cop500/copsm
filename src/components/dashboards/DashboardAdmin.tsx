@@ -713,31 +713,31 @@ const DashboardAdmin = () => {
 
                         {/* Profils demandés et Commentaires */}
                         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                          {/* Profils demandés */}
+                        {/* Profils demandés */}
                           <div>
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Profils demandés</h4>
+                          <h4 className="text-lg font-semibold text-[#004080] mb-4">Profils demandés</h4>
                             <div className="space-y-4">
-                              {demande.profils && demande.profils.map((profil: any, index: number) => {
-                                const pole = poles.find(p => p.id === profil.pole_id);
-                                const filiere = filieres.find(f => f.id === profil.filiere_id);
-                                return (
-                                  <div key={index} className="bg-white p-4 rounded-lg border">
-                                    <h5 className="font-semibold text-[#004080] mb-2">Profil {index + 1}</h5>
-                                    <div className="space-y-2 text-sm">
-                                      <p><span className="font-medium">Pôle :</span> {pole ? pole.nom : <span className="text-gray-400">Non renseigné</span>}</p>
-                                      <p><span className="font-medium">Filière :</span> {filiere ? filiere.nom : <span className="text-gray-400">Non renseignée</span>}</p>
-                                      <p><span className="font-medium">Poste :</span> {profil.poste_intitule}</p>
-                                      <p><span className="font-medium">Description :</span> {profil.poste_description}</p>
-                                      <p><span className="font-medium">Nombre :</span> {profil.nb_profils}</p>
-                                      <p><span className="font-medium">Type contrat :</span> {profil.type_contrat}</p>
-                                      <p><span className="font-medium">Salaire :</span> {profil.salaire}</p>
-                                      <p><span className="font-medium">Durée :</span> {profil.duree}</p>
-                                      <p><span className="font-medium">Compétences :</span> {profil.competences}</p>
-                                      <p><span className="font-medium">Date début :</span> {profil.date_debut}</p>
-                                    </div>
+                            {demande.profils && demande.profils.map((profil: any, index: number) => {
+                              const pole = poles.find(p => p.id === profil.pole_id);
+                              const filiere = filieres.find(f => f.id === profil.filiere_id);
+                              return (
+                                <div key={index} className="bg-white p-4 rounded-lg border">
+                                  <h5 className="font-semibold text-[#004080] mb-2">Profil {index + 1}</h5>
+                                  <div className="space-y-2 text-sm">
+                                    <p><span className="font-medium">Pôle :</span> {pole ? pole.nom : <span className="text-gray-400">Non renseigné</span>}</p>
+                                    <p><span className="font-medium">Filière :</span> {filiere ? filiere.nom : <span className="text-gray-400">Non renseignée</span>}</p>
+                                    <p><span className="font-medium">Poste :</span> {profil.poste_intitule}</p>
+                                    <p><span className="font-medium">Description :</span> {profil.poste_description}</p>
+                                    <p><span className="font-medium">Nombre :</span> {profil.nb_profils}</p>
+                                    <p><span className="font-medium">Type contrat :</span> {profil.type_contrat}</p>
+                                    <p><span className="font-medium">Salaire :</span> {profil.salaire}</p>
+                                    <p><span className="font-medium">Durée :</span> {profil.duree}</p>
+                                    <p><span className="font-medium">Compétences :</span> {profil.competences}</p>
+                                    <p><span className="font-medium">Date début :</span> {profil.date_debut}</p>
                                   </div>
-                                );
-                              })}
+                                </div>
+                              );
+                            })}
                             </div>
                           </div>
 

@@ -91,8 +91,8 @@ export const useSettings = () => {
 
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message)
-        console.error('Erreur lors du chargement des paramètres:', err)
+      setError(err.message)
+      console.error('Erreur lors du chargement des paramètres:', err)
       }
     } finally {
       setLoading(false)

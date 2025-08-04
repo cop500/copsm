@@ -8,8 +8,7 @@ import {
   GraduationCap, Plus, X, Save, Edit3, Trash2, Eye, Clock, CheckCircle, AlertTriangle,
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
   ChevronRight, ChevronDown, Star, Flag, Download, ExternalLink, Users,
-  Briefcase, FileText, MessageSquare, TrendingUp, UserCheck, Building2,
-  Send, Printer
+  Briefcase, FileText, MessageSquare, TrendingUp, UserCheck, Building2
 } from 'lucide-react'
 
 export default function StagiairesPage() {
@@ -28,10 +27,6 @@ export default function StagiairesPage() {
   const [activeView, setActiveView] = useState<'liste' | 'detail' | 'candidatures'>('liste')
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
   const [candidatureSearch, setCandidatureSearch] = useState('')
-  const [selectedCandidature, setSelectedCandidature] = useState<any>(null)
-  const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
-  const [candidatureNotes, setCandidatureNotes] = useState('')
-  const [showCvModal, setShowCvModal] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [showEntretienForm, setShowEntretienForm] = useState(false)
   const [showCandidatureForm, setShowCandidatureForm] = useState(false)
@@ -58,63 +53,7 @@ export default function StagiairesPage() {
     setTimeout(() => setMessage(null), 3000)
   }
 
-  // Ouvrir les détails d'une candidature
-  const handleCandidatureDetail = (candidature: any) => {
-    console.log('Clic sur candidature:', candidature)
-    
-    // Forcer l'ouverture de la modal
-    setShowCandidatureDetail(true)
-    setSelectedCandidature(candidature)
-    setCandidatureNotes(candidature.feedback_entreprise || '')
-    
-    console.log('Modal ouverte:', true)
-    
-    // Debug: vérifier l'état après un délai
-    setTimeout(() => {
-      console.log('État modal après 100ms:', { showCandidatureDetail, selectedCandidature })
-    }, 100)
-  }
 
-  // Mettre à jour les notes d'une candidature
-  const handleUpdateCandidatureNotes = async () => {
-    if (!selectedCandidature) return
-
-    const result = await updateStatutCandidature(
-      selectedCandidature.id, 
-      selectedCandidature.statut_candidature || 'envoye',
-      candidatureNotes
-    )
-    
-    if (result.success) {
-      showMessage('Notes mises à jour avec succès')
-      setShowCandidatureDetail(false)
-    } else {
-      showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
-    }
-  }
-
-  // Ouvrir le CV dans une nouvelle fenêtre
-  const handleViewCv = (cvUrl: string) => {
-    if (cvUrl) {
-      window.open(cvUrl, '_blank')
-    } else {
-      showMessage('CV non disponible', 'error')
-    }
-  }
-
-  // Imprimer le CV
-  const handlePrintCv = (cvUrl: string) => {
-    if (cvUrl) {
-      const printWindow = window.open(cvUrl, '_blank')
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print()
-        }
-      }
-    } else {
-      showMessage('CV non disponible', 'error')
-    }
-  }
 
   const handleStagiaireClick = async (stagiaireId: string) => {
     await loadStagiaireDetail(stagiaireId)
@@ -644,113 +583,6 @@ export default function StagiairesPage() {
                                      </div>
        </div>
      )}
-
-     {/* Modal de détails de candidature - Version simple */}
-     {showCandidatureDetail && selectedCandidature && (
-       <div style={{ position: 'fixed', top: '10px', right: '10px', background: 'red', color: 'white', padding: '10px', zIndex: 10001 }}>
-         DEBUG: Modal active - {selectedCandidature.entreprise_nom}
-       </div>
-     )}
-     {showCandidatureDetail && selectedCandidature && (
-       <div 
-         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
-         style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
-         onClick={() => setShowCandidatureDetail(false)}
-       >
-         <div 
-           className="bg-white rounded-lg w-full max-w-2xl p-6"
-           style={{ position: 'relative', zIndex: 10000 }}
-           onClick={(e) => e.stopPropagation()}
-         >
-           <div className="p-6 border-b border-gray-200">
-             <div className="flex items-center justify-between">
-               <div>
-                 <h2 className="text-2xl font-bold text-gray-900">Détails de la candidature</h2>
-                 <p className="text-gray-600 mt-1">
-                   {selectedCandidature.entreprise_nom} - {selectedCandidature.poste}
-                 </p>
-               </div>
-               <button
-                 onClick={() => setShowCandidatureDetail(false)}
-                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-               >
-                 <X className="w-6 h-6" />
-               </button>
-             </div>
-           </div>
-
-           <div className="p-6">
-             <h3 className="text-lg font-semibold text-gray-900 mb-4">Détails de la candidature</h3>
-             
-             <div className="space-y-4">
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <strong>Entreprise :</strong> {selectedCandidature.entreprise_nom}
-                 </div>
-                 <div>
-                   <strong>Poste :</strong> {selectedCandidature.poste}
-                 </div>
-                 <div>
-                   <strong>Type de contrat :</strong> {selectedCandidature.type_contrat || 'Non spécifié'}
-                 </div>
-                 <div>
-                   <strong>Date :</strong> {selectedCandidature.date_candidature || 
-                    new Date(selectedCandidature.created_at).toLocaleDateString('fr-FR')}
-                 </div>
-                 <div>
-                   <strong>Source :</strong> {selectedCandidature.source_offre || 'Site web COP'}
-                 </div>
-                 <div>
-                   <strong>Statut :</strong> 
-                   <span className={`ml-2 inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                     selectedCandidature.statut_candidature === 'envoye' ? 'bg-blue-100 text-blue-800' :
-                     selectedCandidature.statut_candidature === 'acceptee' ? 'bg-green-100 text-green-800' :
-                     selectedCandidature.statut_candidature === 'refusee' ? 'bg-red-100 text-red-800' :
-                     'bg-gray-100 text-gray-800'
-                   }`}>
-                     {selectedCandidature.statut_candidature === 'envoye' ? 'Envoyée' :
-                      selectedCandidature.statut_candidature === 'acceptee' ? 'Acceptée' :
-                      selectedCandidature.statut_candidature === 'refusee' ? 'Refusée' :
-                      selectedCandidature.statut_candidature || 'En attente'}
-                   </span>
-                 </div>
-               </div>
-               
-               {selectedCandidature.feedback_entreprise && (
-                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                   <strong>Notes :</strong>
-                   <p className="mt-1 text-gray-700">{selectedCandidature.feedback_entreprise}</p>
-                 </div>
-               )}
-               
-               <div className="pt-4 flex space-x-3">
-                 <button
-                   onClick={() => setShowCandidatureDetail(false)}
-                   className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-                 >
-                   Fermer
-                 </button>
-                 <button
-                   onClick={() => {
-                     if (selectedCandidature.cv_url) {
-                       window.open(selectedCandidature.cv_url, '_blank')
-                     } else {
-                       alert('CV non disponible')
-                     }
-                   }}
-                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                 >
-                   Voir CV
-                 </button>
-               </div>
-             </div>
-           </div>
-         </div>
-       </div>
-     )}
-   </div>
- )
-})}
                 </div>
               )}
             </div>
@@ -938,17 +770,12 @@ export default function StagiairesPage() {
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
-                          <button
-                            onClick={() => {
-                              console.log('Bouton cliqué!')
-                              console.log('Candidature:', candidature)
-                              handleCandidatureDetail(candidature)
-                            }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer"
-                            style={{ cursor: 'pointer' }}
+                          <a
+                            href={`/candidature/${candidature.id}`}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer no-underline"
                           >
-                            Détails de la candidature
-                          </button>
+                            Voir les détails
+                          </a>
                           
                           <select
                             value={candidature.statut_candidature || 'envoye'}
