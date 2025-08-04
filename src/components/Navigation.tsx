@@ -81,11 +81,8 @@ export default function Navigation() {
   console.log('🔍 Navigation items:', navigation.map(item => item.name))
   console.log('🔍 Is admin:', isAdmin)
   
+  // Temporairement, afficher tous les éléments sans filtrage
   const navigationWithCurrent = navigation
-    .filter(item => {
-      console.log(`🔍 Filtering ${item.name}:`, item.name !== 'Paramètres' || isAdmin)
-      return item.name !== 'Paramètres' || isAdmin
-    })
     .map(item => ({
       ...item,
       current: pathname === item.href
