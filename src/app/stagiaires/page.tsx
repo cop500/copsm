@@ -68,6 +68,11 @@ export default function StagiairesPage() {
     setCandidatureNotes(candidature.feedback_entreprise || '')
     
     console.log('Modal ouverte:', true)
+    
+    // Debug: vérifier l'état après un délai
+    setTimeout(() => {
+      console.log('État modal après 100ms:', { showCandidatureDetail, selectedCandidature })
+    }, 100)
   }
 
   // Mettre à jour les notes d'une candidature
@@ -645,10 +650,12 @@ export default function StagiairesPage() {
        <div 
          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}
+         onClick={() => setShowCandidatureDetail(false)}
        >
          <div 
            className="bg-white rounded-lg w-full max-w-2xl p-6"
            style={{ position: 'relative', zIndex: 10000 }}
+           onClick={(e) => e.stopPropagation()}
          >
            <div className="p-6 border-b border-gray-200">
              <div className="flex items-center justify-between">
