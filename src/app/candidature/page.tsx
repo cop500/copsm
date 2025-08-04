@@ -226,20 +226,35 @@ const CandidaturePage = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center px-4">
-        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center py-12">
-            <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Candidature envoyée avec succès !</h2>
-            <p className="text-gray-600 mb-8 text-lg">
-              Votre candidature a été reçue. Nous vous contacterons bientôt.
-            </p>
-            <button 
-              onClick={() => setSuccess(false)}
-              className="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-            >
-              Postuler à une autre demande
-            </button>
+      <div className="min-h-screen relative">
+        {/* Background avec image et overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/90 to-blue-900/90">
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+            style={{
+              backgroundImage: "url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')"
+            }}
+          ></div>
+        </div>
+        
+        <div className="relative z-10 flex items-center justify-center px-4 py-12">
+          <div className="max-w-2xl w-full bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-12 border border-white/20">
+            <div className="text-center py-8">
+              <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8">
+                <CheckCircle className="w-12 h-12 text-white" />
+              </div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">Candidature envoyée avec succès !</h2>
+              <p className="text-gray-600 mb-10 text-xl leading-relaxed">
+                Votre candidature a été reçue et sera traitée dans les plus brefs délais. 
+                <br />Nous vous contacterons bientôt.
+              </p>
+              <button 
+                onClick={() => setSuccess(false)}
+                className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-10 py-4 rounded-2xl hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                Postuler à une autre demande
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -247,47 +262,69 @@ const CandidaturePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50">
-      <div className="container mx-auto px-4 py-12">
+    <div className="min-h-screen relative">
+      {/* Background avec image et overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/90 to-blue-900/90">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')"
+          }}
+        ></div>
+      </div>
+      
+      {/* Contenu principal */}
+      <div className="relative z-10 container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              ESPACE Candidature
-            </h1>
-            <h2 className="text-2xl font-semibold text-indigo-600 mb-2">
-              COP CMC SM
-            </h2>
-            <p className="text-xl text-gray-600 font-medium">
-              DÉPOSER VOTRE CANDIDATURE
-            </p>
+          <div className="text-center mb-16">
+            <div className="inline-block p-8 bg-white/10 backdrop-blur-sm rounded-3xl border border-white/20 mb-8">
+              <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+                ESPACE Candidature
+              </h1>
+              <h2 className="text-3xl font-semibold text-indigo-200 mb-3">
+                COP CMC SM
+              </h2>
+              <div className="w-24 h-1 bg-gradient-to-r from-indigo-400 to-blue-400 mx-auto mb-4"></div>
+              <p className="text-2xl text-white/90 font-medium">
+                DÉPOSER VOTRE CANDIDATURE
+              </p>
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Liste des demandes */}
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Demandes disponibles</h2>
-                <p className="text-gray-600">Sélectionnez une offre pour postuler</p>
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Demandes disponibles</h2>
+                <p className="text-gray-600 text-lg">Sélectionnez une offre pour postuler</p>
+                <div className="w-16 h-1 bg-gradient-to-r from-indigo-500 to-blue-500 mt-4"></div>
               </div>
               <div className="space-y-4">
                 {demandes.map((demande) => (
                   <div
                     key={demande.id}
-                    className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                    className={`p-6 border-2 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-105 ${
                       selectedDemande?.id === demande.id
-                        ? 'border-indigo-500 bg-indigo-50 shadow-lg'
-                        : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                        ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-blue-50 shadow-xl'
+                        : 'border-gray-200 hover:border-indigo-400 hover:shadow-lg bg-white/80'
                     }`}
                     onClick={() => setSelectedDemande(demande)}
                   >
-                    <h3 className="font-bold text-xl text-gray-900 mb-2">{demande.entreprise_nom}</h3>
-                    <p className="text-gray-600 mb-3">{demande.secteur}</p>
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-bold text-xl text-gray-900">{demande.entreprise_nom}</h3>
+                      {selectedDemande?.id === demande.id && (
+                        <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-gray-600 mb-4">{demande.secteur}</p>
                     <div className="flex justify-between text-sm">
-                      <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full font-medium">
+                      <span className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 rounded-full font-medium shadow-md">
                         {demande.type_demande}
                       </span>
-                      <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
+                      <span className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-medium">
                         {demande.evenement_type}
                       </span>
                     </div>
@@ -297,16 +334,22 @@ const CandidaturePage = () => {
             </div>
 
             {/* Formulaire de candidature */}
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Formulaire de candidature</h2>
-                <p className="text-gray-600">Remplissez vos informations personnelles</p>
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Formulaire de candidature</h2>
+                <p className="text-gray-600 text-lg">Remplissez vos informations personnelles</p>
+                <div className="w-16 h-1 bg-gradient-to-r from-indigo-500 to-blue-500 mt-4"></div>
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
-                    {error}
+                  <div className="p-6 bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 rounded-2xl shadow-lg">
+                    <div className="flex items-center">
+                      <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-3">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                      {error}
+                    </div>
                   </div>
                 )}
 
@@ -419,8 +462,11 @@ const CandidaturePage = () => {
                 </div>
 
                 {/* Informations de la demande */}
-                <div className="bg-gray-50 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Détails de l'offre sélectionnée</h3>
+                <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-100">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
+                    Détails de l'offre sélectionnée
+                  </h3>
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -447,10 +493,10 @@ const CandidaturePage = () => {
 
                 {/* Upload CV */}
                 <div>
-                  <label htmlFor="cv" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="cv" className="block text-sm font-semibold text-gray-700 mb-3">
                     CV (PDF uniquement) *
                   </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-indigo-400 transition-colors">
+                  <div className="border-2 border-dashed border-indigo-300 rounded-2xl p-8 text-center hover:border-indigo-500 hover:bg-indigo-50/50 transition-all duration-300 group">
                     <input
                       id="cv"
                       type="file"
@@ -460,8 +506,10 @@ const CandidaturePage = () => {
                       className="hidden"
                     />
                     <label htmlFor="cv" className="cursor-pointer">
-                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-2">
+                      <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                        <Upload className="w-8 h-8 text-white" />
+                      </div>
+                      <p className="text-gray-700 mb-2 font-medium text-lg">
                         {cvFile ? cvFile.name : 'Cliquez pour sélectionner votre CV'}
                       </p>
                       <p className="text-sm text-gray-500">
@@ -474,16 +522,16 @@ const CandidaturePage = () => {
                 <button
                   type="submit"
                   disabled={submitting || uploading || !selectedDemande}
-                  className="w-full bg-indigo-600 text-white py-4 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-semibold text-lg transition-colors"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-5 rounded-2xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-bold text-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   {submitting || uploading ? (
                     <>
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                      {uploading ? 'Upload en cours...' : 'Envoi en cours...'}
+                      <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-white mr-4"></div>
+                      <span className="text-lg">{uploading ? 'Upload en cours...' : 'Envoi en cours...'}</span>
                     </>
                   ) : (
                     <>
-                      <Send className="w-6 h-6 mr-3" />
+                      <Send className="w-7 h-7 mr-4" />
                       Envoyer ma candidature
                     </>
                   )}
