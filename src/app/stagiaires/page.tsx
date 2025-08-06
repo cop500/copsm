@@ -85,9 +85,11 @@ export default function StagiairesPage() {
   // Ouvrir les détails d'une candidature
   const handleCandidatureDetail = (candidature: any) => {
     console.log('Clic sur candidature:', candidature)
+    console.log('showCandidatureDetail avant:', showCandidatureDetail)
     setSelectedCandidature(candidature)
     setCandidatureNotes(candidature.feedback_entreprise || '')
     setShowCandidatureDetail(true)
+    console.log('showCandidatureDetail après:', true)
   }
 
   // Mettre à jour les notes d'une candidature

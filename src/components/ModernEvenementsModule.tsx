@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { 
   Calendar, Plus, Search, Filter, Grid, List, 
   Clock, CheckCircle, AlertTriangle, XCircle,
-  TrendingUp, Users, MapPin, FileText, Zap
+  TrendingUp, Users, MapPin, FileText, Zap, Edit3
 } from 'lucide-react'
 import { NewEventForm } from './NewEventForm'
 import { EventCard } from './EventCard'
@@ -25,6 +25,7 @@ export const ModernEvenementsModule = () => {
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
   const [showAIGenerator, setShowAIGenerator] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<string>('')
+  const [showEventDetail, setShowEventDetail] = useState(false)
 
   // Charger les événements
   const loadEvenements = async () => {
@@ -93,8 +94,8 @@ export const ModernEvenementsModule = () => {
   // Voir les détails d'un événement
   const handleViewEvent = (event: any) => {
     setSelectedEvent(event)
-    // Ici on pourrait ouvrir un modal de détails ou naviguer vers une page dédiée
-    console.log('Voir détails:', event)
+    // Ouvrir le modal de détails
+    setShowEventDetail(true)
   }
 
   // Gérer la génération de contenu IA
@@ -411,7 +412,10 @@ export const ModernEvenementsModule = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Contenu généré par IA</h2>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  Contenu généré par IA
+                </h2>
                 <button
                   onClick={() => setGeneratedContent('')}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -421,7 +425,7 @@ export const ModernEvenementsModule = () => {
               </div>
             </div>
             <div className="p-6">
-              <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap font-mono text-sm">
+              <div className="bg-white border border-gray-200 rounded-lg p-6 whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
                 {generatedContent}
               </div>
               <div className="flex justify-end gap-3 mt-6">
@@ -430,12 +434,186 @@ export const ModernEvenementsModule = () => {
                     navigator.clipboard.writeText(generatedContent);
                     showMessage('Contenu copié dans le presse-papiers !');
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                 >
+                  <FileText className="w-4 h-4" />
                   Copier
                 </button>
                 <button
+                  onClick={() => {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Contenu généré - ${selectedEvent?.titre || 'Événement'}</title>
+                            <style>
+                              body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
+                              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                              .content { white-space: pre-wrap; }
+                              @media print { body { margin: 0; } }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="header">
+                              <h1>Contenu généré par IA</h1>
+                              <p><strong>Événement:</strong> ${selectedEvent?.titre || 'N/A'}</p>
+                              <p><strong>Date de génération:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+                            </div>
+                            <div class="content">${generatedContent}</div>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }
+                  }}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  Imprimer
+                </button>
+                <button
                   onClick={() => setGeneratedContent('')}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de détails d'événement */}
+      {showEventDetail && selectedEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  Détails de l'événement
+                </h2>
+                <button
+                  onClick={() => setShowEventDetail(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Informations principales */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Informations générales</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                        <p className="text-gray-900 font-medium">{selectedEvent.titre}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Type d'événement</label>
+                        <p className="text-gray-900">{selectedEvent.event_types?.nom || 'Non spécifié'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                          selectedEvent.statut === 'planifie' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                          selectedEvent.statut === 'en_cours' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                          selectedEvent.statut === 'termine' ? 'bg-green-100 text-green-800 border-green-200' :
+                          selectedEvent.statut === 'annule' ? 'bg-red-100 text-red-800 border-red-200' :
+                          'bg-gray-100 text-gray-800 border-gray-200'
+                        }`}>
+                          {selectedEvent.statut === 'planifie' ? 'Planifié' :
+                           selectedEvent.statut === 'en_cours' ? 'En cours' :
+                           selectedEvent.statut === 'termine' ? 'Terminé' :
+                           selectedEvent.statut === 'annule' ? 'Annulé' :
+                           selectedEvent.statut}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
+                        <p className="text-gray-900">{selectedEvent.lieu}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
+                        <p className="text-gray-900">{selectedEvent.responsable_cop || 'Non spécifié'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Dates et horaires</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">Début :</span>
+                        <span className="text-sm font-medium">{new Date(selectedEvent.date_debut).toLocaleString('fr-FR')}</span>
+                      </div>
+                      {selectedEvent.date_fin && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">Fin :</span>
+                          <span className="text-sm font-medium">{new Date(selectedEvent.date_fin).toLocaleString('fr-FR')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description et photos */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+                    <p className="text-gray-700 leading-relaxed">{selectedEvent.description}</p>
+                  </div>
+
+                  {selectedEvent.photos_urls && selectedEvent.photos_urls.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Photos ({selectedEvent.photos_urls.length})</h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedEvent.photos_urls.map((photo: string, index: number) => (
+                          <img
+                            key={index}
+                            src={photo}
+                            alt={`Photo ${index + 1} - ${selectedEvent.titre}`}
+                            className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => window.open(photo, '_blank')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowEventDetail(false)
+                    handleGenerateContent(selectedEvent)
+                  }}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  Générer contenu IA
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEventDetail(false)
+                    handleEditEvent(selectedEvent)
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Modifier
+                </button>
+                <button
+                  onClick={() => setShowEventDetail(false)}
                   className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
                 >
                   Fermer
