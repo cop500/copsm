@@ -6,7 +6,7 @@ import { useSettings } from '@/hooks/useSettings'
 import './styles.css'
 import { 
   Calendar, Clock, MapPin, Users, BookOpen, CheckCircle, XCircle,
-  AlertCircle, Loader2, ArrowRight, Star, Zap, Target, Award
+  AlertCircle, Loader2, ArrowRight, Star, Zap, Target, Award, Search
 } from 'lucide-react'
 
 interface Atelier {
