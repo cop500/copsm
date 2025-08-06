@@ -262,70 +262,19 @@ export default function InscriptionAteliersPage() {
         </div>
       </div>
 
-      {/* Filtres */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-8 mb-8">
-          <h2 className="text-2xl font-bold text-blue-900 mb-6">Filtrer les ateliers</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-3">Recherche</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 w-5 h-5" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Rechercher un atelier..."
-                  className="w-full pl-10 pr-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50/50 transition-all duration-200"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-3">Pôle</label>
-              <select
-                value={filterPole}
-                onChange={(e) => setFilterPole(e.target.value)}
-                className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50/50 transition-all duration-200"
-              >
-                <option value="">Tous les pôles</option>
-                {poles.filter(p => p.actif).map(pole => (
-                  <option key={pole.id} value={pole.nom}>{pole.nom}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-3">Filière</label>
-              <select
-                value={filterFiliere}
-                onChange={(e) => setFilterFiliere(e.target.value)}
-                className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50/50 transition-all duration-200"
-              >
-                <option value="">Toutes les filières</option>
-                {filieres.filter(f => f.actif).map(filiere => (
-                  <option key={filiere.id} value={filiere.nom}>{filiere.nom}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setSearchTerm('')
-                  setFilterPole('')
-                  setFilterFiliere('')
-                }}
-                className="w-full px-6 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all duration-200 font-medium"
-              >
-                Réinitialiser
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Liste des ateliers */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             {/* Liste des ateliers */}
+       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+         {/* Titre de section */}
+         <div className="text-center mb-12">
+           <h2 className="text-4xl font-bold text-blue-900 mb-4">
+             🎯 Ateliers Disponibles
+           </h2>
+           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+             Découvrez nos ateliers spécialisés et inscrivez-vous aux sessions qui vous intéressent
+           </p>
+         </div>
+         
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {filteredAteliers.length === 0 ? (
             <div className="col-span-full bg-white rounded-xl shadow-sm border border-blue-100 p-16 text-center">
               <BookOpen className="w-20 h-20 text-blue-300 mx-auto mb-6" />
@@ -428,8 +377,8 @@ export default function InscriptionAteliersPage() {
 
              {/* Modal Formulaire d'inscription */}
        {showInscriptionForm && selectedAtelier && (
-         <div className="fixed inset-0 bg-gradient-to-br from-blue-900/80 to-purple-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-blue-100">
+         <div className="fixed inset-0 bg-gradient-to-br from-blue-600/90 via-purple-600/90 to-indigo-600/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+           <div className="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-blue-200">
             <div className="p-8">
                               {inscriptionSuccess ? (
                   <div className="text-center">
@@ -570,7 +519,7 @@ export default function InscriptionAteliersPage() {
                                              <button
                          type="submit"
                          disabled={submitting}
-                         className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                         className="flex-1 px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl hover:from-yellow-500 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-3 font-bold text-lg shadow-2xl hover:shadow-3xl transform hover:scale-110 border-2 border-orange-300"
                        >
                          {submitting ? (
                            <>
