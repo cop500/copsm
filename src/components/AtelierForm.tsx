@@ -83,9 +83,14 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
     ? filieres.filter(f => {
         // Trouver le pôle correspondant
         const pole = poles.find(p => p.nom === formData.pole)
+        console.log('🔍 Filtrage - Pole sélectionné:', formData.pole)
+        console.log('🔍 Filtrage - Pole trouvé:', pole)
+        console.log('🔍 Filtrage - Filiere:', f.nom, 'pole_id:', f.pole_id)
         return pole && f.pole_id === pole.id
       })
     : []
+  
+  console.log('🔍 Filieres filtrées:', filieresFiltered)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
