@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
-  Home, Calendar, Settings, GraduationCap, Menu, X,
+  Home, Users, Calendar, Settings, GraduationCap, Menu, X,
   LogOut, Send, BookOpen
 } from 'lucide-react'
 import { useState } from 'react'
@@ -36,6 +36,12 @@ const navigation = [
     name: 'Candidature',
     href: '/candidature',
     icon: Send,
+    current: false
+  },
+  {
+    name: 'Demandes entreprises',
+    href: '/dashboard-admin',
+    icon: Users,
     current: false
   },
   {
