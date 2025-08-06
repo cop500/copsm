@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { 
   Home, Users, Building2, Calendar, FileText, Settings,
   GraduationCap, UserCheck, Mail, Bell, Menu, X,
-  User, LogOut, Send
+  User, LogOut, Send, BookOpen
 } from 'lucide-react'
 import { useState } from 'react'
 import { useUser } from '@/contexts/UserContext'
@@ -49,6 +49,12 @@ const navigation = [
     name: 'Demandes entreprises',
     href: '/dashboard-admin',
     icon: Users,
+    current: false
+  },
+  {
+    name: 'Ateliers',
+    href: '/ateliers',
+    icon: BookOpen,
     current: false
   },
   {
