@@ -15,10 +15,11 @@ interface AtelierFormData {
   date_fin: string
   heure_fin: string
   capacite_max: number
-  pole_id: string
-  filiere_id: string
+  pole: string
+  filliere: string
   lieu: string
   statut: 'planifie' | 'en_cours' | 'termine' | 'annule'
+  pour_tous: boolean
 }
 
 interface AtelierFormProps {
@@ -41,10 +42,11 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
     date_fin: '',
     heure_fin: '',
     capacite_max: 20,
-    pole_id: '',
-    filiere_id: '',
+    pole: '',
+    filliere: '',
     lieu: '',
-    statut: 'planifie'
+    statut: 'planifie',
+    pour_tous: false
   })
 
   // Initialiser le formulaire avec les données de l'atelier existant
@@ -62,17 +64,18 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
         date_fin: dateFin.toISOString().split('T')[0],
         heure_fin: dateFin.toTimeString().slice(0, 5),
         capacite_max: atelier.capacite_max || 20,
-        pole_id: atelier.pole_id || '',
-        filiere_id: atelier.filiere_id || '',
+        pole: atelier.pole || '',
+        filliere: atelier.filliere || '',
         lieu: atelier.lieu || '',
-        statut: atelier.statut || 'planifie'
+        statut: atelier.statut || 'planifie',
+        pour_tous: !atelier.pole && !atelier.filliere
       })
     }
   }, [atelier])
 
   // Filtrer les filières selon le pôle sélectionné
-  const filieresFiltered = formData.pole_id 
-    ? filieres.filter(f => f.pole_id === formData.pole_id)
+  const filieresFiltered = formData.pole 
+    ? filieres.filter(f => f.pole_name === formData.pole)
     : []
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,9 +86,13 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
     try {
       // Valider les données
       if (!formData.titre || !formData.date_debut || !formData.heure_debut || 
-          !formData.date_fin || !formData.heure_fin || !formData.pole_id || 
-          !formData.filiere_id || !formData.lieu) {
+          !formData.date_fin || !formData.heure_fin || !formData.lieu) {
         throw new Error('Veuillez remplir tous les champs obligatoires')
+      }
+
+      // Valider pôle/filière si pas "pour tous"
+      if (!formData.pour_tous && (!formData.pole || !formData.filliere)) {
+        throw new Error('Veuillez sélectionner un pôle et une filière, ou cocher "Pour tous"')
       }
 
       // Créer les dates complètes
@@ -102,8 +109,8 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
         date_debut: dateDebut.toISOString(),
         date_fin: dateFin.toISOString(),
         capacite_max: formData.capacite_max,
-        pole_id: formData.pole_id,
-        filiere_id: formData.filiere_id,
+        pole: formData.pour_tous ? null : formData.pole,
+        filliere: formData.pour_tous ? null : formData.filliere,
         lieu: formData.lieu,
         statut: formData.statut,
         capacite_actuelle: atelier?.capacite_actuelle || 0
@@ -255,47 +262,68 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
           </div>
         </div>
 
-        {/* Pôle et Filière */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Pôle <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.pole_id}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                pole_id: e.target.value,
-                filiere_id: '' // Réinitialiser la filière
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Sélectionner un pôle</option>
-              {poles.filter(p => p.actif).map(pole => (
-                <option key={pole.id} value={pole.id}>{pole.nom}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Filière <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.filiere_id}
-              onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={!formData.pole_id}
-            >
-              <option value="">
-                {formData.pole_id ? 'Sélectionner une filière' : 'Sélectionnez d\'abord un pôle'}
-              </option>
-              {filieresFiltered.map(filiere => (
-                <option key={filiere.id} value={filiere.id}>{filiere.nom}</option>
-              ))}
-            </select>
-          </div>
+        {/* Case "Pour tous" */}
+        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <input
+            type="checkbox"
+            id="pour_tous"
+            checked={formData.pour_tous}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              pour_tous: e.target.checked,
+              pole: e.target.checked ? '' : prev.pole,
+              filliere: e.target.checked ? '' : prev.filliere
+            }))}
+            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <label htmlFor="pour_tous" className="text-sm font-medium text-blue-900">
+            Cet atelier est ouvert à tous les pôles et filières
+          </label>
         </div>
+
+        {/* Pôle et Filière */}
+        {!formData.pour_tous && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Pôle
+              </label>
+              <select
+                value={formData.pole}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  pole: e.target.value,
+                  filliere: '' // Réinitialiser la filière
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Sélectionner un pôle</option>
+                {poles.filter(p => p.actif).map(pole => (
+                  <option key={pole.id} value={pole.nom}>{pole.nom}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filière
+              </label>
+              <select
+                value={formData.filliere}
+                onChange={(e) => setFormData(prev => ({ ...prev, filliere: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={!formData.pole}
+              >
+                <option value="">
+                  {formData.pole ? 'Sélectionner une filière' : 'Sélectionnez d\'abord un pôle'}
+                </option>
+                {filieresFiltered.map(filiere => (
+                  <option key={filiere.id} value={filiere.nom}>{filiere.nom}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Capacité et Lieu */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
