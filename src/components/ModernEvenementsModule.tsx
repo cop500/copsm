@@ -105,6 +105,20 @@ export const ModernEvenementsModule = () => {
     setGeneratedContent(content)
     showMessage('Contenu généré avec succès !')
     setShowAIGenerator(false)
+    // Le modal de contenu généré s'affichera automatiquement grâce à la condition {generatedContent && ...}
+  }
+
+  // Fermer le modal de contenu généré
+  const closeGeneratedContent = () => {
+    setGeneratedContent('')
+  }
+
+  // Réinitialiser tous les états des modals (en cas de problème)
+  const resetModalStates = () => {
+    setShowAIGenerator(false)
+    setGeneratedContent('')
+    setShowEventDetail(false)
+    setSelectedEvent(null)
   }
 
   // Ouvrir le générateur IA pour un événement spécifique
@@ -174,6 +188,16 @@ export const ModernEvenementsModule = () => {
             <Plus className="w-5 h-5" />
             Nouvel Événement
           </button>
+          {(showAIGenerator || generatedContent || showEventDetail) && (
+            <button
+              onClick={resetModalStates}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              title="Fermer tous les modals"
+            >
+              <XCircle className="w-4 h-4" />
+              Fermer tout
+            </button>
+          )}
         </div>
       </div>
 
@@ -381,12 +405,15 @@ export const ModernEvenementsModule = () => {
                   <Zap className="w-5 h-5 text-green-600" />
                   Générateur de contenu IA
                 </h2>
-                <button
-                  onClick={() => setShowAIGenerator(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <XCircle className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowAIGenerator(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Fermer le générateur"
+                  >
+                    <XCircle className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
             </div>
             <div className="p-6">
@@ -412,7 +439,7 @@ export const ModernEvenementsModule = () => {
                   Contenu généré par IA
                 </h2>
                 <button
-                  onClick={() => setGeneratedContent('')}
+                  onClick={closeGeneratedContent}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <XCircle className="w-6 h-6" />

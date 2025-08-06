@@ -119,6 +119,7 @@ export default function AIContentGenerator({
       onContentGenerated(generatedContent);
     } catch (error) {
       console.error('Erreur lors de la génération:', error);
+      // En cas d'erreur, on ne ferme pas le modal pour permettre à l'utilisateur de réessayer
     } finally {
       setIsGenerating(false);
     }
