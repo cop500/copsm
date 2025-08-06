@@ -3,3 +3,8 @@
 [33m905e4c7[m Fix: Ajout de logs de débogage pour l'upload photos et scripts SQL améliorés
 [33m4a8d29f[m Fix: Correction du blocage du générateur IA - Amélioration de la gestion des erreurs et ajout de logs de débogage
 [33m5e751b4[m Fix: Amélioration de la gestion des modals du générateur IA - Correction du problème de blocage et ajout de logs de débogage
+[33m91f4b68[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix: Suppression de la déclaration dupliquée de filteredEvenements - correction de l'erreur de compilation
+[33m09f05b5[m Intégration complète des Ateliers dans l'onglet Événements - interface unifiée avec filtres et gestion
+[33mc474915[m Refactor: Page Ateliers complètement refaite - design moderne et code propre
+[33m3537440[m Refactor: Navigation complètement refaite - version simple et propre pour diagnostiquer le problème
+[33me9d4f8a[m Fix: Remise de l'onglet Demandes entreprises - important pour la gestion des demandes
