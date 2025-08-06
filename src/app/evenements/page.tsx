@@ -1,11 +1,11 @@
 // ========================================
-// src/app/evenements/page.tsx - Page des événements COP
+// src/app/evenements/page.tsx - Page des événements COP (Version moderne)
 // ========================================
 
 'use client'
 
-import { EvenementsModule } from '@/components/EvenementsModule'
+import { ModernEvenementsModule } from '@/components/ModernEvenementsModule'
 
 export default function EvenementsPage() {
-  return <EvenementsModule />
+  return <ModernEvenementsModule />
 }
