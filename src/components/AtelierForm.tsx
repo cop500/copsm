@@ -34,19 +34,6 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // Debug: afficher les données
-  console.log('🔍 AtelierForm - Poles:', poles)
-  console.log('🔍 AtelierForm - Filieres:', filieres)
-  console.log('🔍 AtelierForm - FormData:', formData)
-  
-  // Vérifier si les données sont chargées
-  if (poles.length === 0) {
-    console.warn('⚠️ Aucun pôle chargé - vérifiez useSettings')
-  }
-  if (filieres.length === 0) {
-    console.warn('⚠️ Aucune filière chargée - vérifiez useSettings')
-  }
-  
   const [formData, setFormData] = useState<AtelierFormData>({
     titre: '',
     description: '',
@@ -61,6 +48,19 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
     statut: 'planifie',
     pour_tous: false
   })
+
+  // Debug: afficher les données après initialisation
+  console.log('🔍 AtelierForm - Poles:', poles)
+  console.log('🔍 AtelierForm - Filieres:', filieres)
+  console.log('🔍 AtelierForm - FormData:', formData)
+  
+  // Vérifier si les données sont chargées
+  if (poles.length === 0) {
+    console.warn('⚠️ Aucun pôle chargé - vérifiez useSettings')
+  }
+  if (filieres.length === 0) {
+    console.warn('⚠️ Aucune filière chargée - vérifiez useSettings')
+  }
 
   // Initialiser le formulaire avec les données de l'atelier existant
   useEffect(() => {
