@@ -79,14 +79,6 @@ export default function Navigation() {
 
   // Mise à jour de l'état "current" basé sur le pathname
   const navigationWithCurrent = navigation
-    .filter(item => {
-      // Onglet Paramètres seulement pour admin
-      if (item.name === 'Paramètres') {
-        return isAdmin;
-      }
-      // Tous les autres onglets sont visibles pour tous
-      return true;
-    })
     .map(item => ({
       ...item,
       current: pathname === item.href
@@ -96,6 +88,8 @@ export default function Navigation() {
   console.log('🔍 Navigation items:', navigationWithCurrent.map(item => item.name))
   console.log('🔍 Current user role:', role)
   console.log('🔍 Is admin:', isAdmin)
+  console.log('🔍 Navigation array length:', navigationWithCurrent.length)
+  console.log('🔍 Ateliers found:', navigationWithCurrent.find(item => item.name === 'Ateliers'))
 
   // 🎯 FONCTION POUR GÉRER LA DÉCONNEXION
   const handleLogout = async () => {
