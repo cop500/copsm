@@ -102,15 +102,17 @@ export const ModernEvenementsModule = () => {
 
   // Gérer la génération de contenu IA
   const handleContentGenerated = (content: string) => {
+    console.log('🔄 Contenu généré reçu:', content.substring(0, 100) + '...')
     setGeneratedContent(content)
     showMessage('Contenu généré avec succès !')
-    setShowAIGenerator(false)
+    // Ne pas fermer le modal du générateur ici, laisser l'utilisateur voir le résultat
     // Le modal de contenu généré s'affichera automatiquement grâce à la condition {generatedContent && ...}
   }
 
   // Fermer le modal de contenu généré
   const closeGeneratedContent = () => {
     setGeneratedContent('')
+    setShowAIGenerator(false) // Fermer aussi le générateur
   }
 
   // Réinitialiser tous les états des modals (en cas de problème)
@@ -151,6 +153,14 @@ export const ModernEvenementsModule = () => {
   useEffect(() => {
     loadEvenements()
   }, [])
+
+  // Effet pour fermer automatiquement le générateur quand le contenu est généré
+  useEffect(() => {
+    if (generatedContent) {
+      console.log('🔒 Fermeture automatique du générateur')
+      setShowAIGenerator(false)
+    }
+  }, [generatedContent])
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -430,6 +440,8 @@ export const ModernEvenementsModule = () => {
 
       {/* Affichage du contenu généré */}
       {generatedContent && (
+        <>
+          {console.log('📄 Affichage du modal de contenu généré')}
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
@@ -439,7 +451,10 @@ export const ModernEvenementsModule = () => {
                   Contenu généré par IA
                 </h2>
                 <button
-                  onClick={closeGeneratedContent}
+                  onClick={() => {
+                    closeGeneratedContent()
+                    setShowAIGenerator(false) // Fermer aussi le générateur
+                  }}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <XCircle className="w-6 h-6" />
@@ -496,7 +511,10 @@ export const ModernEvenementsModule = () => {
                   Imprimer
                 </button>
                 <button
-                  onClick={() => setGeneratedContent('')}
+                  onClick={() => {
+                    setGeneratedContent('')
+                    setShowAIGenerator(false) // Fermer aussi le générateur
+                  }}
                   className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
                 >
                   Fermer
@@ -505,6 +523,7 @@ export const ModernEvenementsModule = () => {
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* Modal de détails d'événement */}
