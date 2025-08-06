@@ -229,30 +229,30 @@ export default function InscriptionAteliersPage() {
               </div>
             </div>
             
-            {/* Titre principal avec effet de gradient */}
-            <h1 className="text-6xl font-black mb-6 leading-tight bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent">
-              🚀 Ateliers COP
+            {/* Titre principal */}
+            <h1 className="text-6xl font-black mb-6 leading-tight text-gray-100">
+              🚀 ATELIERS COP
             </h1>
             
             {/* Sous-titre accrocheur */}
-            <h2 className="text-4xl font-bold text-white mb-8 leading-tight">
+            <h2 className="text-4xl font-bold text-gray-50 mb-8 leading-tight">
               Transformez votre avenir professionnel !
             </h2>
             
             {/* Description motivante */}
             <div className="max-w-4xl mx-auto">
-              <p className="text-2xl text-blue-100 mb-6 leading-relaxed font-medium">
+              <p className="text-2xl text-gray-200 mb-6 leading-relaxed font-medium">
                 Rejoignez nos ateliers et développez vos compétences
               </p>
-              <p className="text-xl text-blue-200 leading-relaxed">
+              <p className="text-xl text-gray-300 leading-relaxed">
                 ✨ Formations pratiques • 🎯 Projets concrets
               </p>
             </div>
             
             {/* Call-to-action */}
             <div className="mt-10">
-              <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-full px-8 py-4 border border-white/30">
-                <Zap className="w-6 h-6 text-yellow-300 animate-bounce" />
+              <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-500 to-blue-400 rounded-full px-8 py-4 shadow-lg border border-blue-300">
+                <Zap className="w-6 h-6 text-white animate-bounce" />
                 <span className="text-white font-semibold text-lg">
                   Inscriptions ouvertes - Places limitées !
                 </span>
@@ -360,36 +360,36 @@ export default function InscriptionAteliersPage() {
 
                   <div className="space-y-4 mb-8">
                     <div className="border-b border-blue-200 pb-4">
-                      <div className="flex items-center gap-3 text-blue-900 font-medium">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                        <span className="text-lg">{new Date(atelier.date_debut).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 text-blue-900 font-medium">
-                      <Clock className="w-5 h-5 text-blue-600" />
-                      <span className="text-lg">
-                        {new Date(atelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - 
-                        {new Date(atelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 text-blue-900 font-medium">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      <span className="text-lg">{atelier.lieu}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 text-blue-900 font-medium">
-                      <Users className="w-5 h-5 text-blue-600" />
-                      <span className="text-lg">{atelier.capacite_actuelle} / {atelier.capacite_max} places</span>
-                    </div>
+                                           <div className="flex items-center gap-3 text-blue-900 font-medium">
+                       <Calendar className="w-5 h-5 text-blue-400" />
+                       <span className="text-lg">{new Date(atelier.date_debut).toLocaleDateString('fr-FR')}</span>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-3 text-blue-900 font-medium">
+                     <Clock className="w-5 h-5 text-blue-400" />
+                     <span className="text-lg">
+                       {new Date(atelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - 
+                       {new Date(atelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                     </span>
+                   </div>
+                   
+                   <div className="flex items-center gap-3 text-blue-900 font-medium">
+                     <MapPin className="w-5 h-5 text-blue-400" />
+                     <span className="text-lg">{atelier.lieu}</span>
+                   </div>
+                   
+                   <div className="flex items-center gap-3 text-blue-900 font-medium">
+                     <Users className="w-5 h-5 text-blue-400" />
+                     <span className="text-lg">{atelier.capacite_actuelle} / {atelier.capacite_max} places</span>
+                   </div>
 
-                    {atelier.pole && (
-                      <div className="flex items-center gap-3 text-blue-900 font-medium">
-                        <Target className="w-5 h-5 text-blue-600" />
-                        <span className="text-lg">{atelier.pole} - {atelier.filliere}</span>
-                      </div>
-                    )}
+                   {atelier.pole && (
+                     <div className="flex items-center gap-3 text-blue-900 font-medium">
+                       <Target className="w-5 h-5 text-blue-400" />
+                       <span className="text-lg">{atelier.pole} - {atelier.filliere}</span>
+                     </div>
+                   )}
                   </div>
 
                   <div className="flex items-center justify-between pt-6 border-t border-blue-200">
@@ -411,7 +411,7 @@ export default function InscriptionAteliersPage() {
                        disabled={atelier.capacite_actuelle >= atelier.capacite_max}
                        className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
                          atelier.capacite_actuelle < atelier.capacite_max
-                           ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105'
+                           ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105'
                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                        }`}
                      >
@@ -570,7 +570,7 @@ export default function InscriptionAteliersPage() {
                                              <button
                          type="submit"
                          disabled={submitting}
-                         className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                         className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
                        >
                          {submitting ? (
                            <>
