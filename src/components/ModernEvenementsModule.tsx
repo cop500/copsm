@@ -163,13 +163,6 @@ export const ModernEvenementsModule = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowAIGenerator(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            <Zap className="w-4 h-4" />
-            Générer contenu IA
-          </button>
-          <button
             onClick={() => {
               setSelectedEvent(null)
               setShowForm(true)
