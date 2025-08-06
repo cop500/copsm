@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { 
   Calendar, Plus, Search, Filter, Grid, List, 
   Clock, CheckCircle, AlertTriangle, XCircle,
-  TrendingUp, Users, MapPin, FileText, Zap, Edit3
+  TrendingUp, Users, MapPin, FileText, Zap, Edit3,
+  BookOpen, Eye, Trash2
 } from 'lucide-react'
 import { NewEventForm } from './NewEventForm'
 import { EventCard } from './EventCard'
@@ -17,23 +18,28 @@ export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
   const [showForm, setShowForm] = useState(false)
   const [evenements, setEvenements] = useState<any[]>([])
+  const [ateliers, setAteliers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('tous')
-  const [typeFilter, setTypeFilter] = useState('tous')
+  const [typeFilter, setTypeFilter] = useState('tous') // 'tous', 'evenements', 'ateliers'
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
+  const [selectedAtelier, setSelectedAtelier] = useState<any>(null)
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
   const [showAIGenerator, setShowAIGenerator] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<string>('')
   const [showEventDetail, setShowEventDetail] = useState(false)
+  const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
 
-  // Charger les événements
+  // Charger les événements et ateliers
   const loadEvenements = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      
+      // Charger les événements
+      const { data: evenementsData, error: evenementsError } = await supabase
         .from('evenements')
         .select(`
           *,
@@ -41,11 +47,21 @@ export const ModernEvenementsModule = () => {
         `)
         .order('date_debut', { ascending: false })
 
-      if (error) throw error
-      setEvenements(data || [])
+      if (evenementsError) throw evenementsError
+      
+      // Charger les ateliers
+      const { data: ateliersData, error: ateliersError } = await supabase
+        .from('ateliers')
+        .select('*')
+        .order('date_debut', { ascending: false })
+
+      if (ateliersError) throw ateliersError
+      
+      setEvenements(evenementsData || [])
+      setAteliers(ateliersData || [])
     } catch (err: any) {
       console.error('Erreur chargement:', err)
-      showMessage('Erreur lors du chargement des événements', 'error')
+      showMessage('Erreur lors du chargement des données', 'error')
     } finally {
       setLoading(false)
     }
@@ -96,8 +112,32 @@ export const ModernEvenementsModule = () => {
   // Voir les détails d'un événement
   const handleViewEvent = (event: any) => {
     setSelectedEvent(event)
-    // Ouvrir le modal de détails
     setShowEventDetail(true)
+  }
+
+  // Voir les détails d'un atelier
+  const handleViewAtelier = (atelier: any) => {
+    setSelectedAtelier(atelier)
+    setShowAtelierDetail(true)
+  }
+
+  // Supprimer un atelier
+  const handleDeleteAtelier = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet atelier ?')) return
+
+    try {
+      const { error } = await supabase
+        .from('ateliers')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      
+      showMessage('Atelier supprimé avec succès')
+      await loadEvenements()
+    } catch (error: any) {
+      showMessage('Erreur lors de la suppression', 'error')
+    }
   }
 
   // Gérer la génération de contenu IA
@@ -120,7 +160,9 @@ export const ModernEvenementsModule = () => {
     setShowAIGenerator(false)
     setGeneratedContent('')
     setShowEventDetail(false)
+    setShowAtelierDetail(false)
     setSelectedEvent(null)
+    setSelectedAtelier(null)
   }
 
   // Ouvrir le générateur IA pour un événement spécifique
@@ -148,6 +190,79 @@ export const ModernEvenementsModule = () => {
 
   const getTypeCount = (typeId: string) => 
     evenements.filter(e => e.type_evenement_id === typeId).length
+
+  // Fonctions utilitaires pour les ateliers
+  const getAtelierStatusLabel = (status: string) => {
+    switch (status) {
+      case 'planifie': return 'Planifié'
+      case 'en_cours': return 'En cours'
+      case 'termine': return 'Terminé'
+      case 'annule': return 'Annulé'
+      default: return status
+    }
+  }
+
+  const getAtelierStatusColor = (status: string) => {
+    switch (status) {
+      case 'planifie': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'en_cours': return 'bg-green-100 text-green-800 border-green-200'
+      case 'termine': return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'annule': return 'bg-red-100 text-red-800 border-red-200'
+      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const getDuration = (dateDebut: string, dateFin: string) => {
+    const debut = new Date(dateDebut)
+    const fin = new Date(dateFin)
+    const diffMs = fin.getTime() - debut.getTime()
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60))
+    return `${diffHours}h`
+  }
+
+  // Filtrer les événements et ateliers
+  const filteredEvenements = evenements.filter(event => {
+    const matchesSearch = event.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        event.lieu?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = statusFilter === 'tous' || event.statut === statusFilter
+    const matchesType = typeFilter === 'tous' || typeFilter === 'evenements' || event.type_evenement_id === typeFilter
+    
+    return matchesSearch && matchesStatus && matchesType
+  })
+
+  const filteredAteliers = ateliers.filter(atelier => {
+    const matchesSearch = atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        atelier.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        atelier.lieu?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = statusFilter === 'tous' || atelier.statut === statusFilter
+    const matchesType = typeFilter === 'tous' || typeFilter === 'ateliers'
+    
+    return matchesSearch && matchesStatus && matchesType
+  })
+
+  // Combiner les résultats selon le filtre de type
+  const getDisplayItems = () => {
+    if (typeFilter === 'evenements') return filteredEvenements
+    if (typeFilter === 'ateliers') return filteredAteliers
+    return [...filteredEvenements, ...filteredAteliers].sort((a, b) => 
+      new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
+    )
+  }
+
+  const displayItems = getDisplayItems()
 
   // Charger au démarrage
   useEffect(() => {
@@ -198,7 +313,7 @@ export const ModernEvenementsModule = () => {
             <Plus className="w-5 h-5" />
             Nouvel Événement
           </button>
-          {(showAIGenerator || generatedContent || showEventDetail) && (
+          {(showAIGenerator || generatedContent || showEventDetail || showAtelierDetail) && (
             <button
               onClick={resetModalStates}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
@@ -212,12 +327,12 @@ export const ModernEvenementsModule = () => {
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total</p>
-              <p className="text-3xl font-bold text-gray-900">{evenements.length}</p>
+              <p className="text-3xl font-bold text-gray-900">{evenements.length + ateliers.length}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <Calendar className="w-6 h-6 text-blue-600" />
@@ -228,11 +343,23 @@ export const ModernEvenementsModule = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Planifiés</p>
-              <p className="text-3xl font-bold text-blue-600">{getStatusCount('planifie')}</p>
+              <p className="text-sm font-medium text-gray-600">Événements</p>
+              <p className="text-3xl font-bold text-blue-600">{evenements.length}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Clock className="w-6 h-6 text-blue-600" />
+              <Calendar className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Ateliers</p>
+              <p className="text-3xl font-bold text-purple-600">{ateliers.length}</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <BookOpen className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>
@@ -241,7 +368,9 @@ export const ModernEvenementsModule = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">En cours</p>
-              <p className="text-3xl font-bold text-yellow-600">{getStatusCount('en_cours')}</p>
+              <p className="text-3xl font-bold text-yellow-600">
+                {getStatusCount('en_cours') + ateliers.filter(a => a.statut === 'en_cours').length}
+              </p>
             </div>
             <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-yellow-600" />
@@ -253,7 +382,9 @@ export const ModernEvenementsModule = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Terminés</p>
-              <p className="text-3xl font-bold text-green-600">{getStatusCount('termine')}</p>
+              <p className="text-3xl font-bold text-green-600">
+                {getStatusCount('termine') + ateliers.filter(a => a.statut === 'termine').length}
+              </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-green-600" />
@@ -302,6 +433,8 @@ export const ModernEvenementsModule = () => {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="tous">Tous les types</option>
+              <option value="evenements">Événements uniquement</option>
+              <option value="ateliers">Ateliers uniquement</option>
               {eventTypes.filter(t => t.actif).map(type => (
                 <option key={type.id} value={type.id}>
                   {type.nom}
@@ -340,31 +473,31 @@ export const ModernEvenementsModule = () => {
           </div>
 
           <div className="text-sm text-gray-600">
-            {filteredEvenements.length} événement(s) trouvé(s)
+            {displayItems.length} élément(s) trouvé(s)
           </div>
         </div>
       </div>
 
-      {/* Liste des événements */}
+      {/* Liste des événements et ateliers */}
       {loading ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des événements...</p>
+            <p className="text-gray-600">Chargement des données...</p>
           </div>
         </div>
-      ) : filteredEvenements.length === 0 ? (
+      ) : displayItems.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun événement trouvé</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun élément trouvé</h3>
             <p className="text-gray-600 mb-6">
-              {evenements.length === 0 
-                ? 'Créez votre premier événement pour commencer'
+              {evenements.length === 0 && ateliers.length === 0
+                ? 'Créez votre premier événement ou atelier pour commencer'
                 : 'Ajustez vos filtres pour voir plus de résultats'
               }
             </p>
-            {evenements.length === 0 && (
+            {evenements.length === 0 && ateliers.length === 0 && (
               <button
                 onClick={() => setShowForm(true)}
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
@@ -380,16 +513,95 @@ export const ModernEvenementsModule = () => {
             ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
             : 'grid-cols-1'
         }`}>
-          {filteredEvenements.map(event => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onEdit={handleEditEvent}
-              onDelete={handleDeleteEvent}
-              onView={handleViewEvent}
-              onGenerateContent={handleGenerateContent}
-            />
-          ))}
+          {displayItems.map(item => {
+            // Déterminer si c'est un événement ou un atelier
+            const isAtelier = 'capacite_max' in item
+            
+            if (isAtelier) {
+              // Afficher un atelier
+              return (
+                <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                  <div className="p-6">
+                    {/* Header de la carte */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BookOpen className="w-5 h-5 text-purple-600" />
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {item.titre}
+                          </h3>
+                        </div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAtelierStatusColor(item.statut)}`}>
+                          {getAtelierStatusLabel(item.statut)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleViewAtelier(item)}
+                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Voir détails"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAtelier(item.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    {item.description && (
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+
+                    {/* Informations */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatDate(item.date_debut)}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Clock className="w-4 h-4" />
+                        <span>Durée: {getDuration(item.date_debut, item.date_fin)}</span>
+                      </div>
+                      
+                      {item.lieu && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <MapPin className="w-4 h-4" />
+                          <span>{item.lieu}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Users className="w-4 h-4" />
+                        <span>{item.capacite_actuelle || 0}/{item.capacite_max} participants</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            } else {
+              // Afficher un événement avec EventCard
+              return (
+                <EventCard
+                  key={item.id}
+                  event={item}
+                  onEdit={handleEditEvent}
+                  onDelete={handleDeleteEvent}
+                  onView={handleViewEvent}
+                  onGenerateContent={handleGenerateContent}
+                />
+              )
+            }
+          })}
         </div>
       )}
 
@@ -705,6 +917,123 @@ export const ModernEvenementsModule = () => {
                   Fermer
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de détails d'atelier */}
+      {showAtelierDetail && selectedAtelier && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="w-6 h-6 text-purple-600" />
+                  <h2 className="text-xl font-semibold text-gray-900">{selectedAtelier.titre}</h2>
+                </div>
+                <button
+                  onClick={() => setShowAtelierDetail(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Informations principales */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Informations générales</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                        <p className="text-gray-900 font-medium">{selectedAtelier.titre}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getAtelierStatusColor(selectedAtelier.statut)}`}>
+                          {getAtelierStatusLabel(selectedAtelier.statut)}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
+                        <p className="text-gray-900">{selectedAtelier.lieu || 'Non spécifié'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Capacité</label>
+                        <p className="text-gray-900">
+                          {selectedAtelier.capacite_actuelle || 0} / {selectedAtelier.capacite_max} participants
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Dates et horaires</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">Début :</span>
+                        <span className="text-sm font-medium">{formatDate(selectedAtelier.date_debut)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">Fin :</span>
+                        <span className="text-sm font-medium">{formatDate(selectedAtelier.date_fin)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">Durée :</span>
+                        <span className="text-sm font-medium">{getDuration(selectedAtelier.date_debut, selectedAtelier.date_fin)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+                    <p className="text-gray-700 leading-relaxed">
+                      {selectedAtelier.description || 'Aucune description disponible'}
+                    </p>
+                  </div>
+
+                  {selectedAtelier.pole && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Pôle</h3>
+                      <p className="text-gray-700">{selectedAtelier.pole}</p>
+                    </div>
+                  )}
+
+                  {selectedAtelier.filliere && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Filière</h3>
+                      <p className="text-gray-700">{selectedAtelier.filliere}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {/* TODO: Edit atelier */}}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Modifier
+              </button>
+              <button
+                onClick={() => setShowAtelierDetail(false)}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Fermer
+              </button>
             </div>
           </div>
         </div>
