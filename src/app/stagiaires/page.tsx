@@ -180,9 +180,9 @@ export default function StagiairesPage() {
       }
 
       const result = await updateStatutCandidature(candidatureId, newStatus)
-      if (result.success) {
+        if (result.success) {
         showMessage(message)
-      } else {
+        } else {
         showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
       }
     } catch (error) {
@@ -310,19 +310,19 @@ export default function StagiairesPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
           <h1 className="text-2xl font-bold text-gray-900">📥 Candidatures reçues</h1>
           <p className="text-gray-600">Gestion avancée des candidatures avec workflow automatisé</p>
-        </div>
-        <div className="flex items-center space-x-3">
+            </div>
+            <div className="flex items-center space-x-3">
           <div className="text-right">
             <div className="text-2xl font-bold text-blue-600">{candidaturesStagiaires.length}</div>
             <div className="text-sm text-gray-600">Candidatures</div>
           </div>
-        </div>
-      </div>
+            </div>
+          </div>
 
       {/* Statistiques des candidatures */}
       <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
@@ -342,7 +342,7 @@ export default function StagiairesPage() {
             </div>
           )
         })}
-      </div>
+                </div>
 
       {/* Actions en lot */}
       {selectedCandidatures.length > 0 && (
@@ -353,7 +353,7 @@ export default function StagiairesPage() {
               <span className="font-medium text-blue-900">
                 {selectedCandidatures.length} candidature(s) sélectionnée(s)
               </span>
-            </div>
+              </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => handleBulkAction('en_etude')}
@@ -380,41 +380,41 @@ export default function StagiairesPage() {
                 Annuler
               </button>
             </div>
-          </div>
-        </div>
+                </div>
+              </div>
       )}
 
       {/* Filtres et recherche */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
           <div className="lg:col-span-2">
-            <div className="relative">
-              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
-              <input
-                type="text"
+                <div className="relative">
+                  <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
                 placeholder="Rechercher par entreprise, poste, nom..."
                 value={candidatureSearch}
                 onChange={(e) => setCandidatureSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
           
           <div>
-            <select
+              <select
               value={candidatureFilter}
               onChange={(e) => setCandidatureFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="tous">Tous les statuts</option>
+              >
+                <option value="tous">Tous les statuts</option>
               {Object.entries(statusConfig).map(([status, config]) => (
                 <option key={status} value={status}>{config.label}</option>
-              ))}
-            </select>
+                ))}
+              </select>
           </div>
 
           <div>
-            <select
+              <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -450,8 +450,8 @@ export default function StagiairesPage() {
                 <option key={pole.id} value={pole.id}>
                   {pole.nom}
                 </option>
-              ))}
-            </select>
+                ))}
+              </select>
           </div>
 
           <div>
@@ -468,9 +468,9 @@ export default function StagiairesPage() {
                 </option>
               ))}
             </select>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
       {/* Liste des candidatures */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -479,12 +479,12 @@ export default function StagiairesPage() {
             Candidatures reçues ({filteredCandidatures.length})
           </h2>
           <div className="flex items-center space-x-2">
-            <button
+                    <button
               onClick={() => setShowBulkActions(!showBulkActions)}
               className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
-            >
+                    >
               Actions en lot
-            </button>
+                    </button>
           </div>
         </div>
         
@@ -494,17 +494,17 @@ export default function StagiairesPage() {
               <Send className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>Aucune candidature trouvée</p>
               <p className="text-sm mt-2">Ajustez vos filtres pour voir plus de résultats</p>
-            </div>
-          ) : (
+                </div>
+              ) : (
             filteredCandidatures.map((candidature) => {
               const statusInfo = statusConfig[candidature.statut_candidature as CandidatureStatus] || statusConfig.envoye
               const StatusIcon = statusInfo.icon
               const candidatName = `${candidature.nom} ${candidature.prenom}`
-              
-              return (
+                    
+                    return (
                 <div key={candidature.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                            <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-3">
                         <input
                           type="checkbox"
@@ -526,7 +526,7 @@ export default function StagiairesPage() {
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
                             {candidature.entreprise_nom}
-                          </h3>
+                                </h3>
                           <p className="text-sm text-gray-500">
                             Reçue le {new Date(candidature.created_at).toLocaleDateString('fr-FR')}
                           </p>
@@ -535,28 +535,28 @@ export default function StagiairesPage() {
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
                           <StatusIcon className="w-3 h-3 mr-1" />
                           {statusInfo.label}
-                        </span>
-                      </div>
-                      
+                                </span>
+                              </div>
+                              
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
-                        <div className="flex items-center">
+                                <div className="flex items-center">
                           <Briefcase className="w-4 h-4 mr-2 text-gray-400" />
                           <span className="font-medium">Poste :</span> {candidature.poste}
-                        </div>
-                        <div className="flex items-center">
+                                </div>
+                                <div className="flex items-center">
                           <User className="w-4 h-4 mr-2 text-gray-400" />
                           <span className="font-medium">Candidat :</span> {candidatName}
-                        </div>
-                        <div className="flex items-center">
+                                </div>
+                                <div className="flex items-center">
                           <Mail className="w-4 h-4 mr-2 text-gray-400" />
                           <span className="font-medium">Email :</span> {candidature.email}
-                        </div>
+                                </div>
                         <div className="flex items-center">
                           <FileText className="w-4 h-4 mr-2 text-gray-400" />
                           <span className="font-medium">Type :</span> {candidature.type_contrat || 'Non spécifié'}
-                        </div>
-                      </div>
-                      
+                              </div>
+                            </div>
+                            
                       {candidature.feedback_entreprise && (
                         <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center mb-2">
@@ -575,7 +575,7 @@ export default function StagiairesPage() {
                             <span className="font-medium text-sm text-blue-900">Actions CV :</span>
                           </div>
                           <div className="flex space-x-2">
-                            <button
+                              <button
                               onClick={() => handleViewPdf(
                                 candidature.cv_url,
                                 `${candidature.nom} ${candidature.prenom}`,
@@ -585,15 +585,15 @@ export default function StagiairesPage() {
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               Voir le CV
-                            </button>
-                            <button
+                              </button>
+                              <button
                               onClick={() => handleViewCv(candidature.cv_url)}
                               className="text-green-600 hover:text-green-800 text-sm underline flex items-center"
                             >
                               <ExternalLink className="w-4 h-4 mr-1" />
                               Ouvrir
-                            </button>
-                            <button
+                              </button>
+                              <button
                               onClick={() => handleDownloadCv(
                                 candidature.cv_url,
                                 `${candidature.nom} ${candidature.prenom}`,
@@ -603,66 +603,66 @@ export default function StagiairesPage() {
                             >
                               <Download className="w-4 h-4 mr-1" />
                               Télécharger
-                            </button>
+                              </button>
+                            </div>
                           </div>
-                        </div>
                       )}
-                    </div>
-                    
+                            </div>
+                            
                     <div className="flex flex-col items-end space-y-2 ml-4">
-                      {/* Actions rapides */}
+                            {/* Actions rapides */}
                       <div className="flex items-center space-x-1">
-                        <button
+                              <button
                           onClick={() => handleQuickAction(candidature.id, 'invite_entretien')}
                           className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-md transition-colors"
                           title="Inviter en entretien"
-                        >
+                              >
                           <CalendarDays className="w-4 h-4" />
-                        </button>
+                              </button>
                         
-                        <button
+                                <button
                           onClick={() => handleQuickAction(candidature.id, 'programmer_entretien')}
                           className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
                           title="Programmer entretien"
-                        >
+                                >
                           <Clock className="w-4 h-4" />
-                        </button>
+                                </button>
                         
-                        <button
+              <button
                           onClick={() => handleQuickAction(candidature.id, 'contacter')}
                           className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
                           title="Contacter"
-                        >
+              >
                           <MailIcon className="w-4 h-4" />
-                        </button>
-                      </div>
+              </button>
+              </div>
 
                       <div className="flex items-center space-x-1">
-                        <button
+              <button
                           onClick={() => handleQuickAction(candidature.id, 'accepter')}
                           className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors"
                           title="Accepter"
-                        >
+              >
                           <CheckSquare className="w-4 h-4" />
-                        </button>
+              </button>
                         
-                        <button
+              <button
                           onClick={() => handleQuickAction(candidature.id, 'refuser')}
                           className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
                           title="Refuser"
-                        >
+              >
                           <XSquare className="w-4 h-4" />
-                        </button>
-                      </div>
+              </button>
+          </div>
 
                       {/* Actions principales */}
                       <div className="flex items-center space-x-2">
-                        <button
+               <button
                           onClick={() => handleCandidatureDetail(candidature)}
                           className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                        >
+               >
                           Détails
-                        </button>
+               </button>
                         
                         <select
                           value={candidature.statut_candidature || 'envoye'}
@@ -681,7 +681,7 @@ export default function StagiairesPage() {
                           ))}
                         </select>
                         
-                        <button
+               <button
                           onClick={async () => {
                             if (window.confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
                               const result = await deleteCandidature(candidature.id)
@@ -696,16 +696,16 @@ export default function StagiairesPage() {
                           title="Supprimer"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+               </button>
+             </div>
+                       </div>
+                       </div>
+                     </div>
               )
             })
-          )}
-        </div>
-      </div>
+             )}
+           </div>
+         </div>
 
       {/* Modal de détails de candidature */}
       {showCandidatureDetail && selectedCandidature && (
@@ -719,76 +719,76 @@ export default function StagiairesPage() {
                     {selectedCandidature.entreprise_nom} - {selectedCandidature.poste}
                   </p>
                 </div>
-                <button
+             <button
                   onClick={() => setShowCandidatureDetail(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
+             >
                   <X className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
+             </button>
+                 </div>
+               </div>
 
             <div className="p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Informations de la candidature */}
-                <div>
+               <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Informations de la candidature</h3>
                   <div className="space-y-3">
-                    <div>
+               <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Entreprise</label>
                       <p className="text-gray-900">{selectedCandidature.entreprise_nom}</p>
-                    </div>
-                    <div>
+               </div>
+                 <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Poste</label>
                       <p className="text-gray-900">{selectedCandidature.poste}</p>
-                    </div>
-                    <div>
+                 </div>
+                 <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
                       <p className="text-gray-900">{selectedCandidature.type_contrat || 'Non spécifié'}</p>
-                    </div>
-                    <div>
+                 </div>
+               <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Date de candidature</label>
                       <p className="text-gray-900">
                         {selectedCandidature.date_candidature || 
                          new Date(selectedCandidature.created_at).toLocaleDateString('fr-FR')}
                       </p>
-                    </div>
-                    <div>
+               </div>
+               <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
                       <p className="text-gray-900">{selectedCandidature.source_offre || 'Site web COP'}</p>
-                    </div>
-                    <div>
+               </div>
+                 <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                         statusConfig[selectedCandidature.statut_candidature as CandidatureStatus]?.color || 'bg-gray-100 text-gray-800'
                       }`}>
                         {statusConfig[selectedCandidature.statut_candidature as CandidatureStatus]?.label || 'En attente'}
                       </span>
-                    </div>
-                  </div>
-                </div>
+                 </div>
+                 </div>
+               </div>
 
                 {/* Informations du candidat */}
-                <div>
+                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Informations du candidat</h3>
                   <div className="space-y-3">
-                    <div>
+                 <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
                       <p className="text-gray-900">{selectedCandidature.nom} {selectedCandidature.prenom}</p>
-                    </div>
-                    <div>
+                 </div>
+                 <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                       <p className="text-gray-900">{selectedCandidature.email}</p>
-                    </div>
-                    <div>
+                 </div>
+                 <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
                       <p className="text-gray-900">{selectedCandidature.telephone || 'Non renseigné'}</p>
-                    </div>
-                    <div>
+                 </div>
+               <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">CV</label>
                       {selectedCandidature.cv_url ? (
                         <div className="flex space-x-2">
-                          <button
+             <button
                             onClick={() => handleViewPdf(
                               selectedCandidature.cv_url, 
                               `${selectedCandidature.nom} ${selectedCandidature.prenom}`,
@@ -798,15 +798,15 @@ export default function StagiairesPage() {
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             Voir le CV
-                          </button>
-                          <button
+             </button>
+             <button
                             onClick={() => handleViewCv(selectedCandidature.cv_url)}
                             className="text-green-600 hover:text-green-800 text-sm underline flex items-center"
-                          >
+             >
                             <ExternalLink className="w-4 h-4 mr-1" />
                             Ouvrir
-                          </button>
-                          <button
+             </button>
+             <button
                             onClick={() => handleDownloadCv(
                               selectedCandidature.cv_url,
                               `${selectedCandidature.nom} ${selectedCandidature.prenom}`,
@@ -816,51 +816,51 @@ export default function StagiairesPage() {
                           >
                             <Download className="w-4 h-4 mr-1" />
                             Télécharger
-                          </button>
-                        </div>
+             </button>
+           </div>
                       ) : (
                         <p className="text-gray-500 text-sm">CV non disponible</p>
                       )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+               </div>
+             </div>
+               </div>
+             </div>
 
               {/* Notes et feedback */}
               <div className="mt-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes et feedback</h3>
-                <div>
+             <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notes internes</label>
-                  <textarea
+               <textarea
                     value={candidatureNotes}
                     onChange={(e) => setCandidatureNotes(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                     rows={4}
                     placeholder="Ajoutez vos notes sur cette candidature..."
                   />
-                </div>
-              </div>
+               </div>
+             </div>
 
               {/* Actions */}
-              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
-                <button
+           <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+             <button
                   onClick={() => setShowCandidatureDetail(false)}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
-                >
+             >
                   Fermer
-                </button>
-                <button
+             </button>
+             <button
                   onClick={handleUpdateCandidatureNotes}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                >
+             >
                   <Save className="w-4 h-4 mr-2" />
                   Sauvegarder les notes
-                </button>
+             </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+           </div>
+         </div>
+       </div>
+     )}
 
       {/* Modal de programmation d'entretien */}
       {showInterviewModal && selectedCandidature && (
@@ -868,18 +868,18 @@ export default function StagiairesPage() {
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Programmer un entretien</h2>
-                <button
+             <h2 className="text-xl font-bold">Programmer un entretien</h2>
+             <button
                   onClick={() => setShowInterviewModal(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+             >
+               <X className="w-5 h-5" />
+             </button>
               </div>
-            </div>
+           </div>
 
             <div className="p-6">
-              <div className="space-y-4">
+           <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Candidat</label>
                   <p className="text-gray-900">{selectedCandidature.nom} {selectedCandidature.prenom}</p>
@@ -890,11 +890,11 @@ export default function StagiairesPage() {
                   <p className="text-gray-900">{selectedCandidature.entreprise_nom} - {selectedCandidature.poste}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+             <div className="grid grid-cols-2 gap-4">
+               <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
-                    <input
-                      type="date"
+                 <input
+                   type="date"
                       value={interviewData.date}
                       onChange={(e) => setInterviewData({...interviewData, date: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -909,11 +909,11 @@ export default function StagiairesPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                </div>
+               </div>
 
-                <div>
+               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Type d'entretien</label>
-                  <select
+                 <select
                     value={interviewData.type}
                     onChange={(e) => setInterviewData({...interviewData, type: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -921,40 +921,40 @@ export default function StagiairesPage() {
                     <option value="telephone">Téléphone</option>
                     <option value="video">Vidéo</option>
                     <option value="presentiel">Présentiel</option>
-                  </select>
-                </div>
+                 </select>
+             </div>
 
-                <div>
+             <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                  <textarea
+               <textarea
                     value={interviewData.notes}
                     onChange={(e) => setInterviewData({...interviewData, notes: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                    rows={3}
+                 rows={3}
                     placeholder="Notes sur l'entretien..."
-                  />
-                </div>
-              </div>
+               />
+             </div>
+           </div>
 
-              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
-                <button
+           <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+             <button
                   onClick={() => setShowInterviewModal(false)}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
-                >
-                  Annuler
-                </button>
-                <button
+             >
+               Annuler
+             </button>
+             <button
                   onClick={handleScheduleInterview}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center"
-                >
+             >
                   <CalendarDays className="w-4 h-4 mr-2" />
-                  Programmer
-                </button>
+               Programmer
+             </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+           </div>
+         </div>
+       </div>
+     )}
 
       {/* Modal visualiseur PDF */}
       {showPdfViewer && (
@@ -973,9 +973,9 @@ export default function StagiairesPage() {
               <div className="flex items-center space-x-2">
                 {/* Contrôles de zoom */}
                 <div className="flex items-center space-x-1 bg-white border border-gray-300 rounded-lg px-2 py-1">
-                  <button
+             <button
                     onClick={() => setPdfScale(Math.max(0.5, pdfScale - 0.1))}
-                    className="p-1 hover:bg-gray-100 rounded"
+               className="p-1 hover:bg-gray-100 rounded"
                     title="Zoom arrière"
                   >
                     <ZoomOut className="w-4 h-4" />
@@ -989,8 +989,8 @@ export default function StagiairesPage() {
                     title="Zoom avant"
                   >
                     <ZoomIn className="w-4 h-4" />
-                  </button>
-                </div>
+             </button>
+           </div>
 
                 {/* Contrôles de rotation */}
                 <button
@@ -1018,8 +1018,8 @@ export default function StagiairesPage() {
                 >
                   <X className="w-5 h-5" />
                 </button>
-              </div>
-            </div>
+               </div>
+             </div>
 
             {/* Contenu PDF */}
             <div className="flex-1 overflow-hidden">
@@ -1032,7 +1032,7 @@ export default function StagiairesPage() {
                   transformOrigin: 'center center'
                 }}
               />
-            </div>
+           </div>
 
             {/* Footer avec actions */}
             <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
@@ -1040,26 +1040,26 @@ export default function StagiairesPage() {
                 Utilisez les contrôles ci-dessus pour naviguer dans le document
               </div>
               <div className="flex items-center space-x-2">
-                <button
+             <button
                   onClick={() => handleDownloadCv(pdfUrl, pdfTitle, '')}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                >
+             >
                   <Download className="w-4 h-4 mr-2" />
                   Télécharger
-                </button>
-                <button
+             </button>
+             <button
                   onClick={() => window.open(pdfUrl, '_blank')}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-                >
+             >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Ouvrir dans un nouvel onglet
-                </button>
+             </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+           </div>
+         </div>
+       </div>
+     )}
 
-    </div>
-  )
+   </div>
+ )
 }

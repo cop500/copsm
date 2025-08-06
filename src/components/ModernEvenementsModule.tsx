@@ -6,10 +6,11 @@ import { supabase } from '@/lib/supabase'
 import { 
   Calendar, Plus, Search, Filter, Grid, List, 
   Clock, CheckCircle, AlertTriangle, XCircle,
-  TrendingUp, Users, MapPin, FileText
+  TrendingUp, Users, MapPin, FileText, Zap
 } from 'lucide-react'
 import { NewEventForm } from './NewEventForm'
 import { EventCard } from './EventCard'
+import AIContentGenerator from './AIContentGenerator'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -22,6 +23,8 @@ export const ModernEvenementsModule = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
+  const [showAIGenerator, setShowAIGenerator] = useState(false)
+  const [generatedContent, setGeneratedContent] = useState<string>('')
 
   // Charger les événements
   const loadEvenements = async () => {
@@ -94,6 +97,13 @@ export const ModernEvenementsModule = () => {
     console.log('Voir détails:', event)
   }
 
+  // Gérer la génération de contenu IA
+  const handleContentGenerated = (content: string) => {
+    setGeneratedContent(content)
+    showMessage('Contenu généré avec succès !')
+    setShowAIGenerator(false)
+  }
+
   // Filtrer les événements
   const filteredEvenements = evenements.filter(event => {
     const matchesSearch = searchTerm === '' || 
@@ -144,16 +154,25 @@ export const ModernEvenementsModule = () => {
             Organisez et gérez vos événements d'insertion professionnelle
           </p>
         </div>
-        <button
-          onClick={() => {
-            setSelectedEvent(null)
-            setShowForm(true)
-          }}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg"
-        >
-          <Plus className="w-5 h-5" />
-          Nouvel Événement
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAIGenerator(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <Zap className="w-4 h-4" />
+            Générer contenu IA
+          </button>
+          <button
+            onClick={() => {
+              setSelectedEvent(null)
+              setShowForm(true)
+            }}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            Nouvel Événement
+          </button>
+        </div>
       </div>
 
       {/* Statistiques */}
@@ -347,6 +366,76 @@ export const ModernEvenementsModule = () => {
           }}
           initialData={selectedEvent}
         />
+      )}
+
+      {/* Modal Générateur IA */}
+      {showAIGenerator && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-green-600" />
+                  Générateur de contenu IA
+                </h2>
+                <button
+                  onClick={() => setShowAIGenerator(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <AIContentGenerator
+                eventId={selectedEvent?.id || ''}
+                eventTitle={selectedEvent?.titre || 'Nouvel événement'}
+                onContentGenerated={handleContentGenerated}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Affichage du contenu généré */}
+      {generatedContent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Contenu généré par IA</h2>
+                <button
+                  onClick={() => setGeneratedContent('')}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap font-mono text-sm">
+                {generatedContent}
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedContent);
+                    showMessage('Contenu copié dans le presse-papiers !');
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Copier
+                </button>
+                <button
+                  onClick={() => setGeneratedContent('')}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
