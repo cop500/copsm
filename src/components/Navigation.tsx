@@ -79,7 +79,14 @@ export default function Navigation() {
 
   // Mise à jour de l'état "current" basé sur le pathname
   const navigationWithCurrent = navigation
-    .filter(item => item.name !== 'Paramètres' || isAdmin) // Onglet Paramètres seulement pour admin
+    .filter(item => {
+      // Onglet Paramètres seulement pour admin
+      if (item.name === 'Paramètres') {
+        return isAdmin;
+      }
+      // Tous les autres onglets sont visibles pour tous
+      return true;
+    })
     .map(item => ({
       ...item,
       current: pathname === item.href
