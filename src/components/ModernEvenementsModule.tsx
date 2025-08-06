@@ -14,6 +14,7 @@ import { EventCard } from './EventCard'
 import AIContentGenerator from './AIContentGenerator'
 import { RapportsList } from './RapportsList'
 import AtelierForm from './AtelierForm'
+import AtelierInscriptionsManager from './AtelierInscriptionsManager'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -36,6 +37,7 @@ export const ModernEvenementsModule = () => {
   const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
+  const [showInscriptionsManager, setShowInscriptionsManager] = useState(false)
 
   // Charger les événements et ateliers
   const loadEvenements = async () => {
@@ -196,6 +198,7 @@ export const ModernEvenementsModule = () => {
     setShowEventDetail(false)
     setShowAtelierDetail(false)
     setShowAtelierForm(false)
+    setShowInscriptionsManager(false)
     setSelectedEvent(null)
     setSelectedAtelier(null)
     setEditingAtelier(null)
@@ -351,7 +354,17 @@ export const ModernEvenementsModule = () => {
               <Plus className="w-5 h-5" />
               {activeTab === 'evenements' ? 'Nouvel Événement' : 'Nouvel Atelier'}
             </button>
-            {(showAIGenerator || generatedContent || showEventDetail || showAtelierDetail) && (
+            {activeTab === 'ateliers' && (
+              <button
+                onClick={() => setShowInscriptionsManager(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                title="Gérer les inscriptions"
+              >
+                <Users className="w-4 h-4" />
+                Gérer Inscriptions
+              </button>
+            )}
+            {(showAIGenerator || generatedContent || showEventDetail || showAtelierDetail || showInscriptionsManager) && (
               <button
                 onClick={resetModalStates}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
@@ -1169,6 +1182,25 @@ export const ModernEvenementsModule = () => {
               }}
               isAdmin={true} // TODO: Récupérer le rôle de l'utilisateur
             />
+          </div>
+        </div>
+      )}
+
+      {/* Modal Gestionnaire d'Inscriptions */}
+      {showInscriptionsManager && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <AtelierInscriptionsManager />
+            </div>
+            <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowInscriptionsManager(false)}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}
