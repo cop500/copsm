@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSettings } from '@/hooks/useSettings'
+import './styles.css'
 import { 
   Calendar, Clock, MapPin, Users, BookOpen, CheckCircle, XCircle,
   AlertCircle, Loader2, ArrowRight, Star, Zap, Target, Award
@@ -205,20 +206,20 @@ export default function InscriptionAteliersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 font-['Montserrat']">
       {/* En-tête */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white shadow-sm border-b border-blue-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                <BookOpen className="w-8 h-8 text-white" />
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                <BookOpen className="w-10 h-10 text-white" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-5xl font-bold text-blue-900 mb-6 leading-tight">
               Inscription aux Ateliers
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
               Découvrez nos ateliers spécialisés et inscrivez-vous aux sessions qui vous intéressent. 
               Développez vos compétences avec nos experts !
             </p>
@@ -228,26 +229,29 @@ export default function InscriptionAteliersPage() {
 
       {/* Filtres */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Filtrer les ateliers</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-8 mb-8">
+          <h2 className="text-2xl font-bold text-blue-900 mb-6">Filtrer les ateliers</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Rechercher un atelier..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <label className="block text-sm font-semibold text-blue-900 mb-3">Recherche</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 w-5 h-5" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Rechercher un atelier..."
+                  className="w-full pl-10 pr-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50/50 transition-all duration-200"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pôle</label>
+              <label className="block text-sm font-semibold text-blue-900 mb-3">Pôle</label>
               <select
                 value={filterPole}
                 onChange={(e) => setFilterPole(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50/50 transition-all duration-200"
               >
                 <option value="">Tous les pôles</option>
                 {poles.filter(p => p.actif).map(pole => (
@@ -257,11 +261,11 @@ export default function InscriptionAteliersPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Filière</label>
+              <label className="block text-sm font-semibold text-blue-900 mb-3">Filière</label>
               <select
                 value={filterFiliere}
                 onChange={(e) => setFilterFiliere(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50/50 transition-all duration-200"
               >
                 <option value="">Toutes les filières</option>
                 {filieres.filter(f => f.actif).map(filiere => (
@@ -277,7 +281,7 @@ export default function InscriptionAteliersPage() {
                   setFilterPole('')
                   setFilterFiliere('')
                 }}
-                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="w-full px-6 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all duration-200 font-medium"
               >
                 Réinitialiser
               </button>
@@ -286,12 +290,12 @@ export default function InscriptionAteliersPage() {
         </div>
 
         {/* Liste des ateliers */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {filteredAteliers.length === 0 ? (
-            <div className="col-span-full bg-white rounded-xl shadow-sm border p-12 text-center">
-              <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun atelier disponible</h3>
-              <p className="text-gray-600">
+            <div className="col-span-full bg-white rounded-xl shadow-sm border border-blue-100 p-16 text-center">
+              <BookOpen className="w-20 h-20 text-blue-300 mx-auto mb-6" />
+              <h3 className="text-2xl font-bold text-blue-900 mb-4">Aucun atelier disponible</h3>
+              <p className="text-gray-600 text-lg">
                 {searchTerm || filterPole || filterFiliere 
                   ? 'Aucun atelier ne correspond à vos critères de recherche.'
                   : 'Aucun atelier n\'est actuellement disponible pour inscription.'
@@ -300,18 +304,18 @@ export default function InscriptionAteliersPage() {
             </div>
           ) : (
             filteredAteliers.map(atelier => (
-              <div key={atelier.id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
+              <div key={atelier.id} className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg border border-blue-200 overflow-hidden hover:shadow-xl transition-all duration-300 opacity-0 animate-fade-in">
+                <div className="p-8">
+                  <div className="flex items-start justify-between mb-6">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{atelier.titre}</h3>
-                      <p className="text-gray-600 text-sm line-clamp-3">{atelier.description}</p>
+                      <h3 className="text-2xl font-bold text-blue-900 mb-3 leading-tight">{atelier.titre}</h3>
+                      <p className="text-gray-700 text-base leading-relaxed line-clamp-3">{atelier.description}</p>
                     </div>
-                    <div className="ml-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        atelier.statut === 'planifie' ? 'bg-blue-100 text-blue-800' :
-                        atelier.statut === 'en_cours' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
+                    <div className="ml-6">
+                      <span className={`px-3 py-2 rounded-full text-sm font-semibold ${
+                        atelier.statut === 'planifie' ? 'bg-blue-200 text-blue-800 border border-blue-300' :
+                        atelier.statut === 'en_cours' ? 'bg-green-200 text-green-800 border border-green-300' :
+                        'bg-gray-200 text-gray-800 border border-gray-300'
                       }`}>
                         {atelier.statut === 'planifie' ? 'Planifié' :
                          atelier.statut === 'en_cours' ? 'En cours' : 'Terminé'}
@@ -319,46 +323,48 @@ export default function InscriptionAteliersPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4" />
-                      <span>{new Date(atelier.date_debut).toLocaleDateString('fr-FR')}</span>
+                  <div className="space-y-4 mb-8">
+                    <div className="border-b border-blue-200 pb-4">
+                      <div className="flex items-center gap-3 text-blue-900 font-medium">
+                        <Calendar className="w-5 h-5 text-blue-600" />
+                        <span className="text-lg">{new Date(atelier.date_debut).toLocaleDateString('fr-FR')}</span>
+                      </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>
+                    <div className="flex items-center gap-3 text-blue-900 font-medium">
+                      <Clock className="w-5 h-5 text-blue-600" />
+                      <span className="text-lg">
                         {new Date(atelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - 
                         {new Date(atelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4" />
-                      <span>{atelier.lieu}</span>
+                    <div className="flex items-center gap-3 text-blue-900 font-medium">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      <span className="text-lg">{atelier.lieu}</span>
                     </div>
                     
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Users className="w-4 h-4" />
-                      <span>{atelier.capacite_actuelle} / {atelier.capacite_max} places</span>
+                    <div className="flex items-center gap-3 text-blue-900 font-medium">
+                      <Users className="w-5 h-5 text-blue-600" />
+                      <span className="text-lg">{atelier.capacite_actuelle} / {atelier.capacite_max} places</span>
                     </div>
 
                     {atelier.pole && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Target className="w-4 h-4" />
-                        <span>{atelier.pole} - {atelier.filliere}</span>
+                      <div className="flex items-center gap-3 text-blue-900 font-medium">
+                        <Target className="w-5 h-5 text-blue-600" />
+                        <span className="text-lg">{atelier.pole} - {atelier.filliere}</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between pt-6 border-t border-blue-200">
+                    <div className="flex items-center gap-3">
                       {atelier.capacite_actuelle < atelier.capacite_max ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        <CheckCircle className="w-6 h-6 text-green-500" />
                       ) : (
-                        <XCircle className="w-5 h-5 text-red-500" />
+                        <XCircle className="w-6 h-6 text-red-500" />
                       )}
-                      <span className={`text-sm font-medium ${
+                      <span className={`text-lg font-semibold ${
                         atelier.capacite_actuelle < atelier.capacite_max ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {atelier.capacite_actuelle < atelier.capacite_max ? 'Places disponibles' : 'Complet'}
@@ -368,13 +374,13 @@ export default function InscriptionAteliersPage() {
                     <button
                       onClick={() => openInscriptionForm(atelier)}
                       disabled={atelier.capacite_actuelle >= atelier.capacite_max}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                      className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
                         atelier.capacite_actuelle < atelier.capacite_max
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-5 h-5" />
                       S'inscrire
                     </button>
                   </div>
@@ -387,68 +393,68 @@ export default function InscriptionAteliersPage() {
 
       {/* Modal Formulaire d'inscription */}
       {showInscriptionForm && selectedAtelier && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              {inscriptionSuccess ? (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Inscription réussie !</h3>
-                  <p className="text-gray-600 mb-6">
-                    Votre inscription à l'atelier <strong>"{selectedAtelier.titre}"</strong> a été confirmée.
-                    Vous recevrez un email de confirmation.
-                  </p>
-                  <button
-                    onClick={closeInscriptionForm}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Fermer
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900">Inscription à l'atelier</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-blue-100">
+            <div className="p-8">
+                              {inscriptionSuccess ? (
+                  <div className="text-center">
+                    <div className="w-20 h-20 bg-gradient-to-r from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                      <CheckCircle className="w-10 h-10 text-green-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-blue-900 mb-4">Inscription réussie !</h3>
+                    <p className="text-gray-700 mb-8 text-lg leading-relaxed">
+                      Votre inscription à l'atelier <strong className="text-blue-900">"{selectedAtelier.titre}"</strong> a été confirmée.
+                      Vous recevrez un email de confirmation.
+                    </p>
                     <button
                       onClick={closeInscriptionForm}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 font-semibold shadow-lg"
                     >
-                      <XCircle className="w-6 h-6" />
+                      Fermer
                     </button>
                   </div>
-
-                  <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                    <h3 className="font-medium text-blue-900 mb-2">{selectedAtelier.titre}</h3>
-                    <div className="text-sm text-blue-700 space-y-1">
-                      <p>📅 {new Date(selectedAtelier.date_debut).toLocaleDateString('fr-FR')}</p>
-                      <p>🕐 {new Date(selectedAtelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedAtelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
-                      <p>📍 {selectedAtelier.lieu}</p>
-                      <p>👥 {selectedAtelier.capacite_actuelle} / {selectedAtelier.capacite_max} places</p>
+              ) : (
+                                  <>
+                    <div className="flex items-center justify-between mb-8">
+                      <h2 className="text-2xl font-bold text-blue-900">Inscription à l'atelier</h2>
+                      <button
+                        onClick={closeInscriptionForm}
+                        className="text-blue-400 hover:text-blue-600 transition-colors"
+                      >
+                        <XCircle className="w-8 h-8" />
+                      </button>
                     </div>
-                  </div>
 
-                  {error && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-red-600 text-sm">{error}</p>
+                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 mb-8 border border-blue-200">
+                      <h3 className="font-bold text-blue-900 mb-4 text-xl">{selectedAtelier.titre}</h3>
+                      <div className="text-blue-800 space-y-2 text-lg">
+                        <p className="flex items-center gap-2">📅 {new Date(selectedAtelier.date_debut).toLocaleDateString('fr-FR')}</p>
+                        <p className="flex items-center gap-2">🕐 {new Date(selectedAtelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedAtelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="flex items-center gap-2">📍 {selectedAtelier.lieu}</p>
+                        <p className="flex items-center gap-2">👥 {selectedAtelier.capacite_actuelle} / {selectedAtelier.capacite_max} places</p>
+                      </div>
                     </div>
-                  )}
 
-                  <form onSubmit={handleInscription} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nom complet <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.nom}
-                        onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Votre nom complet"
-                        required
-                      />
-                    </div>
+                                      {error && (
+                      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-600 font-medium">{error}</p>
+                      </div>
+                    )}
+
+                                        <form onSubmit={handleInscription} className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-blue-900 mb-3">
+                          Nom complet <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.nom}
+                          onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
+                          className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50/50 transition-all duration-200"
+                          placeholder="Votre nom complet"
+                          required
+                        />
+                      </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
