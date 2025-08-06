@@ -19,8 +19,10 @@ import {
   CheckCircle,
   Star,
   Hash,
-  Send
+  Send,
+  Save
 } from 'lucide-react';
+import { useRapports } from '@/hooks/useRapports';
 
 interface AIContentFields {
   // Champs communs
@@ -73,6 +75,8 @@ export default function AIContentGenerator({
 }: AIContentGeneratorProps) {
   const [contentType, setContentType] = useState<'rapport' | 'compte-rendu' | 'flash-info'>('rapport');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [titreRapport, setTitreRapport] = useState('');
   const [fields, setFields] = useState<AIContentFields>({
     participants: 0,
     duree: '',
@@ -91,6 +95,9 @@ export default function AIContentGenerator({
     publicCible: ''
   });
 
+  // Hook pour gérer les rapports
+  const { saveRapport } = useRapports(eventId);
+
   const handleFieldChange = (field: keyof AIContentFields, value: any) => {
     setFields(prev => ({ ...prev, [field]: value }));
   };
@@ -106,11 +113,40 @@ export default function AIContentGenerator({
       // TODO: Intégrer l'API Claude ici
       const generatedContent = await simulateAIGeneration(prompt);
       
+      // Sauvegarder automatiquement le rapport
+      await saveGeneratedRapport(generatedContent);
+      
       onContentGenerated(generatedContent);
     } catch (error) {
       console.error('Erreur lors de la génération:', error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const saveGeneratedRapport = async (content: string) => {
+    if (!eventId) return;
+
+    setIsSaving(true);
+    try {
+      const titre = titreRapport || `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} - ${eventTitle}`;
+      
+      const result = await saveRapport({
+        evenement_id: eventId,
+        type_rapport: contentType,
+        contenu: content,
+        titre_rapport: titre
+      });
+
+      if (result.success) {
+        console.log('Rapport sauvegardé avec succès');
+      } else {
+        console.error('Erreur sauvegarde rapport:', result.error);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -492,6 +528,19 @@ ${fields.publicCible || 'Étudiants, professionnels, entreprises'}
           </div>
         </div>
 
+        {/* Titre du rapport */}
+        <div className="border-t pt-6">
+          <div className="mb-4">
+            <Label htmlFor="titreRapport">Titre du rapport (optionnel)</Label>
+            <Input
+              id="titreRapport"
+              value={titreRapport}
+              onChange={(e) => setTitreRapport(e.target.value)}
+              placeholder={`ex: ${contentType.charAt(0).toUpperCase() + contentType.slice(1)} - ${eventTitle}`}
+            />
+          </div>
+        </div>
+
         {/* Champs dynamiques selon le type */}
         <div className="border-t pt-6">
           <h3 className="text-lg font-medium mb-4">
@@ -510,7 +559,7 @@ ${fields.publicCible || 'Étudiants, professionnels, entreprises'}
         <div className="flex justify-end">
           <Button
             onClick={generateContent}
-            disabled={isGenerating}
+            disabled={isGenerating || isSaving}
             className="flex items-center gap-2"
           >
             {isGenerating ? (
@@ -518,10 +567,15 @@ ${fields.publicCible || 'Étudiants, professionnels, entreprises'}
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 Génération en cours...
               </>
+            ) : isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Sauvegarde en cours...
+              </>
             ) : (
               <>
-                <Send className="h-4 w-4" />
-                Générer le contenu
+                <Save className="h-4 w-4" />
+                Générer et sauvegarder
               </>
             )}
           </Button>
