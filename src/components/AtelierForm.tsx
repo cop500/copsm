@@ -34,6 +34,11 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
+  // Debug: afficher les données
+  console.log('🔍 AtelierForm - Poles:', poles)
+  console.log('🔍 AtelierForm - Filieres:', filieres)
+  console.log('🔍 AtelierForm - FormData:', formData)
+  
   const [formData, setFormData] = useState<AtelierFormData>({
     titre: '',
     description: '',
@@ -75,7 +80,11 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
 
   // Filtrer les filières selon le pôle sélectionné
   const filieresFiltered = formData.pole 
-    ? filieres.filter(f => f.pole_name === formData.pole)
+    ? filieres.filter(f => {
+        // Trouver le pôle correspondant
+        const pole = poles.find(p => p.nom === formData.pole)
+        return pole && f.pole_id === pole.id
+      })
     : []
 
   const handleSubmit = async (e: React.FormEvent) => {
