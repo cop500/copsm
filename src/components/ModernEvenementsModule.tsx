@@ -13,6 +13,7 @@ import { NewEventForm } from './NewEventForm'
 import { EventCard } from './EventCard'
 import AIContentGenerator from './AIContentGenerator'
 import { RapportsList } from './RapportsList'
+import AtelierForm from './AtelierForm'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -33,6 +34,8 @@ export const ModernEvenementsModule = () => {
   const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
   const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers'>('evenements')
+  const [showAtelierForm, setShowAtelierForm] = useState(false)
+  const [editingAtelier, setEditingAtelier] = useState<any>(null)
 
   // Charger les événements et ateliers
   const loadEvenements = async () => {
@@ -141,6 +144,36 @@ export const ModernEvenementsModule = () => {
     }
   }
 
+  // Gérer la sauvegarde d'un atelier
+  const handleSaveAtelier = async (atelierData: any) => {
+    try {
+      if (atelierData === null) {
+        // Suppression
+        showMessage('Atelier supprimé avec succès')
+      } else {
+        // Création ou modification
+        showMessage(editingAtelier ? 'Atelier modifié avec succès' : 'Atelier créé avec succès')
+      }
+      setShowAtelierForm(false)
+      setEditingAtelier(null)
+      await loadEvenements()
+    } catch (error: any) {
+      showMessage('Erreur lors de la sauvegarde', 'error')
+    }
+  }
+
+  // Ouvrir le formulaire d'atelier
+  const handleCreateAtelier = () => {
+    setEditingAtelier(null)
+    setShowAtelierForm(true)
+  }
+
+  // Modifier un atelier
+  const handleEditAtelier = (atelier: any) => {
+    setEditingAtelier(atelier)
+    setShowAtelierForm(true)
+  }
+
   // Gérer la génération de contenu IA
   const handleContentGenerated = (content: string) => {
     console.log('🔄 Contenu généré reçu:', content.substring(0, 100) + '...')
@@ -162,8 +195,10 @@ export const ModernEvenementsModule = () => {
     setGeneratedContent('')
     setShowEventDetail(false)
     setShowAtelierDetail(false)
+    setShowAtelierForm(false)
     setSelectedEvent(null)
     setSelectedAtelier(null)
+    setEditingAtelier(null)
   }
 
   // Ouvrir le générateur IA pour un événement spécifique
@@ -300,8 +335,12 @@ export const ModernEvenementsModule = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
-                setSelectedEvent(null)
-                setShowForm(true)
+                if (activeTab === 'evenements') {
+                  setSelectedEvent(null)
+                  setShowForm(true)
+                } else {
+                  handleCreateAtelier()
+                }
               }}
               className={`${
                 activeTab === 'evenements' 
@@ -623,6 +662,13 @@ export const ModernEvenementsModule = () => {
                         title="Voir détails"
                       >
                         <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEditAtelier(atelier)}
+                        className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                        title="Modifier"
+                      >
+                        <Edit3 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteAtelier(atelier.id)}
@@ -1089,7 +1135,11 @@ export const ModernEvenementsModule = () => {
             {/* Actions */}
             <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
               <button
-                onClick={() => {/* TODO: Edit atelier */}}
+                onClick={() => {
+                  setEditingAtelier(selectedAtelier)
+                  setShowAtelierForm(true)
+                  setShowAtelierDetail(false)
+                }}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <Edit3 className="w-4 h-4" />
@@ -1102,6 +1152,23 @@ export const ModernEvenementsModule = () => {
                 Fermer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Formulaire Atelier */}
+      {showAtelierForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <AtelierForm
+              atelier={editingAtelier}
+              onSave={handleSaveAtelier}
+              onCancel={() => {
+                setShowAtelierForm(false)
+                setEditingAtelier(null)
+              }}
+              isAdmin={true} // TODO: Récupérer le rôle de l'utilisateur
+            />
           </div>
         </div>
       )}
