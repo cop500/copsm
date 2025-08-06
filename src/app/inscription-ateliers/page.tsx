@@ -207,22 +207,58 @@ export default function InscriptionAteliersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 font-['Montserrat']">
-      {/* En-tête */}
-      <div className="bg-white shadow-sm border-b border-blue-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* En-tête avec background image */}
+      <div className="relative bg-cover bg-center bg-no-repeat" style={{
+        backgroundImage: "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80')"
+      }}>
+        {/* Overlay pour améliorer la lisibilité */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-purple-900/80"></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                <BookOpen className="w-10 h-10 text-white" />
+            {/* Logo animé */}
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <div className="w-24 h-24 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-2xl animate-pulse">
+                <BookOpen className="w-12 h-12 text-white" />
+              </div>
+              <div className="w-24 h-24 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center shadow-2xl animate-pulse" style={{animationDelay: '0.5s'}}>
+                <Target className="w-12 h-12 text-white" />
+              </div>
+              <div className="w-24 h-24 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center shadow-2xl animate-pulse" style={{animationDelay: '1s'}}>
+                <Award className="w-12 h-12 text-white" />
               </div>
             </div>
-            <h1 className="text-5xl font-bold text-blue-900 mb-6 leading-tight">
-              Inscription aux Ateliers
+            
+            {/* Titre principal avec effet de gradient */}
+            <h1 className="text-6xl font-black mb-6 leading-tight bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent">
+              🚀 Ateliers COP
             </h1>
-            <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-              Découvrez nos ateliers spécialisés et inscrivez-vous aux sessions qui vous intéressent. 
-              Développez vos compétences avec nos experts !
-            </p>
+            
+            {/* Sous-titre accrocheur */}
+            <h2 className="text-4xl font-bold text-white mb-8 leading-tight">
+              Transformez votre avenir professionnel !
+            </h2>
+            
+            {/* Description motivante */}
+            <div className="max-w-4xl mx-auto">
+              <p className="text-2xl text-blue-100 mb-6 leading-relaxed font-medium">
+                Rejoignez nos <span className="text-yellow-300 font-bold">ateliers exclusifs</span> et 
+                <span className="text-green-300 font-bold"> développez vos compétences</span> avec nos experts
+              </p>
+              <p className="text-xl text-blue-200 leading-relaxed">
+                ✨ Formations pratiques • 🎯 Projets concrets • 💼 Certifications reconnues
+              </p>
+            </div>
+            
+            {/* Call-to-action */}
+            <div className="mt-10">
+              <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-full px-8 py-4 border border-white/30">
+                <Zap className="w-6 h-6 text-yellow-300 animate-bounce" />
+                <span className="text-white font-semibold text-lg">
+                  Inscriptions ouvertes - Places limitées !
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -371,18 +407,18 @@ export default function InscriptionAteliersPage() {
                       </span>
                     </div>
                     
-                    <button
-                      onClick={() => openInscriptionForm(atelier)}
-                      disabled={atelier.capacite_actuelle >= atelier.capacite_max}
-                      className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
-                        atelier.capacite_actuelle < atelier.capacite_max
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      <ArrowRight className="w-5 h-5" />
-                      S'inscrire
-                    </button>
+                                         <button
+                       onClick={() => openInscriptionForm(atelier)}
+                       disabled={atelier.capacite_actuelle >= atelier.capacite_max}
+                       className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
+                         atelier.capacite_actuelle < atelier.capacite_max
+                           ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105'
+                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                       }`}
+                     >
+                       <ArrowRight className="w-5 h-5" />
+                       S'inscrire
+                     </button>
                   </div>
                 </div>
               </div>
@@ -532,23 +568,23 @@ export default function InscriptionAteliersPage() {
                       >
                         Annuler
                       </button>
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        {submitting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Inscription...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4" />
-                            Confirmer l'inscription
-                          </>
-                        )}
-                      </button>
+                                             <button
+                         type="submit"
+                         disabled={submitting}
+                         className="flex-1 px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-lg hover:from-green-500 hover:to-emerald-600 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                       >
+                         {submitting ? (
+                           <>
+                             <Loader2 className="w-5 h-5 animate-spin" />
+                             Inscription...
+                           </>
+                         ) : (
+                           <>
+                             <CheckCircle className="w-5 h-5" />
+                             Confirmer l'inscription
+                           </>
+                         )}
+                       </button>
                     </div>
                   </form>
                 </>
