@@ -39,6 +39,14 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
   console.log('🔍 AtelierForm - Filieres:', filieres)
   console.log('🔍 AtelierForm - FormData:', formData)
   
+  // Vérifier si les données sont chargées
+  if (poles.length === 0) {
+    console.warn('⚠️ Aucun pôle chargé - vérifiez useSettings')
+  }
+  if (filieres.length === 0) {
+    console.warn('⚠️ Aucune filière chargée - vérifiez useSettings')
+  }
+  
   const [formData, setFormData] = useState<AtelierFormData>({
     titre: '',
     description: '',
@@ -311,10 +319,12 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">Sélectionner un pôle</option>
-                {poles.filter(p => p.actif).map(pole => (
-                  <option key={pole.id} value={pole.nom}>{pole.nom}</option>
-                ))}
+                                 <option value="">Sélectionner un pôle</option>
+                 {poles && poles.length > 0 ? poles.filter(p => p.actif).map(pole => (
+                   <option key={pole.id} value={pole.nom}>{pole.nom}</option>
+                 )) : (
+                   <option value="" disabled>Aucun pôle disponible</option>
+                 )}
               </select>
             </div>
 
@@ -328,12 +338,16 @@ export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={!formData.pole}
               >
-                <option value="">
-                  {formData.pole ? 'Sélectionner une filière' : 'Sélectionnez d\'abord un pôle'}
-                </option>
-                {filieresFiltered.map(filiere => (
-                  <option key={filiere.id} value={filiere.nom}>{filiere.nom}</option>
-                ))}
+                                 <option value="">
+                   {formData.pole ? 'Sélectionner une filière' : 'Sélectionnez d\'abord un pôle'}
+                 </option>
+                 {filieresFiltered && filieresFiltered.length > 0 ? filieresFiltered.map(filiere => (
+                   <option key={filiere.id} value={filiere.nom}>{filiere.nom}</option>
+                 )) : (
+                   <option value="" disabled>
+                     {formData.pole ? 'Aucune filière disponible pour ce pôle' : 'Sélectionnez d\'abord un pôle'}
+                   </option>
+                 )}
               </select>
             </div>
           </div>
