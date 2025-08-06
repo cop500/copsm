@@ -209,7 +209,7 @@ export default function InscriptionAteliersPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 font-['Montserrat']">
       {/* En-tête avec background image */}
       <div className="relative bg-cover bg-center bg-no-repeat" style={{
-        backgroundImage: "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80')"
+        backgroundImage: "url('/bg-entreprise.jpg')"
       }}>
         {/* Overlay pour améliorer la lisibilité */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-purple-900/80"></div>
@@ -242,11 +242,10 @@ export default function InscriptionAteliersPage() {
             {/* Description motivante */}
             <div className="max-w-4xl mx-auto">
               <p className="text-2xl text-blue-100 mb-6 leading-relaxed font-medium">
-                Rejoignez nos <span className="text-yellow-300 font-bold">ateliers exclusifs</span> et 
-                <span className="text-green-300 font-bold"> développez vos compétences</span> avec nos experts
+                Rejoignez nos ateliers et développez vos compétences
               </p>
               <p className="text-xl text-blue-200 leading-relaxed">
-                ✨ Formations pratiques • 🎯 Projets concrets • 💼 Certifications reconnues
+                ✨ Formations pratiques • 🎯 Projets concrets
               </p>
             </div>
             
@@ -412,7 +411,7 @@ export default function InscriptionAteliersPage() {
                        disabled={atelier.capacite_actuelle >= atelier.capacite_max}
                        className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
                          atelier.capacite_actuelle < atelier.capacite_max
-                           ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105'
+                           ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105'
                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                        }`}
                      >
@@ -427,10 +426,10 @@ export default function InscriptionAteliersPage() {
         </div>
       </div>
 
-      {/* Modal Formulaire d'inscription */}
-      {showInscriptionForm && selectedAtelier && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-blue-100">
+             {/* Modal Formulaire d'inscription */}
+       {showInscriptionForm && selectedAtelier && (
+         <div className="fixed inset-0 bg-gradient-to-br from-blue-900/80 to-purple-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-blue-100">
             <div className="p-8">
                               {inscriptionSuccess ? (
                   <div className="text-center">
@@ -571,7 +570,7 @@ export default function InscriptionAteliersPage() {
                                              <button
                          type="submit"
                          disabled={submitting}
-                         className="flex-1 px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-lg hover:from-green-500 hover:to-emerald-600 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                         className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
                        >
                          {submitting ? (
                            <>
