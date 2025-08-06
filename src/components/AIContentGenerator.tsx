@@ -103,24 +103,38 @@ export default function AIContentGenerator({
   };
 
   const generateContent = async () => {
+    console.log('🚀 Début de la génération de contenu');
     setIsGenerating(true);
     
     try {
       // Simulation de génération IA (à remplacer par l'appel réel à Claude)
       const prompt = buildPrompt();
-      console.log('Prompt généré:', prompt);
+      console.log('📝 Prompt généré:', prompt);
       
       // TODO: Intégrer l'API Claude ici
+      console.log('🤖 Début de la simulation IA...');
       const generatedContent = await simulateAIGeneration(prompt);
+      console.log('✅ Contenu généré avec succès, longueur:', generatedContent.length);
       
-      // Sauvegarder automatiquement le rapport
-      await saveGeneratedRapport(generatedContent);
-      
+      // Afficher le contenu généré immédiatement
+      console.log('📤 Envoi du contenu au parent...');
       onContentGenerated(generatedContent);
+      
+      // Sauvegarder automatiquement le rapport (en arrière-plan)
+      try {
+        console.log('💾 Début de la sauvegarde...');
+        await saveGeneratedRapport(generatedContent);
+        console.log('✅ Sauvegarde terminée');
+      } catch (saveError) {
+        console.error('❌ Erreur lors de la sauvegarde:', saveError);
+        // La sauvegarde a échoué mais le contenu est déjà affiché
+      }
+      
     } catch (error) {
-      console.error('Erreur lors de la génération:', error);
+      console.error('❌ Erreur lors de la génération:', error);
       // En cas d'erreur, on ne ferme pas le modal pour permettre à l'utilisateur de réessayer
     } finally {
+      console.log('🏁 Fin de la génération, isGenerating = false');
       setIsGenerating(false);
     }
   };
@@ -182,8 +196,12 @@ export default function AIContentGenerator({
   };
 
   const simulateAIGeneration = async (prompt: string): Promise<string> => {
+    console.log('⏳ Début de la simulation IA (2 secondes)...');
+    
     // Simulation - à remplacer par l'appel réel à Claude
     await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    console.log('⏳ Simulation terminée, génération du contenu...');
     
     // Générer du contenu réaliste basé sur les données de l'événement
     const eventInfo = eventData ? `
@@ -199,16 +217,23 @@ Photos: ${eventData.photos_urls?.length || 0} photo(s)
 
     const baseContent = `${eventInfo}\n\nInformations fournies:\n${prompt}`;
     
+    let result: string;
     switch (contentType) {
       case 'rapport':
-        return generateRapportContent(baseContent);
+        result = generateRapportContent(baseContent);
+        break;
       case 'compte-rendu':
-        return generateCompteRenduContent(baseContent);
+        result = generateCompteRenduContent(baseContent);
+        break;
       case 'flash-info':
-        return generateFlashInfoContent(baseContent);
+        result = generateFlashInfoContent(baseContent);
+        break;
       default:
-        return baseContent;
+        result = baseContent;
     }
+    
+    console.log('✅ Contenu généré, type:', contentType, 'longueur:', result.length);
+    return result;
   };
 
   const generateRapportContent = (baseContent: string): string => {
