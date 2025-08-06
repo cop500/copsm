@@ -4,27 +4,20 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
-  Home, Users, Building2, Calendar, FileText, Settings,
-  GraduationCap, UserCheck, Mail, Bell, Menu, X,
-  User, LogOut, Send, BookOpen
+  Home, Calendar, Settings, GraduationCap, Menu, X,
+  LogOut, Send, BookOpen
 } from 'lucide-react'
 import { useState } from 'react'
 import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole';
 import Image from 'next/image';
 
-// 🎯 NAVIGATION MISE À JOUR (suppression des onglets non utilisés)
+// 🎯 NAVIGATION SIMPLIFIÉE - Onglets actifs uniquement
 const navigation = [
   {
     name: 'Tableau de bord',
     href: '/dashboard',
     icon: Home,
-    current: false
-  },
-  {
-    name: 'Entreprises',
-    href: '/entreprises',
-    icon: Building2,
     current: false
   },
   {
@@ -43,12 +36,6 @@ const navigation = [
     name: 'Candidature',
     href: '/candidature',
     icon: Send,
-    current: false
-  },
-  {
-    name: 'Demandes entreprises',
-    href: '/dashboard-admin',
-    icon: Users,
     current: false
   },
   {
@@ -79,17 +66,28 @@ export default function Navigation() {
 
   // Mise à jour de l'état "current" basé sur le pathname
   const navigationWithCurrent = navigation
+    .filter(item => {
+      // Paramètres seulement pour admin
+      if (item.name === 'Paramètres') {
+        return isAdmin;
+      }
+      // Tous les autres onglets pour tous
+      return true;
+    })
     .map(item => ({
       ...item,
       current: pathname === item.href
     }))
 
   // Debug: Afficher les éléments de navigation
-  console.log('🔍 Navigation items:', navigationWithCurrent.map(item => item.name))
-  console.log('🔍 Current user role:', role)
-  console.log('🔍 Is admin:', isAdmin)
-  console.log('🔍 Navigation array length:', navigationWithCurrent.length)
-  console.log('🔍 Ateliers found:', navigationWithCurrent.find(item => item.name === 'Ateliers'))
+  console.log('🔍 === DEBUG NAVIGATION ===')
+  console.log('🔍 Tous les onglets:', navigation.map(item => item.name))
+  console.log('🔍 Onglets filtrés:', navigationWithCurrent.map(item => item.name))
+  console.log('🔍 Nombre d\'onglets:', navigationWithCurrent.length)
+  console.log('🔍 Onglet Ateliers présent:', navigationWithCurrent.some(item => item.name === 'Ateliers'))
+  console.log('🔍 Rôle utilisateur:', role)
+  console.log('🔍 Est admin:', isAdmin)
+  console.log('🔍 Pathname actuel:', pathname)
 
   // 🎯 FONCTION POUR GÉRER LA DÉCONNEXION
   const handleLogout = async () => {
