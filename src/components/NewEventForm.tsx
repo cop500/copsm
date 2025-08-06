@@ -144,27 +144,40 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
 
       // Upload des photos si présentes
       if (formData.photos.length > 0) {
+        console.log('📸 Début upload photos, nombre:', formData.photos.length)
+        
         const uploadPromises = formData.photos.map(async (photo, index) => {
           const fileName = `evenements/${Date.now()}_${index}_${photo.name}`
+          console.log('📁 Upload fichier:', fileName, 'Taille:', photo.size, 'Type:', photo.type)
           
-          const { data, error } = await supabase.storage
-            .from('photos')
-            .upload(fileName, photo, {
-              cacheControl: '3600',
-              upsert: false
-            })
+          try {
+            const { data, error } = await supabase.storage
+              .from('photos')
+              .upload(fileName, photo, {
+                cacheControl: '3600',
+                upsert: false
+              })
 
-          if (error) throw error
+            if (error) {
+              console.error('❌ Erreur upload:', error)
+              throw error
+            }
 
-          const { data: urlData } = supabase.storage
-            .from('photos')
-            .getPublicUrl(fileName)
+            console.log('✅ Upload réussi:', fileName)
+            const { data: urlData } = supabase.storage
+              .from('photos')
+              .getPublicUrl(fileName)
 
-          setUploadProgress(((index + 1) / formData.photos.length) * 100)
-          return urlData.publicUrl
+            setUploadProgress(((index + 1) / formData.photos.length) * 100)
+            return urlData.publicUrl
+          } catch (uploadError) {
+            console.error('❌ Erreur upload fichier:', fileName, uploadError)
+            throw uploadError
+          }
         })
 
         photosUrls = await Promise.all(uploadPromises)
+        console.log('✅ Tous les uploads terminés, URLs:', photosUrls)
       }
 
       // Préparer les données à sauvegarder
