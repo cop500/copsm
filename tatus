@@ -1,0 +1,5 @@
+[33m40052ed[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Feat: Ajout du système d'ateliers - Structure DB, hook, navigation et page principale
+[33m5ff5bb0[m Fix: Amélioration de l'affichage des photos avec gestion d'erreurs et logs de débogage
+[33m905e4c7[m Fix: Ajout de logs de débogage pour l'upload photos et scripts SQL améliorés
+[33m4a8d29f[m Fix: Correction du blocage du générateur IA - Amélioration de la gestion des erreurs et ajout de logs de débogage
+[33m5e751b4[m Fix: Amélioration de la gestion des modals du générateur IA - Correction du problème de blocage et ajout de logs de débogage

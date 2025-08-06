@@ -85,6 +85,11 @@ export default function Navigation() {
       current: pathname === item.href
     }))
 
+  // Debug: Afficher les éléments de navigation
+  console.log('🔍 Navigation items:', navigationWithCurrent.map(item => item.name))
+  console.log('🔍 Current user role:', role)
+  console.log('🔍 Is admin:', isAdmin)
+
   // 🎯 FONCTION POUR GÉRER LA DÉCONNEXION
   const handleLogout = async () => {
     if (window.confirm('Se déconnecter ?')) {
