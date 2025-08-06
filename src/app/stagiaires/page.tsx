@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useCandidatures } from '@/hooks/useCandidatures'
+import { useSettings } from '@/hooks/useSettings'
 import { 
   X, Save, Trash2, Eye, Clock, CheckCircle, AlertTriangle,
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
@@ -34,12 +35,15 @@ interface CandidatureAction {
 
 export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature } = useCandidatures()
+  const { poles, filieres, loading: settingsLoading } = useSettings()
   
   // États pour les filtres et actions
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
   const [candidatureSearch, setCandidatureSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('tous')
   const [entrepriseFilter, setEntrepriseFilter] = useState('')
+  const [poleFilter, setPoleFilter] = useState('')
+  const [filiereFilter, setFiliereFilter] = useState('')
   const [selectedCandidature, setSelectedCandidature] = useState<any>(null)
   const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
   const [candidatureNotes, setCandidatureNotes] = useState('')
@@ -279,8 +283,14 @@ export default function StagiairesPage() {
       }
     })()
 
-    return matchesSearch && matchesFilter && matchesEntreprise && matchesDate
+    const matchesPole = poleFilter === '' || candidature.pole_id === poleFilter
+    const matchesFiliere = filiereFilter === '' || candidature.filiere_id === filiereFilter
+
+    return matchesSearch && matchesFilter && matchesEntreprise && matchesDate && matchesPole && matchesFiliere
   })
+
+  // Filtres pour les filières selon le pôle sélectionné
+  const filteredFilieres = filieres.filter(f => f.pole_id === poleFilter)
 
   // Statistiques
   const getStatusCount = (status: CandidatureStatus) => 
@@ -376,7 +386,7 @@ export default function StagiairesPage() {
 
       {/* Filtres et recherche */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
           <div className="lg:col-span-2">
             <div className="relative">
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
@@ -424,6 +434,40 @@ export default function StagiairesPage() {
               onChange={(e) => setEntrepriseFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          <div>
+            <select
+              value={poleFilter}
+              onChange={(e) => {
+                setPoleFilter(e.target.value)
+                setFiliereFilter('') // Réinitialiser le filtre filière
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Tous les pôles</option>
+              {poles.map((pole) => (
+                <option key={pole.id} value={pole.id}>
+                  {pole.nom}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={filiereFilter}
+              onChange={(e) => setFiliereFilter(e.target.value)}
+              disabled={!poleFilter}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Toutes les filières</option>
+              {filteredFilieres.map((filiere) => (
+                <option key={filiere.id} value={filiere.id}>
+                  {filiere.nom}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

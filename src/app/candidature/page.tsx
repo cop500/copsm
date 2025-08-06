@@ -358,19 +358,52 @@ const CandidaturePage = () => {
       {/* Contenu principal */}
       <div className="relative z-10 container mx-auto px-4 py-8 sm:py-12">
         <div className="max-w-6xl mx-auto">
-          {/* Header avec carreau central */}
+          {/* Header avec carreau central - Design moderne */}
           <div className="text-center mb-8 sm:mb-16">
-            <div className="inline-block p-4 sm:p-8 bg-gradient-to-br from-blue-900/95 to-indigo-900/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl border-2 border-white/30 shadow-2xl mb-4 sm:mb-8">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 drop-shadow-lg">
-                ESPACE Candidature
-              </h1>
-                             <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-yellow-300 mb-3 drop-shadow-lg">
-                 COP CMC SM
-               </h2>
-               <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-yellow-400 to-green-400 mx-auto mb-4"></div>
-               <p className="text-lg sm:text-xl lg:text-2xl text-green-300 font-medium drop-shadow-lg">
-                 DÉPOSER VOTRE CANDIDATURE
-               </p>
+            <div className="inline-block p-6 sm:p-10 bg-gradient-to-br from-blue-900/90 via-blue-800/85 to-indigo-900/90 backdrop-blur-md rounded-3xl sm:rounded-[2rem] border border-white/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] mb-4 sm:mb-8 relative overflow-hidden">
+              {/* Effet de brillance subtil */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 -translate-x-full animate-pulse"></div>
+              
+              {/* Contenu principal */}
+              <div className="relative z-10">
+                {/* Titre principal avec typographie moderne */}
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-white mb-6 tracking-tight leading-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                  <span className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+                    ESPACE Candidature
+                  </span>
+                </h1>
+                
+                {/* Séparateur élégant avec icône */}
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-8 h-px bg-gradient-to-r from-transparent via-blue-300 to-transparent"></div>
+                  <div className="w-3 h-3 bg-blue-300 rounded-full mx-3 shadow-lg"></div>
+                  <div className="w-8 h-px bg-gradient-to-r from-transparent via-blue-300 to-transparent"></div>
+                </div>
+                
+                {/* Sous-titre institutionnel */}
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4 tracking-wide" style={{ fontFamily: 'Lora, serif' }}>
+                  <span className="bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-300 bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+                    COP CMC SM
+                  </span>
+                </h2>
+                
+                {/* Ligne de séparation avec dégradé */}
+                <div className="w-20 sm:w-28 h-0.5 bg-gradient-to-r from-yellow-400 via-yellow-300 to-green-400 mx-auto mb-4 shadow-sm"></div>
+                
+                {/* Call-to-action */}
+                <p className="text-base sm:text-lg lg:text-xl font-medium text-green-200 tracking-wide" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                  <span className="bg-gradient-to-r from-green-300 via-green-200 to-green-300 bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+                    DÉPOSER VOTRE CANDIDATURE
+                  </span>
+                </p>
+                
+                {/* Éléments décoratifs subtils */}
+                <div className="flex justify-center mt-4 space-x-2">
+                  <div className="w-1 h-1 bg-blue-300 rounded-full opacity-60"></div>
+                  <div className="w-1 h-1 bg-blue-200 rounded-full opacity-40"></div>
+                  <div className="w-1 h-1 bg-blue-300 rounded-full opacity-60"></div>
+                </div>
+              </div>
             </div>
           </div>
 
