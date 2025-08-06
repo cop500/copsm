@@ -110,13 +110,13 @@ export default function InscriptionAteliersPage() {
         throw new Error('Veuillez remplir tous les champs obligatoires')
       }
 
-      // Vérifier si l'utilisateur n'est pas déjà inscrit
-      const { data: existingInscription, error: checkError } = await supabase
-        .from('inscriptions_ateliers')
-        .select('*')
-        .eq('atelier_id', selectedAtelier!.id)
-        .eq('email', formData.email)
-        .single()
+             // Vérifier si l'utilisateur n'est pas déjà inscrit
+       const { data: existingInscription, error: checkError } = await supabase
+         .from('inscriptions_ateliers')
+         .select('*')
+         .eq('atelier_id', selectedAtelier!.id)
+         .eq('stagiaire_email', formData.email)
+         .single()
 
       if (checkError && checkError.code !== 'PGRST116') {
         throw checkError
@@ -131,19 +131,19 @@ export default function InscriptionAteliersPage() {
         throw new Error('Cet atelier est complet')
       }
 
-      // Créer l'inscription
-      const { error: insertError } = await supabase
-        .from('inscriptions_ateliers')
-        .insert([{
-          atelier_id: selectedAtelier!.id,
-          nom: formData.nom,
-          email: formData.email,
-          pole: formData.pole,
-          filliere: formData.filliere,
-          telephone: formData.telephone,
-          statut: 'en_attente',
-          date_inscription: new Date().toISOString()
-        }])
+             // Créer l'inscription
+       const { error: insertError } = await supabase
+         .from('inscriptions_ateliers')
+         .insert([{
+           atelier_id: selectedAtelier!.id,
+           stagiaire_nom: formData.nom,
+           stagiaire_email: formData.email,
+           pole: formData.pole,
+           filliere: formData.filliere,
+           stagiaire_telephone: formData.telephone,
+           statut: 'en_attente',
+           date_inscription: new Date().toISOString()
+         }])
 
       if (insertError) throw insertError
 
