@@ -171,18 +171,7 @@ export const ModernEvenementsModule = () => {
     setShowAIGenerator(true)
   }
 
-  // Filtrer les événements
-  const filteredEvenements = evenements.filter(event => {
-    const matchesSearch = searchTerm === '' || 
-      event.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.lieu.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'tous' || event.statut === statusFilter
-    const matchesType = typeFilter === 'tous' || event.type_evenement_id === typeFilter
 
-    return matchesSearch && matchesStatus && matchesType
-  })
 
   // Statistiques
   const getStatusCount = (status: string) => 
