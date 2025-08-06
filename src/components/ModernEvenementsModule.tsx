@@ -104,6 +104,12 @@ export const ModernEvenementsModule = () => {
     setShowAIGenerator(false)
   }
 
+  // Ouvrir le générateur IA pour un événement spécifique
+  const handleGenerateContent = (event: any) => {
+    setSelectedEvent(event)
+    setShowAIGenerator(true)
+  }
+
   // Filtrer les événements
   const filteredEvenements = evenements.filter(event => {
     const matchesSearch = searchTerm === '' || 
@@ -351,6 +357,7 @@ export const ModernEvenementsModule = () => {
               onEdit={handleEditEvent}
               onDelete={handleDeleteEvent}
               onView={handleViewEvent}
+              onGenerateContent={handleGenerateContent}
             />
           ))}
         </div>
@@ -390,6 +397,7 @@ export const ModernEvenementsModule = () => {
               <AIContentGenerator
                 eventId={selectedEvent?.id || ''}
                 eventTitle={selectedEvent?.titre || 'Nouvel événement'}
+                eventData={selectedEvent}
                 onContentGenerated={handleContentGenerated}
               />
             </div>

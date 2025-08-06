@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { 
   Calendar, MapPin, User, Clock, Image, Eye, 
   Edit3, Trash2, Plus, X, ChevronLeft, ChevronRight,
-  FileText, Building, Users, Award
+  FileText, Building, Users, Award, Zap
 } from 'lucide-react'
 
 interface EventCardProps {
@@ -27,13 +27,15 @@ interface EventCardProps {
   onEdit?: (event: any) => void
   onDelete?: (id: string) => void
   onView?: (event: any) => void
+  onGenerateContent?: (event: any) => void
 }
 
 export const EventCard: React.FC<EventCardProps> = ({ 
   event, 
   onEdit, 
   onDelete, 
-  onView 
+  onView,
+  onGenerateContent
 }) => {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [showPhotoModal, setShowPhotoModal] = useState(false)
@@ -197,6 +199,15 @@ export const EventCard: React.FC<EventCardProps> = ({
 
             {/* Actions */}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {onGenerateContent && (
+                <button
+                  onClick={() => onGenerateContent(event)}
+                  className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                  title="Générer contenu IA"
+                >
+                  <Zap className="w-4 h-4" />
+                </button>
+              )}
               {onView && (
                 <button
                   onClick={() => onView(event)}

@@ -48,12 +48,27 @@ interface AIContentFields {
 interface AIContentGeneratorProps {
   eventId: string;
   eventTitle: string;
+  eventData?: {
+    titre: string;
+    description: string;
+    lieu: string;
+    date_debut: string;
+    date_fin?: string;
+    responsable_cop?: string;
+    statut: string;
+    photos_urls?: string[];
+    event_types?: {
+      nom: string;
+      couleur: string;
+    };
+  };
   onContentGenerated: (content: string) => void;
 }
 
 export default function AIContentGenerator({ 
   eventId, 
   eventTitle, 
+  eventData,
   onContentGenerated 
 }: AIContentGeneratorProps) {
   const [contentType, setContentType] = useState<'rapport' | 'compte-rendu' | 'flash-info'>('rapport');
@@ -133,7 +148,122 @@ export default function AIContentGenerator({
     // Simulation - à remplacer par l'appel réel à Claude
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    return `Contenu généré par IA pour ${contentType}:\n\n${prompt}\n\n[Contenu généré automatiquement]`;
+    // Générer du contenu réaliste basé sur les données de l'événement
+    const eventInfo = eventData ? `
+Événement: ${eventData.titre}
+Description: ${eventData.description}
+Lieu: ${eventData.lieu}
+Date: ${new Date(eventData.date_debut).toLocaleDateString('fr-FR')}
+Responsable: ${eventData.responsable_cop || 'Non spécifié'}
+Type: ${eventData.event_types?.nom || 'Non spécifié'}
+Statut: ${eventData.statut}
+Photos: ${eventData.photos_urls?.length || 0} photo(s)
+` : '';
+
+    const baseContent = `${eventInfo}\n\nInformations fournies:\n${prompt}`;
+    
+    switch (contentType) {
+      case 'rapport':
+        return generateRapportContent(baseContent);
+      case 'compte-rendu':
+        return generateCompteRenduContent(baseContent);
+      case 'flash-info':
+        return generateFlashInfoContent(baseContent);
+      default:
+        return baseContent;
+    }
+  };
+
+  const generateRapportContent = (baseContent: string): string => {
+    const rapport = `📊 RAPPORT DÉTAILLÉ - ${eventData?.titre || eventTitle}
+
+${baseContent}
+
+📈 ANALYSE DE L'ÉVÉNEMENT
+
+🎯 Objectifs et résultats:
+• Objectifs atteints: ${fields.objectifs ? '✅ Oui' : '❌ Non'}
+• Nombre de participants: ${fields.participants} personne(s)
+• Durée de l'événement: ${fields.duree}
+
+📊 Évaluation des participants:
+• Retour global: ${fields.retourParticipants.toUpperCase()}
+• Satisfaction: ${getSatisfactionLevel(fields.retourParticipants)}
+
+📝 Points forts:
+${fields.succes || '• Événement bien organisé\n• Participation active\n• Objectifs atteints'}
+
+⚠️ Problèmes rencontrés:
+${fields.problemes || '• Aucun problème majeur signalé'}
+
+💡 Recommandations:
+• Maintenir le niveau de qualité
+• Améliorer la communication pré-événement
+• Planifier des événements similaires
+
+📸 Photos: ${eventData?.photos_urls?.length || 0} photo(s) disponibles
+`;
+
+    return rapport;
+  };
+
+  const generateCompteRenduContent = (baseContent: string): string => {
+    const compteRendu = `📋 COMPTE-RENDU - ${eventData?.titre || eventTitle}
+
+${baseContent}
+
+📌 POINTS CLÉS ABORDÉS:
+${fields.pointsCles || '• Présentation du projet\n• Échanges avec les participants\n• Questions et réponses'}
+
+👥 INTERVENANTS PRÉSENTS:
+${fields.intervenants || eventData?.responsable_cop || '• Responsable COP\n• Participants'}
+
+✅ DÉCISIONS PRISES:
+${fields.decisions || '• Validation du projet\n• Planification des prochaines étapes'}
+
+📅 ACTIONS À SUIVRE:
+${fields.actionsSuivantes || '• Suivi des décisions\n• Communication des résultats\n• Préparation du prochain événement'}
+
+📸 Documentation: ${eventData?.photos_urls?.length || 0} photo(s) prises
+`;
+
+    return compteRendu;
+  };
+
+  const generateFlashInfoContent = (baseContent: string): string => {
+    const flashInfo = `⚡ FLASH INFO - ${eventData?.titre || eventTitle}
+
+${baseContent}
+
+🎯 TITRE ACCROCHEUR:
+${fields.titreAccrocheur || `"${eventData?.titre || eventTitle} - Un succès !"`}
+
+📢 MESSAGE PRINCIPAL:
+${fields.messagePrincipal || `L'événement "${eventData?.titre || eventTitle}" s'est déroulé avec succès avec ${fields.participants} participants.`}
+
+🏷️ HASHTAGS:
+${fields.hashtags || '#COP #CMC #Événement #Succès'}
+
+📞 CALL-TO-ACTION:
+${fields.callToAction || 'Inscrivez-vous au prochain événement !'}
+
+🎯 PUBLIC CIBLE:
+${fields.publicCible || 'Étudiants, professionnels, entreprises'}
+
+📸 Photos disponibles: ${eventData?.photos_urls?.length || 0} cliché(s)
+`;
+
+    return flashInfo;
+  };
+
+  const getSatisfactionLevel = (level: string): string => {
+    switch (level) {
+      case 'excellent': return '⭐⭐⭐⭐⭐ (5/5)';
+      case 'bon': return '⭐⭐⭐⭐ (4/5)';
+      case 'moyen': return '⭐⭐⭐ (3/5)';
+      case 'faible': return '⭐⭐ (2/5)';
+      default: return '⭐⭐⭐ (3/5)';
+    }
   };
 
   const renderCommonFields = () => (
