@@ -59,44 +59,54 @@ export default function InscriptionAteliersPage() {
   const loadAteliers = async () => {
     try {
       setLoading(true)
+      setError(null)
+      
+      console.log('🔄 Chargement des ateliers...')
       
       const { data, error } = await supabase
         .from('ateliers')
         .select('*')
-        .eq('statut', 'planifie')
+        .eq('actif', true)
         .gte('date_debut', new Date().toISOString())
         .order('date_debut', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Erreur chargement ateliers:', error)
+        throw error
+      }
       
+      console.log('✅ Ateliers chargés:', data?.length || 0)
       setAteliers(data || [])
     } catch (err: any) {
+      console.error('❌ Erreur chargement ateliers:', err)
       setError(err.message)
-      console.error('Erreur chargement ateliers:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  // Filtrer les filières selon le pôle sélectionné
-  const filieresFiltered = formData.pole 
-    ? filieres.filter(f => {
-        const pole = poles.find(p => p.nom === formData.pole)
-        return pole && f.pole_id === pole.id
-      })
-    : []
-
-  // Filtrer les ateliers
-  const filteredAteliers = ateliers.filter(atelier => {
-    const matchesSearch = atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         atelier.description.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filtrer les filières selon le pôle sélectionné avec optimisation
+  const filieresFiltered = React.useMemo(() => {
+    if (!formData.pole) return []
     
-    const matchesPole = !filterPole || atelier.pole === filterPole
-    const matchesFiliere = !filterFiliere || atelier.filliere === filterFiliere
-    const hasCapacity = atelier.capacite_actuelle < atelier.capacite_max
+    const pole = poles.find(p => p.nom === formData.pole)
+    return pole ? filieres.filter(f => f.pole_id === pole.id) : []
+  }, [formData.pole, poles, filieres])
 
-    return matchesSearch && matchesPole && matchesFiliere && hasCapacity
-  })
+  // Filtrer les ateliers avec optimisation
+  const filteredAteliers = React.useMemo(() => {
+    return ateliers.filter(atelier => {
+      const matchesSearch = searchTerm === '' || 
+        atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (atelier.description && atelier.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      
+      const matchesPole = !filterPole || atelier.pole === filterPole
+      const matchesFiliere = !filterFiliere || atelier.filliere === filterFiliere
+      const hasCapacity = atelier.capacite_actuelle < atelier.capacite_max
+
+      return matchesSearch && matchesPole && matchesFiliere && hasCapacity
+    })
+  }, [ateliers, searchTerm, filterPole, filterFiliere])
 
   // S'inscrire à un atelier
   const handleInscription = async (e: React.FormEvent) => {
@@ -191,6 +201,7 @@ export default function InscriptionAteliersPage() {
   }
 
   useEffect(() => {
+    console.log('🚀 Initialisation de la page d\'inscription aux ateliers')
     loadAteliers()
   }, [])
 

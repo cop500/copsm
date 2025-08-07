@@ -132,17 +132,36 @@ export const ModernEvenementsModule = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet atelier ?')) return
 
     try {
+      console.log('🔄 Suppression de l\'atelier:', id)
+      
+      // D'abord, supprimer toutes les inscriptions liées
+      const { error: deleteInscriptionsError } = await supabase
+        .from('inscriptions_ateliers')
+        .delete()
+        .eq('atelier_id', id)
+
+      if (deleteInscriptionsError) {
+        console.error('❌ Erreur suppression inscriptions:', deleteInscriptionsError)
+        throw deleteInscriptionsError
+      }
+
+      // Ensuite, supprimer l'atelier
       const { error } = await supabase
         .from('ateliers')
         .delete()
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Erreur suppression atelier:', error)
+        throw error
+      }
       
+      console.log('✅ Atelier supprimé avec succès')
       showMessage('Atelier supprimé avec succès')
       await loadEvenements()
     } catch (error: any) {
-      showMessage('Erreur lors de la suppression', 'error')
+      console.error('❌ Erreur lors de la suppression:', error)
+      showMessage(`Erreur lors de la suppression: ${error.message}`, 'error')
     }
   }
 
@@ -258,31 +277,37 @@ export const ModernEvenementsModule = () => {
     return `${diffHours}h`
   }
 
-  // Filtrer selon l'onglet actif
-  const filteredEvenements = evenements.filter(event => {
-    const matchesSearch = event.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        event.lieu?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'tous' || event.statut === statusFilter
-    const matchesType = typeFilter === 'tous' || event.type_evenement_id === typeFilter
-    
-    return matchesSearch && matchesStatus && matchesType
-  })
+  // Filtrer selon l'onglet actif avec optimisation
+  const filteredEvenements = React.useMemo(() => {
+    return evenements.filter(event => {
+      const matchesSearch = searchTerm === '' || 
+        event.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (event.lieu && event.lieu.toLowerCase().includes(searchTerm.toLowerCase()))
+      
+      const matchesStatus = statusFilter === 'tous' || event.statut === statusFilter
+      const matchesType = typeFilter === 'tous' || event.type_evenement_id === typeFilter
+      
+      return matchesSearch && matchesStatus && matchesType
+    })
+  }, [evenements, searchTerm, statusFilter, typeFilter])
 
-  const filteredAteliers = ateliers.filter(atelier => {
-    const matchesSearch = atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        atelier.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        atelier.lieu?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'tous' || atelier.statut === statusFilter
-    const matchesType = typeFilter === 'tous' || typeFilter === 'atelier'
-    
-    return matchesSearch && matchesStatus && matchesType
-  })
+  const filteredAteliers = React.useMemo(() => {
+    return ateliers.filter(atelier => {
+      const matchesSearch = searchTerm === '' || 
+        atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (atelier.description && atelier.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (atelier.lieu && atelier.lieu.toLowerCase().includes(searchTerm.toLowerCase()))
+      
+      const matchesStatus = statusFilter === 'tous' || atelier.statut === statusFilter
+      const matchesType = typeFilter === 'tous' || typeFilter === 'atelier'
+      
+      return matchesSearch && matchesStatus && matchesType
+    })
+  }, [ateliers, searchTerm, statusFilter, typeFilter])
 
-  // Obtenir les éléments à afficher selon l'onglet actif
-  const getDisplayItems = () => {
+  // Obtenir les éléments à afficher selon l'onglet actif avec optimisation
+  const displayItems = React.useMemo(() => {
     if (activeTab === 'evenements') {
       return filteredEvenements.sort((a, b) => 
         new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
@@ -292,9 +317,7 @@ export const ModernEvenementsModule = () => {
         new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
       )
     }
-  }
-
-  const displayItems = getDisplayItems()
+  }, [activeTab, filteredEvenements, filteredAteliers])
 
   // Charger au démarrage
   useEffect(() => {
