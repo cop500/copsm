@@ -142,7 +142,8 @@ export const ModernEvenementsModule = () => {
 
       if (deleteInscriptionsError) {
         console.error('❌ Erreur suppression inscriptions:', deleteInscriptionsError)
-        throw deleteInscriptionsError
+        // Continuer même si la suppression des inscriptions échoue
+        console.log('⚠️ Continuation malgré l\'erreur inscriptions...')
       }
 
       // Ensuite, supprimer l'atelier

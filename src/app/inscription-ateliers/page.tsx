@@ -63,6 +63,7 @@ export default function InscriptionAteliersPage() {
       
       console.log('🔄 Chargement des ateliers...')
       
+      // Utiliser une requête publique sans authentification
       const { data, error } = await supabase
         .from('ateliers')
         .select('*')
@@ -72,6 +73,25 @@ export default function InscriptionAteliersPage() {
 
       if (error) {
         console.error('❌ Erreur chargement ateliers:', error)
+        // Si erreur de permission, essayer sans authentification
+        if (error.message.includes('permission') || error.message.includes('auth')) {
+          console.log('🔄 Tentative sans authentification...')
+          const { data: publicData, error: publicError } = await supabase
+            .from('ateliers')
+            .select('*')
+            .eq('actif', true)
+            .gte('date_debut', new Date().toISOString())
+            .order('date_debut', { ascending: true })
+          
+          if (publicError) {
+            console.error('❌ Erreur même sans auth:', publicError)
+            throw publicError
+          }
+          
+          console.log('✅ Ateliers chargés (public):', publicData?.length || 0)
+          setAteliers(publicData || [])
+          return
+        }
         throw error
       }
       
