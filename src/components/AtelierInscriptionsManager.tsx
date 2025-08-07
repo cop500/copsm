@@ -12,12 +12,13 @@ import {
 interface Inscription {
   id: string
   atelier_id: string
-  nom: string
-  email: string
+  stagiaire_nom: string
+  stagiaire_email: string
+  stagiaire_telephone?: string
   pole: string
   filliere: string
   date_inscription: string
-  statut: 'confirmee' | 'en_attente' | 'annulee'
+  statut: 'confirme' | 'en_attente' | 'annule'
 }
 
 interface AtelierWithInscriptions {
@@ -406,38 +407,68 @@ export default function AtelierInscriptionsManager() {
                       <h4 className="font-medium text-gray-900 mb-3">Liste des participants</h4>
                       
                       {atelier.inscriptions.map(inscription => (
-                        <div key={inscription.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center gap-4">
-                            <div>
-                              <p className="font-medium text-gray-900">{inscription.nom}</p>
-                              <p className="text-sm text-gray-500">{inscription.email}</p>
+                        <div key={inscription.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-6">
+                            {/* Informations principales */}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-gray-900 text-lg">{inscription.stagiaire_nom}</p>
+                              <p className="text-sm text-gray-600">{inscription.stagiaire_email}</p>
+                              {inscription.stagiaire_telephone && (
+                                <p className="text-xs text-gray-500">📞 {inscription.stagiaire_telephone}</p>
+                              )}
                             </div>
                             
-                            <div className="text-sm text-gray-600">
-                              <p>{inscription.pole} - {inscription.filliere}</p>
-                              <p className="text-xs">
-                                Inscrit le {new Date(inscription.date_inscription).toLocaleDateString('fr-FR')}
-                              </p>
+                            {/* Pôle et filière */}
+                            <div className="text-sm text-gray-700 min-w-0">
+                              <p className="font-medium">🎯 {inscription.pole}</p>
+                              <p className="text-gray-600">{inscription.filliere}</p>
+                            </div>
+                            
+                            {/* Date d'inscription */}
+                            <div className="text-sm text-gray-600 min-w-0">
+                              <p className="font-medium">📅 Inscrit le</p>
+                              <p>{new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}</p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              inscription.statut === 'confirmee' ? 'bg-green-100 text-green-800' :
-                              inscription.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
+                          <div className="flex items-center gap-3">
+                            {/* Statut */}
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              inscription.statut === 'confirme' ? 'bg-green-100 text-green-800 border border-green-200' :
+                              inscription.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+                              'bg-red-100 text-red-800 border border-red-200'
                             }`}>
-                              {inscription.statut === 'confirmee' ? 'Confirmée' :
-                               inscription.statut === 'en_attente' ? 'En attente' : 'Annulée'}
+                              {inscription.statut === 'confirme' ? '✅ Confirmée' :
+                               inscription.statut === 'en_attente' ? '⏳ En attente' : '❌ Annulée'}
                             </span>
                             
-                            <button
-                              onClick={() => handleDesinscription(inscription.id, atelier.id)}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Désinscrire"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {/* Actions */}
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => {
+                                  setSelectedInscription(inscription)
+                                  setShowInscriptionDetail(true)
+                                }}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                title="Voir les détails"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              
+                              <button
+                                onClick={() => handleDesinscription(inscription.id, atelier.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title="Désinscrire"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -449,6 +480,113 @@ export default function AtelierInscriptionsManager() {
           ))
         )}
       </div>
+
+      {/* Modal de détails d'inscription */}
+      {showInscriptionDetail && selectedInscription && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Détails de l'inscription</h3>
+                <button
+                  onClick={() => {
+                    setShowInscriptionDetail(false)
+                    setSelectedInscription(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Nom complet */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+                  <p className="text-lg font-semibold text-gray-900">{selectedInscription.stagiaire_nom}</p>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <p className="text-gray-900">{selectedInscription.stagiaire_email}</p>
+                </div>
+
+                {/* Téléphone */}
+                {selectedInscription.stagiaire_telephone && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                    <p className="text-gray-900">{selectedInscription.stagiaire_telephone}</p>
+                  </div>
+                )}
+
+                {/* Pôle et filière */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pôle</label>
+                    <p className="text-gray-900">{selectedInscription.pole}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filière</label>
+                    <p className="text-gray-900">{selectedInscription.filliere}</p>
+                  </div>
+                </div>
+
+                {/* Date d'inscription */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date d'inscription</label>
+                  <p className="text-gray-900">
+                    {new Date(selectedInscription.date_inscription).toLocaleDateString('fr-FR', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+
+                {/* Statut */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                    selectedInscription.statut === 'confirme' ? 'bg-green-100 text-green-800 border border-green-200' :
+                    selectedInscription.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+                    'bg-red-100 text-red-800 border border-red-200'
+                  }`}>
+                    {selectedInscription.statut === 'confirme' ? '✅ Confirmée' :
+                     selectedInscription.statut === 'en_attente' ? '⏳ En attente' : '❌ Annulée'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowInscriptionDetail(false)
+                    setSelectedInscription(null)
+                  }}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  Fermer
+                </button>
+                
+                <button
+                  onClick={() => {
+                    handleDesinscription(selectedInscription.id, selectedInscription.atelier_id)
+                    setShowInscriptionDetail(false)
+                    setSelectedInscription(null)
+                  }}
+                  className="flex-1 px-4 py-2 text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+                >
+                  Désinscrire
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 
