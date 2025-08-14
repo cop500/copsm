@@ -595,9 +595,8 @@ export default function InscriptionAteliersPage() {
                          ))}
                        </select>
                      </div>
+                   </form>
 
-                                       </form>
-                   
                    {/* Boutons fixes en bas */}
                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-indigo-900/95 via-indigo-900/90 to-transparent">
                      <div className="flex flex-col sm:flex-row gap-4">
