@@ -30,6 +30,14 @@ interface DemandeEntreprise {
   statut: string
   created_at: string
   updated_at: string
+  profils?: Array<{
+    poste_intitule: string
+    [key: string]: any
+  }>
+  all_profils?: Array<{
+    poste_intitule: string
+    [key: string]: any
+  }>
 }
 
 interface Candidature {
@@ -103,13 +111,23 @@ const CandidaturePage = () => {
       ) || []
       
       // Formater les demandes
-      const allActiveDemandes = activeDemandesEntreprises.map(d => ({
-        ...d,
-        type: 'entreprise',
-        display_nom: d.entreprise_nom,
-        display_poste: d.profils?.[0]?.poste_intitule || 'Stage',
-        display_type: d.type_demande
-      }))
+      const allActiveDemandes = activeDemandesEntreprises.map(d => {
+        // Récupérer tous les postes des profils
+        const postes = d.profils?.map(profil => profil.poste_intitule).filter(Boolean) || []
+        const display_poste = postes.length > 0 
+          ? postes.join(' • ') 
+          : 'Stage'
+        
+        return {
+          ...d,
+          type: 'entreprise',
+          display_nom: d.entreprise_nom,
+          display_poste: display_poste,
+          display_type: d.type_demande,
+          // Garder les profils complets pour référence
+          all_profils: d.profils || []
+        }
+      })
       
       console.log('✅ Demandes entreprises actives:', allActiveDemandes.length)
       console.log('📋 Statuts trouvés:', [...new Set(activeDemandesEntreprises.map(d => d.statut))])
@@ -442,7 +460,23 @@ const CandidaturePage = () => {
                         </div>
                       )}
                     </div>
-                    <p className="text-gray-600 mb-4">{demande.display_poste}</p>
+                    <div className="mb-4">
+                      {demande.all_profils && demande.all_profils.length > 1 ? (
+                        <div>
+                          <p className="text-gray-600 font-medium mb-2">Postes disponibles :</p>
+                          <div className="space-y-1">
+                            {demande.all_profils.map((profil, index) => (
+                              <div key={index} className="flex items-center">
+                                <span className="w-2 h-2 bg-indigo-400 rounded-full mr-2"></span>
+                                <span className="text-gray-700">{profil.poste_intitule}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-gray-600">{demande.display_poste}</p>
+                      )}
+                    </div>
                     <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0 text-sm">
                       <span className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-3 sm:px-4 py-2 rounded-full font-medium shadow-md text-center">
                         {demande.display_type}
