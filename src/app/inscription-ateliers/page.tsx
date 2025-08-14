@@ -95,8 +95,9 @@ export default function InscriptionAteliersPage() {
         throw error
       }
       
-      console.log('✅ Ateliers chargés:', data?.length || 0)
-      setAteliers(data || [])
+             console.log('✅ Ateliers chargés:', data?.length || 0)
+       console.log('📋 Liste des ateliers:', data)
+       setAteliers(data || [])
     } catch (err: any) {
       console.error('❌ Erreur chargement ateliers:', err)
       setError(err.message)
@@ -115,7 +116,7 @@ export default function InscriptionAteliersPage() {
 
   // Filtrer les ateliers avec optimisation
   const filteredAteliers = React.useMemo(() => {
-    return ateliers.filter(atelier => {
+    const filtered = ateliers.filter(atelier => {
       const matchesSearch = searchTerm === '' || 
         atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (atelier.description && atelier.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -126,6 +127,9 @@ export default function InscriptionAteliersPage() {
 
       return matchesSearch && matchesPole && matchesFiliere && hasCapacity
     })
+    
+    console.log('🔍 Ateliers filtrés:', filtered.length, 'sur', ateliers.length)
+    return filtered
   }, [ateliers, searchTerm, filterPole, filterFiliere])
 
   // S'inscrire à un atelier
@@ -206,6 +210,7 @@ export default function InscriptionAteliersPage() {
 
   // Ouvrir le formulaire d'inscription
   const openInscriptionForm = (atelier: Atelier) => {
+    console.log('🔵 Clic sur le bouton S\'inscrire pour l\'atelier:', atelier.titre)
     setSelectedAtelier(atelier)
     setShowInscriptionForm(true)
     setInscriptionSuccess(false)
@@ -259,12 +264,12 @@ export default function InscriptionAteliersPage() {
               
               {/* Contenu principal */}
               <div className="relative z-10">
-                {/* Titre principal avec typographie moderne */}
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-white mb-6 tracking-tight leading-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                  <span className="bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
-                    ESPACE Ateliers
-                  </span>
-                </h1>
+                                 {/* Titre principal avec typographie moderne */}
+                 <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold mb-6 tracking-tight leading-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                   <span className="text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] font-black">
+                     ESPACE Ateliers
+                   </span>
+                 </h1>
                 
                 {/* Séparateur élégant avec icône */}
                 <div className="flex items-center justify-center mb-4">
@@ -273,22 +278,22 @@ export default function InscriptionAteliersPage() {
                   <div className="w-8 h-px bg-gradient-to-r from-transparent via-blue-300 to-transparent"></div>
                 </div>
                 
-                {/* Sous-titre institutionnel */}
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-blue-200 mb-4 tracking-wide" style={{ fontFamily: 'Lora, serif' }}>
-                  <span className="bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-300 bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-                    COP CMC SM
-                  </span>
-                </h2>
+                                 {/* Sous-titre institutionnel */}
+                 <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold mb-4 tracking-wide" style={{ fontFamily: 'Lora, serif' }}>
+                   <span className="text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-bold">
+                     COP CMC SM
+                   </span>
+                 </h2>
                 
                 {/* Ligne de séparation avec dégradé */}
                 <div className="w-20 sm:w-28 h-0.5 bg-gradient-to-r from-yellow-400 via-yellow-300 to-green-400 mx-auto mb-4 shadow-sm"></div>
                 
-                {/* Call-to-action */}
-                <p className="text-base sm:text-lg lg:text-xl font-medium text-green-200 tracking-wide" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                  <span className="bg-gradient-to-r from-green-300 via-green-200 to-green-300 bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-                    DÉVELOPPEZ VOS COMPÉTENCES
-                  </span>
-                </p>
+                                 {/* Call-to-action */}
+                 <p className="text-base sm:text-lg lg:text-xl font-medium tracking-wide" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                   <span className="text-green-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-bold">
+                     DÉVELOPPEZ VOS COMPÉTENCES
+                   </span>
+                 </p>
                 
                 {/* Éléments décoratifs subtils */}
                 <div className="flex justify-center mt-4 space-x-2">
@@ -312,25 +317,25 @@ export default function InscriptionAteliersPage() {
         ></div>
         
         <div className="relative z-10">
-          <div className="mb-6 sm:mb-8 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 drop-shadow-lg">Ateliers Disponibles</h2>
-            <p className="text-blue-100 text-lg sm:text-xl mb-6 drop-shadow-md">Découvrez nos ateliers spécialisés et inscrivez-vous aux sessions qui vous intéressent</p>
-            <div className="w-20 h-1 bg-gradient-to-r from-yellow-400 to-green-400 mt-6 mx-auto shadow-lg"></div>
-          </div>
+                     <div className="mb-6 sm:mb-8 text-center">
+             <h2 className="text-3xl sm:text-4xl font-bold text-black mb-4 drop-shadow-[0_4px_8px_rgba(255,255,255,0.8)]">Ateliers Disponibles</h2>
+             <p className="text-gray-800 text-lg sm:text-xl mb-6 drop-shadow-[0_2px_4px_rgba(255,255,255,0.6)]">Découvrez nos ateliers spécialisés et inscrivez-vous aux sessions qui vous intéressent</p>
+             <div className="w-20 h-1 bg-gradient-to-r from-yellow-400 to-green-400 mt-6 mx-auto shadow-lg"></div>
+           </div>
    
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {filteredAteliers.length === 0 ? (
-              <div className="col-span-full bg-white rounded-xl shadow-sm border border-blue-100 p-16 text-center">
-                <BookOpen className="w-20 h-20 text-blue-300 mx-auto mb-6" />
-                <h3 className="text-2xl font-bold text-blue-900 mb-4">Aucun atelier disponible</h3>
-                <p className="text-gray-600 text-lg">
-                  {searchTerm || filterPole || filterFiliere 
-                    ? 'Aucun atelier ne correspond à vos critères de recherche.'
-                    : 'Aucun atelier n\'est actuellement disponible pour inscription.'
-                  }
-                </p>
-              </div>
-            ) : (
+                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {filteredAteliers.length === 0 ? (
+               <div className="col-span-full bg-white rounded-xl shadow-sm border border-blue-100 p-16 text-center">
+                 <BookOpen className="w-20 h-20 text-blue-300 mx-auto mb-6" />
+                 <h3 className="text-2xl font-bold text-blue-900 mb-4">Aucun atelier disponible</h3>
+                 <p className="text-gray-600 text-lg">
+                   {searchTerm || filterPole || filterFiliere 
+                     ? 'Aucun atelier ne correspond à vos critères de recherche.'
+                     : 'Aucun atelier n\'est actuellement disponible pour inscription.'
+                   }
+                 </p>
+               </div>
+             ) : (
               filteredAteliers.map(atelier => (
                 <div key={atelier.id} className="relative bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] opacity-0 animate-fade-in">
                   {/* Background avec image */}
@@ -405,18 +410,18 @@ export default function InscriptionAteliersPage() {
                       </span>
                     </div>
                     
-                    <button
-                      onClick={() => openInscriptionForm(atelier)}
-                      disabled={atelier.capacite_actuelle >= atelier.capacite_max}
-                      className={`px-8 py-4 rounded-2xl font-bold transition-all duration-300 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 ${
-                        atelier.capacite_actuelle < atelier.capacite_max
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 border-2 border-blue-500'
-                          : 'bg-gray-400 text-gray-600 cursor-not-allowed border-2 border-gray-300'
-                      }`}
-                    >
-                      <ArrowRight className="w-6 h-6" />
-                      <span className="text-lg">S'inscrire</span>
-                    </button>
+                                         <button
+                       onClick={() => openInscriptionForm(atelier)}
+                       disabled={atelier.capacite_actuelle >= atelier.capacite_max}
+                       className={`px-8 py-4 rounded-2xl font-semibold transition-all duration-300 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                         atelier.capacite_actuelle < atelier.capacite_max
+                           ? 'bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-500 hover:border-blue-600'
+                           : 'bg-gray-400 text-gray-600 cursor-not-allowed border-2 border-gray-300'
+                       }`}
+                     >
+                       <ArrowRight className="w-5 h-5" />
+                       <span className="text-lg font-bold">S'inscrire</span>
+                     </button>
                   </div>
                 </div>
               ))
