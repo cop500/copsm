@@ -453,17 +453,17 @@ export default function InscriptionAteliersPage() {
         </div>
       </div>
 
-             {/* Modal Formulaire d'inscription - Plein écran */}
+             {/* Modal Formulaire d'inscription - Plein écran avec défilement */}
        {showInscriptionForm && selectedAtelier && (
          <div className="fixed inset-0 bg-gradient-to-br from-indigo-900/95 to-blue-900/95 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-           <div className="relative bg-white/20 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-6xl border-2 border-white/40 overflow-hidden hover:shadow-3xl transition-all duration-300">
+           <div className="relative bg-white/20 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-6xl max-h-[95vh] border-2 border-white/40 overflow-hidden hover:shadow-3xl transition-all duration-300 flex flex-col">
             {/* Background avec image */}
             <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
               style={{
                 backgroundImage: "url('/bg-entreprise.jpg')"
               }}
             ></div>
-                         <div className="relative z-10 p-6 sm:p-8">
+                         <div className="relative z-10 p-6 sm:p-8 flex-1 overflow-y-auto">
                {inscriptionSuccess ? (
                  <div className="text-center">
                    <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
@@ -509,8 +509,8 @@ export default function InscriptionAteliersPage() {
                      </div>
                    )}
 
-                  <form onSubmit={handleInscription} className="space-y-6">
-                                         <div className="grid md:grid-cols-2 gap-4">
+                                     <form onSubmit={handleInscription} className="space-y-6 pb-20">
+                     <div className="grid md:grid-cols-2 gap-4">
                        <div>
                          <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                            Nom complet <span className="text-red-300">*</span>
@@ -596,7 +596,11 @@ export default function InscriptionAteliersPage() {
                        </select>
                      </div>
 
-                                         <div className="flex flex-col sm:flex-row gap-4 pt-6 sticky bottom-0 bg-gradient-to-t from-indigo-900/95 to-transparent pb-4 -mx-6 px-6">
+                                       </form>
+                   
+                   {/* Boutons fixes en bas */}
+                   <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-indigo-900/95 via-indigo-900/90 to-transparent">
+                     <div className="flex flex-col sm:flex-row gap-4">
                        <button
                          type="button"
                          onClick={closeInscriptionForm}
@@ -607,6 +611,10 @@ export default function InscriptionAteliersPage() {
                        <button
                          type="submit"
                          disabled={submitting}
+                         onClick={(e) => {
+                           e.preventDefault()
+                           handleInscription(e)
+                         }}
                          className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 border-2 border-blue-400 hover:border-blue-500 disabled:opacity-50 flex items-center justify-center gap-3 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                        >
                          {submitting ? (
@@ -622,6 +630,7 @@ export default function InscriptionAteliersPage() {
                          )}
                        </button>
                      </div>
+                   </div>
                   </form>
                 </>
               )}
