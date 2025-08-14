@@ -631,7 +631,6 @@ export default function InscriptionAteliersPage() {
                        </button>
                      </div>
                    </div>
-                  </form>
                 </>
               )}
             </div>
@@ -640,4 +639,4 @@ export default function InscriptionAteliersPage() {
       )}
     </div>
   )
-} 
+}
