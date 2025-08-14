@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSettings } from '@/hooks/useSettings'
-import './styles.css'
+// import './styles.css' // Fichier supprimé pour éviter les erreurs CSS
 import { 
   Calendar, Clock, MapPin, Users, BookOpen, CheckCircle, XCircle,
   AlertCircle, Loader2, ArrowRight, Star, Zap, Target, Award, Search
@@ -97,6 +97,20 @@ export default function InscriptionAteliersPage() {
       
              console.log('✅ Ateliers chargés:', data?.length || 0)
        console.log('📋 Liste des ateliers:', data)
+       console.log('🔍 Détails des ateliers:')
+       if (data && data.length > 0) {
+         data.forEach((atelier, index) => {
+           console.log(`  Atelier ${index + 1}:`, {
+             id: atelier.id,
+             titre: atelier.titre,
+             date_debut: atelier.date_debut,
+             capacite_actuelle: atelier.capacite_actuelle,
+             capacite_max: atelier.capacite_max,
+             actif: atelier.actif,
+             statut: atelier.statut
+           })
+         })
+       }
        setAteliers(data || [])
     } catch (err: any) {
       console.error('❌ Erreur chargement ateliers:', err)
@@ -116,6 +130,9 @@ export default function InscriptionAteliersPage() {
 
   // Filtrer les ateliers avec optimisation
   const filteredAteliers = React.useMemo(() => {
+    console.log('🔍 Début du filtrage des ateliers...')
+    console.log('🔍 Ateliers totaux:', ateliers.length)
+    
     const filtered = ateliers.filter(atelier => {
       const matchesSearch = searchTerm === '' || 
         atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,9 +140,18 @@ export default function InscriptionAteliersPage() {
       
       const matchesPole = !filterPole || atelier.pole === filterPole
       const matchesFiliere = !filterFiliere || atelier.filliere === filterFiliere
-      const hasCapacity = atelier.capacite_actuelle < atelier.capacite_max
+             const hasCapacity = true // Temporairement désactivé pour tester
 
-      return matchesSearch && matchesPole && matchesFiliere && hasCapacity
+       console.log(`🔍 Atelier "${atelier.titre}":`, {
+         matchesSearch,
+         matchesPole,
+         matchesFiliere,
+         hasCapacity,
+         capacite_actuelle: atelier.capacite_actuelle,
+         capacite_max: atelier.capacite_max
+       })
+
+       return matchesSearch && matchesPole && matchesFiliere && hasCapacity
     })
     
     console.log('🔍 Ateliers filtrés:', filtered.length, 'sur', ateliers.length)
@@ -211,6 +237,7 @@ export default function InscriptionAteliersPage() {
   // Ouvrir le formulaire d'inscription
   const openInscriptionForm = (atelier: Atelier) => {
     console.log('🔵 Clic sur le bouton S\'inscrire pour l\'atelier:', atelier.titre)
+    console.log('🔵 Données de l\'atelier:', atelier)
     setSelectedAtelier(atelier)
     setShowInscriptionForm(true)
     setInscriptionSuccess(false)
@@ -307,16 +334,9 @@ export default function InscriptionAteliersPage() {
         </div>
       </div>
 
-      {/* Liste des ateliers */}
-      <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8 border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
-        {/* Background avec image */}
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
-          style={{
-            backgroundImage: "url('/bg-entreprise.jpg')"
-          }}
-        ></div>
-        
-        <div className="relative z-10">
+             {/* Liste des ateliers */}
+       <div className="relative bg-transparent backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8 border-2 border-white/30 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
+         <div className="relative z-10">
                      <div className="mb-6 sm:mb-8 text-center">
              <h2 className="text-3xl sm:text-4xl font-bold text-black mb-4 drop-shadow-[0_4px_8px_rgba(255,255,255,0.8)]">Ateliers Disponibles</h2>
              <p className="text-gray-800 text-lg sm:text-xl mb-6 drop-shadow-[0_2px_4px_rgba(255,255,255,0.6)]">Découvrez nos ateliers spécialisés et inscrivez-vous aux sessions qui vous intéressent</p>
@@ -335,20 +355,17 @@ export default function InscriptionAteliersPage() {
                    }
                  </p>
                </div>
-             ) : (
-              filteredAteliers.map(atelier => (
-                <div key={atelier.id} className="relative bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] opacity-0 animate-fade-in">
-                  {/* Background avec image */}
-                  <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5"
-                    style={{
-                      backgroundImage: "url('/bg-entreprise.jpg')"
-                    }}
-                  ></div>
+                           ) : (
+                               (() => {
+                  console.log('📊 Affichage de', filteredAteliers.length, 'ateliers')
+                  console.log('📊 Données des ateliers:', filteredAteliers)
+                  return filteredAteliers.map(atelier => (
+                                 <div key={atelier.id} className="relative bg-white/20 backdrop-blur-md rounded-2xl shadow-2xl border-2 border-white/40 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
                   
                   <div className="relative z-10 p-6 sm:p-8">
                     <div className="text-center mb-6">
-                      <h3 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-4 leading-tight drop-shadow-sm">{atelier.titre}</h3>
-                      <p className="text-gray-700 text-base sm:text-lg leading-relaxed line-clamp-3">{atelier.description}</p>
+                                             <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{atelier.titre}</h3>
+                       <p className="text-white/90 text-base sm:text-lg leading-relaxed line-clamp-3 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{atelier.description}</p>
                     </div>
                     <div className="ml-6">
                       <span className={`px-3 py-2 rounded-full text-sm font-semibold ${
@@ -362,243 +379,249 @@ export default function InscriptionAteliersPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 mb-8 text-center">
-                    <div className="border-b border-blue-200 pb-4">
-                      <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
-                        <Calendar className="w-6 h-6 text-blue-500" />
-                        <span className="text-lg font-semibold">{new Date(atelier.date_debut).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
-                      <Clock className="w-6 h-6 text-blue-500" />
-                      <span className="text-lg font-semibold">
-                        {new Date(atelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - 
-                        {new Date(atelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
-                      <MapPin className="w-6 h-6 text-blue-500" />
-                      <span className="text-lg font-semibold">{atelier.lieu}</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
-                      <Users className="w-6 h-6 text-blue-500" />
-                      <span className="text-lg font-semibold">{atelier.capacite_actuelle} / {atelier.capacite_max} places</span>
-                    </div>
+                                       <div className="space-y-4 mb-8 text-center">
+                       <div className="border-b border-white/30 pb-4">
+                         <div className="flex items-center justify-center gap-3 text-white font-medium">
+                           <Calendar className="w-6 h-6 text-yellow-300" />
+                           <span className="text-lg font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{new Date(atelier.date_debut).toLocaleDateString('fr-FR')}</span>
+                         </div>
+                       </div>
+                       
+                       <div className="flex items-center justify-center gap-3 text-white font-medium">
+                         <Clock className="w-6 h-6 text-yellow-300" />
+                         <span className="text-lg font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                           {new Date(atelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - 
+                           {new Date(atelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                         </span>
+                       </div>
+                       
+                       <div className="flex items-center justify-center gap-3 text-white font-medium">
+                         <MapPin className="w-6 h-6 text-yellow-300" />
+                         <span className="text-lg font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{atelier.lieu}</span>
+                       </div>
+                       
+                       <div className="flex items-center justify-center gap-3 text-white font-medium">
+                         <Users className="w-6 h-6 text-yellow-300" />
+                         <span className="text-lg font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{atelier.capacite_actuelle} / {atelier.capacite_max} places</span>
+                       </div>
 
-                    {atelier.pole && (
-                      <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
-                        <Target className="w-6 h-6 text-blue-500" />
-                        <span className="text-lg font-semibold">{atelier.pole} - {atelier.filliere}</span>
-                      </div>
-                    )}
-                  </div>
+                       {atelier.pole && (
+                         <div className="flex items-center justify-center gap-3 text-white font-medium">
+                           <Target className="w-6 h-6 text-yellow-300" />
+                           <span className="text-lg font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{atelier.pole} - {atelier.filliere}</span>
+                         </div>
+                       )}
+                     </div>
 
-                  <div className="flex items-center justify-between pt-6 border-t border-blue-200">
-                    <div className="flex items-center gap-3">
-                      {atelier.capacite_actuelle < atelier.capacite_max ? (
-                        <CheckCircle className="w-6 h-6 text-green-500" />
-                      ) : (
-                        <XCircle className="w-6 h-6 text-red-500" />
-                      )}
-                      <span className={`text-lg font-semibold ${
-                        atelier.capacite_actuelle < atelier.capacite_max ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {atelier.capacite_actuelle < atelier.capacite_max ? 'Places disponibles' : 'Complet'}
-                      </span>
-                    </div>
+                                     <div className="flex items-center justify-between pt-6 border-t border-white/30">
+                     <div className="flex items-center gap-3">
+                       {atelier.capacite_actuelle < atelier.capacite_max ? (
+                         <CheckCircle className="w-6 h-6 text-green-400" />
+                       ) : (
+                         <XCircle className="w-6 h-6 text-red-400" />
+                       )}
+                       <span className={`text-lg font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] ${
+                         atelier.capacite_actuelle < atelier.capacite_max ? 'text-green-300' : 'text-red-300'
+                       }`}>
+                         {atelier.capacite_actuelle < atelier.capacite_max ? 'Places disponibles' : 'Complet'}
+                       </span>
+                     </div>
                     
-                                         <button
-                       onClick={() => openInscriptionForm(atelier)}
-                       disabled={atelier.capacite_actuelle >= atelier.capacite_max}
-                       className={`px-8 py-4 rounded-2xl font-semibold transition-all duration-300 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 ${
-                         atelier.capacite_actuelle < atelier.capacite_max
-                           ? 'bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-500 hover:border-blue-600'
-                           : 'bg-gray-400 text-gray-600 cursor-not-allowed border-2 border-gray-300'
-                       }`}
-                     >
-                       <ArrowRight className="w-5 h-5" />
-                       <span className="text-lg font-bold">S'inscrire</span>
-                     </button>
-                  </div>
-                </div>
-              ))
-            )}
+                                         <div className="space-y-2">
+                       
+                       
+                                               {/* Bouton S'inscrire */}
+                        <button
+                          onClick={() => openInscriptionForm(atelier)}
+                          disabled={atelier.capacite_actuelle >= atelier.capacite_max}
+                          className={`px-8 py-4 rounded-2xl font-semibold transition-all duration-300 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                            atelier.capacite_actuelle < atelier.capacite_max
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 border-2 border-blue-400 hover:border-blue-500 cursor-pointer drop-shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
+                              : 'bg-gray-500/50 text-gray-300 cursor-not-allowed border-2 border-gray-400/50'
+                          }`}
+                        >
+                          <ArrowRight className="w-5 h-5" />
+                          <span className="text-lg font-bold">S'inscrire</span>
+                        </button>
+                     </div>
+                                     </div>
+                 </div>
+               ))
+               })()
+             )}
           </div>
         </div>
       </div>
 
-      {/* Modal Formulaire d'inscription - Plein écran */}
-      {showInscriptionForm && selectedAtelier && (
-        <div className="fixed inset-0 bg-gradient-to-br from-indigo-900/95 to-blue-900/95 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300">
+             {/* Modal Formulaire d'inscription - Plein écran */}
+       {showInscriptionForm && selectedAtelier && (
+         <div className="fixed inset-0 bg-gradient-to-br from-indigo-900/95 to-blue-900/95 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+           <div className="relative bg-white/20 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-6xl border-2 border-white/40 overflow-hidden hover:shadow-3xl transition-all duration-300">
             {/* Background avec image */}
             <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
               style={{
                 backgroundImage: "url('/bg-entreprise.jpg')"
               }}
             ></div>
-            <div className="relative z-10 p-6 sm:p-8">
-              {inscriptionSuccess ? (
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
-                    <CheckCircle className="w-12 h-12 text-white" />
-                  </div>
-                  <h3 className="text-3xl font-bold text-gray-900 mb-6">Inscription réussie !</h3>
-                  <p className="text-gray-700 mb-10 text-xl leading-relaxed">
-                    Votre inscription à l'atelier <strong className="text-blue-900">"{selectedAtelier.titre}"</strong> a été confirmée.
-                    <br />Vous recevrez un email de confirmation.
-                  </p>
-                  <button
-                    onClick={closeInscriptionForm}
-                    className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-10 py-4 rounded-2xl hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    Fermer
-                  </button>
-                </div>
+                         <div className="relative z-10 p-6 sm:p-8">
+               {inscriptionSuccess ? (
+                 <div className="text-center">
+                   <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
+                     <CheckCircle className="w-12 h-12 text-white" />
+                   </div>
+                   <h3 className="text-3xl font-bold text-white mb-6 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">Inscription réussie !</h3>
+                   <p className="text-white/90 mb-10 text-xl leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                     Votre inscription à l'atelier <strong className="text-yellow-300">"{selectedAtelier.titre}"</strong> a été confirmée.
+                     <br />Vous recevrez un email de confirmation.
+                   </p>
+                   <button
+                     onClick={closeInscriptionForm}
+                     className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-10 py-4 rounded-2xl hover:from-blue-600 hover:to-blue-700 border-2 border-blue-400 hover:border-blue-500 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+                   >
+                     Fermer
+                   </button>
+                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Inscription à l'atelier</h2>
-                    <button
-                      onClick={closeInscriptionForm}
-                      className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
-                    >
-                      <XCircle className="w-8 h-8" />
-                    </button>
-                  </div>
+                                     <div className="flex items-center justify-between mb-8">
+                     <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">Inscription à l'atelier</h2>
+                     <button
+                       onClick={closeInscriptionForm}
+                       className="text-white/70 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
+                     >
+                       <XCircle className="w-8 h-8" />
+                     </button>
+                   </div>
 
-                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 mb-8 border border-blue-200">
-                    <h3 className="font-bold text-blue-900 mb-4 text-xl">{selectedAtelier.titre}</h3>
-                    <div className="text-blue-800 space-y-2 text-lg">
-                      <p className="flex items-center gap-2">📅 {new Date(selectedAtelier.date_debut).toLocaleDateString('fr-FR')}</p>
-                      <p className="flex items-center gap-2">🕐 {new Date(selectedAtelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedAtelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
-                      <p className="flex items-center gap-2">📍 {selectedAtelier.lieu}</p>
-                      <p className="flex items-center gap-2">👥 {selectedAtelier.capacite_actuelle} / {selectedAtelier.capacite_max} places</p>
-                    </div>
-                  </div>
+                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/30">
+                     <h3 className="font-bold text-white mb-4 text-xl drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{selectedAtelier.titre}</h3>
+                     <div className="text-white/90 space-y-2 text-lg">
+                       <p className="flex items-center gap-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">📅 {new Date(selectedAtelier.date_debut).toLocaleDateString('fr-FR')}</p>
+                       <p className="flex items-center gap-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">🕐 {new Date(selectedAtelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedAtelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                       <p className="flex items-center gap-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">📍 {selectedAtelier.lieu}</p>
+                       <p className="flex items-center gap-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">👥 {selectedAtelier.capacite_actuelle} / {selectedAtelier.capacite_max} places</p>
+                     </div>
+                   </div>
 
-                  {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-red-600 font-medium">{error}</p>
-                    </div>
-                  )}
+                                     {error && (
+                     <div className="mb-6 p-4 bg-red-500/20 backdrop-blur-sm border border-red-400/50 rounded-lg">
+                       <p className="text-red-200 font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{error}</p>
+                     </div>
+                   )}
 
                   <form onSubmit={handleInscription} className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Nom complet <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.nom}
-                          onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                          placeholder="Votre nom complet"
-                          required
-                        />
-                      </div>
+                                         <div className="grid md:grid-cols-2 gap-4">
+                       <div>
+                         <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                           Nom complet <span className="text-red-300">*</span>
+                         </label>
+                         <input
+                           type="text"
+                           value={formData.nom}
+                           onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
+                           className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
+                           placeholder="Votre nom complet"
+                           required
+                         />
+                       </div>
 
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Email <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                          placeholder="votre.email@exemple.com"
-                          required
-                        />
-                      </div>
-                    </div>
+                       <div>
+                         <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                           Email <span className="text-red-300">*</span>
+                         </label>
+                         <input
+                           type="email"
+                           value={formData.email}
+                           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                           className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
+                           placeholder="votre.email@exemple.com"
+                           required
+                         />
+                       </div>
+                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Téléphone
-                        </label>
-                        <input
-                          type="tel"
-                          value={formData.telephone}
-                          onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                          placeholder="06 12 34 56 78"
-                        />
-                      </div>
+                                         <div className="grid md:grid-cols-2 gap-4">
+                       <div>
+                         <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                           Téléphone
+                         </label>
+                         <input
+                           type="tel"
+                           value={formData.telephone}
+                           onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
+                           className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
+                           placeholder="06 12 34 56 78"
+                         />
+                       </div>
 
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Pôle <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={formData.pole}
-                          onChange={(e) => setFormData(prev => ({ 
-                            ...prev, 
-                            pole: e.target.value,
-                            filliere: '' // Réinitialiser la filière
-                          }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                          required
-                        >
-                          <option value="">Sélectionnez un pôle</option>
-                          {poles.filter(p => p.actif).map(pole => (
-                            <option key={pole.id} value={pole.nom}>{pole.nom}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
+                       <div>
+                         <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                           Pôle <span className="text-red-300">*</span>
+                         </label>
+                         <select
+                           value={formData.pole}
+                           onChange={(e) => setFormData(prev => ({ 
+                             ...prev, 
+                             pole: e.target.value,
+                             filliere: '' // Réinitialiser la filière
+                           }))}
+                           className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white"
+                           required
+                         >
+                           <option value="" className="text-gray-800">Sélectionnez un pôle</option>
+                           {poles.filter(p => p.actif).map(pole => (
+                             <option key={pole.id} value={pole.nom} className="text-gray-800">{pole.nom}</option>
+                           ))}
+                         </select>
+                       </div>
+                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Filière <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={formData.filliere}
-                        onChange={(e) => setFormData(prev => ({ ...prev, filliere: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors disabled:bg-gray-50"
-                        disabled={!formData.pole}
-                        required
-                      >
-                        <option value="">
-                          {formData.pole ? 'Sélectionnez une filière' : 'Sélectionnez d\'abord un pôle'}
-                        </option>
-                        {filieresFiltered.map(filiere => (
-                          <option key={filiere.id} value={filiere.nom}>{filiere.nom}</option>
-                        ))}
-                      </select>
-                    </div>
+                                         <div>
+                       <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                         Filière <span className="text-red-300">*</span>
+                       </label>
+                       <select
+                         value={formData.filliere}
+                         onChange={(e) => setFormData(prev => ({ ...prev, filliere: e.target.value }))}
+                         className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white disabled:bg-gray-500/20"
+                         disabled={!formData.pole}
+                         required
+                       >
+                         <option value="" className="text-gray-800">
+                           {formData.pole ? 'Sélectionnez une filière' : 'Sélectionnez d\'abord un pôle'}
+                         </option>
+                         {filieresFiltered.map(filiere => (
+                           <option key={filiere.id} value={filiere.nom} className="text-gray-800">{filiere.nom}</option>
+                         ))}
+                       </select>
+                     </div>
 
-                    <div className="flex gap-4 pt-6">
-                      <button
-                        type="button"
-                        onClick={closeInscriptionForm}
-                        className="flex-1 px-6 py-4 text-gray-700 bg-gray-100 rounded-2xl hover:bg-gray-200 transition-all duration-300 font-semibold"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="flex-1 px-8 py-4 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 disabled:opacity-50 flex items-center justify-center gap-3 font-semibold text-lg transition-all duration-300"
-                      >
-                        {submitting ? (
-                          <>
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                            <span className="text-lg">Inscription...</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-6 h-6" />
-                            <span className="text-lg">Confirmer l'inscription</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
+                                         <div className="flex gap-4 pt-6">
+                       <button
+                         type="button"
+                         onClick={closeInscriptionForm}
+                         className="flex-1 px-6 py-4 text-white bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 border border-white/40 transition-all duration-300 font-semibold"
+                       >
+                         Annuler
+                       </button>
+                       <button
+                         type="submit"
+                         disabled={submitting}
+                         className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 border-2 border-blue-400 hover:border-blue-500 disabled:opacity-50 flex items-center justify-center gap-3 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                       >
+                         {submitting ? (
+                           <>
+                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                             <span className="text-lg">Inscription...</span>
+                           </>
+                         ) : (
+                           <>
+                             <CheckCircle className="w-6 h-6" />
+                             <span className="text-lg">Confirmer l'inscription</span>
+                           </>
+                         )}
+                       </button>
+                     </div>
                   </form>
                 </>
               )}
