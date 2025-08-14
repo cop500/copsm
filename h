@@ -1,0 +1,1 @@
+[33m84e2146[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m  Amélioration complète de la page inscription-ateliers : design transparent, formulaire plein écran, boutons bleus, optimisation mobile

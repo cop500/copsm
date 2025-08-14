@@ -596,7 +596,7 @@ export default function InscriptionAteliersPage() {
                        </select>
                      </div>
 
-                                         <div className="flex gap-4 pt-6">
+                                         <div className="flex flex-col sm:flex-row gap-4 pt-6 sticky bottom-0 bg-gradient-to-t from-indigo-900/95 to-transparent pb-4 -mx-6 px-6">
                        <button
                          type="button"
                          onClick={closeInscriptionForm}
