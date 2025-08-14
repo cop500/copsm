@@ -299,9 +299,10 @@ export default function InscriptionAteliersPage() {
                 </div>
               </div>
             </div>
-      </div>
+          </div>
+        </div>
 
-             {/* Liste des ateliers */}
+        {/* Liste des ateliers */}
              <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8 border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
                {/* Background avec image */}
                <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
