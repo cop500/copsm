@@ -595,9 +595,10 @@ export default function InscriptionAteliersPage() {
                          ))}
                        </select>
                      </div>
+                   </form>
 
-                     {/* Boutons à la fin du formulaire */}
-                     <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                   {/* Boutons à la fin du formulaire */}
+                   <div className="flex flex-col sm:flex-row gap-4 pt-6">
                        <button
                          type="button"
                          onClick={closeInscriptionForm}
@@ -606,8 +607,12 @@ export default function InscriptionAteliersPage() {
                          Annuler
                        </button>
                        <button
-                         type="submit"
+                         type="button"
                          disabled={submitting}
+                         onClick={(e) => {
+                           e.preventDefault()
+                           handleInscription(e)
+                         }}
                          className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 border-2 border-blue-400 hover:border-blue-500 disabled:opacity-50 flex items-center justify-center gap-3 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                        >
                          {submitting ? (
