@@ -509,7 +509,7 @@ export default function InscriptionAteliersPage() {
                      </div>
                    )}
 
-                                     <form onSubmit={handleInscription} className="space-y-6 pb-20">
+                                     <form onSubmit={handleInscription} className="space-y-6">
                      <div className="grid md:grid-cols-2 gap-4">
                        <div>
                          <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
@@ -595,11 +595,9 @@ export default function InscriptionAteliersPage() {
                          ))}
                        </select>
                      </div>
-                   </form>
 
-                   {/* Boutons fixes en bas */}
-                   <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-indigo-900/95 via-indigo-900/90 to-transparent">
-                     <div className="flex flex-col sm:flex-row gap-4">
+                     {/* Boutons à la fin du formulaire */}
+                     <div className="flex flex-col sm:flex-row gap-4 pt-6">
                        <button
                          type="button"
                          onClick={closeInscriptionForm}
@@ -610,10 +608,6 @@ export default function InscriptionAteliersPage() {
                        <button
                          type="submit"
                          disabled={submitting}
-                         onClick={(e) => {
-                           e.preventDefault()
-                           handleInscription(e)
-                         }}
                          className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 border-2 border-blue-400 hover:border-blue-500 disabled:opacity-50 flex items-center justify-center gap-3 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                        >
                          {submitting ? (
@@ -629,6 +623,7 @@ export default function InscriptionAteliersPage() {
                          )}
                        </button>
                      </div>
+                                      </form>
                    </div>
                 </>
               )}
