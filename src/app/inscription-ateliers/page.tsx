@@ -312,11 +312,11 @@ export default function InscriptionAteliersPage() {
                ></div>
                
                <div className="relative z-10">
-                 <div className="mb-6 sm:mb-8 text-center">
-                   <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Ateliers Disponibles</h2>
-                   <p className="text-gray-600 text-base sm:text-lg">Découvrez nos ateliers spécialisés et inscrivez-vous aux sessions qui vous intéressent</p>
-                   <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mt-4 mx-auto"></div>
-                 </div>
+                                   <div className="mb-6 sm:mb-8 text-center">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 drop-shadow-lg">Ateliers Disponibles</h2>
+                    <p className="text-blue-100 text-lg sm:text-xl mb-6 drop-shadow-md">Découvrez nos ateliers spécialisés et inscrivez-vous aux sessions qui vous intéressent</p>
+                    <div className="w-20 h-1 bg-gradient-to-r from-yellow-400 to-green-400 mt-6 mx-auto shadow-lg"></div>
+                  </div>
          
          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {filteredAteliers.length === 0 ? (
@@ -340,12 +340,11 @@ export default function InscriptionAteliersPage() {
                   }}
                 ></div>
                 
-                <div className="relative z-10 p-6 sm:p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-blue-900 mb-3 leading-tight">{atelier.titre}</h3>
-                      <p className="text-gray-700 text-base leading-relaxed line-clamp-3">{atelier.description}</p>
-                    </div>
+                                 <div className="relative z-10 p-6 sm:p-8">
+                   <div className="text-center mb-6">
+                     <h3 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-4 leading-tight drop-shadow-sm">{atelier.titre}</h3>
+                     <p className="text-gray-700 text-base sm:text-lg leading-relaxed line-clamp-3">{atelier.description}</p>
+                   </div>
                     <div className="ml-6">
                       <span className={`px-3 py-2 rounded-full text-sm font-semibold ${
                         atelier.statut === 'planifie' ? 'bg-blue-200 text-blue-800 border border-blue-300' :
@@ -358,39 +357,39 @@ export default function InscriptionAteliersPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 mb-8">
-                    <div className="border-b border-blue-200 pb-4">
-                                           <div className="flex items-center gap-3 text-blue-900 font-medium">
-                       <Calendar className="w-5 h-5 text-blue-400" />
-                       <span className="text-lg">{new Date(atelier.date_debut).toLocaleDateString('fr-FR')}</span>
+                                     <div className="space-y-4 mb-8 text-center">
+                     <div className="border-b border-blue-200 pb-4">
+                       <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
+                         <Calendar className="w-6 h-6 text-blue-500" />
+                         <span className="text-lg font-semibold">{new Date(atelier.date_debut).toLocaleDateString('fr-FR')}</span>
+                       </div>
                      </div>
-                   </div>
-                   
-                   <div className="flex items-center gap-3 text-blue-900 font-medium">
-                     <Clock className="w-5 h-5 text-blue-400" />
-                     <span className="text-lg">
-                       {new Date(atelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - 
-                       {new Date(atelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                     </span>
-                   </div>
-                   
-                   <div className="flex items-center gap-3 text-blue-900 font-medium">
-                     <MapPin className="w-5 h-5 text-blue-400" />
-                     <span className="text-lg">{atelier.lieu}</span>
-                   </div>
-                   
-                   <div className="flex items-center gap-3 text-blue-900 font-medium">
-                     <Users className="w-5 h-5 text-blue-400" />
-                     <span className="text-lg">{atelier.capacite_actuelle} / {atelier.capacite_max} places</span>
-                   </div>
+                     
+                     <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
+                       <Clock className="w-6 h-6 text-blue-500" />
+                       <span className="text-lg font-semibold">
+                         {new Date(atelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - 
+                         {new Date(atelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                     </div>
+                     
+                     <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
+                       <MapPin className="w-6 h-6 text-blue-500" />
+                       <span className="text-lg font-semibold">{atelier.lieu}</span>
+                     </div>
+                     
+                     <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
+                       <Users className="w-6 h-6 text-blue-500" />
+                       <span className="text-lg font-semibold">{atelier.capacite_actuelle} / {atelier.capacite_max} places</span>
+                     </div>
 
-                   {atelier.pole && (
-                     <div className="flex items-center gap-3 text-blue-900 font-medium">
-                       <Target className="w-5 h-5 text-blue-400" />
-                       <span className="text-lg">{atelier.pole} - {atelier.filliere}</span>
-                     </div>
-                   )}
-                  </div>
+                     {atelier.pole && (
+                       <div className="flex items-center justify-center gap-3 text-blue-900 font-medium">
+                         <Target className="w-6 h-6 text-blue-500" />
+                         <span className="text-lg font-semibold">{atelier.pole} - {atelier.filliere}</span>
+                       </div>
+                     )}
+                   </div>
 
                   <div className="flex items-center justify-between pt-6 border-t border-blue-200">
                     <div className="flex items-center gap-3">
@@ -406,18 +405,18 @@ export default function InscriptionAteliersPage() {
                       </span>
                     </div>
                     
-                                         <button
-                       onClick={() => openInscriptionForm(atelier)}
-                       disabled={atelier.capacite_actuelle >= atelier.capacite_max}
-                       className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
-                         atelier.capacite_actuelle < atelier.capacite_max
-                           ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:scale-105'
-                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                       }`}
-                     >
-                       <ArrowRight className="w-5 h-5" />
-                       S'inscrire
-                     </button>
+                                                                 <button
+                          onClick={() => openInscriptionForm(atelier)}
+                          disabled={atelier.capacite_actuelle >= atelier.capacite_max}
+                          className={`px-8 py-4 rounded-2xl font-bold transition-all duration-300 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                            atelier.capacite_actuelle < atelier.capacite_max
+                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 border-2 border-blue-500'
+                              : 'bg-gray-400 text-gray-600 cursor-not-allowed border-2 border-gray-300'
+                          }`}
+                        >
+                          <ArrowRight className="w-6 h-6" />
+                          <span className="text-lg">S'inscrire</span>
+                        </button>
                   </div>
                 </div>
               </div>
@@ -429,7 +428,7 @@ export default function InscriptionAteliersPage() {
              {/* Modal Formulaire d'inscription - Plein écran */}
              {showInscriptionForm && selectedAtelier && (
                <div className="fixed inset-0 bg-gradient-to-br from-indigo-900/95 to-blue-900/95 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-                 <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full max-h-[95vh] overflow-y-auto border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300">
+                                   <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto border-2 border-blue-200/50 overflow-hidden hover:shadow-3xl transition-all duration-300">
                    {/* Background avec image */}
                    <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
                      style={{
@@ -577,11 +576,11 @@ export default function InscriptionAteliersPage() {
                        >
                          Annuler
                        </button>
-                       <button
-                         type="submit"
-                         disabled={submitting}
-                         className="flex-1 px-8 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-2xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 flex items-center justify-center gap-3 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-                       >
+                                               <button
+                          type="submit"
+                          disabled={submitting}
+                          className="flex-1 px-8 py-4 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 disabled:opacity-50 flex items-center justify-center gap-3 font-semibold text-lg transition-all duration-300"
+                        >
                          {submitting ? (
                            <>
                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
