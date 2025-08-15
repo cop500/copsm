@@ -503,43 +503,127 @@ export default function InscriptionAteliersPage() {
                      </div>
                    </div>
 
-                                     {error && (
-                     <div className="mb-6 p-4 bg-red-500/20 backdrop-blur-sm border border-red-400/50 rounded-lg">
-                       <p className="text-red-200 font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{error}</p>
-                     </div>
-                   )}
+                   {error && (
+                      <div className="mb-6 p-4 bg-red-500/20 backdrop-blur-sm border border-red-400/50 rounded-lg">
+                        <p className="text-red-200 font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{error}</p>
+                      </div>
+                    )}
 
-                   {/* Boutons à la fin du formulaire */}
-                   <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                       <button
-                         type="button"
-                         onClick={closeInscriptionForm}
-                         className="flex-1 px-6 py-4 text-white bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 border border-white/40 transition-all duration-300 font-semibold"
-                       >
-                         Annuler
-                       </button>
-                       <button
-                         type="submit"
-                         disabled={submitting}
-                         onClick={(e) => {
-                           e.preventDefault()
-                           handleInscription(e)
-                         }}
-                         className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 border-2 border-blue-400 hover:border-blue-500 disabled:opacity-50 flex items-center justify-center gap-3 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                       >
-                         {submitting ? (
-                           <>
-                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                             <span className="text-lg">Inscription...</span>
-                           </>
-                         ) : (
-                           <>
-                             <CheckCircle className="w-6 h-6" />
-                             <span className="text-lg">Confirmer l'inscription</span>
-                           </>
-                         )}
-                       </button>
-                     </div>
+                    <form onSubmit={handleInscription} className="space-y-6">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                            Nom complet <span className="text-red-300">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.nom}
+                            onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
+                            className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
+                            placeholder="Votre nom complet"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                            Email <span className="text-red-300">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                            className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
+                            placeholder="votre.email@exemple.com"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                            Téléphone
+                          </label>
+                          <input
+                            type="tel"
+                            value={formData.telephone}
+                            onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
+                            className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
+                            placeholder="06 12 34 56 78"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                            Pôle <span className="text-red-300">*</span>
+                          </label>
+                          <select
+                            value={formData.pole}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              pole: e.target.value,
+                              filliere: ''
+                            }))}
+                            className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white"
+                            required
+                          >
+                            <option value="" className="text-gray-800">Sélectionnez un pôle</option>
+                            {poles.filter(p => p.actif).map(pole => (
+                              <option key={pole.id} value={pole.nom} className="text-gray-800">{pole.nom}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                          Filière <span className="text-red-300">*</span>
+                        </label>
+                        <select
+                          value={formData.filliere}
+                          onChange={(e) => setFormData(prev => ({ ...prev, filliere: e.target.value }))}
+                          className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white disabled:bg-gray-500/20"
+                          disabled={!formData.pole}
+                          required
+                        >
+                          <option value="" className="text-gray-800">
+                            {formData.pole ? 'Sélectionnez une filière' : 'Sélectionnez d\'abord un pôle'}
+                          </option>
+                          {filieresFiltered.map(filiere => (
+                            <option key={filiere.id} value={filiere.nom} className="text-gray-800">{filiere.nom}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Boutons à la fin du formulaire */}
+                      <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                        <button
+                          type="button"
+                          onClick={closeInscriptionForm}
+                          className="flex-1 px-6 py-4 text-white bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 border border-white/40 transition-all duration-300 font-semibold"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 border-2 border-blue-400 hover:border-blue-500 disabled:opacity-50 flex items-center justify-center gap-3 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          {submitting ? (
+                            <>
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                              <span className="text-lg">Inscription...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-6 h-6" />
+                              <span className="text-lg">Confirmer l'inscription</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
                  </>
                )}
              </div>
