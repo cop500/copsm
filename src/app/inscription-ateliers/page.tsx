@@ -509,94 +509,6 @@ export default function InscriptionAteliersPage() {
                      </div>
                    )}
 
-                                     <form onSubmit={handleInscription} className="space-y-6">
-                     <div className="grid md:grid-cols-2 gap-4">
-                       <div>
-                         <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                           Nom complet <span className="text-red-300">*</span>
-                         </label>
-                         <input
-                           type="text"
-                           value={formData.nom}
-                           onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
-                           className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
-                           placeholder="Votre nom complet"
-                           required
-                         />
-                       </div>
-
-                       <div>
-                         <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                           Email <span className="text-red-300">*</span>
-                         </label>
-                         <input
-                           type="email"
-                           value={formData.email}
-                           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                           className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
-                           placeholder="votre.email@exemple.com"
-                           required
-                         />
-                       </div>
-                     </div>
-
-                                         <div className="grid md:grid-cols-2 gap-4">
-                       <div>
-                         <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                           Téléphone
-                         </label>
-                         <input
-                           type="tel"
-                           value={formData.telephone}
-                           onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
-                           className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white placeholder-white/60"
-                           placeholder="06 12 34 56 78"
-                         />
-                       </div>
-
-                       <div>
-                         <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                           Pôle <span className="text-red-300">*</span>
-                         </label>
-                         <select
-                           value={formData.pole}
-                           onChange={(e) => setFormData(prev => ({ 
-                             ...prev, 
-                             pole: e.target.value,
-                             filliere: '' // Réinitialiser la filière
-                           }))}
-                           className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white"
-                           required
-                         >
-                           <option value="" className="text-gray-800">Sélectionnez un pôle</option>
-                           {poles.filter(p => p.actif).map(pole => (
-                             <option key={pole.id} value={pole.nom} className="text-gray-800">{pole.nom}</option>
-                           ))}
-                         </select>
-                       </div>
-                     </div>
-
-                                         <div>
-                       <label className="block text-sm font-semibold text-white mb-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                         Filière <span className="text-red-300">*</span>
-                       </label>
-                       <select
-                         value={formData.filliere}
-                         onChange={(e) => setFormData(prev => ({ ...prev, filliere: e.target.value }))}
-                         className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-white disabled:bg-gray-500/20"
-                         disabled={!formData.pole}
-                         required
-                       >
-                         <option value="" className="text-gray-800">
-                           {formData.pole ? 'Sélectionnez une filière' : 'Sélectionnez d\'abord un pôle'}
-                         </option>
-                         {filieresFiltered.map(filiere => (
-                           <option key={filiere.id} value={filiere.nom} className="text-gray-800">{filiere.nom}</option>
-                         ))}
-                       </select>
-                     </div>
-                   </form>
-
                    {/* Boutons à la fin du formulaire */}
                    <div className="flex flex-col sm:flex-row gap-4 pt-6">
                        <button
@@ -607,7 +519,7 @@ export default function InscriptionAteliersPage() {
                          Annuler
                        </button>
                        <button
-                         type="button"
+                         type="submit"
                          disabled={submitting}
                          onClick={(e) => {
                            e.preventDefault()
