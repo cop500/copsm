@@ -628,14 +628,12 @@ export default function InscriptionAteliersPage() {
                          )}
                        </button>
                      </div>
-                                      </form>
-                   </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
+                 </>
+               )}
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+   )
 }
