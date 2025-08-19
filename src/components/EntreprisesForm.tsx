@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useEntreprises } from '@/hooks/useEntreprises';
-import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar } from 'lucide-react';
 import type { Entreprise } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 const EntreprisesForm = () => {
   const { 
@@ -16,6 +17,9 @@ const EntreprisesForm = () => {
   const [editingEntreprise, setEditingEntreprise] = useState<Entreprise | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSecteur, setFilterSecteur] = useState('');
+  const [filterStatut, setFilterStatut] = useState('');
+  const [contratFile, setContratFile] = useState<File | null>(null);
+  const [uploadingContrat, setUploadingContrat] = useState(false);
   
   // Formulaire d'entreprise - adapté à vos champs existants
   const [formData, setFormData] = useState({
@@ -26,7 +30,11 @@ const EntreprisesForm = () => {
     email: '',
     contact_personne: '',
     description: '',
-    statut: 'Actif'
+    statut: 'prospect',
+    niveau_interet: 'moyen' as 'faible' | 'moyen' | 'fort',
+    dernier_contact_at: '',
+    prochaine_relance_at: '',
+    notes_bd: ''
   });
 
   const secteurs = [
@@ -34,26 +42,60 @@ const EntreprisesForm = () => {
     'BTP', 'Tourisme', 'Agriculture', 'Finance', 'Santé', 'Éducation'
   ];
 
+  const uploadContrat = async (file: File): Promise<string | null> => {
+    try {
+      setUploadingContrat(true);
+      const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `contrats-partenariats/${Date.now()}_${cleanName}`;
+      const { error } = await supabase.storage
+        .from('contrats-partenariats')
+        .upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage
+        .from('contrats-partenariats')
+        .getPublicUrl(path);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('Erreur upload contrat:', err);
+      alert("Erreur lors de l'upload du contrat de partenariat");
+      return null;
+    } finally {
+      setUploadingContrat(false);
+    }
+  };
+
   const handleSubmit = async () => {
     // Validation simple
     if (!formData.nom || !formData.secteur || !formData.telephone || !formData.email || !formData.contact_personne || !formData.adresse) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
-    
+
+    const commonData: any = {
+      nom: formData.nom,
+      secteur: formData.secteur,
+      adresse: formData.adresse,
+      statut: (formData.statut || '').toLowerCase(),
+      contact_principal_nom: formData.contact_personne,
+      contact_principal_email: formData.email,
+      contact_principal_telephone: formData.telephone,
+      description: formData.description,
+      niveau_interet: formData.niveau_interet,
+      dernier_contact_at: formData.dernier_contact_at || null,
+      prochaine_relance_at: formData.prochaine_relance_at || null,
+      notes_bd: formData.notes_bd
+    };
+
+    let contratUrl: string | null = null;
+    if (contratFile) {
+      const url = await uploadContrat(contratFile);
+      if (url) contratUrl = url;
+    }
+
     if (editingEntreprise) {
       // Modifier entreprise existante
-      const mappedData = {
-        id: editingEntreprise.id,
-        nom: formData.nom,
-        secteur: formData.secteur,
-        adresse: formData.adresse,
-        statut: formData.statut,
-        contact_principal_nom: formData.contact_personne,
-        contact_principal_email: formData.email,
-        contact_principal_telephone: formData.telephone,
-        description: formData.description
-      };
+      const mappedData: any = { id: editingEntreprise.id, ...commonData };
+      if (contratUrl) mappedData.contrat_url = contratUrl;
       console.log('FormData envoyé à Supabase :', mappedData);
       const result = await saveEntreprise(mappedData);
       if (result.success) {
@@ -63,16 +105,8 @@ const EntreprisesForm = () => {
       }
     } else {
       // Ajouter nouvelle entreprise
-      const mappedData = {
-        nom: formData.nom,
-        secteur: formData.secteur,
-        adresse: formData.adresse,
-        statut: formData.statut,
-        contact_principal_nom: formData.contact_personne,
-        contact_principal_email: formData.email,
-        contact_principal_telephone: formData.telephone,
-        description: formData.description
-      };
+      const mappedData: any = { ...commonData };
+      if (contratUrl) mappedData.contrat_url = contratUrl;
       console.log('FormData envoyé à Supabase :', mappedData);
       const result = await saveEntreprise(mappedData);
       if (result.success) {
@@ -94,10 +128,15 @@ const EntreprisesForm = () => {
       email: '',
       contact_personne: '',
       description: '',
-      statut: 'Actif'
+      statut: 'prospect',
+      niveau_interet: 'moyen',
+      dernier_contact_at: '',
+      prochaine_relance_at: '',
+      notes_bd: ''
     });
     setShowForm(false);
     setEditingEntreprise(null);
+    setContratFile(null);
   };
 
   const handleEdit = (entreprise: Entreprise) => {
@@ -105,11 +144,15 @@ const EntreprisesForm = () => {
       nom: entreprise.nom,
       secteur: entreprise.secteur || '',
       adresse: entreprise.adresse || '',
-      telephone: entreprise.contact_principal_telephone || '',
-      email: entreprise.contact_principal_email || '',
-      contact_personne: entreprise.contact_principal_nom || '',
+      telephone: entreprise.contact_principal_telephone || (entreprise as any).telephone || '',
+      email: entreprise.contact_principal_email || (entreprise as any).email || '',
+      contact_personne: entreprise.contact_principal_nom || (entreprise as any).contact_personne || '',
       description: entreprise.description || '',
-      statut: entreprise.statut === 'actif' ? 'Actif' : 'Inactif'
+      statut: (entreprise.statut || 'prospect'),
+      niveau_interet: (entreprise as any).niveau_interet || 'moyen',
+      dernier_contact_at: (entreprise as any).dernier_contact_at || '',
+      prochaine_relance_at: (entreprise as any).prochaine_relance_at || '',
+      notes_bd: (entreprise as any).notes_bd || ''
     });
     setEditingEntreprise(entreprise);
     setShowForm(true);
@@ -132,7 +175,9 @@ const EntreprisesForm = () => {
                        (ent.contact_principal_nom || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                        (ent.secteur || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchSecteur = filterSecteur === '' || ent.secteur === filterSecteur;
-    return matchSearch && matchSecteur;
+    const statutVal = ((ent.statut || '') as string).toLowerCase();
+    const matchStatut = filterStatut === '' || statutVal === filterStatut;
+    return matchSearch && matchSecteur && matchStatut;
   });
 
   if (loading) return <div className="p-6">Chargement...</div>;
@@ -185,6 +230,19 @@ const EntreprisesForm = () => {
                 {secteurs.map(secteur => (
                   <option key={secteur} value={secteur}>{secteur}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <select
+                value={filterStatut}
+                onChange={(e) => setFilterStatut(e.target.value)}
+                className="py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Tous statuts</option>
+                <option value="prospect">Prospects</option>
+                <option value="partenaire">Partenaires</option>
+                <option value="actif">Actifs</option>
+                <option value="inactif">Inactifs</option>
               </select>
             </div>
           </div>
@@ -270,8 +328,10 @@ const EntreprisesForm = () => {
                   onChange={(e) => setFormData({...formData, statut: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="Actif">Actif</option>
-                  <option value="Inactif">Inactif</option>
+                  <option value="prospect">Prospect</option>
+                  <option value="partenaire">Partenaire</option>
+                  <option value="actif">Actif</option>
+                  <option value="inactif">Inactif</option>
                 </select>
               </div>
 
@@ -297,6 +357,63 @@ const EntreprisesForm = () => {
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+              </div>
+
+              {/* Suivi prospection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Niveau d'intérêt</label>
+                <select
+                  value={formData.niveau_interet}
+                  onChange={(e) => setFormData({ ...formData, niveau_interet: e.target.value as 'faible' | 'moyen' | 'fort' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="faible">Faible</option>
+                  <option value="moyen">Moyen</option>
+                  <option value="fort">Fort</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"><Calendar className="w-4 h-4" /> Dernier contact</label>
+                <input
+                  type="date"
+                  value={formData.dernier_contact_at}
+                  onChange={(e) => setFormData({ ...formData, dernier_contact_at: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"><Calendar className="w-4 h-4" /> Prochaine relance</label>
+                <input
+                  type="date"
+                  value={formData.prochaine_relance_at}
+                  onChange={(e) => setFormData({ ...formData, prochaine_relance_at: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (BD)</label>
+                <textarea
+                  value={formData.notes_bd}
+                  onChange={(e) => setFormData({ ...formData, notes_bd: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Contrat de partenariat */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <Paperclip className="w-4 h-4" /> Contrat de partenariat (PDF)
+                </label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setContratFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
+                  className="w-full"
+                />
+                {uploadingContrat && (
+                  <p className="text-sm text-gray-500 mt-1">Upload du contrat en cours...</p>
+                )}
               </div>
 
               <div className="md:col-span-2 flex gap-3">
@@ -337,12 +454,20 @@ const EntreprisesForm = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h4 className="text-lg font-semibold text-gray-900">{entreprise.nom}</h4>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          entreprise.statut === 'actif' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {entreprise.statut === 'actif' ? 'Actif' : 'Inactif'}
+                        <span className={`px-2 py-1 rounded-full text-xs ${(() => {
+                          const s = (entreprise.statut || '').toLowerCase();
+                          if (s === 'prospect') return 'bg-yellow-100 text-yellow-800';
+                          if (s === 'partenaire') return 'bg-green-100 text-green-800';
+                          if (s === 'inactif') return 'bg-red-100 text-red-800';
+                          return 'bg-blue-100 text-blue-800';
+                        })()}`}>
+                          {(() => {
+                            const s = (entreprise.statut || '').toLowerCase();
+                            if (s === 'prospect') return 'Prospect';
+                            if (s === 'partenaire') return 'Partenaire';
+                            if (s === 'inactif') return 'Inactif';
+                            return 'Actif';
+                          })()}
                         </span>
                       </div>
                       
@@ -363,10 +488,22 @@ const EntreprisesForm = () => {
                           <MapPin className="w-4 h-4" />
                           <span>{entreprise.adresse || 'Non spécifiée'}</span>
                         </div>
+                        {(entreprise as any).contrat_url && (
+                          <div className="flex items-center gap-2 md:col-span-2">
+                            <Download className="w-4 h-4" />
+                            <a href={(entreprise as any).contrat_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Contrat de partenariat</a>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="mt-2">
                         <p className="text-sm"><strong>Contact:</strong> {entreprise.contact_principal_nom || 'Non spécifié'}</p>
+                        {((entreprise as any).niveau_interet || (entreprise as any).prochaine_relance_at) && (
+                          <div className="text-xs text-gray-500 mt-1 flex gap-3">
+                            {(entreprise as any).niveau_interet && <span>Niveau intérêt: {(entreprise as any).niveau_interet}</span>}
+                            {(entreprise as any).prochaine_relance_at && <span>Relance: {(entreprise as any).prochaine_relance_at}</span>}
+                          </div>
+                        )}
                         {entreprise.description && (
                           <p className="text-sm text-gray-600 mt-1">{entreprise.description}</p>
                         )}

@@ -31,6 +31,7 @@ export interface Entreprise {
   site_web?: string
   description?: string
   logo_url?: string
+  contrat_url?: string
   contact_principal_nom?: string
   contact_principal_email?: string
   contact_principal_telephone?: string
@@ -38,6 +39,10 @@ export interface Entreprise {
   partenaire_privilegie: boolean
   note_partenariat?: number
   statut: 'actif' | 'inactif' | 'prospect' | 'partenaire'
+  niveau_interet?: 'faible' | 'moyen' | 'fort'
+  dernier_contact_at?: string
+  prochaine_relance_at?: string
+  notes_bd?: string
   created_by?: string
   updated_by?: string
   created_at: string
