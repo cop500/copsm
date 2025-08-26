@@ -12,6 +12,7 @@ interface EventFormData {
   id?: string
   titre: string
   type_evenement_id: string
+  volet: string
   date_debut: string
   date_fin?: string
   lieu: string
@@ -34,9 +35,18 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
   initialData 
 }) => {
   const { eventTypes } = useSettings()
+  
+  // Liste des volets
+  const volets = [
+    { value: 'information_communication', label: 'Information/Communication' },
+    { value: 'accompagnement_projets', label: 'Accompagnement des stagiaires dans la réalisation de leur Projets Professionnels' },
+    { value: 'assistance_carriere', label: 'Assistance au choix de carrière' },
+    { value: 'assistance_filiere', label: 'Assistance au choix de filière' }
+  ]
   const [formData, setFormData] = useState<EventFormData>({
     titre: '',
     type_evenement_id: '',
+    volet: 'information_communication',
     date_debut: '',
     date_fin: '',
     lieu: '',
@@ -184,6 +194,7 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
       const eventData = {
         titre: formData.titre,
         type_evenement_id: formData.type_evenement_id,
+        volet: formData.volet,
         date_debut: formData.date_debut,
         date_fin: formData.date_fin || null,
         lieu: formData.lieu,
@@ -287,6 +298,24 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
                   {errors.type_evenement_id}
                 </p>
               )}
+            </div>
+
+            {/* Volet */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Volet *
+              </label>
+              <select
+                value={formData.volet}
+                onChange={(e) => handleInputChange('volet', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
+              >
+                {volets.map(volet => (
+                  <option key={volet.value} value={volet.value}>
+                    {volet.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Statut */}
