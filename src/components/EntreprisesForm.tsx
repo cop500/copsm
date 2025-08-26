@@ -8,7 +8,6 @@ const EntreprisesForm = () => {
   const { 
     entreprises, 
     loading, 
-    error, 
     saveEntreprise, 
     deleteEntreprise 
   } = useEntreprises();
@@ -32,8 +31,6 @@ const EntreprisesForm = () => {
     description: '',
     statut: 'prospect',
     niveau_interet: 'moyen' as 'faible' | 'moyen' | 'fort',
-    dernier_contact_at: '',
-    prochaine_relance_at: '',
     notes_bd: ''
   });
 
@@ -81,8 +78,6 @@ const EntreprisesForm = () => {
       contact_principal_telephone: formData.telephone,
       description: formData.description,
       niveau_interet: formData.niveau_interet,
-      dernier_contact_at: formData.dernier_contact_at || null,
-      prochaine_relance_at: formData.prochaine_relance_at || null,
       notes_bd: formData.notes_bd
     };
 
@@ -130,8 +125,6 @@ const EntreprisesForm = () => {
       description: '',
       statut: 'prospect',
       niveau_interet: 'moyen',
-      dernier_contact_at: '',
-      prochaine_relance_at: '',
       notes_bd: ''
     });
     setShowForm(false);
@@ -150,8 +143,6 @@ const EntreprisesForm = () => {
       description: entreprise.description || '',
       statut: (entreprise.statut || 'prospect'),
       niveau_interet: (entreprise as any).niveau_interet || 'moyen',
-      dernier_contact_at: (entreprise as any).dernier_contact_at || '',
-      prochaine_relance_at: (entreprise as any).prochaine_relance_at || '',
       notes_bd: (entreprise as any).notes_bd || ''
     });
     setEditingEntreprise(entreprise);
@@ -181,7 +172,6 @@ const EntreprisesForm = () => {
   });
 
   if (loading) return <div className="p-6">Chargement...</div>;
-  if (error) return <div className="p-6 text-red-600">Erreur: {error}</div>;
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -194,7 +184,7 @@ const EntreprisesForm = () => {
                 <Building className="w-6 h-6 text-blue-600" />
                 Gestion des Entreprises
               </h1>
-              <p className="text-gray-600 mt-1">Gérez les entreprises partenaires pour les stages</p>
+              <p className="text-gray-600 mt-1">Gérez les entreprises partenaires</p>
             </div>
             <button
               onClick={() => setShowForm(!showForm)}
@@ -372,24 +362,7 @@ const EntreprisesForm = () => {
                   <option value="fort">Fort</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"><Calendar className="w-4 h-4" /> Dernier contact</label>
-                <input
-                  type="date"
-                  value={formData.dernier_contact_at}
-                  onChange={(e) => setFormData({ ...formData, dernier_contact_at: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"><Calendar className="w-4 h-4" /> Prochaine relance</label>
-                <input
-                  type="date"
-                  value={formData.prochaine_relance_at}
-                  onChange={(e) => setFormData({ ...formData, prochaine_relance_at: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes (BD)</label>
                 <textarea
