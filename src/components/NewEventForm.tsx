@@ -201,15 +201,39 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
         description: formData.description,
         responsable_cop: formData.responsable_cop,
         statut: formData.statut,
-        photos_urls: photosUrls,
         actif: true
       }
 
-      // Sauvegarder dans la base de données
-      const { data, error } = await supabase
-        .from('evenements')
-        .insert([eventData])
-        .select()
+      // Ajouter les nouvelles photos si présentes
+      if (photosUrls.length > 0) {
+        eventData.photos_urls = photosUrls
+      }
+
+      let data, error
+
+      // Vérifier si c'est une modification ou une création
+      if (initialData?.id) {
+        // Modification d'un événement existant
+        console.log('🔄 Modification événement ID:', initialData.id)
+        const { data: updateData, error: updateError } = await supabase
+          .from('evenements')
+          .update(eventData)
+          .eq('id', initialData.id)
+          .select()
+        
+        data = updateData
+        error = updateError
+      } else {
+        // Création d'un nouvel événement
+        console.log('➕ Création nouvel événement')
+        const { data: insertData, error: insertError } = await supabase
+          .from('evenements')
+          .insert([eventData])
+          .select()
+        
+        data = insertData
+        error = insertError
+      }
 
       if (error) throw error
 

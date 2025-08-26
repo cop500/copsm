@@ -40,13 +40,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [showPhotoModal, setShowPhotoModal] = useState(false)
 
-  // Debug logs pour les photos
-  console.log('📸 EventCard - Événement:', event.titre)
-  console.log('📸 EventCard - Photos URLs:', event.photos_urls)
-  console.log('📸 EventCard - Nombre de photos:', event.photos_urls?.length || 0)
-  if (event.photos_urls && event.photos_urls.length > 0) {
-    console.log('📸 EventCard - URL de la première photo:', event.photos_urls[0])
-  }
+
 
   // Fonctions utilitaires
   const getStatutColor = (statut: string) => {
@@ -116,13 +110,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                src={event.photos_urls[currentPhotoIndex]}
                alt={`Photo ${currentPhotoIndex + 1} - ${event.titre}`}
                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-               onError={(e) => {
-                 console.error('❌ Erreur chargement image:', event.photos_urls[currentPhotoIndex])
-                 console.error('❌ Élément image:', e.target)
-               }}
-               onLoad={() => {
-                 console.log('✅ Image chargée avec succès:', event.photos_urls[currentPhotoIndex])
-               }}
+               
              />
             
             {/* Overlay avec informations */}
@@ -331,12 +319,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                  src={event.photos_urls[currentPhotoIndex]}
                  alt={`Photo ${currentPhotoIndex + 1} - ${event.titre}`}
                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-                 onError={(e) => {
-                   console.error('❌ Erreur chargement image modal:', event.photos_urls[currentPhotoIndex])
-                 }}
-                 onLoad={() => {
-                   console.log('✅ Image modal chargée avec succès:', event.photos_urls[currentPhotoIndex])
-                 }}
+                 
                />
               
               {/* Navigation */}
