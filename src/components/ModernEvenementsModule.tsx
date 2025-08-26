@@ -56,6 +56,17 @@ export const ModernEvenementsModule = () => {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
   const [importPreview, setImportPreview] = useState<any[]>([])
+  
+  // Filtre par volet
+  const [voletFilter, setVoletFilter] = useState('tous')
+  
+  // Liste des volets
+  const volets = [
+    { value: 'information_communication', label: 'Information/Communication' },
+    { value: 'accompagnement_projets', label: 'Accompagnement des stagiaires dans la réalisation de leur Projets Professionnels' },
+    { value: 'assistance_carriere', label: 'Assistance au choix de carrière' },
+    { value: 'assistance_filiere', label: 'Assistance au choix de filière' }
+  ]
 
   // Charger les événements et ateliers
   const loadEvenements = async () => {
@@ -253,7 +264,8 @@ export const ModernEvenementsModule = () => {
         'Lieu': 'Salle de conférence',
         'Description': 'Description de l\'événement',
         'Responsable COP': 'Jean Dupont',
-        'Statut': 'planifie'
+        'Statut': 'planifie',
+        'Volet': 'information_communication'
       }
     ];
 
@@ -282,7 +294,8 @@ export const ModernEvenementsModule = () => {
           lieu: row['Lieu'] || '',
           description: row['Description'] || '',
           responsable_cop: row['Responsable COP'] || row['Responsable'] || '',
-          statut: (row['Statut'] || 'planifie').toLowerCase()
+          statut: (row['Statut'] || 'planifie').toLowerCase(),
+          volet: row['Volet'] || 'information_communication'
         })).filter(item => item.titre); // Filtrer les lignes vides
 
         setImportPreview(mappedData);
@@ -318,6 +331,7 @@ export const ModernEvenementsModule = () => {
           description: evenement.description,
           statut: evenement.statut,
           responsable_cop: evenement.responsable_cop,
+          volet: evenement.volet,
           actif: true
         };
 
@@ -410,10 +424,11 @@ export const ModernEvenementsModule = () => {
       
       const matchesStatus = statusFilter === 'tous' || event.statut === statusFilter
       const matchesType = typeFilter === 'tous' || event.type_evenement_id === typeFilter
+      const matchesVolet = voletFilter === 'tous' || event.volet === voletFilter
       
-      return matchesSearch && matchesStatus && matchesType
+      return matchesSearch && matchesStatus && matchesType && matchesVolet
     })
-  }, [evenements, searchTerm, statusFilter, typeFilter])
+  }, [evenements, searchTerm, statusFilter, typeFilter, voletFilter])
 
   const filteredAteliers = React.useMemo(() => {
     return ateliers.filter(atelier => {
@@ -666,7 +681,7 @@ export const ModernEvenementsModule = () => {
 
       {/* Filtres et recherche */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Recherche */}
           <div className="lg:col-span-2">
             <div className="relative">
@@ -715,6 +730,24 @@ export const ModernEvenementsModule = () => {
               )}
             </select>
           </div>
+
+          {/* Filtre volet - visible seulement pour les événements */}
+          {activeTab === 'evenements' && (
+            <div>
+              <select
+                value={voletFilter}
+                onChange={(e) => setVoletFilter(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              >
+                <option value="tous">Tous les volets</option>
+                {volets.map(volet => (
+                  <option key={volet.value} value={volet.value}>
+                    {volet.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Mode d'affichage */}
@@ -1421,6 +1454,7 @@ export const ModernEvenementsModule = () => {
                           <th className="text-left p-2">Type</th>
                           <th className="text-left p-2">Date</th>
                           <th className="text-left p-2">Lieu</th>
+                          <th className="text-left p-2">Volet</th>
                           <th className="text-left p-2">Statut</th>
                         </tr>
                       </thead>
@@ -1431,6 +1465,7 @@ export const ModernEvenementsModule = () => {
                             <td className="p-2">{item.type_evenement}</td>
                             <td className="p-2">{item.date_debut}</td>
                             <td className="p-2">{item.lieu}</td>
+                            <td className="p-2">{volets.find(v => v.value === item.volet)?.label || item.volet}</td>
                             <td className="p-2">{item.statut}</td>
                           </tr>
                         ))}
