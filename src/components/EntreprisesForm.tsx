@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Pape
 import type { Entreprise } from '@/types';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
+import { useUser } from '@/contexts/UserContext';
 
 const EntreprisesForm = () => {
   const { 
@@ -12,6 +13,10 @@ const EntreprisesForm = () => {
     saveEntreprise, 
     deleteEntreprise 
   } = useEntreprises();
+  const { currentUser } = useUser();
+  
+  // Vérifier si l'utilisateur est admin
+  const isAdmin = currentUser?.role === 'business_developer';
 
   const [showForm, setShowForm] = useState(false);
   const [editingEntreprise, setEditingEntreprise] = useState<Entreprise | null>(null);
@@ -290,13 +295,15 @@ const EntreprisesForm = () => {
               <p className="text-gray-600 mt-1">Gérez les entreprises partenaires</p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                Importer Excel
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Importer Excel
+                </button>
+              )}
               <button
                 onClick={() => setShowForm(!showForm)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
