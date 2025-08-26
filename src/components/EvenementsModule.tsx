@@ -6,13 +6,18 @@ import { supabase } from '@/lib/supabase'
 import { Calendar, Plus, X, Save, Edit3, Trash2, Eye, MapPin, Clock, Upload, FileSpreadsheet, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { useUser } from '@/contexts/UserContext'
+import { useRole } from '@/hooks/useRole'
 
 export const EvenementsModule = () => {
   const { eventTypes } = useSettings()
   const { currentUser } = useUser()
+  const { isAdmin } = useRole()
   
-  // Vérifier si l'utilisateur est admin
-  const isAdmin = currentUser?.role === 'business_developer'
+  // Debug logs
+  console.log('🔍 === DEBUG EVENEMENTS ===')
+  console.log('🔍 Current user:', currentUser)
+  console.log('🔍 User role:', currentUser?.role)
+  console.log('🔍 Is admin:', isAdmin)
   
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState<Record<string, unknown>>({})
