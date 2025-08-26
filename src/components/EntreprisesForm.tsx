@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useEntreprises } from '@/hooks/useEntreprises';
-import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar, Upload, FileSpreadsheet } from 'lucide-react';
 import type { Entreprise } from '@/types';
 import { supabase } from '@/lib/supabase';
+import * as XLSX from 'xlsx';
 
 const EntreprisesForm = () => {
   const { 
@@ -19,6 +20,10 @@ const EntreprisesForm = () => {
   const [filterStatut, setFilterStatut] = useState('');
   const [contratFile, setContratFile] = useState<File | null>(null);
   const [uploadingContrat, setUploadingContrat] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
   
   // Formulaire d'entreprise - adapté à vos champs existants
   const [formData, setFormData] = useState({
@@ -38,6 +43,104 @@ const EntreprisesForm = () => {
     'Informatique', 'Industrie', 'Commerce', 'Services', 
     'BTP', 'Tourisme', 'Agriculture', 'Finance', 'Santé', 'Éducation'
   ];
+
+  // Fonction pour télécharger le template Excel
+  const downloadTemplate = () => {
+    const template = [
+      {
+        'Nom de l\'entreprise': 'Exemple SARL',
+        'Secteur': 'Informatique',
+        'Adresse': '123 Rue de la Paix, 75001 Paris',
+        'Téléphone': '01 23 45 67 89',
+        'Email': 'contact@exemple.fr',
+        'Personne de contact': 'Jean Dupont',
+        'Statut': 'prospect',
+        'Niveau d\'intérêt': 'moyen',
+        'Notes': 'Notes sur l\'entreprise'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Entreprises');
+    XLSX.writeFile(wb, 'template_entreprises.xlsx');
+  };
+
+  // Fonction pour lire le fichier Excel
+  const handleFileUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Mapper les colonnes Excel vers nos champs
+        const mappedData = jsonData.map((row: any) => ({
+          nom: row['Nom de l\'entreprise'] || row['Nom'] || '',
+          secteur: row['Secteur'] || '',
+          adresse: row['Adresse'] || '',
+          telephone: row['Téléphone'] || row['Telephone'] || '',
+          email: row['Email'] || '',
+          contact_personne: row['Personne de contact'] || row['Contact'] || '',
+          statut: (row['Statut'] || 'prospect').toLowerCase(),
+          niveau_interet: (row['Niveau d\'intérêt'] || row['Niveau interet'] || 'moyen').toLowerCase(),
+          notes_bd: row['Notes'] || ''
+        })).filter(item => item.nom); // Filtrer les lignes vides
+
+        setImportPreview(mappedData);
+        setImportFile(file);
+      } catch (error) {
+        console.error('Erreur lecture Excel:', error);
+        alert('Erreur lors de la lecture du fichier Excel');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Fonction pour importer les entreprises
+  const handleImport = async () => {
+    if (!importPreview.length) return;
+    
+    setImporting(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const entreprise of importPreview) {
+      try {
+        const result = await saveEntreprise({
+          nom: entreprise.nom,
+          secteur: entreprise.secteur,
+          adresse: entreprise.adresse,
+          statut: entreprise.statut,
+          contact_principal_nom: entreprise.contact_personne,
+          contact_principal_email: entreprise.email,
+          contact_principal_telephone: entreprise.telephone,
+          description: '',
+          niveau_interet: entreprise.niveau_interet,
+          notes_bd: entreprise.notes_bd
+        });
+        
+        if (result.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (error) {
+        errorCount++;
+        console.error('Erreur import entreprise:', error);
+      }
+    }
+
+    setImporting(false);
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportPreview([]);
+    
+    alert(`Import terminé : ${successCount} entreprises ajoutées, ${errorCount} erreurs`);
+  };
 
   const uploadContrat = async (file: File): Promise<string | null> => {
     try {
@@ -186,13 +289,22 @@ const EntreprisesForm = () => {
               </h1>
               <p className="text-gray-600 mt-1">Gérez les entreprises partenaires</p>
             </div>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter Entreprise
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Importer Excel
+              </button>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Ajouter Entreprise
+              </button>
+            </div>
           </div>
         </div>
 
@@ -514,6 +626,118 @@ const EntreprisesForm = () => {
           )}
         </div>
       </div>
+
+      {/* Modal Import Excel */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Importer des entreprises depuis Excel</h3>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Télécharger template */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">1. Télécharger le template</h4>
+                <button
+                  onClick={downloadTemplate}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Télécharger template Excel
+                </button>
+                <p className="text-sm text-blue-700 mt-2">
+                  Téléchargez le fichier modèle, remplissez-le avec vos données, puis importez-le.
+                </p>
+              </div>
+
+              {/* Upload fichier */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">2. Importer votre fichier Excel</h4>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Aperçu des données */}
+              {importPreview.length > 0 && (
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-green-900 mb-2">
+                    3. Aperçu ({importPreview.length} entreprises)
+                  </h4>
+                  <div className="max-h-60 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-green-100">
+                        <tr>
+                          <th className="text-left p-2">Nom</th>
+                          <th className="text-left p-2">Secteur</th>
+                          <th className="text-left p-2">Contact</th>
+                          <th className="text-left p-2">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importPreview.slice(0, 10).map((item, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="p-2">{item.nom}</td>
+                            <td className="p-2">{item.secteur}</td>
+                            <td className="p-2">{item.contact_personne}</td>
+                            <td className="p-2">{item.statut}</td>
+                          </tr>
+                        ))}
+                        {importPreview.length > 10 && (
+                          <tr>
+                            <td colSpan={4} className="p-2 text-center text-gray-500">
+                              ... et {importPreview.length - 10} autres
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Boutons d'action */}
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+                >
+                  Annuler
+                </button>
+                {importPreview.length > 0 && (
+                  <button
+                    onClick={handleImport}
+                    disabled={importing}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {importing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Import en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Importer {importPreview.length} entreprises
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
