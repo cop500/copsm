@@ -7,7 +7,7 @@ import {
   Calendar, Plus, Search, Filter, Grid, List, 
   Clock, CheckCircle, AlertTriangle, XCircle,
   TrendingUp, Users, MapPin, FileText, Zap, Edit3,
-  BookOpen, Eye, Trash2
+  BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download
 } from 'lucide-react'
 import { NewEventForm } from './NewEventForm'
 import { EventCard } from './EventCard'
@@ -15,9 +15,21 @@ import AIContentGenerator from './AIContentGenerator'
 import { RapportsList } from './RapportsList'
 import AtelierForm from './AtelierForm'
 import AtelierInscriptionsManager from './AtelierInscriptionsManager'
+import * as XLSX from 'xlsx'
+import { useUser } from '@/contexts/UserContext'
+import { useRole } from '@/hooks/useRole'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
+  const { currentUser } = useUser()
+  const { isAdmin } = useRole()
+  
+  // Debug logs
+  console.log('🔍 === DEBUG MODERN EVENEMENTS ===')
+  console.log('🔍 Current user:', currentUser)
+  console.log('🔍 User role:', currentUser?.role)
+  console.log('🔍 Is admin:', isAdmin)
+  
   const [showForm, setShowForm] = useState(false)
   const [evenements, setEvenements] = useState<any[]>([])
   const [ateliers, setAteliers] = useState<any[]>([])
@@ -38,6 +50,12 @@ export const ModernEvenementsModule = () => {
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsManager, setShowInscriptionsManager] = useState(false)
+  
+  // États pour l'import Excel
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importPreview, setImportPreview] = useState<any[]>([])
 
   // Charger les événements et ateliers
   const loadEvenements = async () => {
@@ -219,10 +237,114 @@ export const ModernEvenementsModule = () => {
     setShowAtelierDetail(false)
     setShowAtelierForm(false)
     setShowInscriptionsManager(false)
+    setShowImportModal(false)
     setSelectedEvent(null)
     setSelectedAtelier(null)
     setEditingAtelier(null)
   }
+
+  // Fonction pour télécharger le template Excel
+  const downloadTemplate = () => {
+    const template = [
+      {
+        'Titre': 'Exemple événement',
+        'Type d\'événement': 'Job Day',
+        'Date de début': '2024-01-15T09:00',
+        'Lieu': 'Salle de conférence',
+        'Description': 'Description de l\'événement',
+        'Responsable COP': 'Jean Dupont',
+        'Statut': 'planifie'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Événements');
+    XLSX.writeFile(wb, 'template_evenements.xlsx');
+  };
+
+  // Fonction pour lire le fichier Excel
+  const handleFileUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Mapper les colonnes Excel vers nos champs
+        const mappedData = jsonData.map((row: any) => ({
+          titre: row['Titre'] || '',
+          type_evenement: row['Type d\'événement'] || row['Type'] || '',
+          date_debut: row['Date de début'] || row['Date'] || '',
+          lieu: row['Lieu'] || '',
+          description: row['Description'] || '',
+          responsable_cop: row['Responsable COP'] || row['Responsable'] || '',
+          statut: (row['Statut'] || 'planifie').toLowerCase()
+        })).filter(item => item.titre); // Filtrer les lignes vides
+
+        setImportPreview(mappedData);
+        setImportFile(file);
+      } catch (error) {
+        console.error('Erreur lecture Excel:', error);
+        showMessage('Erreur lors de la lecture du fichier Excel', 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Fonction pour importer les événements
+  const handleImport = async () => {
+    if (!importPreview.length) return;
+    
+    setImporting(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const evenement of importPreview) {
+      try {
+        // Trouver le type d'événement par nom
+        const eventType = eventTypes.find(et => 
+          et.nom.toLowerCase() === evenement.type_evenement.toLowerCase()
+        );
+
+        const dataToSave = {
+          titre: evenement.titre,
+          type_evenement_id: eventType?.id || null,
+          date_debut: evenement.date_debut,
+          lieu: evenement.lieu,
+          description: evenement.description,
+          statut: evenement.statut,
+          responsable_cop: evenement.responsable_cop,
+          actif: true
+        };
+
+        const { error } = await supabase
+          .from('evenements')
+          .insert([dataToSave]);
+
+        if (error) {
+          errorCount++;
+          console.error('Erreur import événement:', error);
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        errorCount++;
+        console.error('Erreur import événement:', error);
+      }
+    }
+
+    setImporting(false);
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportPreview([]);
+    
+    await loadEvenements(); // Recharger la liste
+    showMessage(`Import terminé : ${successCount} événements ajoutés, ${errorCount} erreurs`, successCount > 0 ? 'success' : 'error');
+  };
 
   // Ouvrir le générateur IA pour un événement spécifique
   const handleGenerateContent = (event: any) => {
@@ -360,6 +482,15 @@ export const ModernEvenementsModule = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {isAdmin && activeTab === 'evenements' && (
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+              >
+                <FileSpreadsheet className="w-5 h-5" />
+                Importer Excel
+              </button>
+            )}
             <button
               onClick={() => {
                 if (activeTab === 'evenements') {
@@ -1224,6 +1355,113 @@ export const ModernEvenementsModule = () => {
               >
                 Fermer
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'import Excel */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Importer des événements depuis Excel</h2>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Section 1: Télécharger le template */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-3">1. Télécharger le template</h3>
+                <p className="text-gray-600 mb-3">
+                  Téléchargez le fichier template pour voir le format attendu
+                </p>
+                <button
+                  onClick={downloadTemplate}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Télécharger template_evenements.xlsx
+                </button>
+              </div>
+
+              {/* Section 2: Upload du fichier */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-3">2. Importer votre fichier Excel</h3>
+                <p className="text-gray-600 mb-3">
+                  Sélectionnez votre fichier Excel rempli avec les données
+                </p>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file);
+                  }}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              {/* Section 3: Aperçu des données */}
+              {importPreview.length > 0 && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-3">
+                    3. Aperçu des données ({importPreview.length} événements)
+                  </h3>
+                  <div className="max-h-60 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="text-left p-2">Titre</th>
+                          <th className="text-left p-2">Type</th>
+                          <th className="text-left p-2">Date</th>
+                          <th className="text-left p-2">Lieu</th>
+                          <th className="text-left p-2">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importPreview.slice(0, 10).map((item, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="p-2">{item.titre}</td>
+                            <td className="p-2">{item.type_evenement}</td>
+                            <td className="p-2">{item.date_debut}</td>
+                            <td className="p-2">{item.lieu}</td>
+                            <td className="p-2">{item.statut}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {importPreview.length > 10 && (
+                      <p className="text-gray-500 text-sm mt-2">
+                        ... et {importPreview.length - 10} autres événements
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Boutons d'action */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleImport}
+                  disabled={!importPreview.length || importing}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {importing ? 'Import en cours...' : 'Importer les événements'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
