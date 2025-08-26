@@ -40,6 +40,11 @@ export const EventCard: React.FC<EventCardProps> = ({
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [showPhotoModal, setShowPhotoModal] = useState(false)
 
+  // Debug logs pour les photos
+  console.log('📸 EventCard - Événement:', event.titre)
+  console.log('📸 EventCard - Photos URLs:', event.photos_urls)
+  console.log('📸 EventCard - Nombre de photos:', event.photos_urls?.length || 0)
+
   // Fonctions utilitaires
   const getStatutColor = (statut: string) => {
     switch (statut) {

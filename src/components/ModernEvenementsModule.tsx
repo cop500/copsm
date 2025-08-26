@@ -92,6 +92,9 @@ export const ModernEvenementsModule = () => {
 
       if (ateliersError) throw ateliersError
       
+      console.log('📸 Événements chargés:', evenementsData)
+      console.log('📸 Photos URLs dans les événements:', evenementsData?.map(e => ({ id: e.id, titre: e.titre, photos_urls: e.photos_urls })))
+      
       setEvenements(evenementsData || [])
       setAteliers(ateliersData || [])
     } catch (err: any) {
