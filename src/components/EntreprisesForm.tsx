@@ -29,6 +29,8 @@ const EntreprisesForm = () => {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [selectedEntreprises, setSelectedEntreprises] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
   
   // Formulaire d'entreprise - adapté à vos champs existants
   const [formData, setFormData] = useState({
@@ -264,6 +266,61 @@ const EntreprisesForm = () => {
         alert('Entreprise supprimée avec succès !');
       } else {
         alert('Erreur lors de la suppression');
+      }
+    }
+  };
+
+  // Fonctions pour la sélection multiple
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedEntreprises([]);
+      setSelectAll(false);
+    } else {
+      setSelectedEntreprises(entreprisesFiltrees.map(ent => ent.id));
+      setSelectAll(true);
+    }
+  };
+
+  const handleSelectEntreprise = (id: string) => {
+    if (selectedEntreprises.includes(id)) {
+      setSelectedEntreprises(selectedEntreprises.filter(entId => entId !== id));
+      setSelectAll(false);
+    } else {
+      const newSelected = [...selectedEntreprises, id];
+      setSelectedEntreprises(newSelected);
+      if (newSelected.length === entreprisesFiltrees.length) {
+        setSelectAll(true);
+      }
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedEntreprises.length === 0) return;
+    
+    const confirmMessage = selectedEntreprises.length === 1 
+      ? 'Êtes-vous sûr de vouloir supprimer cette entreprise ?'
+      : `Êtes-vous sûr de vouloir supprimer ${selectedEntreprises.length} entreprises ?`;
+    
+    if (window.confirm(confirmMessage)) {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const id of selectedEntreprises) {
+        const result = await deleteEntreprise(id);
+        if (result.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      }
+      
+      setSelectedEntreprises([]);
+      setSelectAll(false);
+      
+      if (errorCount === 0) {
+        alert(`${successCount} entreprise(s) supprimée(s) avec succès !`);
+      } else {
+        alert(`${successCount} entreprise(s) supprimée(s), ${errorCount} erreur(s)`);
       }
     }
   };
@@ -538,21 +595,55 @@ const EntreprisesForm = () => {
 
         {/* Liste des entreprises */}
         <div className="p-6">
-          <div className="mb-4 flex justify-between items-center">
-            <h3 className="text-lg font-semibold">
-              Liste des entreprises ({entreprisesFiltrees.length})
-            </h3>
-          </div>
-
           {entreprisesFiltrees.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               Aucune entreprise trouvée
             </div>
           ) : (
-            <div className="grid gap-4">
+            <>
+              {/* Barre d'actions pour sélection multiple */}
+              <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Tout sélectionner ({entreprisesFiltrees.length})
+                    </span>
+                  </label>
+                  {selectedEntreprises.length > 0 && (
+                    <span className="text-sm text-gray-600">
+                      {selectedEntreprises.length} entreprise(s) sélectionnée(s)
+                    </span>
+                  )}
+                </div>
+                {selectedEntreprises.length > 0 && (
+                  <button
+                    onClick={handleDeleteSelected}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer la sélection ({selectedEntreprises.length})
+                  </button>
+                )}
+              </div>
+              
+              <div className="grid gap-4">
               {entreprisesFiltrees.map(entreprise => (
                 <div key={entreprise.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3 mr-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedEntreprises.includes(entreprise.id)}
+                        onChange={() => handleSelectEntreprise(entreprise.id)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                    </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h4 className="text-lg font-semibold text-gray-900">{entreprise.nom}</h4>
@@ -629,7 +720,8 @@ const EntreprisesForm = () => {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>
