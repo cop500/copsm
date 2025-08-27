@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar, Upload, FileSpreadsheet } from 'lucide-react';
 import type { Entreprise } from '@/types';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 import { useUser } from '@/contexts/UserContext';
+import { useDebounce } from '@/hooks/useDebounce';
+import { Pagination } from '@/components/Pagination';
 
 const EntreprisesForm = () => {
   const { 
@@ -31,6 +33,8 @@ const EntreprisesForm = () => {
   const [importPreview, setImportPreview] = useState<any[]>([]);
   const [selectedEntreprises, setSelectedEntreprises] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Nombre d'entreprises par page
   
   // Formulaire d'entreprise - adapté à vos champs existants
   const [formData, setFormData] = useState({
@@ -325,16 +329,32 @@ const EntreprisesForm = () => {
     }
   };
 
-  // Filtrage des entreprises - adapté à vos champs
-  const entreprisesFiltrees = entreprises.filter(ent => {
-    const matchSearch = ent.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       (ent.contact_principal_nom || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       (ent.secteur || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchSecteur = filterSecteur === '' || ent.secteur === filterSecteur;
-    const statutVal = ((ent.statut || '') as string).toLowerCase();
-    const matchStatut = filterStatut === '' || statutVal === filterStatut;
-    return matchSearch && matchSecteur && matchStatut;
-  });
+  // Debounce pour la recherche
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Filtrage des entreprises - optimisé avec useMemo
+  const entreprisesFiltrees = useMemo(() => {
+    return entreprises.filter(ent => {
+      const matchSearch = ent.nom.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                         (ent.contact_principal_nom || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                         (ent.secteur || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      const matchSecteur = filterSecteur === '' || ent.secteur === filterSecteur;
+      const statutVal = ((ent.statut || '') as string).toLowerCase();
+      const matchStatut = filterStatut === '' || statutVal === filterStatut;
+      return matchSearch && matchSecteur && matchStatut;
+    });
+  }, [entreprises, debouncedSearchTerm, filterSecteur, filterStatut]);
+
+  // Pagination des entreprises
+  const totalPages = Math.ceil(entreprisesFiltrees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const entreprisesPaginees = entreprisesFiltrees.slice(startIndex, endIndex);
+
+  // Réinitialiser la page quand les filtres changent
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, filterSecteur, filterStatut]);
 
   if (loading) return <div className="p-6">Chargement...</div>;
 
@@ -635,7 +655,7 @@ const EntreprisesForm = () => {
               )}
               
               <div className="grid gap-4">
-              {entreprisesFiltrees.map(entreprise => (
+              {entreprisesPaginees.map(entreprise => (
                 <div key={entreprise.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start">
                     {isAdmin && (
@@ -727,6 +747,19 @@ const EntreprisesForm = () => {
                 </div>
               ))}
               </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-6">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    totalItems={entreprisesFiltrees.length}
+                    itemsPerPage={itemsPerPage}
+                  />
+                </div>
+              )}
             </>
           )}
         </div>
