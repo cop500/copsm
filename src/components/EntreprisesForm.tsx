@@ -601,49 +601,53 @@ const EntreprisesForm = () => {
             </div>
           ) : (
             <>
-              {/* Barre d'actions pour sélection multiple */}
-              <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectAll}
-                      onChange={handleSelectAll}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">
-                      Tout sélectionner ({entreprisesFiltrees.length})
-                    </span>
-                  </label>
-                  {selectedEntreprises.length > 0 && (
-                    <span className="text-sm text-gray-600">
-                      {selectedEntreprises.length} entreprise(s) sélectionnée(s)
-                    </span>
+              {/* Barre d'actions pour sélection multiple - Admin uniquement */}
+              {isAdmin && (
+                <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectAll}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Tout sélectionner ({entreprisesFiltrees.length})
+                      </span>
+                    </label>
+                    {selectedEntreprises.length > 0 && (
+                      <span className="text-sm text-gray-600">
+                        {selectedEntreprises.length} entreprise(s) sélectionnée(s)
+                      </span>
+                    )}
+                                    </div>
+                  {selectedEntreprises.length > 0 && isAdmin && (
+                    <button
+                      onClick={handleDeleteSelected}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Supprimer la sélection ({selectedEntreprises.length})
+                    </button>
                   )}
                 </div>
-                {selectedEntreprises.length > 0 && (
-                  <button
-                    onClick={handleDeleteSelected}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Supprimer la sélection ({selectedEntreprises.length})
-                  </button>
-                )}
-              </div>
+              )}
               
               <div className="grid gap-4">
               {entreprisesFiltrees.map(entreprise => (
                 <div key={entreprise.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3 mr-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedEntreprises.includes(entreprise.id)}
-                        onChange={() => handleSelectEntreprise(entreprise.id)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                    </div>
+                    {isAdmin && (
+                      <div className="flex items-center gap-3 mr-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntreprises.includes(entreprise.id)}
+                          onChange={() => handleSelectEntreprise(entreprise.id)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h4 className="text-lg font-semibold text-gray-900">{entreprise.nom}</h4>
@@ -710,12 +714,14 @@ const EntreprisesForm = () => {
                       >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(entreprise.id)}
-                        className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(entreprise.id)}
+                          className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
