@@ -9,6 +9,7 @@ import {
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { useEvenements } from '@/hooks/useEvenements';
 import { supabase } from '@/lib/supabase';
+import * as XLSX from 'xlsx';
 
 interface KPICard {
   label: string;
@@ -60,6 +61,7 @@ export const EmployabilityDashboard: React.FC = () => {
   const [enterpriseMetrics, setEnterpriseMetrics] = useState<EnterpriseMetrics | null>(null);
   const [demandMetrics, setDemandMetrics] = useState<DemandMetrics | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('current_year');
+  const [exporting, setExporting] = useState(false);
 
   const { entreprises } = useEntreprises();
   const { evenements } = useEvenements();
@@ -170,6 +172,178 @@ export const EmployabilityDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, [eventMetrics, enterpriseMetrics, demandMetrics]);
 
+  // Fonction d'export du rapport
+  const handleExport = async () => {
+    if (!eventMetrics || !enterpriseMetrics || !demandMetrics) {
+      alert('Veuillez attendre le chargement complet des données');
+      return;
+    }
+
+    setExporting(true);
+    try {
+      // Préparer les données pour l'export
+      const exportData = {
+        // Métadonnées
+        metadata: {
+          titre: 'Bilan d\'Employabilité COP CMC SM',
+          date_export: new Date().toLocaleDateString('fr-FR'),
+          periode: selectedPeriod,
+          generateur: 'Système COP'
+        },
+        
+        // KPIs principaux
+        kpis: [
+          {
+            indicateur: 'Taux de conversion global',
+            valeur: `${eventMetrics.conversionRate}%`,
+            description: 'Pourcentage de candidats retenus sur le total des candidats'
+          },
+          {
+            indicateur: 'Stagiaires bénéficiaires',
+            valeur: eventMetrics.totalBeneficiaries,
+            description: 'Nombre total de stagiaires ayant participé aux événements'
+          },
+          {
+            indicateur: 'Entreprises partenaires',
+            valeur: enterpriseMetrics.partners,
+            description: 'Nombre d\'entreprises avec statut partenaire'
+          },
+          {
+            indicateur: 'Demandes actives',
+            valeur: demandMetrics.activeDemands,
+            description: 'Nombre de demandes de stages actuellement actives'
+          }
+        ],
+
+        // Métriques détaillées des événements
+        evenements: {
+          total: eventMetrics.totalEvents,
+          beneficiaires: eventMetrics.totalBeneficiaries,
+          candidats_recus: eventMetrics.totalCandidates,
+          candidats_retenus: eventMetrics.totalRetained,
+          taux_conversion: eventMetrics.conversionRate,
+          repartition_par_volet: Object.entries(eventMetrics.eventsByVolet).map(([volet, count]) => ({
+            volet: volet === 'information_communication' ? 'Information/Communication' :
+                   volet === 'accompagnement_projets' ? 'Accompagnement Projets' :
+                   volet === 'assistance_carriere' ? 'Assistance Carrière' :
+                   volet === 'assistance_filiere' ? 'Assistance Filière' : volet,
+            nombre: count
+          }))
+        },
+
+        // Métriques détaillées des entreprises
+        entreprises: {
+          total: enterpriseMetrics.totalEnterprises,
+          prospects: enterpriseMetrics.prospects,
+          partenaires: enterpriseMetrics.partners,
+          avec_contrats: enterpriseMetrics.withContracts,
+          taux_partenariat: Math.round((enterpriseMetrics.partners / enterpriseMetrics.totalEnterprises) * 100),
+          repartition_par_secteur: Object.entries(enterpriseMetrics.sectors).map(([secteur, count]) => ({
+            secteur,
+            nombre: count
+          }))
+        },
+
+        // Métriques des demandes
+        demandes: {
+          total: demandMetrics.totalDemands,
+          actives: demandMetrics.activeDemands,
+          total_profils: demandMetrics.totalProfiles,
+          top_entreprises: demandMetrics.topEnterprises
+        }
+      };
+
+      // Créer le fichier Excel
+      const workbook = XLSX.utils.book_new();
+
+      // Feuille 1: Résumé exécutif
+      const resumeData = [
+        ['BILAN D\'EMPLOYABILITÉ - COP CMC SM'],
+        [''],
+        ['Métadonnées'],
+        ['Date d\'export', exportData.metadata.date_export],
+        ['Période', exportData.metadata.periode],
+        [''],
+        ['Indicateurs Clés de Performance'],
+        ['Indicateur', 'Valeur', 'Description'],
+        ...exportData.kpis.map(kpi => [kpi.indicateur, kpi.valeur, kpi.description])
+      ];
+
+      const wsResume = XLSX.utils.aoa_to_sheet(resumeData);
+      XLSX.utils.book_append_sheet(workbook, wsResume, 'Résumé');
+
+      // Feuille 2: Métriques des événements
+      const evenementsData = [
+        ['MÉTRIQUES DES ÉVÉNEMENTS'],
+        [''],
+        ['Indicateur', 'Valeur'],
+        ['Total événements', exportData.evenements.total],
+        ['Stagiaires bénéficiaires', exportData.evenements.beneficiaires],
+        ['Candidats reçus', exportData.evenements.candidats_recus],
+        ['Candidats retenus', exportData.evenements.candidats_retenus],
+        ['Taux de conversion (%)', exportData.evenements.taux_conversion],
+        [''],
+        ['Répartition par volet'],
+        ['Volet', 'Nombre d\'événements'],
+        ...exportData.evenements.repartition_par_volet.map(item => [item.volet, item.nombre])
+      ];
+
+      const wsEvenements = XLSX.utils.aoa_to_sheet(evenementsData);
+      XLSX.utils.book_append_sheet(workbook, wsEvenements, 'Événements');
+
+      // Feuille 3: Métriques des entreprises
+      const entreprisesData = [
+        ['MÉTRIQUES DES ENTREPRISES'],
+        [''],
+        ['Indicateur', 'Valeur'],
+        ['Total entreprises', exportData.entreprises.total],
+        ['Prospects', exportData.entreprises.prospects],
+        ['Partenaires', exportData.entreprises.partenaires],
+        ['Avec contrats', exportData.entreprises.avec_contrats],
+        ['Taux de partenariat (%)', exportData.entreprises.taux_partenariat],
+        [''],
+        ['Répartition par secteur'],
+        ['Secteur', 'Nombre d\'entreprises'],
+        ...exportData.entreprises.repartition_par_secteur.map(item => [item.secteur, item.nombre])
+      ];
+
+      const wsEntreprises = XLSX.utils.aoa_to_sheet(entreprisesData);
+      XLSX.utils.book_append_sheet(workbook, wsEntreprises, 'Entreprises');
+
+      // Feuille 4: Métriques des demandes
+      const demandesData = [
+        ['MÉTRIQUES DES DEMANDES'],
+        [''],
+        ['Indicateur', 'Valeur'],
+        ['Total demandes', exportData.demandes.total],
+        ['Demandes actives', exportData.demandes.actives],
+        ['Total profils', exportData.demandes.total_profils],
+        [''],
+        ['Top entreprises actives'],
+        ['Entreprise', 'Nombre de demandes'],
+        ...exportData.demandes.top_entreprises.map(item => [item.name, item.demands])
+      ];
+
+      const wsDemandes = XLSX.utils.aoa_to_sheet(demandesData);
+      XLSX.utils.book_append_sheet(workbook, wsDemandes, 'Demandes');
+
+      // Générer le nom du fichier
+      const fileName = `Bilan_Employabilite_COP_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Télécharger le fichier
+      XLSX.writeFile(workbook, fileName);
+
+      // Message de succès
+      alert(`Rapport exporté avec succès : ${fileName}`);
+
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      alert('Erreur lors de l\'export du rapport. Veuillez réessayer.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // KPIs principaux
   const kpiCards: KPICard[] = [
     {
@@ -263,9 +437,22 @@ export const EmployabilityDashboard: React.FC = () => {
             <option value="current_year">Cette année</option>
             <option value="all_time">Tout le temps</option>
           </select>
-          <button className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Download className="w-3 h-3" />
-            Exporter
+          <button 
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {exporting ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Export...
+              </>
+            ) : (
+              <>
+                <Download className="w-3 h-3" />
+                Exporter
+              </>
+            )}
           </button>
         </div>
       </div>
