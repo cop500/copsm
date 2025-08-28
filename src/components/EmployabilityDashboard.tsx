@@ -9,7 +9,7 @@ import {
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { useEvenements } from '@/hooks/useEvenements';
 import { useSettings } from '@/hooks/useSettings';
-import { useUser } from '@/hooks/useUser';
+import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
@@ -71,7 +71,7 @@ export const EmployabilityDashboard: React.FC = () => {
   const { entreprises, loading: entreprisesLoading, refresh: refreshEntreprises } = useEntreprises();
   const { evenements, loading: evenementsLoading, refresh: refreshEvenements } = useEvenements();
   const { poles, filieres } = useSettings();
-  const { currentUser } = useUser();
+  const { user: currentUser } = useAuth();
   const { isAdmin } = useRole();
 
   // Calculer les métriques des événements
