@@ -72,6 +72,13 @@ export const EmployabilityDashboard: React.FC = () => {
 
   // Calculer les métriques des événements
   useEffect(() => {
+    console.log('🔍 Debug EmployabilityDashboard - evenements:', {
+      count: evenements?.length || 0,
+      evenements: evenements?.slice(0, 3), // Afficher les 3 premiers pour debug
+      poles: poles?.length || 0,
+      filieres: filieres?.length || 0
+    });
+    
     if (evenements) {
       const metrics: EventMetrics = {
         totalEvents: evenements.length,
@@ -96,23 +103,31 @@ export const EmployabilityDashboard: React.FC = () => {
         metrics.eventsByVolet[volet] = (metrics.eventsByVolet[volet] || 0) + 1;
       });
 
-      // Répartition par pôle
+      // Répartition par pôle et calcul des taux de conversion
+      const poleStats: { [key: string]: { count: number; candidates: number; retained: number } } = {};
+      
       evenements.forEach(event => {
         if (event.pole_id) {
           const pole = poles.find(p => p.id === event.pole_id);
           const poleName = pole ? pole.nom : 'Pôle inconnu';
-          metrics.eventsByPole[poleName] = (metrics.eventsByPole[poleName] || 0) + 1;
           
-          // Calculer le taux de conversion par pôle
-          const poleEvents = evenements.filter(e => e.pole_id === event.pole_id);
-          const poleCandidates = poleEvents.reduce((sum, e) => sum + (e.nombre_candidats || 0), 0);
-          const poleRetained = poleEvents.reduce((sum, e) => sum + (e.nombre_candidats_retenus || 0), 0);
-          
-          if (poleCandidates > 0) {
-            metrics.conversionRateByPole[poleName] = Math.round((poleRetained / poleCandidates) * 100 * 100) / 100;
-          } else {
-            metrics.conversionRateByPole[poleName] = 0;
+          if (!poleStats[poleName]) {
+            poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
           }
+          
+          poleStats[poleName].count += 1;
+          poleStats[poleName].candidates += (event.nombre_candidats || 0);
+          poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
+        }
+      });
+      
+      // Convertir les statistiques en métriques
+      Object.entries(poleStats).forEach(([poleName, stats]) => {
+        metrics.eventsByPole[poleName] = stats.count;
+        if (stats.candidates > 0) {
+          metrics.conversionRateByPole[poleName] = Math.round((stats.retained / stats.candidates) * 100 * 100) / 100;
+        } else {
+          metrics.conversionRateByPole[poleName] = 0;
         }
       });
 

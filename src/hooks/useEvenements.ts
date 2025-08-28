@@ -56,6 +56,7 @@ export function useEvenements() {
           nombre_candidats_retenus,
           taux_conversion
         `)
+        .eq('actif', true)
         .order('date_debut', { ascending: false });
 
       if (error) throw error;
