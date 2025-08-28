@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import NotesModule from './NotesModule';
 import { useIndicateursDashboard } from '@/hooks/useIndicateursDashboard';
 import { useRole } from '@/hooks/useRole';
+import { EmployabilityDashboard } from './EmployabilityDashboard';
 
 // Types
 interface NavigationItem {
@@ -384,44 +385,8 @@ const COPInterface: React.FC = () => {
         </header>
 
         {/* Dashboard Content */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
-          {/* Indicateurs dynamiques avec ajout admin */}
-          <IndicateursDashboardCards />
-
-          {/* Quick Actions */}
-          <div className="mb-6 sm:mb-8">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
-              <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-2" />
-              Actions rapides
-            </h3>
-            <div className="grid grid-cols-2 sm:flex sm:flex-col md:flex-row justify-center items-center gap-3 sm:gap-4">
-              {quickActions.map((action, index) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleNavigation(action.href)}
-                    className={`p-4 sm:p-6 rounded-xl text-white ${action.color} transition-all duration-300 flex flex-col items-center text-center group hover:scale-105 hover:shadow-lg`}
-                  >
-                    <Icon className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="text-xs sm:text-sm font-medium">{action.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Zone centrale avec fond créatif */}
-          <div className="relative flex justify-center items-center min-h-[300px] sm:min-h-[400px]">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-blue-100" />
-            <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-200 opacity-30 rounded-full blur-2xl pointer-events-none" />
-            <div className="relative z-10 w-full max-w-2xl">
-              <NotesModule />
-            </div>
-          </div>
-
-          {/* Footer Banner */}
-          {/* Bloc supprimé : Footer Banner (Votre COP évolue !, sous-titre, version, système opérationnel, Target, etc.) */}
+        <main className="flex-1 overflow-y-auto">
+          <EmployabilityDashboard />
         </main>
       </div>
     </div>
