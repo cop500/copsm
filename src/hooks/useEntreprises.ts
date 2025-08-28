@@ -4,7 +4,7 @@ import { useRealTime } from './useRealTime';
 
 // Cache pour éviter les rechargements inutiles
 const cache = new Map();
-const CACHE_DURATION = 0; // Désactiver le cache temporairement
+const CACHE_DURATION = 0; // Désactiver le cache pour forcer le rechargement
 
 export function useEntreprises() {
   const [entreprises, setEntreprises] = useState<any[]>([]);
