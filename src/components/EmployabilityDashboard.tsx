@@ -38,6 +38,8 @@ interface EventMetrics {
   conversionRate: number;
   eventsByVolet: { [key: string]: number };
   eventsByType: { [key: string]: number };
+  eventsByPole: { [key: string]: number };
+  conversionRateByPole: { [key: string]: number };
 }
 
 interface EnterpriseMetrics {
@@ -65,6 +67,7 @@ export const EmployabilityDashboard: React.FC = () => {
 
   const { entreprises, loading: entreprisesLoading } = useEntreprises();
   const { evenements, loading: evenementsLoading } = useEvenements();
+  const { poles, filieres } = useSettings();
 
   // Calculer les métriques des événements
   useEffect(() => {
@@ -76,7 +79,9 @@ export const EmployabilityDashboard: React.FC = () => {
         totalRetained: evenements.reduce((sum, event) => sum + (event.nombre_candidats_retenus || 0), 0),
         conversionRate: 0,
         eventsByVolet: {},
-        eventsByType: {}
+        eventsByType: {},
+        eventsByPole: {},
+        conversionRateByPole: {}
       };
 
       // Calculer le taux de conversion global
@@ -88,6 +93,26 @@ export const EmployabilityDashboard: React.FC = () => {
       evenements.forEach(event => {
         const volet = event.volet || 'non_defini';
         metrics.eventsByVolet[volet] = (metrics.eventsByVolet[volet] || 0) + 1;
+      });
+
+      // Répartition par pôle
+      evenements.forEach(event => {
+        if (event.pole_id) {
+          const pole = poles.find(p => p.id === event.pole_id);
+          const poleName = pole ? pole.nom : 'Pôle inconnu';
+          metrics.eventsByPole[poleName] = (metrics.eventsByPole[poleName] || 0) + 1;
+          
+          // Calculer le taux de conversion par pôle
+          const poleEvents = evenements.filter(e => e.pole_id === event.pole_id);
+          const poleCandidates = poleEvents.reduce((sum, e) => sum + (e.nombre_candidats || 0), 0);
+          const poleRetained = poleEvents.reduce((sum, e) => sum + (e.nombre_candidats_retenus || 0), 0);
+          
+          if (poleCandidates > 0) {
+            metrics.conversionRateByPole[poleName] = Math.round((poleRetained / poleCandidates) * 100 * 100) / 100;
+          } else {
+            metrics.conversionRateByPole[poleName] = 0;
+          }
+        }
       });
 
       setEventMetrics(metrics);
@@ -274,24 +299,31 @@ export const EmployabilityDashboard: React.FC = () => {
       const evenementsDetailData = [
         ['ÉVÉNEMENTS DÉTAILLÉS - COP CMC SM'],
         [''],
-        ['Nom de l\'événement', 'Date de début', 'Date de fin', 'Lieu', 'Volet', 'Statut', 'Type d\'événement', 'Stagiaires bénéficiaires', 'Candidats reçus', 'Candidats retenus', 'Taux de conversion (%)', 'Description'],
-        ...evenements.map(event => [
-          event.titre || 'N/A',
-          event.date_debut ? new Date(event.date_debut).toLocaleDateString('fr-FR') : 'N/A',
-          event.date_fin ? new Date(event.date_fin).toLocaleDateString('fr-FR') : 'N/A',
-          event.lieu || 'N/A',
-          event.volet === 'information_communication' ? 'Information/Communication' :
-          event.volet === 'accompagnement_projets' ? 'Accompagnement Projets' :
-          event.volet === 'assistance_carriere' ? 'Assistance Carrière' :
-          event.volet === 'assistance_filiere' ? 'Assistance Filière' : (event.volet || 'Non défini'),
-          event.statut || 'N/A',
-          event.type_evenement_id || 'N/A',
-          event.nombre_beneficiaires || 0,
-          event.nombre_candidats || 0,
-          event.nombre_candidats_retenus || 0,
-          event.taux_conversion ? `${event.taux_conversion}%` : '0%',
-          event.description || 'N/A'
-        ])
+        ['Nom de l\'événement', 'Date de début', 'Date de fin', 'Lieu', 'Volet', 'Pôle concerné', 'Filière concernée', 'Statut', 'Type d\'événement', 'Stagiaires bénéficiaires', 'Candidats reçus', 'Candidats retenus', 'Taux de conversion (%)', 'Description'],
+        ...evenements.map(event => {
+          const pole = poles.find(p => p.id === event.pole_id);
+          const filiere = filieres.find(f => f.id === event.filiere_id);
+          
+          return [
+            event.titre || 'N/A',
+            event.date_debut ? new Date(event.date_debut).toLocaleDateString('fr-FR') : 'N/A',
+            event.date_fin ? new Date(event.date_fin).toLocaleDateString('fr-FR') : 'N/A',
+            event.lieu || 'N/A',
+            event.volet === 'information_communication' ? 'Information/Communication' :
+            event.volet === 'accompagnement_projets' ? 'Accompagnement Projets' :
+            event.volet === 'assistance_carriere' ? 'Assistance Carrière' :
+            event.volet === 'assistance_filiere' ? 'Assistance Filière' : (event.volet || 'Non défini'),
+            pole ? pole.nom : 'N/A',
+            filiere ? filiere.nom : 'N/A',
+            event.statut || 'N/A',
+            event.type_evenement_id || 'N/A',
+            event.nombre_beneficiaires || 0,
+            event.nombre_candidats || 0,
+            event.nombre_candidats_retenus || 0,
+            event.taux_conversion ? `${event.taux_conversion}%` : '0%',
+            event.description || 'N/A'
+          ];
+        })
       ];
 
       const wsEvenementsDetail = XLSX.utils.aoa_to_sheet(evenementsDetailData);
@@ -384,7 +416,15 @@ export const EmployabilityDashboard: React.FC = () => {
         ['Entreprise', 'Nombre de demandes'],
         ...(finalDemandMetrics.topEnterprises.length > 0 
           ? finalDemandMetrics.topEnterprises.map(item => [item.name, item.demands])
-          : [['Aucune donnée', 0]])
+          : [['Aucune donnée', 0]]),
+        [''],
+        ['Métriques par Pôles'],
+        ['Pôle', 'Nombre d\'événements', 'Taux de conversion (%)'],
+        ...Object.entries(eventMetrics.eventsByPole).map(([poleName, eventCount]) => [
+          poleName,
+          eventCount,
+          `${eventMetrics.conversionRateByPole[poleName] || 0}%`
+        ])
       ];
 
       const wsAnalyses = XLSX.utils.aoa_to_sheet(analysesData);
@@ -696,6 +736,35 @@ export const EmployabilityDashboard: React.FC = () => {
            </div>
         </div>
       </div>
+
+      {/* Métriques par pôles */}
+      {eventMetrics && Object.keys(eventMetrics.eventsByPole).length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-indigo-600" />
+            Métriques par Pôles
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(eventMetrics.eventsByPole).map(([poleName, eventCount]) => (
+              <div key={poleName} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">{poleName}</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Événements</span>
+                    <span className="text-sm font-semibold">{eventCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Taux conversion</span>
+                    <span className="text-sm font-semibold text-green-600">
+                      {eventMetrics.conversionRateByPole[poleName] || 0}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

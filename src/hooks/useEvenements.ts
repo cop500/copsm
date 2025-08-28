@@ -44,11 +44,17 @@ export function useEvenements() {
           lieu,
           statut,
           volet,
+          pole_id,
+          filiere_id,
           photos_urls,
           type_evenement_id,
           responsable_cop,
           actif,
-          created_at
+          created_at,
+          nombre_beneficiaires,
+          nombre_candidats,
+          nombre_candidats_retenus,
+          taux_conversion
         `)
         .order('date_debut', { ascending: false });
 

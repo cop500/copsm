@@ -291,7 +291,7 @@ export const ModernEvenementsModule = () => {
     const valeursAutorisees = [
       { 'Champ': 'Volet', 'Valeurs autorisées': 'information_communication, accompagnement_projets, assistance_carriere, assistance_filiere' },
       { 'Champ': 'Statut', 'Valeurs autorisées': 'planifie, en_cours, termine, annule' },
-      { 'Champ': 'Type d\'événement', 'Valeurs autorisées': 'Job Day, Salon, Séminaire, Simulation Entretien, Visite d\'Entreprise' },
+      { 'Champ': 'Type d\'événement', 'Valeurs autorisées': 'Job Day, Salon, Séminaire, Simulation Entretien, Visite d\'Entreprise, Talent Acquisition, Sourcing, HIRING DRIVE, Speed Hiring' },
       { 'Champ': 'Métriques', 'Description': 'Nombre bénéficiaires, candidats et candidats retenus (optionnel)' }
     ];
 

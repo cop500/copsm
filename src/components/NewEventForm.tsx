@@ -13,6 +13,8 @@ interface EventFormData {
   titre: string
   type_evenement_id: string
   volet: string
+  pole_id?: string
+  filiere_id?: string
   date_debut: string
   date_fin?: string
   lieu: string
@@ -38,7 +40,7 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
   onCancel, 
   initialData 
 }) => {
-  const { eventTypes } = useSettings()
+  const { eventTypes, poles, filieres } = useSettings()
   
   // Liste des volets
   const volets = [
@@ -51,6 +53,8 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
     titre: '',
     type_evenement_id: '',
     volet: 'information_communication',
+    pole_id: '',
+    filiere_id: '',
     date_debut: '',
     date_fin: '',
     lieu: '',
@@ -102,6 +106,11 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
     setFormData(prev => {
       const newData = { ...prev, [field]: value }
       
+      // Réinitialiser la filière si le pôle change
+      if (field === 'pole_id') {
+        newData.filiere_id = ''
+      }
+      
       // Calculer automatiquement le taux de conversion
       if (field === 'nombre_candidats' || field === 'nombre_candidats_retenus') {
         const candidats = field === 'nombre_candidats' ? value : newData.nombre_candidats || 0
@@ -121,6 +130,11 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
+  }
+
+  // Obtenir les filières pour un pôle donné
+  const getFilieresForPole = (poleId: string) => {
+    return filieres.filter(f => f.pole_id === poleId)
   }
 
   // Upload des photos
@@ -220,6 +234,8 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
         titre: formData.titre,
         type_evenement_id: formData.type_evenement_id,
         volet: formData.volet,
+        pole_id: formData.pole_id || null,
+        filiere_id: formData.filiere_id || null,
         date_debut: formData.date_debut,
         date_fin: formData.date_fin || null,
         lieu: formData.lieu,
@@ -362,6 +378,45 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
                 {volets.map(volet => (
                   <option key={volet.value} value={volet.value}>
                     {volet.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Pôle */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Pôle concerné
+              </label>
+              <select
+                value={formData.pole_id}
+                onChange={(e) => handleInputChange('pole_id', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
+              >
+                <option value="">Sélectionner un pôle</option>
+                {poles.filter(p => p.actif).map(pole => (
+                  <option key={pole.id} value={pole.id}>
+                    {pole.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filière */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Filière concernée
+              </label>
+              <select
+                value={formData.filiere_id}
+                onChange={(e) => handleInputChange('filiere_id', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
+                disabled={!formData.pole_id}
+              >
+                <option value="">Sélectionner une filière</option>
+                {formData.pole_id && getFilieresForPole(formData.pole_id).map(filiere => (
+                  <option key={filiere.id} value={filiere.id}>
+                    {filiere.nom}
                   </option>
                 ))}
               </select>
