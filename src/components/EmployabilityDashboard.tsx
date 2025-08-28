@@ -9,6 +9,8 @@ import {
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { useEvenements } from '@/hooks/useEvenements';
 import { useSettings } from '@/hooks/useSettings';
+import { useUser } from '@/hooks/useUser';
+import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 
@@ -69,15 +71,11 @@ export const EmployabilityDashboard: React.FC = () => {
   const { entreprises, loading: entreprisesLoading, refresh: refreshEntreprises } = useEntreprises();
   const { evenements, loading: evenementsLoading, refresh: refreshEvenements } = useEvenements();
   const { poles, filieres } = useSettings();
+  const { currentUser } = useUser();
+  const { isAdmin } = useRole();
 
   // Calculer les métriques des événements
   useEffect(() => {
-    console.log('🔍 Debug EmployabilityDashboard - evenements:', {
-      count: evenements?.length || 0,
-      evenements: evenements?.slice(0, 3), // Afficher les 3 premiers pour debug
-      poles: poles?.length || 0,
-      filieres: filieres?.length || 0
-    });
     
 
     
@@ -220,21 +218,10 @@ export const EmployabilityDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Debug logs pour identifier le problème
-    console.log('🔍 Debug EmployabilityDashboard:', {
-      entreprisesLoading,
-      evenementsLoading,
-      demandMetrics: demandMetrics !== null,
-      entreprises: entreprises?.length || 0,
-      evenements: evenements?.length || 0,
-      allDataLoaded: !entreprisesLoading && !evenementsLoading && demandMetrics !== null
-    });
-
     // Arrêter le chargement quand toutes les données sont chargées
     const allDataLoaded = !entreprisesLoading && !evenementsLoading && demandMetrics !== null;
     
     if (allDataLoaded) {
-      console.log('✅ Toutes les données sont chargées, arrêt du loading');
       setLoading(false);
     }
   }, [entreprisesLoading, evenementsLoading, demandMetrics, entreprises, evenements]);
@@ -243,7 +230,6 @@ export const EmployabilityDashboard: React.FC = () => {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (loading) {
-        console.log('⚠️ Timeout de sécurité - arrêt forcé du loading');
         setLoading(false);
       }
     }, 10000); // 10 secondes
@@ -551,9 +537,7 @@ export const EmployabilityDashboard: React.FC = () => {
           {evenementsLoading && 'Chargement des événements...'}
           {demandMetrics === null && 'Chargement des demandes...'}
         </div>
-        <div className="mt-4 text-xs text-gray-400">
-          Debug: E={entreprisesLoading ? '⏳' : '✅'} | Ev={evenementsLoading ? '⏳' : '✅'} | D={demandMetrics ? '✅' : '⏳'}
-        </div>
+        
       </div>
     );
   }
@@ -588,23 +572,25 @@ export const EmployabilityDashboard: React.FC = () => {
               Actualiser
             </button>
             
-            <button 
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {exporting ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Export...
-                </>
-              ) : (
-                <>
-                  <Download className="w-3 h-3" />
-                  Exporter
-                </>
-              )}
-            </button>
+            {isAdmin && (
+              <button 
+                onClick={handleExport}
+                disabled={exporting}
+                className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {exporting ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Export...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3 h-3" />
+                    Exporter
+                  </>
+                )}
+              </button>
+            )}
         </div>
       </div>
 
