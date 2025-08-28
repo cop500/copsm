@@ -119,12 +119,13 @@ export const EmployabilityDashboard: React.FC = () => {
   useEffect(() => {
     const fetchDemandMetrics = async () => {
       try {
+        // Requête corrigée avec LEFT JOIN au lieu de INNER JOIN
         const { data: demandes, error } = await supabase
           .from('demandes_entreprises')
           .select(`
             id,
             statut,
-            entreprises!inner(nom),
+            entreprises(nom),
             profiles(id)
           `);
 
@@ -152,6 +153,13 @@ export const EmployabilityDashboard: React.FC = () => {
         setDemandMetrics(metrics);
       } catch (error) {
         console.error('Erreur lors du chargement des métriques de demandes:', error);
+        // En cas d'erreur, on définit quand même des métriques par défaut
+        setDemandMetrics({
+          totalDemands: 0,
+          activeDemands: 0,
+          totalProfiles: 0,
+          topEnterprises: []
+        });
       }
     };
 
@@ -193,22 +201,30 @@ export const EmployabilityDashboard: React.FC = () => {
   // Fonction d'export du rapport
   const handleExport = async () => {
     // Vérifier si les données sont encore en cours de chargement
-    if (entreprisesLoading || evenementsLoading || !demandMetrics) {
+    if (entreprisesLoading || evenementsLoading) {
       alert('Veuillez attendre le chargement complet des données');
       return;
     }
 
-    // Vérifier si les données de base sont disponibles
+    // Vérifier si les données de base sont disponibles (même si vides)
     if (!evenements || !entreprises) {
       alert('Aucune donnée disponible pour l\'export');
       return;
     }
 
-    // Vérifier si les métriques calculées sont disponibles
+    // Vérifier si les métriques calculées sont disponibles (même si vides)
     if (!eventMetrics || !enterpriseMetrics) {
       alert('Calcul des métriques en cours, veuillez patienter...');
       return;
     }
+
+    // Utiliser des métriques par défaut si demandMetrics est null
+    const finalDemandMetrics = demandMetrics || {
+      totalDemands: 0,
+      activeDemands: 0,
+      totalProfiles: 0,
+      topEnterprises: []
+    };
 
     setExporting(true);
     try {
@@ -239,11 +255,11 @@ export const EmployabilityDashboard: React.FC = () => {
             valeur: enterpriseMetrics.partners,
             description: 'Nombre d\'entreprises avec statut partenaire'
           },
-          {
-            indicateur: 'Demandes actives',
-            valeur: demandMetrics.activeDemands,
-            description: 'Nombre de demandes de stages actuellement actives'
-          }
+                     {
+             indicateur: 'Demandes actives',
+             valeur: finalDemandMetrics.activeDemands,
+             description: 'Nombre de demandes de stages actuellement actives'
+           }
         ],
 
         // Métriques détaillées des événements
@@ -275,13 +291,13 @@ export const EmployabilityDashboard: React.FC = () => {
           }))
         },
 
-        // Métriques des demandes
-        demandes: {
-          total: demandMetrics.totalDemands,
-          actives: demandMetrics.activeDemands,
-          total_profils: demandMetrics.totalProfiles,
-          top_entreprises: demandMetrics.topEnterprises
-        }
+                 // Métriques des demandes
+         demandes: {
+           total: finalDemandMetrics.totalDemands,
+           actives: finalDemandMetrics.activeDemands,
+           total_profils: finalDemandMetrics.totalProfiles,
+           top_entreprises: finalDemandMetrics.topEnterprises
+         }
       };
 
       // Créer le fichier Excel
@@ -346,13 +362,15 @@ export const EmployabilityDashboard: React.FC = () => {
         ['MÉTRIQUES DES DEMANDES'],
         [''],
         ['Indicateur', 'Valeur'],
-        ['Total demandes', exportData.demandes.total],
-        ['Demandes actives', exportData.demandes.actives],
-        ['Total profils', exportData.demandes.total_profils],
-        [''],
-        ['Top entreprises actives'],
-        ['Entreprise', 'Nombre de demandes'],
-        ...exportData.demandes.top_entreprises.map(item => [item.name, item.demands])
+                 ['Total demandes', exportData.demandes.total],
+         ['Demandes actives', exportData.demandes.actives],
+         ['Total profils', exportData.demandes.total_profils],
+         [''],
+         ['Top entreprises actives'],
+         ['Entreprise', 'Nombre de demandes'],
+         ...(exportData.demandes.top_entreprises.length > 0 
+           ? exportData.demandes.top_entreprises.map(item => [item.name, item.demands])
+           : [['Aucune donnée', 0]])
       ];
 
       const wsDemandes = XLSX.utils.aoa_to_sheet(demandesData);
@@ -401,14 +419,14 @@ export const EmployabilityDashboard: React.FC = () => {
       color: 'purple',
       icon: Building2
     },
-    {
-      label: 'Demandes actives',
-      value: demandMetrics?.activeDemands || 0,
-      trend: '+8 cette semaine',
-      trendValue: 8,
-      color: 'orange',
-      icon: FileText
-    }
+         {
+       label: 'Demandes actives',
+       value: (demandMetrics || { activeDemands: 0 }).activeDemands,
+       trend: '+8 cette semaine',
+       trendValue: 8,
+       color: 'orange',
+       icon: FileText
+     }
   ];
 
   // Données pour les graphiques
@@ -648,14 +666,20 @@ export const EmployabilityDashboard: React.FC = () => {
             <Target className="w-4 h-4 text-red-600" />
             Top entreprises
           </h3>
-          <div className="space-y-2">
-            {demandMetrics?.topEnterprises.map((entreprise, index) => (
-              <div key={index} className="flex justify-between items-center">
-                <span className="text-xs text-gray-600 truncate">{entreprise.name}</span>
-                <span className="text-sm font-semibold">{entreprise.demands} demandes</span>
-              </div>
-            ))}
-          </div>
+                     <div className="space-y-2">
+             {(demandMetrics?.topEnterprises || []).length > 0 ? (
+               demandMetrics.topEnterprises.map((entreprise, index) => (
+                 <div key={index} className="flex justify-between items-center">
+                   <span className="text-xs text-gray-600 truncate">{entreprise.name}</span>
+                   <span className="text-sm font-semibold">{entreprise.demands} demandes</span>
+                 </div>
+               ))
+             ) : (
+               <div className="text-xs text-gray-500 text-center py-2">
+                 Aucune donnée disponible
+               </div>
+             )}
+           </div>
         </div>
       </div>
     </div>
