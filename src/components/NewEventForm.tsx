@@ -352,8 +352,14 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
         description: formData.description,
         responsable_cop: formData.responsable_cop,
         statut: formData.statut,
+        nombre_beneficiaires: formData.nombre_beneficiaires || 0,
+        nombre_candidats: formData.nombre_candidats || 0,
+        nombre_candidats_retenus: formData.nombre_candidats_retenus || 0,
+        taux_conversion: formData.taux_conversion || 0,
         actif: true
       }
+
+      console.log('📊 Données événement à sauvegarder:', eventData);
 
       // Ajouter les nouvelles photos si présentes
       if (photosUrls.length > 0) {
