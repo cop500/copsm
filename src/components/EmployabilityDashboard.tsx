@@ -63,8 +63,8 @@ export const EmployabilityDashboard: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('current_year');
   const [exporting, setExporting] = useState(false);
 
-  const { entreprises } = useEntreprises();
-  const { evenements } = useEvenements();
+  const { entreprises, loading: entreprisesLoading } = useEntreprises();
+  const { evenements, loading: evenementsLoading } = useEvenements();
 
   // Calculer les métriques des événements
   useEffect(() => {
@@ -159,29 +159,25 @@ export const EmployabilityDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Arrêter le chargement après un délai maximum ou quand toutes les données sont chargées
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000); // Timeout de 3 secondes
-
-    // Vérifier si les données sont disponibles (même si certaines sont vides)
-    const hasEventData = evenements !== null && evenements !== undefined;
-    const hasEnterpriseData = entreprises !== null && entreprises !== undefined;
-    const hasDemandData = demandMetrics !== null;
-
-    if (hasEventData && hasEnterpriseData && hasDemandData) {
-      clearTimeout(timer);
+    // Arrêter le chargement quand toutes les données sont chargées
+    const allDataLoaded = !entreprisesLoading && !evenementsLoading && demandMetrics !== null;
+    
+    if (allDataLoaded) {
       setLoading(false);
     }
-
-    return () => clearTimeout(timer);
-  }, [evenements, entreprises, demandMetrics]);
+  }, [entreprisesLoading, evenementsLoading, demandMetrics]);
 
   // Fonction d'export du rapport
   const handleExport = async () => {
-    // Vérifier si les données de base sont disponibles
-    if (!evenements || !entreprises || !demandMetrics) {
+    // Vérifier si les données sont encore en cours de chargement
+    if (entreprisesLoading || evenementsLoading || !demandMetrics) {
       alert('Veuillez attendre le chargement complet des données');
+      return;
+    }
+
+    // Vérifier si les données de base sont disponibles
+    if (!evenements || !entreprises) {
+      alert('Aucune donnée disponible pour l\'export');
       return;
     }
 
@@ -428,8 +424,8 @@ export const EmployabilityDashboard: React.FC = () => {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <span className="ml-2 text-sm text-gray-600">Chargement des métriques...</span>
         <div className="mt-2 text-xs text-gray-500">
-          {evenements === null && 'Chargement des événements...'}
-          {entreprises === null && 'Chargement des entreprises...'}
+          {entreprisesLoading && 'Chargement des entreprises...'}
+          {evenementsLoading && 'Chargement des événements...'}
           {demandMetrics === null && 'Chargement des demandes...'}
         </div>
       </div>
