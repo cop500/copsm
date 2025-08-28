@@ -71,9 +71,20 @@ const EntreprisesForm = () => {
       }
     ];
 
+    // Feuille avec les valeurs autorisées
+    const valeursAutorisees = [
+      { 'Champ': 'Statut', 'Valeurs autorisées': 'prospect, partenaire, actif, inactif' },
+      { 'Champ': 'Niveau d\'intérêt', 'Valeurs autorisées': 'faible, moyen, fort (ou: Faible, Moyen, Fort)' },
+      { 'Champ': 'Secteur', 'Exemples': 'Informatique, Industrie, Commerce, Services, BTP, Tourisme, Agriculture, Finance, Santé, Éducation' }
+    ];
+
     const ws = XLSX.utils.json_to_sheet(template);
+    const wsValeurs = XLSX.utils.json_to_sheet(valeursAutorisees);
+    
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Entreprises');
+    XLSX.utils.book_append_sheet(wb, wsValeurs, 'Valeurs autorisées');
+    
     XLSX.writeFile(wb, 'template_entreprises.xlsx');
   };
 
@@ -99,6 +110,29 @@ const EntreprisesForm = () => {
         console.log('📊 Données JSON extraites:', jsonData.length, 'lignes');
         console.log('📋 Première ligne (exemple):', jsonData[0]);
         
+        // Fonction pour normaliser le niveau d'intérêt
+        const normalizeNiveauInteret = (value: string): string => {
+          const normalized = value.toLowerCase().trim();
+          console.log(`🔄 Normalisation niveau d'intérêt: "${value}" -> "${normalized}"`);
+          
+          // Mapping des variations possibles
+          const mapping: { [key: string]: string } = {
+            'faible': 'faible',
+            'moyen': 'moyen',
+            'fort': 'fort',
+            'low': 'faible',
+            'medium': 'moyen',
+            'high': 'fort',
+            'bas': 'faible',
+            'élevé': 'fort',
+            'eleve': 'fort'
+          };
+          
+          const result = mapping[normalized] || 'moyen'; // Valeur par défaut
+          console.log(`✅ Niveau d'intérêt normalisé: "${normalized}" -> "${result}"`);
+          return result;
+        };
+
         // Mapper les colonnes Excel vers nos champs
         const mappedData = jsonData.map((row: any, index: number) => {
           console.log(`🔄 Mapping ligne ${index + 1}:`, row);
@@ -111,7 +145,7 @@ const EntreprisesForm = () => {
             email: row['Email'] || '',
             contact_personne: row['Personne de contact'] || row['Contact'] || '',
             statut: (row['Statut'] || 'prospect').toLowerCase(),
-            niveau_interet: (row['Niveau d\'intérêt'] || row['Niveau interet'] || 'moyen').toLowerCase(),
+            niveau_interet: normalizeNiveauInteret(row['Niveau d\'intérêt'] || row['Niveau interet'] || 'moyen'),
             notes_bd: row['Notes'] || ''
           };
           
