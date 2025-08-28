@@ -268,12 +268,33 @@ export const ModernEvenementsModule = () => {
         'Responsable COP': 'Jean Dupont',
         'Statut': 'planifie',
         'Volet': 'information_communication'
+      },
+      {
+        'Titre': 'Exemple atelier',
+        'Type d\'événement': 'Séminaire',
+        'Date de début': '2024-01-20T14:00',
+        'Lieu': 'Salle de formation',
+        'Description': 'Atelier de préparation CV',
+        'Responsable COP': 'Marie Martin',
+        'Statut': 'planifie',
+        'Volet': 'accompagnement_projets'
       }
     ];
 
+    // Ajouter une feuille avec les valeurs autorisées
+    const valeursAutorisees = [
+      { 'Champ': 'Volet', 'Valeurs autorisées': 'information_communication, accompagnement_projets, assistance_carriere, assistance_filiere' },
+      { 'Champ': 'Statut', 'Valeurs autorisées': 'planifie, en_cours, termine, annule' },
+      { 'Champ': 'Type d\'événement', 'Valeurs autorisées': 'Job Day, Salon, Séminaire, Simulation Entretien, Visite d\'Entreprise' }
+    ];
+
     const ws = XLSX.utils.json_to_sheet(template);
+    const wsValeurs = XLSX.utils.json_to_sheet(valeursAutorisees);
+    
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Événements');
+    XLSX.utils.book_append_sheet(wb, wsValeurs, 'Valeurs autorisées');
+    
     XLSX.writeFile(wb, 'template_evenements.xlsx');
   };
 
@@ -300,9 +321,46 @@ export const ModernEvenementsModule = () => {
           throw new Error('Le fichier Excel ne contient aucune donnée');
         }
         
+        // Fonction pour normaliser le volet
+        const normalizeVolet = (voletValue: string): string => {
+          if (!voletValue) return 'information_communication';
+          
+          const voletLower = voletValue.toLowerCase().trim();
+          
+          // Mapping des variations possibles vers les valeurs autorisées
+          const voletMapping: { [key: string]: string } = {
+            'information/communication': 'information_communication',
+            'information_communication': 'information_communication',
+            'information': 'information_communication',
+            'communication': 'information_communication',
+            
+            'accompagnement des stagiaires dans la réalisation de leur projets professionnels': 'accompagnement_projets',
+            'accompagnement_projets': 'accompagnement_projets',
+            'accompagnement': 'accompagnement_projets',
+            'projets professionnels': 'accompagnement_projets',
+            
+            'assistance au choix de carrière': 'assistance_carriere',
+            'assistance_carriere': 'assistance_carriere',
+            'carrière': 'assistance_carriere',
+            'carriere': 'assistance_carriere',
+            
+            'assistance au choix de filière': 'assistance_filiere',
+            'assistance_filiere': 'assistance_filiere',
+            'filière': 'assistance_filiere',
+            'filiere': 'assistance_filiere'
+          };
+          
+          return voletMapping[voletLower] || 'information_communication';
+        };
+
         // Mapper les colonnes Excel vers nos champs
         const mappedData = jsonData.map((row: any, index: number) => {
           console.log(`📝 Ligne ${index + 1}:`, row);
+          
+          const voletValue = row['Volet'] || row['volet'] || '';
+          const normalizedVolet = normalizeVolet(voletValue);
+          
+          console.log(`🔍 Volet original: "${voletValue}" → Normalisé: "${normalizedVolet}"`);
           
           const mapped = {
             titre: row['Titre'] || row['titre'] || '',
@@ -312,7 +370,7 @@ export const ModernEvenementsModule = () => {
             description: row['Description'] || row['description'] || '',
             responsable_cop: row['Responsable COP'] || row['Responsable'] || row['responsable_cop'] || '',
             statut: (row['Statut'] || row['statut'] || 'planifie').toLowerCase(),
-            volet: row['Volet'] || row['volet'] || 'information_communication'
+            volet: normalizedVolet
           };
           
           console.log(`✅ Ligne ${index + 1} mappée:`, mapped);
