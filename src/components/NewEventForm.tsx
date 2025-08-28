@@ -222,11 +222,8 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
   const getLieuSuggestions = () => {
     return [
       "COP CMC",
-      "COP CMC - Salle de réunion",
-      "COP CMC - Amphithéâtre",
-      "COP CMC - Espace formation",
-      "En ligne (Zoom/Teams)",
-      "Lieu externe (à préciser)"
+      "COP CMC Salle Séminaire",
+      "Lieu à préciser"
     ]
   }
 
@@ -234,10 +231,9 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
   const getResponsableSuggestions = () => {
     return [
       "Équipe COP",
-      "Équipe COP CMC",
-      "Responsable COP",
-      "Coordinateur COP",
-      "Chargé de mission COP"
+      "BD",
+      "CC",
+      "CO"
     ]
   }
 
