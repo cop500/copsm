@@ -154,8 +154,8 @@ export const EmployabilityDashboard: React.FC = () => {
             poleStats[poleName].candidates += (event.nombre_candidats || 0);
             poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
           } else {
-            // Événements sans pôle assigné
-            const poleName = 'Sans pôle assigné (à configurer)';
+            // Événements destinés à tous les pôles
+            const poleName = 'Tous les pôles confondus';
             if (!poleStats[poleName]) {
               poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
             }
