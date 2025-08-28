@@ -157,9 +157,17 @@ export const EmployabilityDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Arrêter le chargement après un délai maximum ou quand toutes les données sont chargées
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 5000); // Timeout de 5 secondes
+
     if (eventMetrics && enterpriseMetrics && demandMetrics) {
+      clearTimeout(timer);
       setLoading(false);
     }
+
+    return () => clearTimeout(timer);
   }, [eventMetrics, enterpriseMetrics, demandMetrics]);
 
   // KPIs principaux
@@ -230,58 +238,59 @@ export const EmployabilityDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-sm text-gray-600">Chargement des métriques...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Header simplifié */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bilan d'Employabilité</h1>
-          <p className="text-gray-600 mt-1">Tableau de bord complet des métriques d'employabilité</p>
+          <h2 className="text-lg font-semibold text-gray-900">Métriques d'employabilité</h2>
+          <p className="text-sm text-gray-600">Vue d'ensemble des performances</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="current_month">Ce mois</option>
             <option value="current_year">Cette année</option>
             <option value="all_time">Tout le temps</option>
           </select>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Download className="w-4 h-4" />
-            Exporter le rapport
+          <button className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <Download className="w-3 h-3" />
+            Exporter
           </button>
         </div>
       </div>
 
       {/* KPIs principaux */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map((kpi, index) => (
-          <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">{kpi.label}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{kpi.value}</p>
-                <div className="flex items-center gap-1 mt-2">
+                <p className="text-xs font-medium text-gray-600">{kpi.label}</p>
+                <p className="text-lg font-bold text-gray-900 mt-1">{kpi.value}</p>
+                <div className="flex items-center gap-1 mt-1">
                   {kpi.trendValue > 0 ? (
-                    <ArrowUpRight className="w-4 h-4 text-green-500" />
+                    <ArrowUpRight className="w-3 h-3 text-green-500" />
                   ) : (
-                    <ArrowDownRight className="w-4 h-4 text-red-500" />
+                    <ArrowDownRight className="w-3 h-3 text-red-500" />
                   )}
-                  <span className={`text-sm ${kpi.trendValue > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`text-xs ${kpi.trendValue > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {kpi.trend}
                   </span>
                 </div>
               </div>
-              <div className={`p-3 rounded-lg bg-${kpi.color}-100`}>
-                <kpi.icon className={`w-6 h-6 text-${kpi.color}-600`} />
+              <div className={`p-2 rounded-lg bg-${kpi.color}-100`}>
+                <kpi.icon className={`w-5 h-5 text-${kpi.color}-600`} />
               </div>
             </div>
           </div>
@@ -289,25 +298,25 @@ export const EmployabilityDashboard: React.FC = () => {
       </div>
 
       {/* Graphiques et métriques détaillées */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Événements par volet */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Événements par volet</h3>
-          <div className="space-y-3">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">Événements par volet</h3>
+          <div className="space-y-2">
             {voletChartData.labels.map((label, index) => (
               <div key={index} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{label}</span>
+                <span className="text-xs text-gray-600 truncate">{label}</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div className="w-16 bg-gray-200 rounded-full h-1.5">
                     <div 
-                      className="h-2 rounded-full"
+                      className="h-1.5 rounded-full"
                       style={{ 
                         width: `${(voletChartData.datasets[0].data[index] / Math.max(...voletChartData.datasets[0].data)) * 100}%`,
                         backgroundColor: voletChartData.datasets[0].backgroundColor[index]
                       }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-xs font-medium text-gray-900">
                     {voletChartData.datasets[0].data[index]}
                   </span>
                 </div>
@@ -317,23 +326,23 @@ export const EmployabilityDashboard: React.FC = () => {
         </div>
 
         {/* Entreprises par secteur */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Entreprises par secteur</h3>
-          <div className="space-y-3">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">Entreprises par secteur</h3>
+          <div className="space-y-2">
             {sectorChartData.labels.map((label, index) => (
               <div key={index} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{label}</span>
+                <span className="text-xs text-gray-600 truncate">{label}</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div className="w-16 bg-gray-200 rounded-full h-1.5">
                     <div 
-                      className="h-2 rounded-full"
+                      className="h-1.5 rounded-full"
                       style={{ 
                         width: `${(sectorChartData.datasets[0].data[index] / Math.max(...sectorChartData.datasets[0].data)) * 100}%`,
                         backgroundColor: sectorChartData.datasets[0].backgroundColor[index]
                       }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-xs font-medium text-gray-900">
                     {sectorChartData.datasets[0].data[index]}
                   </span>
                 </div>
@@ -344,63 +353,63 @@ export const EmployabilityDashboard: React.FC = () => {
       </div>
 
       {/* Métriques détaillées */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Métriques des événements */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-600" />
-            Métriques des événements
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-600" />
+            Événements
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Total événements</span>
-              <span className="font-semibold">{eventMetrics?.totalEvents}</span>
+              <span className="text-xs text-gray-600">Total</span>
+              <span className="text-sm font-semibold">{eventMetrics?.totalEvents}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Bénéficiaires</span>
-              <span className="font-semibold">{eventMetrics?.totalBeneficiaries}</span>
+              <span className="text-xs text-gray-600">Bénéficiaires</span>
+              <span className="text-sm font-semibold">{eventMetrics?.totalBeneficiaries}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Candidats reçus</span>
-              <span className="font-semibold">{eventMetrics?.totalCandidates}</span>
+              <span className="text-xs text-gray-600">Candidats reçus</span>
+              <span className="text-sm font-semibold">{eventMetrics?.totalCandidates}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Candidats retenus</span>
-              <span className="font-semibold">{eventMetrics?.totalRetained}</span>
+              <span className="text-xs text-gray-600">Candidats retenus</span>
+              <span className="text-sm font-semibold">{eventMetrics?.totalRetained}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Taux de conversion</span>
-              <span className="font-semibold text-green-600">{eventMetrics?.conversionRate}%</span>
+              <span className="text-xs text-gray-600">Taux conversion</span>
+              <span className="text-sm font-semibold text-green-600">{eventMetrics?.conversionRate}%</span>
             </div>
           </div>
         </div>
 
         {/* Métriques des entreprises */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-purple-600" />
-            Métriques des entreprises
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-purple-600" />
+            Entreprises
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Total entreprises</span>
-              <span className="font-semibold">{enterpriseMetrics?.totalEnterprises}</span>
+              <span className="text-xs text-gray-600">Total</span>
+              <span className="text-sm font-semibold">{enterpriseMetrics?.totalEnterprises}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Prospects</span>
-              <span className="font-semibold text-orange-600">{enterpriseMetrics?.prospects}</span>
+              <span className="text-xs text-gray-600">Prospects</span>
+              <span className="text-sm font-semibold text-orange-600">{enterpriseMetrics?.prospects}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Partenaires</span>
-              <span className="font-semibold text-green-600">{enterpriseMetrics?.partners}</span>
+              <span className="text-xs text-gray-600">Partenaires</span>
+              <span className="text-sm font-semibold text-green-600">{enterpriseMetrics?.partners}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Avec contrats</span>
-              <span className="font-semibold text-blue-600">{enterpriseMetrics?.withContracts}</span>
+              <span className="text-xs text-gray-600">Avec contrats</span>
+              <span className="text-sm font-semibold text-blue-600">{enterpriseMetrics?.withContracts}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Taux de partenariat</span>
-              <span className="font-semibold">
+              <span className="text-xs text-gray-600">Taux partenariat</span>
+              <span className="text-sm font-semibold">
                 {enterpriseMetrics ? Math.round((enterpriseMetrics.partners / enterpriseMetrics.totalEnterprises) * 100) : 0}%
               </span>
             </div>
@@ -408,16 +417,16 @@ export const EmployabilityDashboard: React.FC = () => {
         </div>
 
         {/* Top entreprises */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-red-600" />
-            Top entreprises actives
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Target className="w-4 h-4 text-red-600" />
+            Top entreprises
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {demandMetrics?.topEnterprises.map((entreprise, index) => (
               <div key={index} className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 truncate">{entreprise.name}</span>
-                <span className="font-semibold text-sm">{entreprise.demands} demandes</span>
+                <span className="text-xs text-gray-600 truncate">{entreprise.name}</span>
+                <span className="text-sm font-semibold">{entreprise.demands} demandes</span>
               </div>
             ))}
           </div>
