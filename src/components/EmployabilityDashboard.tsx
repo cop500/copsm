@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { useEvenements } from '@/hooks/useEvenements';
+import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 
