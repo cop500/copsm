@@ -218,6 +218,39 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
     handleInputChange('description', newDescription)
   }
 
+  // Suggestions pour le lieu
+  const getLieuSuggestions = () => {
+    return [
+      "COP CMC",
+      "COP CMC - Salle de réunion",
+      "COP CMC - Amphithéâtre",
+      "COP CMC - Espace formation",
+      "En ligne (Zoom/Teams)",
+      "Lieu externe (à préciser)"
+    ]
+  }
+
+  // Suggestions pour le responsable
+  const getResponsableSuggestions = () => {
+    return [
+      "Équipe COP",
+      "Équipe COP CMC",
+      "Responsable COP",
+      "Coordinateur COP",
+      "Chargé de mission COP"
+    ]
+  }
+
+  // Ajouter une suggestion au lieu
+  const addLieuSuggestion = (suggestion: string) => {
+    handleInputChange('lieu', suggestion)
+  }
+
+  // Ajouter une suggestion au responsable
+  const addResponsableSuggestion = (suggestion: string) => {
+    handleInputChange('responsable_cop', suggestion)
+  }
+
   // Upload des photos
   const handlePhotoUpload = useCallback((files: FileList | null) => {
     if (!files) return
@@ -577,6 +610,26 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
                   {errors.lieu}
                 </p>
               )}
+
+              {/* Suggestions de lieu */}
+              <div className="mt-3">
+                <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  Suggestions rapides (cliquez pour sélectionner) :
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {getLieuSuggestions().map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => addLieuSuggestion(suggestion)}
+                      className="px-3 py-1 text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Responsable */}
@@ -593,6 +646,26 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
                   placeholder="Nom du responsable"
                 />
+              </div>
+
+              {/* Suggestions de responsable */}
+              <div className="mt-3">
+                <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  Suggestions rapides (cliquez pour sélectionner) :
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {getResponsableSuggestions().map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => addResponsableSuggestion(suggestion)}
+                      className="px-3 py-1 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
