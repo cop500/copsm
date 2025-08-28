@@ -66,8 +66,8 @@ export const EmployabilityDashboard: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('current_year');
   const [exporting, setExporting] = useState(false);
 
-  const { entreprises, loading: entreprisesLoading, refresh: refreshEntreprises } = useEntreprises();
-  const { evenements, loading: evenementsLoading, refresh: refreshEvenements } = useEvenements();
+  const { entreprises, loading: entreprisesLoading } = useEntreprises();
+  const { evenements, loading: evenementsLoading } = useEvenements();
   const { poles, filieres } = useSettings();
 
   // Calculer les métriques des événements
@@ -574,16 +574,7 @@ export const EmployabilityDashboard: React.FC = () => {
             <option value="current_year">Cette année</option>
             <option value="all_time">Tout le temps</option>
           </select>
-                     <button 
-             onClick={() => {
-               refreshEntreprises();
-               refreshEvenements();
-             }}
-             className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-           >
-             <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-             Actualiser
-           </button>
+          
            <button 
              onClick={handleExport}
              disabled={exporting}
