@@ -162,20 +162,32 @@ export const EmployabilityDashboard: React.FC = () => {
     // Arrêter le chargement après un délai maximum ou quand toutes les données sont chargées
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 5000); // Timeout de 5 secondes
+    }, 3000); // Timeout de 3 secondes
 
-    if (eventMetrics && enterpriseMetrics && demandMetrics) {
+    // Vérifier si les données sont disponibles (même si certaines sont vides)
+    const hasEventData = evenements !== null && evenements !== undefined;
+    const hasEnterpriseData = entreprises !== null && entreprises !== undefined;
+    const hasDemandData = demandMetrics !== null;
+
+    if (hasEventData && hasEnterpriseData && hasDemandData) {
       clearTimeout(timer);
       setLoading(false);
     }
 
     return () => clearTimeout(timer);
-  }, [eventMetrics, enterpriseMetrics, demandMetrics]);
+  }, [evenements, entreprises, demandMetrics]);
 
   // Fonction d'export du rapport
   const handleExport = async () => {
-    if (!eventMetrics || !enterpriseMetrics || !demandMetrics) {
+    // Vérifier si les données de base sont disponibles
+    if (!evenements || !entreprises || !demandMetrics) {
       alert('Veuillez attendre le chargement complet des données');
+      return;
+    }
+
+    // Vérifier si les métriques calculées sont disponibles
+    if (!eventMetrics || !enterpriseMetrics) {
+      alert('Calcul des métriques en cours, veuillez patienter...');
       return;
     }
 
@@ -415,6 +427,11 @@ export const EmployabilityDashboard: React.FC = () => {
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <span className="ml-2 text-sm text-gray-600">Chargement des métriques...</span>
+        <div className="mt-2 text-xs text-gray-500">
+          {evenements === null && 'Chargement des événements...'}
+          {entreprises === null && 'Chargement des entreprises...'}
+          {demandMetrics === null && 'Chargement des demandes...'}
+        </div>
       </div>
     );
   }
