@@ -70,16 +70,45 @@ export const EmployabilityDashboard: React.FC = () => {
 
   const { entreprises, loading: entreprisesLoading, refresh: refreshEntreprises } = useEntreprises();
   const { evenements, loading: evenementsLoading, refresh: refreshEvenements } = useEvenements();
+
+  // Fonction pour rafraîchir toutes les données
+  const handleRefresh = async () => {
+    console.log('🔄 Rafraîchissement manuel des données...');
+    setLoading(true);
+    try {
+      await Promise.all([
+        refreshEntreprises(),
+        refreshEvenements()
+      ]);
+      console.log('✅ Données rafraîchies avec succès');
+    } catch (error) {
+      console.error('❌ Erreur lors du rafraîchissement:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   const { poles, filieres } = useSettings();
   const { user: currentUser } = useAuth();
   const { isAdmin } = useRole();
 
   // Calculer les métriques des événements
   useEffect(() => {
-    
-
+    console.log('🔄 Dashboard - Mise à jour des métriques événements');
+    console.log('📊 Événements reçus:', evenements?.length || 0);
     
     if (evenements) {
+      // Log des données de recrutement pour débogage
+      evenements.forEach((event, index) => {
+        if (event.nombre_beneficiaires || event.nombre_candidats || event.nombre_candidats_retenus) {
+          console.log(`📈 Événement ${index + 1} (${event.titre}):`, {
+            beneficiaires: event.nombre_beneficiaires,
+            candidats: event.nombre_candidats,
+            retenus: event.nombre_candidats_retenus,
+            taux: event.taux_conversion
+          });
+        }
+      });
+
       const metrics: EventMetrics = {
         totalEvents: evenements.length,
         totalBeneficiaries: evenements.reduce((sum, event) => sum + (event.nombre_beneficiaires || 0), 0),
@@ -91,6 +120,12 @@ export const EmployabilityDashboard: React.FC = () => {
         eventsByPole: {},
         conversionRateByPole: {}
       };
+
+      console.log('📊 Métriques calculées:', {
+        totalBeneficiaries: metrics.totalBeneficiaries,
+        totalCandidates: metrics.totalCandidates,
+        totalRetained: metrics.totalRetained
+      });
 
       // Calculer le taux de conversion global
       if (metrics.totalCandidates > 0) {
@@ -562,13 +597,15 @@ export const EmployabilityDashboard: React.FC = () => {
           </select>
           
                        <button 
-              onClick={() => {
-                refreshEntreprises();
-                refreshEvenements();
-              }}
-              className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              {loading ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Activity className="w-3 h-3" />
+              )}
               Actualiser
             </button>
             
