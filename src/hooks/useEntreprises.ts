@@ -95,26 +95,54 @@ export function useEntreprises() {
 
   // Ajout ou modification d'une entreprise - optimisé
   const saveEntreprise = async (entreprise: any) => {
+    console.log('💾 Début sauvegarde entreprise:', entreprise.nom);
+    console.log('📝 Données complètes:', entreprise);
+    
     try {
       if (entreprise.id) {
         // Mise à jour
-        const { error } = await supabase
+        console.log('🔄 Mise à jour entreprise existante ID:', entreprise.id);
+        const { data, error } = await supabase
           .from('entreprises')
           .update(entreprise)
-          .eq('id', entreprise.id);
-        if (error) return { success: false, error };
+          .eq('id', entreprise.id)
+          .select();
+        
+        if (error) {
+          console.error('❌ Erreur mise à jour:', error);
+          return { success: false, error: error.message };
+        }
+        
+        console.log('✅ Mise à jour réussie:', data);
       } else {
         // Création
-        const { error } = await supabase
+        console.log('➕ Création nouvelle entreprise');
+        const { data, error } = await supabase
           .from('entreprises')
-          .insert([entreprise]);
-        if (error) return { success: false, error };
+          .insert([entreprise])
+          .select();
+        
+        if (error) {
+          console.error('❌ Erreur création:', error);
+          console.error('❌ Détails erreur Supabase:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          return { success: false, error: error.message };
+        }
+        
+        console.log('✅ Création réussie:', data);
       }
       
       // Invalider le cache au lieu de recharger
       cache.delete('entreprises');
+      console.log('🗑️ Cache invalidé');
       return { success: true };
     } catch (err: any) {
+      console.error('❌ Exception lors de la sauvegarde:', err);
+      console.error('❌ Stack trace:', err.stack);
       return { success: false, error: err.message };
     }
   };

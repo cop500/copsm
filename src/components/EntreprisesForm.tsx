@@ -79,49 +79,100 @@ const EntreprisesForm = () => {
 
   // Fonction pour lire le fichier Excel
   const handleFileUpload = (file: File) => {
+    console.log('📁 Début lecture fichier Excel:', file.name, 'Taille:', file.size, 'Type:', file.type);
+    
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
+        console.log('📖 Fichier lu avec succès, début traitement...');
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        console.log('📊 Données binaires récupérées, taille:', data.length);
+        
         const workbook = XLSX.read(data, { type: 'array' });
+        console.log('📋 Workbook créé, feuilles disponibles:', workbook.SheetNames);
+        
         const sheetName = workbook.SheetNames[0];
+        console.log('📄 Utilisation de la feuille:', sheetName);
+        
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log('📊 Données JSON extraites:', jsonData.length, 'lignes');
+        console.log('📋 Première ligne (exemple):', jsonData[0]);
         
         // Mapper les colonnes Excel vers nos champs
-        const mappedData = jsonData.map((row: any) => ({
-          nom: row['Nom de l\'entreprise'] || row['Nom'] || '',
-          secteur: row['Secteur'] || '',
-          adresse: row['Adresse'] || '',
-          telephone: row['Téléphone'] || row['Telephone'] || '',
-          email: row['Email'] || '',
-          contact_personne: row['Personne de contact'] || row['Contact'] || '',
-          statut: (row['Statut'] || 'prospect').toLowerCase(),
-          niveau_interet: (row['Niveau d\'intérêt'] || row['Niveau interet'] || 'moyen').toLowerCase(),
-          notes_bd: row['Notes'] || ''
-        })).filter(item => item.nom); // Filtrer les lignes vides
+        const mappedData = jsonData.map((row: any, index: number) => {
+          console.log(`🔄 Mapping ligne ${index + 1}:`, row);
+          
+          const mapped = {
+            nom: row['Nom de l\'entreprise'] || row['Nom'] || '',
+            secteur: row['Secteur'] || '',
+            adresse: row['Adresse'] || '',
+            telephone: row['Téléphone'] || row['Telephone'] || '',
+            email: row['Email'] || '',
+            contact_personne: row['Personne de contact'] || row['Contact'] || '',
+            statut: (row['Statut'] || 'prospect').toLowerCase(),
+            niveau_interet: (row['Niveau d\'intérêt'] || row['Niveau interet'] || 'moyen').toLowerCase(),
+            notes_bd: row['Notes'] || ''
+          };
+          
+          console.log(`✅ Ligne ${index + 1} mappée:`, mapped);
+          return mapped;
+        }).filter(item => {
+          const hasName = item.nom && item.nom.trim() !== '';
+          if (!hasName) {
+            console.log('⚠️ Ligne filtrée (nom vide):', item);
+          }
+          return hasName;
+        });
+
+        console.log('📊 Données finales après mapping:', mappedData.length, 'entreprises');
+        console.log('📋 Aperçu des données mappées:', mappedData.slice(0, 3));
 
         setImportPreview(mappedData);
         setImportFile(file);
+        console.log('✅ Import preview mis à jour avec succès');
       } catch (error) {
-        console.error('Erreur lecture Excel:', error);
-        alert('Erreur lors de la lecture du fichier Excel');
+        console.error('❌ Erreur lecture Excel:', error);
+        console.error('❌ Détails de l\'erreur:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        alert('Erreur lors de la lecture du fichier Excel: ' + error.message);
       }
     };
+    
+    reader.onerror = (error) => {
+      console.error('❌ Erreur FileReader:', error);
+      alert('Erreur lors de la lecture du fichier');
+    };
+    
     reader.readAsArrayBuffer(file);
   };
 
   // Fonction pour importer les entreprises
   const handleImport = async () => {
-    if (!importPreview.length) return;
+    console.log('🚀 Début importation des entreprises...');
+    console.log('📊 Nombre d\'entreprises à importer:', importPreview.length);
+    
+    if (!importPreview.length) {
+      console.log('⚠️ Aucune entreprise à importer');
+      return;
+    }
     
     setImporting(true);
     let successCount = 0;
     let errorCount = 0;
+    const errors: string[] = [];
 
-    for (const entreprise of importPreview) {
+    console.log('📋 Données à importer:', importPreview);
+
+    for (let i = 0; i < importPreview.length; i++) {
+      const entreprise = importPreview[i];
+      console.log(`🔄 Importation entreprise ${i + 1}/${importPreview.length}:`, entreprise.nom);
+      
       try {
-        const result = await saveEntreprise({
+        const entrepriseData = {
           nom: entreprise.nom,
           secteur: entreprise.secteur,
           adresse: entreprise.adresse,
@@ -132,25 +183,52 @@ const EntreprisesForm = () => {
           description: '',
           niveau_interet: entreprise.niveau_interet,
           notes_bd: entreprise.notes_bd
-        });
+        };
+        
+        console.log(`📝 Données préparées pour ${entreprise.nom}:`, entrepriseData);
+        
+        const result = await saveEntreprise(entrepriseData);
+        console.log(`📊 Résultat pour ${entreprise.nom}:`, result);
         
         if (result.success) {
           successCount++;
+          console.log(`✅ ${entreprise.nom} importée avec succès`);
         } else {
           errorCount++;
+          const errorMsg = `Erreur pour ${entreprise.nom}: ${result.error || 'Erreur inconnue'}`;
+          errors.push(errorMsg);
+          console.error(`❌ ${errorMsg}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         errorCount++;
-        console.error('Erreur import entreprise:', error);
+        const errorMsg = `Exception pour ${entreprise.nom}: ${error.message}`;
+        errors.push(errorMsg);
+        console.error(`❌ ${errorMsg}`, error);
+        console.error('❌ Stack trace:', error.stack);
       }
     }
+
+    console.log('📊 Résumé importation:', {
+      total: importPreview.length,
+      success: successCount,
+      errors: errorCount,
+      errorDetails: errors
+    });
 
     setImporting(false);
     setShowImportModal(false);
     setImportFile(null);
     setImportPreview([]);
     
-    alert(`Import terminé : ${successCount} entreprises ajoutées, ${errorCount} erreurs`);
+    const message = `Import terminé : ${successCount} entreprises ajoutées, ${errorCount} erreurs`;
+    console.log('📢 Message final:', message);
+    
+    if (errors.length > 0) {
+      console.log('❌ Détails des erreurs:', errors);
+      alert(`${message}\n\nErreurs détaillées:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`);
+    } else {
+      alert(message);
+    }
   };
 
   const uploadContrat = async (file: File): Promise<string | null> => {
