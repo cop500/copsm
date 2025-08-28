@@ -109,8 +109,18 @@ export const EmployabilityDashboard: React.FC = () => {
       evenements.forEach(event => {
         if (event.pole_id) {
           const pole = poles.find(p => p.id === event.pole_id);
-          const poleName = pole ? pole.nom : 'Pôle inconnu';
+          const poleName = pole ? pole.nom : `Pôle ID: ${event.pole_id}`;
           
+          if (!poleStats[poleName]) {
+            poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
+          }
+          
+          poleStats[poleName].count += 1;
+          poleStats[poleName].candidates += (event.nombre_candidats || 0);
+          poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
+        } else {
+          // Événements sans pôle assigné
+          const poleName = 'Sans pôle assigné';
           if (!poleStats[poleName]) {
             poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
           }
