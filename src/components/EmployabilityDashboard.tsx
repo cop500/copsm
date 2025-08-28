@@ -159,13 +159,36 @@ export const EmployabilityDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Debug logs pour identifier le problème
+    console.log('🔍 Debug EmployabilityDashboard:', {
+      entreprisesLoading,
+      evenementsLoading,
+      demandMetrics: demandMetrics !== null,
+      entreprises: entreprises?.length || 0,
+      evenements: evenements?.length || 0,
+      allDataLoaded: !entreprisesLoading && !evenementsLoading && demandMetrics !== null
+    });
+
     // Arrêter le chargement quand toutes les données sont chargées
     const allDataLoaded = !entreprisesLoading && !evenementsLoading && demandMetrics !== null;
     
     if (allDataLoaded) {
+      console.log('✅ Toutes les données sont chargées, arrêt du loading');
       setLoading(false);
     }
-  }, [entreprisesLoading, evenementsLoading, demandMetrics]);
+  }, [entreprisesLoading, evenementsLoading, demandMetrics, entreprises, evenements]);
+
+  // Timeout de sécurité pour éviter le chargement infini
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log('⚠️ Timeout de sécurité - arrêt forcé du loading');
+        setLoading(false);
+      }
+    }, 10000); // 10 secondes
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   // Fonction d'export du rapport
   const handleExport = async () => {
@@ -427,6 +450,9 @@ export const EmployabilityDashboard: React.FC = () => {
           {entreprisesLoading && 'Chargement des entreprises...'}
           {evenementsLoading && 'Chargement des événements...'}
           {demandMetrics === null && 'Chargement des demandes...'}
+        </div>
+        <div className="mt-4 text-xs text-gray-400">
+          Debug: E={entreprisesLoading ? '⏳' : '✅'} | Ev={evenementsLoading ? '⏳' : '✅'} | D={demandMetrics ? '✅' : '⏳'}
         </div>
       </div>
     );
