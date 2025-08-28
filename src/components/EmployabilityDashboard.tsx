@@ -198,7 +198,7 @@ export const EmployabilityDashboard: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [loading]);
 
-  // Fonction d'export du rapport
+    // Fonction d'export du rapport
   const handleExport = async () => {
     // Vérifier si les données sont encore en cours de chargement
     if (entreprisesLoading || evenementsLoading) {
@@ -228,153 +228,167 @@ export const EmployabilityDashboard: React.FC = () => {
 
     setExporting(true);
     try {
-      // Préparer les données pour l'export
-      const exportData = {
-        // Métadonnées
-        metadata: {
-          titre: 'Bilan d\'Employabilité COP CMC SM',
-          date_export: new Date().toLocaleDateString('fr-FR'),
-          periode: selectedPeriod,
-          generateur: 'Système COP'
-        },
-        
-        // KPIs principaux
-        kpis: [
-          {
-            indicateur: 'Taux de conversion global',
-            valeur: `${eventMetrics.conversionRate}%`,
-            description: 'Pourcentage de candidats retenus sur le total des candidats'
-          },
-          {
-            indicateur: 'Stagiaires bénéficiaires',
-            valeur: eventMetrics.totalBeneficiaries,
-            description: 'Nombre total de stagiaires ayant participé aux événements'
-          },
-          {
-            indicateur: 'Entreprises partenaires',
-            valeur: enterpriseMetrics.partners,
-            description: 'Nombre d\'entreprises avec statut partenaire'
-          },
-                     {
-             indicateur: 'Demandes actives',
-             valeur: finalDemandMetrics.activeDemands,
-             description: 'Nombre de demandes de stages actuellement actives'
-           }
-        ],
-
-        // Métriques détaillées des événements
-        evenements: {
-          total: eventMetrics.totalEvents,
-          beneficiaires: eventMetrics.totalBeneficiaries,
-          candidats_recus: eventMetrics.totalCandidates,
-          candidats_retenus: eventMetrics.totalRetained,
-          taux_conversion: eventMetrics.conversionRate,
-          repartition_par_volet: Object.entries(eventMetrics.eventsByVolet).map(([volet, count]) => ({
-            volet: volet === 'information_communication' ? 'Information/Communication' :
-                   volet === 'accompagnement_projets' ? 'Accompagnement Projets' :
-                   volet === 'assistance_carriere' ? 'Assistance Carrière' :
-                   volet === 'assistance_filiere' ? 'Assistance Filière' : volet,
-            nombre: count
-          }))
-        },
-
-        // Métriques détaillées des entreprises
-        entreprises: {
-          total: enterpriseMetrics.totalEnterprises,
-          prospects: enterpriseMetrics.prospects,
-          partenaires: enterpriseMetrics.partners,
-          avec_contrats: enterpriseMetrics.withContracts,
-          taux_partenariat: Math.round((enterpriseMetrics.partners / enterpriseMetrics.totalEnterprises) * 100),
-          repartition_par_secteur: Object.entries(enterpriseMetrics.sectors).map(([secteur, count]) => ({
-            secteur,
-            nombre: count
-          }))
-        },
-
-                 // Métriques des demandes
-         demandes: {
-           total: finalDemandMetrics.totalDemands,
-           actives: finalDemandMetrics.activeDemands,
-           total_profils: finalDemandMetrics.totalProfiles,
-           top_entreprises: finalDemandMetrics.topEnterprises
-         }
-      };
-
       // Créer le fichier Excel
       const workbook = XLSX.utils.book_new();
 
-      // Feuille 1: Résumé exécutif
+      // ========================================
+      // FEUILLE 1: RÉSUMÉ EXÉCUTIF
+      // ========================================
       const resumeData = [
         ['BILAN D\'EMPLOYABILITÉ - COP CMC SM'],
         [''],
         ['Métadonnées'],
-        ['Date d\'export', exportData.metadata.date_export],
-        ['Période', exportData.metadata.periode],
+        ['Date d\'export', new Date().toLocaleDateString('fr-FR')],
+        ['Période', selectedPeriod === 'current_month' ? 'Ce mois' : 
+                   selectedPeriod === 'current_year' ? 'Cette année' : 'Tout le temps'],
+        ['Générateur', 'Système COP'],
         [''],
         ['Indicateurs Clés de Performance'],
         ['Indicateur', 'Valeur', 'Description'],
-        ...exportData.kpis.map(kpi => [kpi.indicateur, kpi.valeur, kpi.description])
+        ['Taux de conversion global', `${eventMetrics.conversionRate}%`, 'Pourcentage de candidats retenus sur le total des candidats'],
+        ['Stagiaires bénéficiaires', eventMetrics.totalBeneficiaries, 'Nombre total de stagiaires ayant participé aux événements'],
+        ['Entreprises partenaires', enterpriseMetrics.partners, 'Nombre d\'entreprises avec statut partenaire'],
+        ['Demandes actives', finalDemandMetrics.activeDemands, 'Nombre de demandes de stages actuellement actives'],
+        [''],
+        ['Répartition par volet'],
+        ['Volet', 'Nombre d\'événements'],
+        ...Object.entries(eventMetrics.eventsByVolet).map(([volet, count]) => [
+          volet === 'information_communication' ? 'Information/Communication' :
+          volet === 'accompagnement_projets' ? 'Accompagnement Projets' :
+          volet === 'assistance_carriere' ? 'Assistance Carrière' :
+          volet === 'assistance_filiere' ? 'Assistance Filière' : volet,
+          count
+        ]),
+        [''],
+        ['Répartition par secteur'],
+        ['Secteur', 'Nombre d\'entreprises'],
+        ...Object.entries(enterpriseMetrics.sectors).map(([secteur, count]) => [secteur, count])
       ];
 
       const wsResume = XLSX.utils.aoa_to_sheet(resumeData);
       XLSX.utils.book_append_sheet(workbook, wsResume, 'Résumé');
 
-      // Feuille 2: Métriques des événements
-      const evenementsData = [
-        ['MÉTRIQUES DES ÉVÉNEMENTS'],
+      // ========================================
+      // FEUILLE 2: ÉVÉNEMENTS DÉTAILLÉS
+      // ========================================
+      const evenementsDetailData = [
+        ['ÉVÉNEMENTS DÉTAILLÉS - COP CMC SM'],
         [''],
-        ['Indicateur', 'Valeur'],
-        ['Total événements', exportData.evenements.total],
-        ['Stagiaires bénéficiaires', exportData.evenements.beneficiaires],
-        ['Candidats reçus', exportData.evenements.candidats_recus],
-        ['Candidats retenus', exportData.evenements.candidats_retenus],
-        ['Taux de conversion (%)', exportData.evenements.taux_conversion],
-        [''],
-        ['Répartition par volet'],
-        ['Volet', 'Nombre d\'événements'],
-        ...exportData.evenements.repartition_par_volet.map(item => [item.volet, item.nombre])
+        ['Nom de l\'événement', 'Date de début', 'Date de fin', 'Lieu', 'Volet', 'Statut', 'Type d\'événement', 'Stagiaires bénéficiaires', 'Candidats reçus', 'Candidats retenus', 'Taux de conversion (%)', 'Description'],
+        ...evenements.map(event => [
+          event.titre || 'N/A',
+          event.date_debut ? new Date(event.date_debut).toLocaleDateString('fr-FR') : 'N/A',
+          event.date_fin ? new Date(event.date_fin).toLocaleDateString('fr-FR') : 'N/A',
+          event.lieu || 'N/A',
+          event.volet === 'information_communication' ? 'Information/Communication' :
+          event.volet === 'accompagnement_projets' ? 'Accompagnement Projets' :
+          event.volet === 'assistance_carriere' ? 'Assistance Carrière' :
+          event.volet === 'assistance_filiere' ? 'Assistance Filière' : (event.volet || 'Non défini'),
+          event.statut || 'N/A',
+          event.type_evenement_id || 'N/A',
+          event.nombre_beneficiaires || 0,
+          event.nombre_candidats || 0,
+          event.nombre_candidats_retenus || 0,
+          event.taux_conversion ? `${event.taux_conversion}%` : '0%',
+          event.description || 'N/A'
+        ])
       ];
 
-      const wsEvenements = XLSX.utils.aoa_to_sheet(evenementsData);
-      XLSX.utils.book_append_sheet(workbook, wsEvenements, 'Événements');
+      const wsEvenementsDetail = XLSX.utils.aoa_to_sheet(evenementsDetailData);
+      XLSX.utils.book_append_sheet(workbook, wsEvenementsDetail, 'Événements Détaillés');
 
-      // Feuille 3: Métriques des entreprises
-      const entreprisesData = [
-        ['MÉTRIQUES DES ENTREPRISES'],
+      // ========================================
+      // FEUILLE 3: ENTREPRISES DÉTAILLÉES
+      // ========================================
+      const entreprisesDetailData = [
+        ['ENTREPRISES DÉTAILLÉES - COP CMC SM'],
         [''],
-        ['Indicateur', 'Valeur'],
-        ['Total entreprises', exportData.entreprises.total],
-        ['Prospects', exportData.entreprises.prospects],
-        ['Partenaires', exportData.entreprises.partenaires],
-        ['Avec contrats', exportData.entreprises.avec_contrats],
-        ['Taux de partenariat (%)', exportData.entreprises.taux_partenariat],
-        [''],
-        ['Répartition par secteur'],
-        ['Secteur', 'Nombre d\'entreprises'],
-        ...exportData.entreprises.repartition_par_secteur.map(item => [item.secteur, item.nombre])
+        ['Nom de l\'entreprise', 'Secteur d\'activité', 'Statut', 'Contact principal', 'Email', 'Téléphone', 'Adresse', 'Niveau d\'intérêt', 'Contrat de partenariat', 'Date de création'],
+        ...entreprises.map(entreprise => [
+          entreprise.nom || 'N/A',
+          entreprise.secteur || 'N/A',
+          entreprise.statut === 'prospect' ? 'Prospect' : 
+          entreprise.statut === 'partenaire' ? 'Partenaire' : (entreprise.statut || 'N/A'),
+          entreprise.contact_principal_nom || 'N/A',
+          entreprise.contact_principal_email || 'N/A',
+          entreprise.contact_principal_telephone || 'N/A',
+          entreprise.adresse || 'N/A',
+          entreprise.niveau_interet === 'faible' ? 'Faible' :
+          entreprise.niveau_interet === 'moyen' ? 'Moyen' :
+          entreprise.niveau_interet === 'fort' ? 'Fort' : (entreprise.niveau_interet || 'N/A'),
+          entreprise.contrat_url ? 'Oui' : 'Non',
+          entreprise.created_at ? new Date(entreprise.created_at).toLocaleDateString('fr-FR') : 'N/A'
+        ])
       ];
 
-      const wsEntreprises = XLSX.utils.aoa_to_sheet(entreprisesData);
-      XLSX.utils.book_append_sheet(workbook, wsEntreprises, 'Entreprises');
+      const wsEntreprisesDetail = XLSX.utils.aoa_to_sheet(entreprisesDetailData);
+      XLSX.utils.book_append_sheet(workbook, wsEntreprisesDetail, 'Entreprises Détaillées');
 
-      // Feuille 4: Métriques des demandes
-      const demandesData = [
-        ['MÉTRIQUES DES DEMANDES'],
+      // ========================================
+      // FEUILLE 4: DEMANDES DÉTAILLÉES
+      // ========================================
+      // Récupérer les demandes détaillées
+      const { data: demandesDetail, error: demandesError } = await supabase
+        .from('demandes_entreprises')
+        .select(`
+          id,
+          statut,
+          created_at,
+          entreprises(nom),
+          profiles(id, titre)
+        `);
+
+      const demandesDetailData = [
+        ['DEMANDES DÉTAILLÉES - COP CMC SM'],
         [''],
-        ['Indicateur', 'Valeur'],
-                 ['Total demandes', exportData.demandes.total],
-         ['Demandes actives', exportData.demandes.actives],
-         ['Total profils', exportData.demandes.total_profils],
-         [''],
-         ['Top entreprises actives'],
-         ['Entreprise', 'Nombre de demandes'],
-         ...(exportData.demandes.top_entreprises.length > 0 
-           ? exportData.demandes.top_entreprises.map(item => [item.name, item.demands])
-           : [['Aucune donnée', 0]])
+        ['ID Demande', 'Entreprise demandeur', 'Statut', 'Profils demandés', 'Date de création'],
+        ...(demandesDetail || []).map(demande => [
+          demande.id || 'N/A',
+          demande.entreprises?.nom || 'N/A',
+          demande.statut === 'active' ? 'Active' : 
+          demande.statut === 'inactive' ? 'Inactive' : (demande.statut || 'N/A'),
+          demande.profiles?.map((p: any) => p.titre).join(', ') || 'N/A',
+          demande.created_at ? new Date(demande.created_at).toLocaleDateString('fr-FR') : 'N/A'
+        ])
       ];
 
-      const wsDemandes = XLSX.utils.aoa_to_sheet(demandesData);
-      XLSX.utils.book_append_sheet(workbook, wsDemandes, 'Demandes');
+      const wsDemandesDetail = XLSX.utils.aoa_to_sheet(demandesDetailData);
+      XLSX.utils.book_append_sheet(workbook, wsDemandesDetail, 'Demandes Détaillées');
+
+      // ========================================
+      // FEUILLE 5: ANALYSES ET TENDANCES
+      // ========================================
+      const analysesData = [
+        ['ANALYSES ET TENDANCES - COP CMC SM'],
+        [''],
+        ['Métriques Globales'],
+        ['Indicateur', 'Valeur'],
+        ['Total événements organisés', eventMetrics.totalEvents],
+        ['Total stagiaires bénéficiaires', eventMetrics.totalBeneficiaries],
+        ['Total candidats reçus', eventMetrics.totalCandidates],
+        ['Total candidats retenus', eventMetrics.totalRetained],
+        ['Taux de conversion global', `${eventMetrics.conversionRate}%`],
+        [''],
+        ['Métriques Entreprises'],
+        ['Total entreprises', enterpriseMetrics.totalEnterprises],
+        ['Entreprises prospects', enterpriseMetrics.prospects],
+        ['Entreprises partenaires', enterpriseMetrics.partners],
+        ['Taux de partenariat', `${Math.round((enterpriseMetrics.partners / enterpriseMetrics.totalEnterprises) * 100)}%`],
+        [''],
+        ['Métriques Demandes'],
+        ['Total demandes', finalDemandMetrics.totalDemands],
+        ['Demandes actives', finalDemandMetrics.activeDemands],
+        ['Total profils demandés', finalDemandMetrics.totalProfiles],
+        [''],
+        ['Top 5 Entreprises Actives'],
+        ['Entreprise', 'Nombre de demandes'],
+        ...(finalDemandMetrics.topEnterprises.length > 0 
+          ? finalDemandMetrics.topEnterprises.map(item => [item.name, item.demands])
+          : [['Aucune donnée', 0]])
+      ];
+
+      const wsAnalyses = XLSX.utils.aoa_to_sheet(analysesData);
+      XLSX.utils.book_append_sheet(workbook, wsAnalyses, 'Analyses et Tendances');
 
       // Générer le nom du fichier
       const fileName = `Bilan_Employabilite_COP_${new Date().toISOString().split('T')[0]}.xlsx`;
