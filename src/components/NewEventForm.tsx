@@ -137,6 +137,87 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
     return filieres.filter(f => f.pole_id === poleId)
   }
 
+  // Phrases suggérées pour la description
+  const getDescriptionSuggestions = () => {
+    const suggestions = {
+      job_dating: [
+        "Rencontre entre stagiaires et entreprises partenaires pour des opportunités de stage et d'emploi.",
+        "Événement de networking permettant aux stagiaires de présenter leurs compétences aux recruteurs.",
+        "Opportunité unique pour les stagiaires de découvrir les métiers et secteurs d'activité."
+      ],
+      visite_entreprise: [
+        "Découverte des locaux et de la culture d'entreprise pour une immersion professionnelle.",
+        "Visite guidée des différents départements et présentation des métiers exercés.",
+        "Rencontre avec les équipes et échange sur les opportunités de carrière."
+      ],
+      formation: [
+        "Session de formation pour développer les compétences professionnelles des stagiaires.",
+        "Atelier pratique pour améliorer les techniques de recherche d'emploi et de CV.",
+        "Formation sur les outils et méthodes utilisés en entreprise."
+      ],
+      conference: [
+        "Conférence sur les tendances du marché de l'emploi et les opportunités de carrière.",
+        "Présentation des métiers émergents et des compétences recherchées.",
+        "Échange avec des professionnels sur leur parcours et conseils pour réussir."
+      ],
+      workshop: [
+        "Atelier pratique pour préparer les entretiens d'embauche et les CV.",
+        "Workshop sur la communication professionnelle et le networking.",
+        "Session de travail en groupe pour développer des projets concrets."
+      ]
+    }
+
+    // Retourner toutes les suggestions ou filtrer par type d'événement
+    const eventType = eventTypes.find(t => t.id === formData.type_evenement_id)
+    if (eventType) {
+      const typeName = eventType.nom.toLowerCase()
+      if (typeName.includes('job') || typeName.includes('dating')) {
+        return suggestions.job_dating
+      } else if (typeName.includes('visite')) {
+        return suggestions.visite_entreprise
+      } else if (typeName.includes('formation') || typeName.includes('training')) {
+        return suggestions.formation
+      } else if (typeName.includes('conférence') || typeName.includes('conference')) {
+        return suggestions.conference
+      } else if (typeName.includes('workshop') || typeName.includes('atelier')) {
+        return suggestions.workshop
+      }
+    }
+
+    // Suggestions générales par volet
+    const voletSuggestions = {
+      information_communication: [
+        "Session d'information sur les opportunités de carrière et les métiers disponibles.",
+        "Présentation des programmes de formation et des parcours professionnels."
+      ],
+      accompagnement_projets: [
+        "Accompagnement personnalisé pour la réalisation des projets professionnels.",
+        "Support dans la définition et la mise en œuvre des objectifs de carrière."
+      ],
+      assistance_carriere: [
+        "Conseils personnalisés pour l'orientation et le développement de carrière.",
+        "Assistance dans la recherche d'emploi et la préparation aux entretiens."
+      ],
+      assistance_filiere: [
+        "Guidance pour le choix de filière et les perspectives d'évolution.",
+        "Information sur les débouchés et les opportunités dans le secteur."
+      ]
+    }
+
+    return voletSuggestions[formData.volet as keyof typeof voletSuggestions] || [
+      "Description de l'événement et de ses objectifs pour les participants.",
+      "Présentation des activités prévues et des bénéfices pour les stagiaires."
+    ]
+  }
+
+  // Ajouter une suggestion à la description
+  const addSuggestion = (suggestion: string) => {
+    const currentDescription = formData.description
+    const separator = currentDescription ? '\n\n' : ''
+    const newDescription = currentDescription + separator + suggestion
+    handleInputChange('description', newDescription)
+  }
+
   // Upload des photos
   const handlePhotoUpload = useCallback((files: FileList | null) => {
     if (!files) return
@@ -538,6 +619,26 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
                   {errors.description}
                 </p>
               )}
+
+              {/* Suggestions de description */}
+              <div className="mt-3">
+                <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
+                  <FileText className="w-3 h-3" />
+                  Suggestions rapides (cliquez pour ajouter) :
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {getDescriptionSuggestions().map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => addSuggestion(suggestion)}
+                      className="px-3 py-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      {suggestion.length > 50 ? suggestion.substring(0, 50) + '...' : suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
