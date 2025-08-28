@@ -279,34 +279,66 @@ export const ModernEvenementsModule = () => {
 
   // Fonction pour lire le fichier Excel
   const handleFileUpload = (file: File) => {
+    console.log('📁 Fichier sélectionné:', file.name, file.size, 'bytes');
+    
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        console.log('📊 Données Excel brutes:', data.length, 'bytes');
+        
         const workbook = XLSX.read(data, { type: 'array' });
+        console.log('📋 Feuilles disponibles:', workbook.SheetNames);
+        
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
+        console.log('📄 Données JSON extraites:', jsonData);
+        
+        if (!jsonData || jsonData.length === 0) {
+          throw new Error('Le fichier Excel ne contient aucune donnée');
+        }
+        
         // Mapper les colonnes Excel vers nos champs
-        const mappedData = jsonData.map((row: any) => ({
-          titre: row['Titre'] || '',
-          type_evenement: row['Type d\'événement'] || row['Type'] || '',
-          date_debut: row['Date de début'] || row['Date'] || '',
-          lieu: row['Lieu'] || '',
-          description: row['Description'] || '',
-          responsable_cop: row['Responsable COP'] || row['Responsable'] || '',
-          statut: (row['Statut'] || 'planifie').toLowerCase(),
-          volet: row['Volet'] || 'information_communication'
-        })).filter(item => item.titre); // Filtrer les lignes vides
+        const mappedData = jsonData.map((row: any, index: number) => {
+          console.log(`📝 Ligne ${index + 1}:`, row);
+          
+          const mapped = {
+            titre: row['Titre'] || row['titre'] || '',
+            type_evenement: row['Type d\'événement'] || row['Type'] || row['type_evenement'] || '',
+            date_debut: row['Date de début'] || row['Date'] || row['date_debut'] || '',
+            lieu: row['Lieu'] || row['lieu'] || '',
+            description: row['Description'] || row['description'] || '',
+            responsable_cop: row['Responsable COP'] || row['Responsable'] || row['responsable_cop'] || '',
+            statut: (row['Statut'] || row['statut'] || 'planifie').toLowerCase(),
+            volet: row['Volet'] || row['volet'] || 'information_communication'
+          };
+          
+          console.log(`✅ Ligne ${index + 1} mappée:`, mapped);
+          return mapped;
+        }).filter(item => item.titre && item.titre.trim() !== ''); // Filtrer les lignes vides
+
+        console.log('🎯 Données finales mappées:', mappedData);
+        
+        if (mappedData.length === 0) {
+          throw new Error('Aucune ligne valide trouvée dans le fichier Excel');
+        }
 
         setImportPreview(mappedData);
         setImportFile(file);
-      } catch (error) {
-        console.error('Erreur lecture Excel:', error);
-        showMessage('Erreur lors de la lecture du fichier Excel', 'error');
+        showMessage(`✅ Fichier lu avec succès : ${mappedData.length} événements détectés`, 'success');
+      } catch (error: any) {
+        console.error('❌ Erreur lecture Excel:', error);
+        showMessage(`Erreur lors de la lecture du fichier Excel : ${error.message}`, 'error');
       }
     };
+    
+    reader.onerror = () => {
+      console.error('❌ Erreur lors de la lecture du fichier');
+      showMessage('Erreur lors de la lecture du fichier', 'error');
+    };
+    
     reader.readAsArrayBuffer(file);
   };
 
@@ -317,41 +349,67 @@ export const ModernEvenementsModule = () => {
     setImporting(true);
     let successCount = 0;
     let errorCount = 0;
+    const errors: string[] = [];
 
-    for (const evenement of importPreview) {
+    console.log('🚀 Début de l\'import Excel pour événements');
+    console.log('📊 Données à importer:', importPreview);
+
+    for (let i = 0; i < importPreview.length; i++) {
+      const evenement = importPreview[i];
+      console.log(`📝 Traitement événement ${i + 1}/${importPreview.length}:`, evenement);
+      
       try {
+        // Validation des données
+        if (!evenement.titre || evenement.titre.trim() === '') {
+          throw new Error('Titre manquant ou vide');
+        }
+
+        if (!evenement.date_debut) {
+          throw new Error('Date de début manquante');
+        }
+
         // Trouver le type d'événement par nom
         const eventType = eventTypes.find(et => 
           et.nom.toLowerCase() === evenement.type_evenement.toLowerCase()
         );
 
+        console.log('🔍 Type d\'événement trouvé:', eventType);
+
         const dataToSave = {
-          titre: evenement.titre,
+          titre: evenement.titre.trim(),
           type_evenement_id: eventType?.id || null,
           date_debut: evenement.date_debut,
-          lieu: evenement.lieu,
-          description: evenement.description,
-          statut: evenement.statut,
-          responsable_cop: evenement.responsable_cop,
-          volet: evenement.volet,
+          lieu: evenement.lieu || '',
+          description: evenement.description || '',
+          statut: evenement.statut || 'planifie',
+          responsable_cop: evenement.responsable_cop || '',
+          volet: evenement.volet || 'information_communication',
           actif: true
         };
 
-        const { error } = await supabase
+        console.log('💾 Données à sauvegarder:', dataToSave);
+
+        const { data, error } = await supabase
           .from('evenements')
-          .insert([dataToSave]);
+          .insert([dataToSave])
+          .select();
 
         if (error) {
+          console.error(`❌ Erreur Supabase pour événement ${i + 1}:`, error);
+          errors.push(`Événement "${evenement.titre}": ${error.message}`);
           errorCount++;
-          console.error('Erreur import événement:', error);
         } else {
+          console.log(`✅ Événement ${i + 1} importé avec succès:`, data);
           successCount++;
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error(`❌ Erreur générale pour événement ${i + 1}:`, error);
+        errors.push(`Événement "${evenement.titre}": ${error.message}`);
         errorCount++;
-        console.error('Erreur import événement:', error);
       }
     }
+
+    console.log('🏁 Import terminé:', { successCount, errorCount, errors });
 
     setImporting(false);
     setShowImportModal(false);
@@ -359,7 +417,17 @@ export const ModernEvenementsModule = () => {
     setImportPreview([]);
     
     await loadEvenements(); // Recharger la liste
-    showMessage(`Import terminé : ${successCount} événements ajoutés, ${errorCount} erreurs`, successCount > 0 ? 'success' : 'error');
+    
+    // Message détaillé avec les erreurs
+    if (errorCount === 0) {
+      showMessage(`✅ Import réussi : ${successCount} événements ajoutés avec succès !`, 'success');
+    } else if (successCount === 0) {
+      showMessage(`❌ Import échoué : ${errorCount} erreurs. Vérifiez les données et réessayez.`, 'error');
+      console.error('📋 Détail des erreurs:', errors);
+    } else {
+      showMessage(`⚠️ Import partiel : ${successCount} événements ajoutés, ${errorCount} erreurs.`, 'error');
+      console.error('📋 Détail des erreurs:', errors);
+    }
   };
 
   // Ouvrir le générateur IA pour un événement spécifique
