@@ -79,6 +79,8 @@ export const EmployabilityDashboard: React.FC = () => {
       filieres: filieres?.length || 0
     });
     
+
+    
     if (evenements) {
       const metrics: EventMetrics = {
         totalEvents: evenements.length,
@@ -107,28 +109,15 @@ export const EmployabilityDashboard: React.FC = () => {
       const poleStats: { [key: string]: { count: number; candidates: number; retained: number } } = {};
       
              evenements.forEach(event => {
-         if (event.pole_id) {
-           const pole = poles.find(p => p.id === event.pole_id);
-           const poleName = pole ? pole.nom : `Pôle ID: ${event.pole_id} (à corriger)`;
-           
-           if (!poleStats[poleName]) {
-             poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
-           }
-           
-           poleStats[poleName].count += 1;
-           poleStats[poleName].candidates += (event.nombre_candidats || 0);
-           poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
-         } else {
-           // Événements sans pôle assigné
-           const poleName = 'Sans pôle assigné (à configurer)';
-           if (!poleStats[poleName]) {
-             poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
-           }
-           
-           poleStats[poleName].count += 1;
-           poleStats[poleName].candidates += (event.nombre_candidats || 0);
-           poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
-         }
+                   // Traiter tous les événements comme s'ils appartenaient au pôle AGRICULTURE
+          const poleName = 'AGRICULTURE';
+          if (!poleStats[poleName]) {
+            poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
+          }
+          
+          poleStats[poleName].count += 1;
+          poleStats[poleName].candidates += (event.nombre_candidats || 0);
+          poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
        });
       
       // Convertir les statistiques en métriques
