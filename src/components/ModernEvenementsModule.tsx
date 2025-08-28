@@ -267,7 +267,10 @@ export const ModernEvenementsModule = () => {
         'Description': 'Description de l\'événement',
         'Responsable COP': 'Jean Dupont',
         'Statut': 'planifie',
-        'Volet': 'information_communication'
+        'Volet': 'information_communication',
+        'Nombre bénéficiaires': 50,
+        'Nombre candidats': 25,
+        'Nombre candidats retenus': 8
       },
       {
         'Titre': 'Exemple atelier',
@@ -277,7 +280,10 @@ export const ModernEvenementsModule = () => {
         'Description': 'Atelier de préparation CV',
         'Responsable COP': 'Marie Martin',
         'Statut': 'planifie',
-        'Volet': 'accompagnement_projets'
+        'Volet': 'accompagnement_projets',
+        'Nombre bénéficiaires': 30,
+        'Nombre candidats': 0,
+        'Nombre candidats retenus': 0
       }
     ];
 
@@ -285,7 +291,8 @@ export const ModernEvenementsModule = () => {
     const valeursAutorisees = [
       { 'Champ': 'Volet', 'Valeurs autorisées': 'information_communication, accompagnement_projets, assistance_carriere, assistance_filiere' },
       { 'Champ': 'Statut', 'Valeurs autorisées': 'planifie, en_cours, termine, annule' },
-      { 'Champ': 'Type d\'événement', 'Valeurs autorisées': 'Job Day, Salon, Séminaire, Simulation Entretien, Visite d\'Entreprise' }
+      { 'Champ': 'Type d\'événement', 'Valeurs autorisées': 'Job Day, Salon, Séminaire, Simulation Entretien, Visite d\'Entreprise' },
+      { 'Champ': 'Métriques', 'Description': 'Nombre bénéficiaires, candidats et candidats retenus (optionnel)' }
     ];
 
     const ws = XLSX.utils.json_to_sheet(template);
@@ -370,7 +377,10 @@ export const ModernEvenementsModule = () => {
             description: row['Description'] || row['description'] || '',
             responsable_cop: row['Responsable COP'] || row['Responsable'] || row['responsable_cop'] || '',
             statut: (row['Statut'] || row['statut'] || 'planifie').toLowerCase(),
-            volet: normalizedVolet
+            volet: normalizedVolet,
+            nombre_beneficiaires: parseInt(row['Nombre bénéficiaires'] || row['nombre_beneficiaires'] || '0') || 0,
+            nombre_candidats: parseInt(row['Nombre candidats'] || row['nombre_candidats'] || '0') || 0,
+            nombre_candidats_retenus: parseInt(row['Nombre candidats retenus'] || row['nombre_candidats_retenus'] || '0') || 0
           };
           
           console.log(`✅ Ligne ${index + 1} mappée:`, mapped);
@@ -442,6 +452,9 @@ export const ModernEvenementsModule = () => {
           statut: evenement.statut || 'planifie',
           responsable_cop: evenement.responsable_cop || '',
           volet: evenement.volet || 'information_communication',
+          nombre_beneficiaires: evenement.nombre_beneficiaires || 0,
+          nombre_candidats: evenement.nombre_candidats || 0,
+          nombre_candidats_retenus: evenement.nombre_candidats_retenus || 0,
           actif: true
         };
 

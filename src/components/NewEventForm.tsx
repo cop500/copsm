@@ -21,6 +21,10 @@ interface EventFormData {
   statut: 'planifie' | 'en_cours' | 'termine' | 'annule'
   photos: File[]
   photos_urls: string[]
+  nombre_beneficiaires?: number
+  nombre_candidats?: number
+  nombre_candidats_retenus?: number
+  taux_conversion?: number
 }
 
 interface NewEventFormProps {
@@ -55,6 +59,10 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
     statut: 'planifie',
     photos: [],
     photos_urls: [],
+    nombre_beneficiaires: 0,
+    nombre_candidats: 0,
+    nombre_candidats_retenus: 0,
+    taux_conversion: 0,
     ...initialData
   })
   
@@ -91,7 +99,24 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
 
   // Gestion des changements de champs
   const handleInputChange = (field: keyof EventFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value }
+      
+      // Calculer automatiquement le taux de conversion
+      if (field === 'nombre_candidats' || field === 'nombre_candidats_retenus') {
+        const candidats = field === 'nombre_candidats' ? value : newData.nombre_candidats || 0
+        const retenus = field === 'nombre_candidats_retenus' ? value : newData.nombre_candidats_retenus || 0
+        
+        if (candidats > 0) {
+          newData.taux_conversion = Math.round((retenus / candidats) * 100 * 100) / 100 // Arrondir à 2 décimales
+        } else {
+          newData.taux_conversion = 0
+        }
+      }
+      
+      return newData
+    })
+    
     // Effacer l'erreur du champ modifié
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
@@ -459,6 +484,78 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Métriques de recrutement */}
+          <div className="border-t border-gray-200 pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <User className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Métriques de recrutement</h3>
+              <span className="text-sm text-gray-500">(optionnel)</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Nombre de bénéficiaires */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de stagiaires bénéficiaires
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.nombre_beneficiaires || 0}
+                  onChange={(e) => handleInputChange('nombre_beneficiaires', parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Nombre de candidats */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de candidats
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.nombre_candidats || 0}
+                  onChange={(e) => handleInputChange('nombre_candidats', parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Nombre de candidats retenus */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de candidats retenus
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max={formData.nombre_candidats || 0}
+                  value={formData.nombre_candidats_retenus || 0}
+                  onChange={(e) => handleInputChange('nombre_candidats_retenus', parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Affichage du taux de conversion */}
+            {formData.nombre_candidats && formData.nombre_candidats > 0 && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">
+                    Taux de conversion : {formData.taux_conversion || 0}%
+                  </span>
+                </div>
+                <p className="text-xs text-blue-700 mt-1">
+                  {formData.nombre_candidats_retenus || 0} retenus sur {formData.nombre_candidats} candidats
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Upload de photos */}
