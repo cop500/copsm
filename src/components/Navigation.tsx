@@ -58,12 +58,6 @@ export default function Navigation() {
   const { currentUser } = useUser()
   const { isAdmin } = useRole();
 
-  // Logs de debug
-  console.log('🔍 === DEBUG NAVIGATION ===')
-  console.log('🔍 Pathname:', pathname)
-  console.log('🔍 Is admin:', isAdmin)
-  console.log('🔍 Current user:', currentUser?.email)
-
   // Filtrer la navigation
   const filteredNavigation = navigation.filter(item => {
     if (item.name === 'Paramètres') {
@@ -71,9 +65,6 @@ export default function Navigation() {
     }
     return true;
   });
-
-  console.log('🔍 Navigation items:', filteredNavigation.map(item => item.name))
-  console.log('🔍 Ateliers present:', filteredNavigation.some(item => item.name === 'Ateliers'))
 
   // 🎯 FONCTION POUR GÉRER LA DÉCONNEXION
   const handleLogout = async () => {

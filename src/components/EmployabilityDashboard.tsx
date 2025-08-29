@@ -77,16 +77,14 @@ export const EmployabilityDashboard: React.FC = () => {
 
   // Fonction pour rafraîchir toutes les données
   const handleRefresh = async () => {
-    console.log('🔄 Rafraîchissement manuel des données...');
     setLoading(true);
     try {
       await Promise.all([
         refreshEntreprises(),
         refreshEvenements()
       ]);
-      console.log('✅ Données rafraîchies avec succès');
     } catch (error) {
-      console.error('❌ Erreur lors du rafraîchissement:', error);
+      console.error('Erreur lors du rafraîchissement:', error);
     } finally {
       setLoading(false);
     }
@@ -95,24 +93,9 @@ export const EmployabilityDashboard: React.FC = () => {
   const { user: currentUser } = useAuth();
   const { isAdmin } = useRole();
 
-  // Calculer les métriques des événements
+    // Calculer les métriques des événements
   useEffect(() => {
-    console.log('🔄 Dashboard - Mise à jour des métriques événements');
-    console.log('📊 Événements reçus:', evenements?.length || 0);
-    
     if (evenements) {
-      // Log des données de recrutement pour débogage
-      evenements.forEach((event, index) => {
-        if (event.nombre_beneficiaires || event.nombre_candidats || event.nombre_candidats_retenus) {
-          console.log(`📈 Événement ${index + 1} (${event.titre}):`, {
-            beneficiaires: event.nombre_beneficiaires,
-            candidats: event.nombre_candidats,
-            retenus: event.nombre_candidats_retenus,
-            taux: event.taux_conversion
-          });
-        }
-      });
-
       const metrics: EventMetrics = {
         totalEvents: evenements.length,
         totalBeneficiaries: evenements.reduce((sum, event) => sum + (event.nombre_beneficiaires || 0), 0),
@@ -125,12 +108,6 @@ export const EmployabilityDashboard: React.FC = () => {
         conversionRateByPole: {}
       };
 
-      console.log('📊 Métriques calculées:', {
-        totalBeneficiaries: metrics.totalBeneficiaries,
-        totalCandidates: metrics.totalCandidates,
-        totalRetained: metrics.totalRetained
-      });
-
       // Calculer le taux de conversion global
       if (metrics.totalCandidates > 0) {
         metrics.conversionRate = Math.round((metrics.totalRetained / metrics.totalCandidates) * 100 * 100) / 100;
@@ -142,25 +119,25 @@ export const EmployabilityDashboard: React.FC = () => {
         metrics.eventsByVolet[volet] = (metrics.eventsByVolet[volet] || 0) + 1;
       });
 
-             // Répartition par pôle et calcul des taux de conversion
-       const poleStats: { [key: string]: { count: number; candidates: number; retained: number } } = {};
-       
-       evenements.forEach(event => {
-         if (event.pole_id) {
-           const pole = poles.find(p => p.id === event.pole_id);
-           const poleName = pole ? pole.nom : `Pôle ID: ${event.pole_id} (à corriger)`;
-           
-           if (!poleStats[poleName]) {
-             poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
-           }
-           
-           poleStats[poleName].count += 1;
-           poleStats[poleName].candidates += (event.nombre_candidats || 0);
-           poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
-         }
-         // Les événements sans pôle assigné ne sont pas inclus dans les métriques par pôles
-       });
+      // Répartition par pôle et calcul des taux de conversion
+      const poleStats: { [key: string]: { count: number; candidates: number; retained: number } } = {};
       
+      evenements.forEach(event => {
+        if (event.pole_id) {
+          const pole = poles.find(p => p.id === event.pole_id);
+          const poleName = pole ? pole.nom : `Pôle ID: ${event.pole_id} (à corriger)`;
+          
+          if (!poleStats[poleName]) {
+            poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
+          }
+          
+          poleStats[poleName].count += 1;
+          poleStats[poleName].candidates += (event.nombre_candidats || 0);
+          poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
+        }
+        // Les événements sans pôle assigné ne sont pas inclus dans les métriques par pôles
+      });
+     
       // Convertir les statistiques en métriques
       Object.entries(poleStats).forEach(([poleName, stats]) => {
         metrics.eventsByPole[poleName] = stats.count;
@@ -173,7 +150,7 @@ export const EmployabilityDashboard: React.FC = () => {
 
       setEventMetrics(metrics);
     }
-  }, [evenements]);
+  }, [evenements, poles]);
 
   // Calculer les métriques des entreprises
   useEffect(() => {

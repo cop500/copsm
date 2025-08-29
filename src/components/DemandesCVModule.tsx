@@ -127,54 +127,36 @@ export const DemandesCVModule = () => {
 
   // Sauvegarder une demande
   const handleSave = async () => {
-    console.log('🔥 SAUVEGARDE DEMANDE!')
-    console.log('📝 Données:', formData)
-    
-    if (!formData.nom_entreprise || !formData.poste_recherche || !formData.type_contrat) {
-      showMessage('Veuillez remplir les champs obligatoires', 'error')
+    if (!formData.nom_entreprise || !formData.poste_recherche) {
+      showMessage('Veuillez remplir tous les champs obligatoires', 'error')
       return
     }
 
     try {
       const dataToSave = {
         nom_entreprise: formData.nom_entreprise,
+        poste_recherche: formData.poste_recherche,
         contact_nom: formData.contact_nom,
         contact_email: formData.contact_email,
         contact_telephone: formData.contact_telephone,
-        poste_recherche: formData.poste_recherche,
-        filiere_id: formData.filiere_id,
-        pole_id: formData.pole_id,
-        niveau_requis: formData.niveau_requis,
-        type_contrat: formData.type_contrat,
-        nombre_cv_souhaite: formData.nombre_cv_souhaite || 1,
-        competences_requises: formData.competences_requises,
-        description_poste: formData.description_poste,
-        lieu_travail: formData.lieu_travail,
-        salaire_propose: formData.salaire_propose,
-        date_limite: formData.date_limite,
+        description: formData.description,
         urgence: formData.urgence || 'normale',
-        statut: formData.statut || 'nouvelle',
-        nom_traitant: formData.nom_traitant,
-        notes_internes: formData.notes_internes,
-        source_demande: formData.source_demande || 'direct',
-        priorite: formData.priorite || 3
+        statut: 'nouvelle'
       }
 
       if (formData.id) {
         // Modification
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('demandes_cv')
           .update(dataToSave)
           .eq('id', formData.id)
-          .select()
 
         if (error) throw error
       } else {
         // Création
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('demandes_cv')
           .insert([dataToSave])
-          .select()
 
         if (error) throw error
       }
@@ -184,7 +166,6 @@ export const DemandesCVModule = () => {
       setFormData({})
       await loadDemandes()
     } catch (err: any) {
-      console.error('💥 Erreur:', err)
       showMessage('Erreur: ' + err.message, 'error')
     }
   }

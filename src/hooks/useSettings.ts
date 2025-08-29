@@ -70,7 +70,6 @@ export const useSettings = () => {
   const loadSettings = async () => {
     try {
       setLoading(true)
-      console.log('🔄 useSettings - Début du chargement...')
       
       // Charger toutes les données en parallèle pour améliorer les performances
       const [polesResult, filieresResult, eventTypesResult, cvStatusResult] = await Promise.all([
@@ -79,13 +78,6 @@ export const useSettings = () => {
         supabase.from('event_types').select('*').order('nom'),
         supabase.from('cv_status').select('*').order('position')
       ])
-      
-      console.log('🔍 useSettings - Résultats bruts:', {
-        poles: polesResult,
-        filieres: filieresResult,
-        eventTypes: eventTypesResult,
-        cvStatus: cvStatusResult
-      })
       
       if (polesResult.error) throw polesResult.error
       if (filieresResult.error) throw filieresResult.error
@@ -96,18 +88,10 @@ export const useSettings = () => {
       setFilieres(filieresResult.data || [])
       setEventTypes(eventTypesResult.data || [])
       setCvStatus(cvStatusResult.data || [])
-      
-      console.log('✅ useSettings - Données chargées:', {
-        poles: polesResult.data?.length || 0,
-        filieres: filieresResult.data?.length || 0,
-        eventTypes: eventTypesResult.data?.length || 0,
-        cvStatus: cvStatusResult.data?.length || 0
-      })
 
     } catch (err: unknown) {
       if (err instanceof Error) {
       setError(err.message)
-      console.error('❌ Erreur lors du chargement des paramètres:', err)
       }
     } finally {
       setLoading(false)

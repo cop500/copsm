@@ -53,13 +53,11 @@ const EntreprisesForm = () => {
         contact_principal_telephone: formData.telephone,
         description: formData.description
       };
-      console.log('FormData envoyé à Supabase :', mappedData);
       const result = await saveEntreprise(mappedData);
       if (result.success) {
         alert('Entreprise modifiée avec succès !');
       } else {
-        console.log('Erreur détaillée lors de la modification :', result.error);
-        alert('Erreur lors de la modification : ' + JSON.stringify(result.error));
+        alert('Erreur lors de la modification : ' + result.error);
       }
     } else {
       // Ajouter nouvelle entreprise
@@ -73,13 +71,11 @@ const EntreprisesForm = () => {
         contact_principal_telephone: formData.telephone,
         description: formData.description
       };
-      console.log('FormData envoyé à Supabase :', mappedData);
       const result = await saveEntreprise(mappedData);
       if (result.success) {
         alert('Entreprise ajoutée avec succès !');
       } else {
-        console.log('Erreur détaillée lors de l\'ajout :', result.error);
-        alert('Erreur lors de l\'ajout : ' + JSON.stringify(result.error));
+        alert('Erreur lors de l\'ajout : ' + result.error);
       }
     }
     

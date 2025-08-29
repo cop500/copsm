@@ -4,7 +4,7 @@ import { useRealTime } from './useRealTime';
 
 // Cache pour éviter les rechargements inutiles
 const cache = new Map();
-const CACHE_DURATION = 0; // Désactiver le cache pour forcer le rechargement
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes de cache
 
 export function useEntreprises() {
   const [entreprises, setEntreprises] = useState<any[]>([]);
@@ -62,7 +62,6 @@ export function useEntreprises() {
       lastFetchRef.current = now;
     } catch (err: any) {
       setError(err.message);
-      console.error('Erreur chargement entreprises:', err);
     } finally {
       setLoading(false);
     }

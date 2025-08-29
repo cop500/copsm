@@ -51,7 +51,6 @@ export const useAuth = () => {
           if (!mounted) return
 
           if (profileError) {
-            console.log('Pas de profil trouvé pour cet utilisateur')
             setAuthState({
               user,
               profile: null,

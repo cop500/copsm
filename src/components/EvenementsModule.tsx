@@ -13,12 +13,6 @@ export const EvenementsModule = () => {
   const { currentUser } = useUser()
   const { isAdmin } = useRole()
   
-  // Debug logs
-  console.log('🔍 === DEBUG EVENEMENTS ===')
-  console.log('🔍 Current user:', currentUser)
-  console.log('🔍 User role:', currentUser?.role)
-  console.log('🔍 Is admin:', isAdmin)
-  
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState<Record<string, unknown>>({})
   const [evenements, setEvenements] = useState<Array<Record<string, unknown>>>([])
@@ -55,9 +49,6 @@ export const EvenementsModule = () => {
 
   // Sauvegarder un événement
   const handleSave = async () => {
-    console.log('🔥 SAUVEGARDE DÉCLENCHÉE!')
-    console.log('📝 Données:', formData)
-    
     if (!formData.titre) {
       alert('Titre obligatoire!')
       return
@@ -100,7 +91,6 @@ export const EvenementsModule = () => {
       await loadEvenements() // Recharger la liste
     } catch (err: unknown) {
       if (err instanceof Error) {
-        console.error('💥 Erreur:', err)
         alert('Erreur: ' + err.message)
       }
     }

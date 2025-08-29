@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useEntreprises } from '@/hooks/useEntreprises';
-import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar, Upload, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar, Upload, FileSpreadsheet, Target } from 'lucide-react';
 import type { Entreprise } from '@/types';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
@@ -91,30 +91,22 @@ const EntreprisesForm = () => {
 
   // Fonction pour lire le fichier Excel
   const handleFileUpload = (file: File) => {
-    console.log('📁 Début lecture fichier Excel:', file.name, 'Taille:', file.size, 'Type:', file.type);
     
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        console.log('📖 Fichier lu avec succès, début traitement...');
+        
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        console.log('📊 Données binaires récupérées, taille:', data.length);
         
         const workbook = XLSX.read(data, { type: 'array' });
-        console.log('📋 Workbook créé, feuilles disponibles:', workbook.SheetNames);
         
         const sheetName = workbook.SheetNames[0];
-        console.log('📄 Utilisation de la feuille:', sheetName);
         
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
-        console.log('📊 Données JSON extraites:', jsonData.length, 'lignes');
-        console.log('📋 Première ligne (exemple):', jsonData[0]);
-        
+
         // Fonction pour normaliser le niveau d'intérêt
         const normalizeNiveauInteret = (value: string): string => {
-          const normalized = value.toLowerCase().trim();
-          console.log(`🔄 Normalisation niveau d'intérêt: "${value}" -> "${normalized}"`);
           
           // Mapping des variations possibles
           const mapping: { [key: string]: string } = {
@@ -130,13 +122,11 @@ const EntreprisesForm = () => {
           };
           
           const result = mapping[normalized] || 'moyen'; // Valeur par défaut
-          console.log(`✅ Niveau d'intérêt normalisé: "${normalized}" -> "${result}"`);
           return result;
         };
 
         // Mapper les colonnes Excel vers nos champs
         const mappedData = jsonData.map((row: any, index: number) => {
-          console.log(`🔄 Mapping ligne ${index + 1}:`, row);
           
           const mapped = {
             nom: row['Nom de l\'entreprise'] || row['Nom'] || '',
@@ -150,35 +140,23 @@ const EntreprisesForm = () => {
             notes_bd: row['Notes'] || ''
           };
           
-          console.log(`✅ Ligne ${index + 1} mappée:`, mapped);
           return mapped;
         }).filter(item => {
           const hasName = item.nom && item.nom.trim() !== '';
           if (!hasName) {
-            console.log('⚠️ Ligne filtrée (nom vide):', item);
+            return false;
           }
           return hasName;
         });
 
-        console.log('📊 Données finales après mapping:', mappedData.length, 'entreprises');
-        console.log('📋 Aperçu des données mappées:', mappedData.slice(0, 3));
-
         setImportPreview(mappedData);
         setImportFile(file);
-        console.log('✅ Import preview mis à jour avec succès');
       } catch (error) {
-        console.error('❌ Erreur lecture Excel:', error);
-        console.error('❌ Détails de l\'erreur:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        });
         alert('Erreur lors de la lecture du fichier Excel: ' + error.message);
       }
     };
     
     reader.onerror = (error) => {
-      console.error('❌ Erreur FileReader:', error);
       alert('Erreur lors de la lecture du fichier');
     };
     
@@ -187,82 +165,55 @@ const EntreprisesForm = () => {
 
   // Fonction pour importer les entreprises
   const handleImport = async () => {
-    console.log('🚀 Début importation des entreprises...');
-    console.log('📊 Nombre d\'entreprises à importer:', importPreview.length);
-    
-    if (!importPreview.length) {
-      console.log('⚠️ Aucune entreprise à importer');
+    if (!importFile) {
+      alert('Veuillez sélectionner un fichier Excel');
       return;
     }
-    
+
     setImporting(true);
-    let successCount = 0;
-    let errorCount = 0;
-    const errors: string[] = [];
+    try {
+      const workbook = XLSX.read(importFile, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
 
-    console.log('📋 Données à importer:', importPreview);
+      let successCount = 0;
+      let errorCount = 0;
 
-    for (let i = 0; i < importPreview.length; i++) {
-      const entreprise = importPreview[i];
-      console.log(`🔄 Importation entreprise ${i + 1}/${importPreview.length}:`, entreprise.nom);
-      
-      try {
-        const entrepriseData = {
-          nom: entreprise.nom,
-          secteur: entreprise.secteur,
-          adresse: entreprise.adresse,
-          statut: entreprise.statut,
-          contact_principal_nom: entreprise.contact_personne,
-          contact_principal_email: entreprise.email,
-          contact_principal_telephone: entreprise.telephone,
-          description: '',
-          niveau_interet: entreprise.niveau_interet,
-          notes_bd: entreprise.notes_bd
-        };
-        
-        console.log(`📝 Données préparées pour ${entreprise.nom}:`, entrepriseData);
-        
-        const result = await saveEntreprise(entrepriseData);
-        console.log(`📊 Résultat pour ${entreprise.nom}:`, result);
-        
-        if (result.success) {
-          successCount++;
-          console.log(`✅ ${entreprise.nom} importée avec succès`);
-        } else {
+      for (const row of data) {
+        try {
+          const entrepriseData = {
+            nom: row['Nom de l\'entreprise'] || row['Nom'] || '',
+            secteur: row['Secteur d\'activité'] || row['Secteur'] || '',
+            adresse: row['Adresse'] || '',
+            contact_principal_nom: row['Contact principal'] || row['Contact'] || '',
+            contact_principal_email: row['Email'] || '',
+            contact_principal_telephone: row['Téléphone'] || '',
+            statut: normalizeStatut(row['Statut'] || ''),
+            niveau_interet: normalizeNiveauInteret(row['Niveau d\'intérêt'] || ''),
+            notes_bd: row['Notes BD'] || '',
+            partenaire_privilegie: false
+          };
+
+          const result = await saveEntreprise(entrepriseData);
+          if (result.success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
           errorCount++;
-          const errorMsg = `Erreur pour ${entreprise.nom}: ${result.error || 'Erreur inconnue'}`;
-          errors.push(errorMsg);
-          console.error(`❌ ${errorMsg}`);
         }
-      } catch (error: any) {
-        errorCount++;
-        const errorMsg = `Exception pour ${entreprise.nom}: ${error.message}`;
-        errors.push(errorMsg);
-        console.error(`❌ ${errorMsg}`, error);
-        console.error('❌ Stack trace:', error.stack);
       }
-    }
 
-    console.log('📊 Résumé importation:', {
-      total: importPreview.length,
-      success: successCount,
-      errors: errorCount,
-      errorDetails: errors
-    });
-
-    setImporting(false);
-    setShowImportModal(false);
-    setImportFile(null);
-    setImportPreview([]);
-    
-    const message = `Import terminé : ${successCount} entreprises ajoutées, ${errorCount} erreurs`;
-    console.log('📢 Message final:', message);
-    
-    if (errors.length > 0) {
-      console.log('❌ Détails des erreurs:', errors);
-      alert(`${message}\n\nErreurs détaillées:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`);
-    } else {
-      alert(message);
+      alert(`Import terminé : ${successCount} entreprises ajoutées, ${errorCount} erreurs`);
+      setShowImportModal(false);
+      setImportFile(null);
+      setImportPreview([]);
+    } catch (error) {
+      alert('Erreur lors de l\'import : ' + error);
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -319,7 +270,6 @@ const EntreprisesForm = () => {
       // Modifier entreprise existante
       const mappedData: any = { id: editingEntreprise.id, ...commonData };
       if (contratUrl) mappedData.contrat_url = contratUrl;
-      console.log('FormData envoyé à Supabase :', mappedData);
       const result = await saveEntreprise(mappedData);
       if (result.success) {
         alert('Entreprise modifiée avec succès !');
@@ -330,7 +280,6 @@ const EntreprisesForm = () => {
       // Ajouter nouvelle entreprise
       const mappedData: any = { ...commonData };
       if (contratUrl) mappedData.contrat_url = contratUrl;
-      console.log('FormData envoyé à Supabase :', mappedData);
       const result = await saveEntreprise(mappedData);
       if (result.success) {
         alert('Entreprise ajoutée avec succès !');

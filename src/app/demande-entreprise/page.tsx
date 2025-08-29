@@ -87,14 +87,8 @@ export default function DemandeEntreprisePage() {
     setProfils(prev => prev.map((p, i) => i === idx ? { ...p, [name]: value, ...(name === "pole_id" ? { filiere_id: "" } : {}) } : p));
   };
   const getFilieresForPole = (pole_id: string) => {
-    // Debug: afficher les données pour comprendre le problème
-    console.log('Pole ID:', pole_id);
-    console.log('Poles:', poles);
-    console.log('Filieres:', filieres);
-    
     // Filtrer directement par pole_id
     const filieresFiltrees = filieres.filter(f => f.pole_id === pole_id);
-    console.log('Filieres filtrées par pole_id:', filieresFiltrees);
     
     return filieresFiltrees;
   };
