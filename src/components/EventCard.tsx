@@ -167,7 +167,7 @@ export const EventCard: React.FC<EventCardProps> = ({
           <div className="relative h-48 overflow-hidden">
             {/* Image par défaut */}
             <img
-              src="/photo_evenement_effet"
+              src="/photo_evenement_effet.jpg"
               alt="Photo par défaut - Événement"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
