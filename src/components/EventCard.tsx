@@ -28,6 +28,7 @@ interface EventCardProps {
   onDelete?: (id: string) => void
   onView?: (event: any) => void
   onGenerateContent?: (event: any) => void
+  onAddPhotos?: (event: any) => void
 }
 
 export const EventCard: React.FC<EventCardProps> = ({ 
@@ -163,10 +164,33 @@ export const EventCard: React.FC<EventCardProps> = ({
             </button>
           </div>
         ) : (
-          <div className="h-48 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-            <div className="text-center">
-              <Calendar className="w-12 h-12 text-blue-300 mx-auto mb-2" />
-              <p className="text-blue-400 text-sm">Aucune photo</p>
+          <div className="relative h-48 overflow-hidden">
+            {/* Image par défaut */}
+            <img
+              src="/photo_evenement_effet"
+              alt="Photo par défaut - Événement"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            
+            {/* Overlay avec informations */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-white" />
+                    <span className="text-white text-sm font-medium">
+                      {formatDate(event.date_debut)}
+                    </span>
+                  </div>
+                  
+                  {/* Indicateur photo par défaut */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-xs bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
+                      Photo par défaut
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -288,10 +312,15 @@ export const EventCard: React.FC<EventCardProps> = ({
           {/* Footer avec actions */}
           <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-4 text-xs text-gray-500">
-              {event.photos_urls && event.photos_urls.length > 0 && (
+              {event.photos_urls && event.photos_urls.length > 0 ? (
                 <div className="flex items-center gap-1">
                   <Image className="w-3 h-3" />
                   <span>{event.photos_urls.length} photo(s)</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <Image className="w-3 h-3" />
+                  <span>Photo par défaut</span>
                 </div>
               )}
             </div>
