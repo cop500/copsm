@@ -28,7 +28,7 @@ export const generateEmployabilityPDF = async (data: PDFData) => {
   try {
     const doc = new jsPDF('p', 'mm', 'a4');
     
-    // Configuration des polices
+    // Configuration des polices avec encodage UTF-8
     doc.setFont('helvetica');
     
     // Page de couverture avec gradient et design moderne
@@ -126,34 +126,34 @@ const generateExecutiveSummary = (doc: jsPDF, data: PDFData) => {
     doc.setLineWidth(2);
     doc.line(20, 35, 190, 35);
     
-    // KPIs en cartes arrondies avec icônes
+    // KPIs en cartes arrondies avec icônes (remplacées par du texte)
     const kpis = [
       {
         label: 'Taux de conversion global',
         value: `${data.eventMetrics?.conversionRate || 0}%`,
         color: getConversionColor(data.eventMetrics?.conversionRate || 0),
-        icon: '📊',
+        icon: 'TC',
         description: 'Pourcentage de candidats retenus'
       },
       {
         label: 'Stagiaires bénéficiaires',
         value: data.eventMetrics?.totalBeneficiaries || 0,
         color: COLORS.info,
-        icon: '👥',
+        icon: 'SB',
         description: 'Nombre total de participants'
       },
       {
         label: 'Entreprises partenaires',
         value: data.enterpriseMetrics?.partners || 0,
         color: COLORS.purple,
-        icon: '🏢',
+        icon: 'EP',
         description: 'Partenariats actifs'
       },
       {
         label: 'Demandes actives',
         value: data.demandMetrics?.activeDemands || 0,
         color: COLORS.warning,
-        icon: '📋',
+        icon: 'DA',
         description: 'Opportunités en cours'
       }
     ];
@@ -173,9 +173,10 @@ const generateExecutiveSummary = (doc: jsPDF, data: PDFData) => {
       doc.setLineWidth(1);
       doc.roundedRect(x, yPos, 80, 35, 5, 5, 'S');
       
-      // Icône
+      // Icône (remplacée par du texte)
       doc.setTextColor(kpi.color);
-      doc.setFontSize(16);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
       doc.text(kpi.icon, x + 5, yPos + 8);
       
       // Valeur principale
@@ -256,7 +257,7 @@ const generateChartsPage = (doc: jsPDF, data: PDFData) => {
       doc.setTextColor(COLORS.dark);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('📊 Répartition des événements par volet', 20, 50);
+      doc.text('Répartition des événements par volet', 20, 50);
       
       const voletData = Object.entries(data.eventMetrics.eventsByVolet);
       const totalEvents = data.eventMetrics.totalEvents;
@@ -305,7 +306,7 @@ const generateChartsPage = (doc: jsPDF, data: PDFData) => {
       doc.setTextColor(COLORS.dark);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('🏢 Répartition des entreprises par secteur', 20, 160);
+      doc.text('Répartition des entreprises par secteur', 20, 160);
       
       const sectorData = Object.entries(data.enterpriseMetrics.sectors);
       const maxCount = Math.max(...Object.values(data.enterpriseMetrics.sectors));
@@ -357,7 +358,7 @@ const generateDetailedData = (doc: jsPDF, data: PDFData) => {
     doc.setTextColor(COLORS.dark);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('📅 Événements Récents', 20, 50);
+    doc.text('Événements Récents', 20, 50);
     
     // En-têtes du tableau avec fond coloré
     const headers = ['Événement', 'Date', 'Volet', 'Bénéficiaires'];
@@ -447,10 +448,11 @@ const generatePoleMetrics = (doc: jsPDF, data: PDFData) => {
         doc.setLineWidth(1);
         doc.roundedRect(20, y, 170, 30, 5, 5, 'S');
         
-        // Icône selon le pôle
+        // Icône selon le pôle (remplacée par du texte)
         const icon = getPoleIcon(poleName);
         doc.setTextColor(getConversionColor(conversionRate));
-        doc.setFontSize(16);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
         doc.text(icon, 25, y + 8);
         
         // Données
@@ -534,26 +536,26 @@ const generateConclusion = (doc: jsPDF, data: PDFData) => {
     doc.setFontSize(6);
     doc.text('Bénéficiaires', funnelX, funnelY + 66, { align: 'center' });
     
-    // Contenu avec bullets et icônes
+    // Contenu avec bullets et icônes (remplacées par du texte)
     doc.setTextColor(COLORS.dark);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     
     const conclusions = [
-      `✅ Le COP CMC SM a organisé ${data.eventMetrics?.totalEvents || 0} événements cette période,`,
+      `Le COP CMC SM a organisé ${data.eventMetrics?.totalEvents || 0} événements cette période,`,
       `touchant ${data.eventMetrics?.totalBeneficiaries || 0} stagiaires bénéficiaires.`,
       '',
-      `📈 Avec un taux de conversion global de ${data.eventMetrics?.conversionRate || 0}%,`,
+      `Avec un taux de conversion global de ${data.eventMetrics?.conversionRate || 0}%,`,
       'les activités d\'employabilité montrent des résultats prometteurs.',
       '',
-      `🤝 Le partenariat avec ${data.enterpriseMetrics?.partners || 0} entreprises`,
+      `Le partenariat avec ${data.enterpriseMetrics?.partners || 0} entreprises`,
       'démontre l\'engagement du secteur privé dans l\'insertion professionnelle.',
       '',
-      '💡 Recommandations :',
-      '• 🎯 Maintenir la diversification des volets d\'activité',
-      '• 🤝 Renforcer les partenariats avec les entreprises',
-      '• 📊 Optimiser les taux de conversion par pôle',
-      '• 🚀 Développer de nouveaux événements innovants'
+      'Recommandations :',
+      '• Maintenir la diversification des volets d\'activité',
+      '• Renforcer les partenariats avec les entreprises',
+      '• Optimiser les taux de conversion par pôle',
+      '• Développer de nouveaux événements innovants'
     ];
     
     let y = 120;
@@ -597,11 +599,11 @@ const getVoletLabel = (volet: string): string => {
 
 const getPoleIcon = (poleName: string): string => {
   const icons: { [key: string]: string } = {
-    'AGRICULTURE': '🌾',
-    'INDUSTRIE': '🏭',
-    'SERVICES': '💼',
-    'COMMERCE': '🛒',
-    'Tous les pôles confondus': '🌍'
+    'AGRICULTURE': 'AGR',
+    'INDUSTRIE': 'IND',
+    'SERVICES': 'SER',
+    'COMMERCE': 'COM',
+    'Tous les pôles confondus': 'ALL'
   };
-  return icons[poleName] || '📊';
+  return icons[poleName] || 'POL';
 };
