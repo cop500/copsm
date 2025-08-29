@@ -142,33 +142,24 @@ export const EmployabilityDashboard: React.FC = () => {
         metrics.eventsByVolet[volet] = (metrics.eventsByVolet[volet] || 0) + 1;
       });
 
-      // Répartition par pôle et calcul des taux de conversion
-      const poleStats: { [key: string]: { count: number; candidates: number; retained: number } } = {};
-      
-                           evenements.forEach(event => {
-          if (event.pole_id) {
-            const pole = poles.find(p => p.id === event.pole_id);
-            const poleName = pole ? pole.nom : `Pôle ID: ${event.pole_id} (à corriger)`;
-            
-            if (!poleStats[poleName]) {
-              poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
-            }
-            
-            poleStats[poleName].count += 1;
-            poleStats[poleName].candidates += (event.nombre_candidats || 0);
-            poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
-          } else {
-            // Événements destinés à tous les pôles
-            const poleName = 'Tous les pôles confondus';
-            if (!poleStats[poleName]) {
-              poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
-            }
-            
-            poleStats[poleName].count += 1;
-            poleStats[poleName].candidates += (event.nombre_candidats || 0);
-            poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
-          }
-        });
+             // Répartition par pôle et calcul des taux de conversion
+       const poleStats: { [key: string]: { count: number; candidates: number; retained: number } } = {};
+       
+       evenements.forEach(event => {
+         if (event.pole_id) {
+           const pole = poles.find(p => p.id === event.pole_id);
+           const poleName = pole ? pole.nom : `Pôle ID: ${event.pole_id} (à corriger)`;
+           
+           if (!poleStats[poleName]) {
+             poleStats[poleName] = { count: 0, candidates: 0, retained: 0 };
+           }
+           
+           poleStats[poleName].count += 1;
+           poleStats[poleName].candidates += (event.nombre_candidats || 0);
+           poleStats[poleName].retained += (event.nombre_candidats_retenus || 0);
+         }
+         // Les événements sans pôle assigné ne sont pas inclus dans les métriques par pôles
+       });
       
       // Convertir les statistiques en métriques
       Object.entries(poleStats).forEach(([poleName, stats]) => {
