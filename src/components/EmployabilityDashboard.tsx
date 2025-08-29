@@ -5,7 +5,7 @@ import {
   TrendingUp, Users, Building2, Calendar, FileText, Download, 
   Target, Activity, BarChart3, PieChart, ArrowUpRight, ArrowDownRight,
   CheckCircle, AlertCircle, Clock, UserCheck, Briefcase, GraduationCap,
-  FileDown
+  FileDown, Presentation
 } from 'lucide-react';
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { useEvenements } from '@/hooks/useEvenements';
@@ -15,6 +15,7 @@ import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 import { generateEmployabilityPDF } from '@/utils/pdfGenerator';
+import { generateEmployabilityPPTX } from '@/utils/pptxGenerator';
 
 interface KPICard {
   label: string;
@@ -70,6 +71,7 @@ export const EmployabilityDashboard: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('current_year');
   const [exporting, setExporting] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
+  const [exportingPPTX, setExportingPPTX] = useState(false);
 
   const { entreprises, loading: entreprisesLoading, refresh: refreshEntreprises } = useEntreprises();
   const { evenements, loading: evenementsLoading, refresh: refreshEvenements } = useEvenements();
@@ -555,6 +557,62 @@ export const EmployabilityDashboard: React.FC = () => {
      }
    };
 
+   // Fonction d'export PowerPoint
+   const handleExportPPTX = async () => {
+     // Vérifier si les données sont encore en cours de chargement
+     if (entreprisesLoading || evenementsLoading) {
+       alert('Veuillez attendre le chargement complet des données');
+       return;
+     }
+
+     // Vérifier si les données de base sont disponibles
+     if (!evenements || !entreprises) {
+       alert('Aucune donnée disponible pour l\'export');
+       return;
+     }
+
+     // Vérifier si les métriques calculées sont disponibles
+     if (!eventMetrics || !enterpriseMetrics) {
+       alert('Calcul des métriques en cours, veuillez patienter...');
+       return;
+     }
+
+     setExportingPPTX(true);
+     try {
+       const pptxData = {
+         eventMetrics,
+         enterpriseMetrics,
+         demandMetrics: demandMetrics || {
+           totalDemands: 0,
+           activeDemands: 0,
+           totalProfiles: 0,
+           topEnterprises: []
+         },
+         evenements,
+         entreprises,
+         poles,
+         filieres
+       };
+
+       const pptx = await generateEmployabilityPPTX(pptxData);
+       
+       // Générer le nom du fichier
+       const fileName = `Bilan_Employabilite_COP_${new Date().toISOString().split('T')[0]}.pptx`;
+       
+       // Télécharger le fichier
+       pptx.writeFile({ fileName });
+       
+       // Message de succès
+       alert(`Présentation PowerPoint exportée avec succès : ${fileName}`);
+       
+     } catch (error) {
+       console.error('Erreur lors de l\'export PowerPoint:', error);
+       alert('Erreur lors de l\'export de la présentation PowerPoint. Veuillez réessayer.');
+     } finally {
+       setExportingPPTX(false);
+     }
+   };
+
   // KPIs principaux
   const kpiCards: KPICard[] = [
     {
@@ -702,6 +760,24 @@ export const EmployabilityDashboard: React.FC = () => {
                      <>
                        <FileDown className="w-3 h-3" />
                        PDF
+                     </>
+                   )}
+                 </button>
+                 
+                 <button 
+                   onClick={handleExportPPTX}
+                   disabled={exportingPPTX}
+                   className="flex items-center gap-1 px-3 py-1 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                 >
+                   {exportingPPTX ? (
+                     <>
+                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                       Export PPTX...
+                     </>
+                   ) : (
+                     <>
+                       <Presentation className="w-3 h-3" />
+                       PowerPoint
                      </>
                    )}
                  </button>
