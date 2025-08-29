@@ -43,6 +43,7 @@ export function useEntreprises() {
           niveau_interet,
           notes_bd,
           contrat_url,
+          partenaire_privilegie,
           created_at
         `)
         .order('nom', { ascending: true });

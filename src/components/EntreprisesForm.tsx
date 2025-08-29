@@ -47,7 +47,8 @@ const EntreprisesForm = () => {
     description: '',
     statut: 'prospect',
     niveau_interet: 'moyen' as 'faible' | 'moyen' | 'fort',
-    notes_bd: ''
+    notes_bd: '',
+    partenaire_privilegie: false
   });
 
   const secteurs = [
@@ -304,7 +305,8 @@ const EntreprisesForm = () => {
       contact_principal_telephone: formData.telephone,
       description: formData.description,
       niveau_interet: formData.niveau_interet,
-      notes_bd: formData.notes_bd
+      notes_bd: formData.notes_bd,
+      partenaire_privilegie: formData.partenaire_privilegie
     };
 
     let contratUrl: string | null = null;
@@ -351,7 +353,8 @@ const EntreprisesForm = () => {
       description: '',
       statut: 'prospect',
       niveau_interet: 'moyen',
-      notes_bd: ''
+      notes_bd: '',
+      partenaire_privilegie: false
     });
     setShowForm(false);
     setEditingEntreprise(null);
@@ -369,7 +372,8 @@ const EntreprisesForm = () => {
       description: entreprise.description || '',
       statut: (entreprise.statut || 'prospect'),
       niveau_interet: (entreprise as any).niveau_interet || 'moyen',
-      notes_bd: (entreprise as any).notes_bd || ''
+      notes_bd: (entreprise as any).notes_bd || '',
+      partenaire_privilegie: entreprise.partenaire_privilegie || false
     });
     setEditingEntreprise(entreprise);
     setShowForm(true);
@@ -681,6 +685,22 @@ const EntreprisesForm = () => {
                 </select>
               </div>
 
+              {/* Partenaire privilégié */}
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                  <input
+                    type="checkbox"
+                    checked={formData.partenaire_privilegie}
+                    onChange={(e) => setFormData({ ...formData, partenaire_privilegie: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  Partenaire privilégié (Top entreprise)
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Cette entreprise apparaîtra dans la section "Top entreprises" du dashboard
+                </p>
+              </div>
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes (BD)</label>
                 <textarea
@@ -798,6 +818,12 @@ const EntreprisesForm = () => {
                             return 'Actif';
                           })()}
                         </span>
+                        {entreprise.partenaire_privilegie && (
+                          <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 flex items-center gap-1">
+                            <Target className="w-3 h-3" />
+                            Top entreprise
+                          </span>
+                        )}
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">

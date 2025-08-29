@@ -777,26 +777,31 @@ export const EmployabilityDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Top entreprises */}
+                {/* Top entreprises */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Target className="w-4 h-4 text-red-600" />
             Top entreprises
           </h3>
-                     <div className="space-y-2">
-             {(demandMetrics?.topEnterprises || []).length > 0 ? (
-               demandMetrics.topEnterprises.map((entreprise, index) => (
-                 <div key={index} className="flex justify-between items-center">
-                   <span className="text-xs text-gray-600 truncate">{entreprise.name}</span>
-                   <span className="text-sm font-semibold">{entreprise.demands} demandes</span>
-                 </div>
-               ))
-             ) : (
-               <div className="text-xs text-gray-500 text-center py-2">
-                 Aucune donnée disponible
-               </div>
-             )}
-           </div>
+          <div className="space-y-2">
+            {entreprises && entreprises.filter(e => e.partenaire_privilegie).length > 0 ? (
+              entreprises
+                .filter(e => e.partenaire_privilegie)
+                .slice(0, 5)
+                .map((entreprise, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600 truncate">{entreprise.nom}</span>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      Partenaire privilégié
+                    </span>
+                  </div>
+                ))
+            ) : (
+              <div className="text-xs text-gray-500 text-center py-2">
+                Aucune entreprise marquée comme partenaire privilégié
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
