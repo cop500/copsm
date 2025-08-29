@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, Users, Building2, Calendar, FileText, Download, 
   Target, Activity, BarChart3, PieChart, ArrowUpRight, ArrowDownRight,
-  CheckCircle, AlertCircle, Clock, UserCheck, Briefcase, GraduationCap
+  CheckCircle, AlertCircle, Clock, UserCheck, Briefcase, GraduationCap,
+  FileDown
 } from 'lucide-react';
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { useEvenements } from '@/hooks/useEvenements';
@@ -13,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
+import { generateEmployabilityPDF } from '@/utils/pdfGenerator';
 
 interface KPICard {
   label: string;
@@ -67,6 +69,7 @@ export const EmployabilityDashboard: React.FC = () => {
   const [demandMetrics, setDemandMetrics] = useState<DemandMetrics | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('current_year');
   const [exporting, setExporting] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
 
   const { entreprises, loading: entreprisesLoading, refresh: refreshEntreprises } = useEntreprises();
   const { evenements, loading: evenementsLoading, refresh: refreshEvenements } = useEvenements();
@@ -491,10 +494,66 @@ export const EmployabilityDashboard: React.FC = () => {
     } catch (error) {
       console.error('Erreur lors de l\'export:', error);
       alert('Erreur lors de l\'export du rapport. Veuillez réessayer.');
-    } finally {
-      setExporting(false);
-    }
-  };
+         } finally {
+       setExporting(false);
+     }
+   };
+
+   // Fonction d'export PDF
+   const handleExportPDF = async () => {
+     // Vérifier si les données sont encore en cours de chargement
+     if (entreprisesLoading || evenementsLoading) {
+       alert('Veuillez attendre le chargement complet des données');
+       return;
+     }
+
+     // Vérifier si les données de base sont disponibles
+     if (!evenements || !entreprises) {
+       alert('Aucune donnée disponible pour l\'export');
+       return;
+     }
+
+     // Vérifier si les métriques calculées sont disponibles
+     if (!eventMetrics || !enterpriseMetrics) {
+       alert('Calcul des métriques en cours, veuillez patienter...');
+       return;
+     }
+
+     setExportingPDF(true);
+     try {
+       const pdfData = {
+         eventMetrics,
+         enterpriseMetrics,
+         demandMetrics: demandMetrics || {
+           totalDemands: 0,
+           activeDemands: 0,
+           totalProfiles: 0,
+           topEnterprises: []
+         },
+         evenements,
+         entreprises,
+         poles,
+         filieres
+       };
+
+       const doc = await generateEmployabilityPDF(pdfData);
+       
+       // Générer le nom du fichier
+       const fileName = `Bilan_Employabilite_COP_${new Date().toISOString().split('T')[0]}.pdf`;
+       
+       // Télécharger le fichier
+       doc.save(fileName);
+       
+       // Message de succès
+       alert(`Rapport PDF exporté avec succès : ${fileName}`);
+       
+     } catch (error) {
+       console.error('Erreur lors de l\'export PDF:', error);
+       alert('Erreur lors de l\'export du rapport PDF. Veuillez réessayer.');
+     } finally {
+       setExportingPDF(false);
+     }
+   };
 
   // KPIs principaux
   const kpiCards: KPICard[] = [
@@ -609,25 +668,45 @@ export const EmployabilityDashboard: React.FC = () => {
               Actualiser
             </button>
             
-            {isAdmin && (
-              <button 
-                onClick={handleExport}
-                disabled={exporting}
-                className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {exporting ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Export...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-3 h-3" />
-                    Exporter
-                  </>
-                )}
-              </button>
-            )}
+                         {isAdmin && (
+               <>
+                 <button 
+                   onClick={handleExport}
+                   disabled={exporting}
+                   className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                 >
+                   {exporting ? (
+                     <>
+                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                       Export Excel...
+                     </>
+                   ) : (
+                     <>
+                       <Download className="w-3 h-3" />
+                       Excel
+                     </>
+                   )}
+                 </button>
+                 
+                 <button 
+                   onClick={handleExportPDF}
+                   disabled={exportingPDF}
+                   className="flex items-center gap-1 px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                 >
+                   {exportingPDF ? (
+                     <>
+                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                       Export PDF...
+                     </>
+                   ) : (
+                     <>
+                       <FileDown className="w-3 h-3" />
+                       PDF
+                     </>
+                   )}
+                 </button>
+               </>
+             )}
         </div>
       </div>
 
