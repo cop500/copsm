@@ -15,7 +15,6 @@ import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 import { generateEmployabilityPDF } from '@/utils/pdfGenerator';
-import { generateEmployabilityPPTX } from '@/utils/pptxGenerator';
 
 interface KPICard {
   label: string;
@@ -594,16 +593,32 @@ export const EmployabilityDashboard: React.FC = () => {
          filieres
        };
 
-       const pptx = await generateEmployabilityPPTX(pptxData);
-       
-       // Générer le nom du fichier
-       const fileName = `Bilan_Employabilite_COP_${new Date().toISOString().split('T')[0]}.pptx`;
-       
+       // Appeler l'API pour générer le PowerPoint
+       const response = await fetch('/api/export-pptx', {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+         },
+         body: JSON.stringify(pptxData),
+       });
+
+       if (!response.ok) {
+         throw new Error('Erreur lors de la génération du PowerPoint');
+       }
+
        // Télécharger le fichier
-       pptx.writeFile({ fileName });
+       const blob = await response.blob();
+       const url = window.URL.createObjectURL(blob);
+       const a = document.createElement('a');
+       a.href = url;
+       a.download = `Bilan_Employabilite_COP_${new Date().toISOString().split('T')[0]}.pptx`;
+       document.body.appendChild(a);
+       a.click();
+       window.URL.revokeObjectURL(url);
+       document.body.removeChild(a);
        
        // Message de succès
-       alert(`Présentation PowerPoint exportée avec succès : ${fileName}`);
+       alert('Présentation PowerPoint exportée avec succès !');
        
      } catch (error) {
        console.error('Erreur lors de l\'export PowerPoint:', error);

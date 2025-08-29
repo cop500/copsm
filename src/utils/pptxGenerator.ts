@@ -1,4 +1,14 @@
-import PptxGenJS from 'pptxgenjs';
+// Import conditionnel pour éviter les erreurs côté client
+let PptxGenJS: any = null;
+
+// Vérifier si nous sommes côté serveur
+if (typeof window === 'undefined') {
+  try {
+    PptxGenJS = require('pptxgenjs');
+  } catch (error) {
+    console.warn('PptxGenJS non disponible côté serveur');
+  }
+}
 
 // Même palette de couleurs que le PDF
 const COLORS = {
@@ -23,6 +33,11 @@ interface PPTXData {
 }
 
 export const generateEmployabilityPPTX = async (data: PPTXData) => {
+  // Vérifier si PptxGenJS est disponible
+  if (!PptxGenJS) {
+    throw new Error('PptxGenJS n\'est pas disponible dans cet environnement');
+  }
+
   try {
     const pptx = new PptxGenJS();
     
@@ -61,7 +76,7 @@ export const generateEmployabilityPPTX = async (data: PPTXData) => {
   }
 };
 
-const generateCoverSlide = (pptx: PptxGenJS) => {
+const generateCoverSlide = (pptx: any) => {
   const slide = pptx.addSlide();
   
   // Fond avec couleur primaire
@@ -130,7 +145,7 @@ const generateCoverSlide = (pptx: PptxGenJS) => {
   });
 };
 
-const generateExecutiveSummarySlide = (pptx: PptxGenJS, data: PPTXData) => {
+const generateExecutiveSummarySlide = (pptx: any, data: PPTXData) => {
   const slide = pptx.addSlide();
   
   // Titre
@@ -206,7 +221,7 @@ const generateExecutiveSummarySlide = (pptx: PptxGenJS, data: PPTXData) => {
   });
 };
 
-const generateChartsSlide = (pptx: PptxGenJS, data: PPTXData) => {
+const generateChartsSlide = (pptx: any, data: PPTXData) => {
   const slide = pptx.addSlide();
   
   // Titre
@@ -276,7 +291,7 @@ const generateChartsSlide = (pptx: PptxGenJS, data: PPTXData) => {
   }
 };
 
-const generateDetailedDataSlide = (pptx: PptxGenJS, data: PPTXData) => {
+const generateDetailedDataSlide = (pptx: any, data: PPTXData) => {
   const slide = pptx.addSlide();
   
   // Titre
@@ -331,7 +346,7 @@ const generateDetailedDataSlide = (pptx: PptxGenJS, data: PPTXData) => {
   });
 };
 
-const generatePoleMetricsSlide = (pptx: PptxGenJS, data: PPTXData) => {
+const generatePoleMetricsSlide = (pptx: any, data: PPTXData) => {
   const slide = pptx.addSlide();
   
   // Titre
@@ -390,7 +405,7 @@ const generatePoleMetricsSlide = (pptx: PptxGenJS, data: PPTXData) => {
   }
 };
 
-const generateConclusionSlide = (pptx: PptxGenJS, data: PPTXData) => {
+const generateConclusionSlide = (pptx: any, data: PPTXData) => {
   const slide = pptx.addSlide();
   
   // Titre
