@@ -119,9 +119,9 @@ const CandidaturePage = () => {
           : 'Stage'
         
         return {
-          ...d,
-          type: 'entreprise',
-          display_nom: d.entreprise_nom,
+        ...d,
+        type: 'entreprise',
+        display_nom: d.entreprise_nom,
           display_poste: display_poste,
           display_type: d.type_demande,
           // Garder les profils complets pour référence
