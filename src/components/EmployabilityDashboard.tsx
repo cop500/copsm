@@ -183,8 +183,8 @@ export const EmployabilityDashboard: React.FC = () => {
           .select(`
             id,
             statut,
-            entreprises(nom),
-            profiles(id)
+            entreprises!inner(nom),
+            profils
           `);
 
         if (error) throw error;
@@ -195,7 +195,7 @@ export const EmployabilityDashboard: React.FC = () => {
         const metrics: DemandMetrics = {
           totalDemands: demandes?.length || 0,
           activeDemands: demandes?.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours').length || 0,
-          totalProfiles: demandes?.reduce((sum, d) => sum + (d.profiles?.length || 0), 0) || 0,
+          totalProfiles: demandes?.reduce((sum, d) => sum + (d.profils?.length || 0), 0) || 0,
           topEnterprises: []
         };
 
