@@ -249,24 +249,17 @@ const DashboardAdmin = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) return;
 
     try {
-      console.log('🗑️ Tentative de suppression du commentaire:', commentaireId);
-      console.log('📋 ID de la demande:', demandeId);
-      console.log('👤 Utilisateur admin:', currentUser?.email, 'Role:', currentUser?.role);
-      
       const { data, error } = await supabase
         .from('commentaires_demandes_entreprises')
         .delete()
         .eq('id', commentaireId);
       
-      console.log('📊 Résultat de la suppression:', { data, error });
-      
       if (error) throw error;
       
-      console.log('✅ Commentaire supprimé avec succès, rechargement des commentaires...');
       await loadCommentaires(demandeId);
       setMessage('Commentaire supprimé avec succès !');
     } catch (err: any) {
-      console.error('❌ Erreur suppression commentaire:', err);
+      console.error('Erreur suppression commentaire:', err);
       setMessage('Erreur lors de la suppression du commentaire');
     }
     setTimeout(() => setMessage(""), 3000);
@@ -275,21 +268,15 @@ const DashboardAdmin = () => {
   // Charger les statistiques d'une demande
   const loadStatistiques = async (demandeId: string) => {
     try {
-      console.log('🔍 Chargement des statistiques pour la demande:', demandeId);
-      console.log('👤 Utilisateur actuel:', currentUser?.email, 'Role:', currentUser?.role);
-      
       const { data, error } = await supabase
         .from('statistiques_demandes')
         .select('*')
         .eq('demande_id', demandeId)
         .single();
       
-      console.log('📊 Résultat de la requête:', { data, error });
-      
       if (error) {
         if (error.code === 'PGRST116') {
           // Pas de données trouvées - c'est normal pour une nouvelle demande
-          console.log('ℹ️ Aucune statistique trouvée pour la demande:', demandeId);
           return;
         }
         console.error('❌ Erreur lors du chargement des statistiques:', error);
@@ -298,7 +285,6 @@ const DashboardAdmin = () => {
       
       if (data) {
         setStatistiques(prev => ({ ...prev, [demandeId]: data }));
-        console.log('✅ Statistiques chargées avec succès:', data);
       }
     } catch (err: any) {
       console.error('💥 Erreur chargement statistiques:', err);
@@ -309,10 +295,6 @@ const DashboardAdmin = () => {
   const updateStatistiques = async (demandeId: string, stats: any) => {
     setUpdatingStats(demandeId);
     try {
-      console.log('💾 Sauvegarde des statistiques pour la demande:', demandeId);
-      console.log('📊 Données à sauvegarder:', stats);
-      console.log('👤 Utilisateur actuel:', currentUser?.email, 'Role:', currentUser?.role);
-      
       // Vérifier d'abord si des statistiques existent déjà
       const { data: existingStats, error: checkError } = await supabase
         .from('statistiques_demandes')
@@ -320,12 +302,9 @@ const DashboardAdmin = () => {
         .eq('demande_id', demandeId)
         .maybeSingle();
       
-      console.log('🔍 Statistiques existantes:', existingStats);
-      
       let result;
       if (existingStats) {
         // Mettre à jour les statistiques existantes
-        console.log('🔄 Mise à jour des statistiques existantes');
         result = await supabase
           .from('statistiques_demandes')
           .update({
@@ -338,7 +317,6 @@ const DashboardAdmin = () => {
           .select();
       } else {
         // Insérer de nouvelles statistiques
-        console.log('➕ Insertion de nouvelles statistiques');
         result = await supabase
           .from('statistiques_demandes')
           .insert({
@@ -350,14 +328,10 @@ const DashboardAdmin = () => {
           .select();
       }
       
-      console.log('📊 Résultat de l\'opération:', result);
-      
       if (result.error) {
         console.error('❌ Erreur lors de l\'opération:', result.error);
         throw result.error;
       }
-      
-      console.log('✅ Statistiques sauvegardées avec succès:', result.data);
       
       setStatistiques(prev => ({ ...prev, [demandeId]: { demande_id: demandeId, ...stats } }));
       setEditingStats(null);
