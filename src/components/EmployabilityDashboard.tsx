@@ -189,12 +189,17 @@ export const EmployabilityDashboard: React.FC = () => {
 
         if (error) throw error;
 
+        console.log('📋 Demandes récupérées:', demandes);
+        console.log('📊 Statuts des demandes:', demandes?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprises?.nom })));
+
         const metrics: DemandMetrics = {
           totalDemands: demandes?.length || 0,
-          activeDemands: demandes?.filter(d => d.statut === 'active').length || 0,
+          activeDemands: demandes?.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours').length || 0,
           totalProfiles: demandes?.reduce((sum, d) => sum + (d.profiles?.length || 0), 0) || 0,
           topEnterprises: []
         };
+
+        console.log('📈 Métriques calculées:', metrics);
 
         // Calculer les entreprises les plus actives
         const enterpriseDemands: { [key: string]: number } = {};
