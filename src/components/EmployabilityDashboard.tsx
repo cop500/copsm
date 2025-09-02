@@ -177,20 +177,20 @@ export const EmployabilityDashboard: React.FC = () => {
   useEffect(() => {
     const fetchDemandMetrics = async () => {
       try {
-        // Requête corrigée avec LEFT JOIN au lieu de INNER JOIN
+        // Requête corrigée selon la structure réelle de la table
         const { data: demandes, error } = await supabase
           .from('demandes_entreprises')
           .select(`
             id,
             statut,
-            entreprises!inner(nom),
+            entreprise_nom,
             profils
           `);
 
         if (error) throw error;
 
         console.log('📋 Demandes récupérées:', demandes);
-        console.log('📊 Statuts des demandes:', demandes?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprises?.nom })));
+        console.log('📊 Statuts des demandes:', demandes?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprise_nom })));
 
         const metrics: DemandMetrics = {
           totalDemands: demandes?.length || 0,
@@ -204,7 +204,7 @@ export const EmployabilityDashboard: React.FC = () => {
         // Calculer les entreprises les plus actives
         const enterpriseDemands: { [key: string]: number } = {};
         demandes?.forEach(demande => {
-          const entrepriseName = demande.entreprises?.nom || 'Inconnue';
+          const entrepriseName = demande.entreprise_nom || 'Inconnue';
           enterpriseDemands[entrepriseName] = (enterpriseDemands[entrepriseName] || 0) + 1;
         });
 
@@ -392,8 +392,8 @@ export const EmployabilityDashboard: React.FC = () => {
           id,
           statut,
           created_at,
-          entreprises(nom),
-          profiles(id, titre)
+          entreprise_nom,
+          profils
         `);
 
       const demandesDetailData = [
@@ -402,10 +402,10 @@ export const EmployabilityDashboard: React.FC = () => {
         ['ID Demande', 'Entreprise demandeur', 'Statut', 'Profils demandés', 'Date de création'],
         ...(demandesDetail || []).map(demande => [
           demande.id || 'N/A',
-          demande.entreprises?.nom || 'N/A',
+          demande.entreprise_nom || 'N/A',
           demande.statut === 'active' ? 'Active' : 
           demande.statut === 'inactive' ? 'Inactive' : (demande.statut || 'N/A'),
-          demande.profiles?.map((p: any) => p.titre).join(', ') || 'N/A',
+          demande.profils?.map((p: any) => p.titre).join(', ') || 'N/A',
           demande.created_at ? new Date(demande.created_at).toLocaleDateString('fr-FR') : 'N/A'
         ])
       ];
