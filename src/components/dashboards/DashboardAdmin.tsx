@@ -249,16 +249,24 @@ const DashboardAdmin = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) return;
 
     try {
-      const { error } = await supabase
+      console.log('🗑️ Tentative de suppression du commentaire:', commentaireId);
+      console.log('📋 ID de la demande:', demandeId);
+      console.log('👤 Utilisateur admin:', currentUser?.email, 'Role:', currentUser?.role);
+      
+      const { data, error } = await supabase
         .from('commentaires_demandes_entreprises')
         .delete()
         .eq('id', commentaireId);
       
+      console.log('📊 Résultat de la suppression:', { data, error });
+      
       if (error) throw error;
+      
+      console.log('✅ Commentaire supprimé avec succès, rechargement des commentaires...');
       await loadCommentaires(demandeId);
       setMessage('Commentaire supprimé avec succès !');
     } catch (err: any) {
-      console.error('Erreur suppression commentaire:', err);
+      console.error('❌ Erreur suppression commentaire:', err);
       setMessage('Erreur lors de la suppression du commentaire');
     }
     setTimeout(() => setMessage(""), 3000);
