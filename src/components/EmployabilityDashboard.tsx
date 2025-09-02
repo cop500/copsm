@@ -200,6 +200,8 @@ export const EmployabilityDashboard: React.FC = () => {
         };
 
         console.log('📈 Métriques calculées:', metrics);
+        console.log('🎯 Total des demandes:', metrics.totalDemands);
+        console.log('🎯 Demandes actives:', metrics.activeDemands);
 
         // Calculer les entreprises les plus actives
         const enterpriseDemands: { [key: string]: number } = {};
@@ -632,8 +634,8 @@ export const EmployabilityDashboard: React.FC = () => {
       icon: Building2
     },
     {
-      label: 'Demandes actives',
-      value: (demandMetrics || { activeDemands: 0 }).activeDemands,
+      label: 'Total des demandes',
+      value: (demandMetrics || { totalDemands: 0 }).totalDemands,
       trend: '+8 cette semaine',
       trendValue: 8,
       color: 'orange',
