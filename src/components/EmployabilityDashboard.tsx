@@ -601,22 +601,22 @@ export const EmployabilityDashboard: React.FC = () => {
      }
    };
 
-  // KPIs principaux
+  // Données pour les cartes KPI
   const kpiCards: KPICard[] = [
     {
-      label: 'Taux de conversion global',
-      value: eventMetrics ? `${eventMetrics.conversionRate}%` : '0%',
-      trend: eventMetrics && eventMetrics.conversionRate > 0 ? '+2.5% ce mois' : 'Nouveau',
-      trendValue: 2.5,
-      color: 'green',
-      icon: TrendingUp
+      label: 'Événements organisés',
+      value: eventMetrics?.totalEvents || 0,
+      trend: '+12 ce mois',
+      trendValue: 12,
+      color: 'blue',
+      icon: Calendar
     },
     {
       label: 'Stagiaires bénéficiaires',
       value: eventMetrics?.totalBeneficiaries || 0,
-      trend: '+15 ce mois',
-      trendValue: 15,
-      color: 'blue',
+      trend: '+25 ce mois',
+      trendValue: 25,
+      color: 'green',
       icon: Users
     },
     {
@@ -627,15 +627,22 @@ export const EmployabilityDashboard: React.FC = () => {
       color: 'purple',
       icon: Building2
     },
-         {
-       label: 'Demandes actives',
-       value: (demandMetrics || { activeDemands: 0 }).activeDemands,
-       trend: '+8 cette semaine',
-       trendValue: 8,
-       color: 'orange',
-       icon: FileText
-     }
+    {
+      label: 'Demandes actives',
+      value: (demandMetrics || { activeDemands: 0 }).activeDemands,
+      trend: '+8 cette semaine',
+      trendValue: 8,
+      color: 'orange',
+      icon: FileText
+    }
   ];
+
+  // Debug: Afficher l'état des métriques au moment du rendu:
+  console.log('🔍 État des métriques au moment du rendu:');
+  console.log('📊 demandMetrics:', demandMetrics);
+  console.log('📈 eventMetrics:', eventMetrics);
+  console.log('🏢 enterpriseMetrics:', enterpriseMetrics);
+  console.log('🎯 KPI Demandes actives:', (demandMetrics || { activeDemands: 0 }).activeDemands);
 
   // Données pour les graphiques
   const voletChartData: ChartData = {
