@@ -214,6 +214,9 @@ export const EmployabilityDashboard: React.FC = () => {
           .slice(0, 5);
 
         setDemandMetrics(metrics);
+        
+        // Forcer la mise à jour de l'interface
+        setLoading(false);
       } catch (error) {
         console.error('Erreur lors du chargement des métriques de demandes:', error);
         // En cas d'erreur, on définit quand même des métriques par défaut
@@ -223,6 +226,7 @@ export const EmployabilityDashboard: React.FC = () => {
           totalProfiles: 0,
           topEnterprises: []
         });
+        setLoading(false);
       }
     };
 
