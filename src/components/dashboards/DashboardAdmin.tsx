@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Profile } from "@/types";
 import { useUser } from '@/contexts/UserContext';
 import { useSettings } from '@/hooks/useSettings';
-import { MessageSquare, Send, User, Calendar, Download, Printer } from 'lucide-react';
+import { MessageSquare, Send, User, Calendar, Download, Printer, Trash2 } from 'lucide-react';
 import { downloadDemandePDF, printDemande } from '@/components/ui/PDFGenerator';
 
 interface DemandeEntreprise {
@@ -238,6 +238,28 @@ const DashboardAdmin = () => {
     } catch (err: any) {
       console.error('Erreur ajout commentaire:', err);
       setMessage('Erreur lors de l\'ajout du commentaire');
+    }
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  // Supprimer un commentaire
+  const supprimerCommentaire = async (commentaireId: string, demandeId: string) => {
+    if (!isAdmin) return;
+
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('commentaires_demandes_entreprises')
+        .delete()
+        .eq('id', commentaireId);
+      
+      if (error) throw error;
+      await loadCommentaires(demandeId);
+      setMessage('Commentaire supprimé avec succès !');
+    } catch (err: any) {
+      console.error('Erreur suppression commentaire:', err);
+      setMessage('Erreur lors de la suppression du commentaire');
     }
     setTimeout(() => setMessage(""), 3000);
   };
@@ -768,15 +790,27 @@ const DashboardAdmin = () => {
                                         <User className="w-4 h-4 text-gray-500 mr-2" />
                                         <span className="font-medium text-sm text-gray-700">{commentaire.auteur}</span>
                                       </div>
-                                      <div className="flex items-center text-xs text-gray-500">
-                                        <Calendar className="w-3 h-3 mr-1" />
-                                        {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
-                                          day: '2-digit',
-                                          month: '2-digit',
-                                          year: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })}
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex items-center text-xs text-gray-500">
+                                          <Calendar className="w-3 h-3 mr-1" />
+                                          {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </div>
+                                        {/* Bouton de suppression pour les admins */}
+                                        {isAdmin && (
+                                          <button
+                                            onClick={() => supprimerCommentaire(commentaire.id, demande.id)}
+                                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                            title="Supprimer ce commentaire"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
                                     <p className="text-sm text-gray-800">{commentaire.contenu}</p>
