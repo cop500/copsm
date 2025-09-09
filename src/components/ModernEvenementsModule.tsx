@@ -527,25 +527,57 @@ export const ModernEvenementsModule = () => {
             return '';
           };
 
+          // Debug: Afficher la structure de la ligne
+          console.log(`🔍 Structure ligne ${i + 1}:`, Object.keys(row));
+          console.log(`🔍 Valeurs ligne ${i + 1}:`, row);
+
+          // Essayer de détecter automatiquement les colonnes
+          const titre = getValue(row, 
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+            'Nom de l\'événement', 'Titre', 'titre', 'nom', 'Nom', 'NOM',
+            'Event Name', 'event_name', 'Event', 'EVENT',
+            'Intitulé', 'intitule', 'INTITULE'
+          );
+
           const eventData = {
-            titre: getValue(row, 'A', 'Nom de l\'événement', 'Titre', 'titre', 'nom'),
-            description: getValue(row, 'B', 'Description', 'description', 'desc'),
-            date_debut: getValue(row, 'C', 'Date de début', 'Date de début', 'date_debut', 'date'),
-            date_fin: getValue(row, 'D', 'Date de fin', 'Date de fin', 'date_fin'),
-            lieu: getValue(row, 'E', 'Lieu', 'lieu', 'location'),
-            volet: normalizeVolet(getValue(row, 'F', 'Volet', 'volet')),
-            pole_id: row['G'] || row['Pôle ID'] || row['pole_id'] || null,
-            filiere_id: row['H'] || row['Filière ID'] || row['filiere_id'] || null,
-            nombre_beneficiaires: safeParseInt(row['I'] || row['Nombre de bénéficiaires'] || row['nombre_beneficiaires']),
-            nombre_candidats: safeParseInt(row['J'] || row['Nombre de candidats'] || row['nombre_candidats']),
-            nombre_candidats_retenus: safeParseInt(row['K'] || row['Nombre de candidats retenus'] || row['nombre_candidats_retenus']),
+            titre: titre,
+            description: getValue(row, 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+              'Description', 'description', 'desc', 'DESCRIPTION',
+              'Description de l\'événement', 'description_evenement'
+            ),
+            date_debut: getValue(row, 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+              'Date de début', 'Date de début', 'date_debut', 'date', 'DATE',
+              'Start Date', 'start_date', 'Date début'
+            ),
+            date_fin: getValue(row, 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+              'Date de fin', 'Date de fin', 'date_fin', 'DATE_FIN',
+              'End Date', 'end_date', 'Date fin'
+            ),
+            lieu: getValue(row, 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+              'Lieu', 'lieu', 'location', 'LIEU', 'LOCATION',
+              'Place', 'place', 'PLACE'
+            ),
+            volet: normalizeVolet(getValue(row, 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+              'Volet', 'volet', 'VOLET', 'Type', 'type', 'TYPE'
+            )),
+            pole_id: row['G'] || row['H'] || row['I'] || row['J'] || row['K'] || row['L'] || row['M'] || row['N'] || row['O'] || row['P'] || row['Q'] || row['R'] || row['S'] || row['T'] || row['U'] || row['V'] || row['W'] || row['X'] || row['Y'] || row['Z'] || 
+              row['Pôle ID'] || row['pole_id'] || row['POLE_ID'] || null,
+            filiere_id: row['H'] || row['I'] || row['J'] || row['K'] || row['L'] || row['M'] || row['N'] || row['O'] || row['P'] || row['Q'] || row['R'] || row['S'] || row['T'] || row['U'] || row['V'] || row['W'] || row['X'] || row['Y'] || row['Z'] || 
+              row['Filière ID'] || row['filiere_id'] || row['FILIERE_ID'] || null,
+            nombre_beneficiaires: safeParseInt(row['I'] || row['J'] || row['K'] || row['L'] || row['M'] || row['N'] || row['O'] || row['P'] || row['Q'] || row['R'] || row['S'] || row['T'] || row['U'] || row['V'] || row['W'] || row['X'] || row['Y'] || row['Z'] || 
+              row['Nombre de bénéficiaires'] || row['nombre_beneficiaires'] || row['NOMBRE_BENEFICIAIRES']),
+            nombre_candidats: safeParseInt(row['J'] || row['K'] || row['L'] || row['M'] || row['N'] || row['O'] || row['P'] || row['Q'] || row['R'] || row['S'] || row['T'] || row['U'] || row['V'] || row['W'] || row['X'] || row['Y'] || row['Z'] || 
+              row['Nombre de candidats'] || row['nombre_candidats'] || row['NOMBRE_CANDIDATS']),
+            nombre_candidats_retenus: safeParseInt(row['K'] || row['L'] || row['M'] || row['N'] || row['O'] || row['P'] || row['Q'] || row['R'] || row['S'] || row['T'] || row['U'] || row['V'] || row['W'] || row['X'] || row['Y'] || row['Z'] || 
+              row['Nombre de candidats retenus'] || row['nombre_candidats_retenus'] || row['NOMBRE_CANDIDATS_RETENUS']),
             statut: 'planifie',
             actif: true
           };
 
-          // Validation des données obligatoires
+          // Validation des données obligatoires - plus flexible
           if (!eventData.titre) {
-            throw new Error(`Ligne ${i + 1}: Titre manquant`);
+            console.warn(`⚠️ Ligne ${i + 1}: Titre manquant, utilisation d'un titre par défaut`);
+            eventData.titre = `Événement ${i + 1} - ${new Date().toLocaleDateString()}`;
           }
 
           console.log(`🔍 Traitement ligne ${i + 1}:`, eventData);
