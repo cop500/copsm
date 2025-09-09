@@ -427,11 +427,15 @@ export const ModernEvenementsModule = () => {
         throw new Error('Fichier trop volumineux. Taille maximale : 10MB');
       }
 
-      const workbook = XLSX.read(importFile, { 
+      // Utiliser une approche plus robuste pour lire le fichier Excel
+      const arrayBuffer = await importFile.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { 
         type: 'array',
         cellDates: true,
         cellNF: false,
-        cellText: false
+        cellText: false,
+        raw: false,
+        dateNF: 'yyyy-mm-dd'
       });
       
       console.log('🔍 Noms des feuilles:', workbook.SheetNames);
@@ -447,12 +451,38 @@ export const ModernEvenementsModule = () => {
         throw new Error('Impossible de lire la feuille Excel');
       }
       
-      // Convertir en JSON avec options sécurisées
-      const data = XLSX.utils.sheet_to_json(worksheet, {
-        header: 1,
-        defval: '',
-        blankrows: false
-      });
+      // Convertir en JSON avec options sécurisées et gestion d'erreurs
+      let data: any[] = [];
+      
+      try {
+        // Essayer d'abord avec header: 1 (array de arrays)
+        data = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+          defval: '',
+          blankrows: false,
+          raw: false
+        });
+      } catch (error) {
+        console.warn('⚠️ Échec avec header: 1, tentative avec header: "A"');
+        try {
+          // Fallback avec header: "A" (colonnes nommées)
+          data = XLSX.utils.sheet_to_json(worksheet, {
+            header: "A",
+            defval: '',
+            blankrows: false,
+            raw: false
+          });
+        } catch (error2) {
+          console.warn('⚠️ Échec avec header: "A", tentative avec header: true');
+          // Dernier recours avec header: true
+          data = XLSX.utils.sheet_to_json(worksheet, {
+            header: true,
+            defval: '',
+            blankrows: false,
+            raw: false
+          });
+        }
+      }
       
       console.log('🔍 Nombre de lignes:', data.length);
       
@@ -483,18 +513,28 @@ export const ModernEvenementsModule = () => {
             return isNaN(parsed) ? defaultValue : Math.max(0, Math.min(parsed, 999999)); // Limite entre 0 et 999999
           };
 
+          // Fonction pour extraire une valeur de manière sécurisée
+          const getValue = (row: any, ...keys: string[]): string => {
+            for (const key of keys) {
+              if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                return String(row[key]).trim();
+              }
+            }
+            return '';
+          };
+
           const eventData = {
-            titre: String(row[0] || row['Nom de l\'événement'] || row['Titre'] || '').trim(),
-            description: String(row[1] || row['Description'] || '').trim(),
-            date_debut: String(row[2] || row['Date de début'] || '').trim(),
-            date_fin: String(row[3] || row['Date de fin'] || '').trim(),
-            lieu: String(row[4] || row['Lieu'] || '').trim(),
-            volet: normalizeVolet(String(row[5] || row['Volet'] || '')),
-            pole_id: row[6] || row['Pôle ID'] || null,
-            filiere_id: row[7] || row['Filière ID'] || null,
-            nombre_beneficiaires: safeParseInt(row[8] || row['Nombre de bénéficiaires']),
-            nombre_candidats: safeParseInt(row[9] || row['Nombre de candidats']),
-            nombre_candidats_retenus: safeParseInt(row[10] || row['Nombre de candidats retenus']),
+            titre: getValue(row, 'A', 'Nom de l\'événement', 'Titre', 'titre', 'nom'),
+            description: getValue(row, 'B', 'Description', 'description', 'desc'),
+            date_debut: getValue(row, 'C', 'Date de début', 'Date de début', 'date_debut', 'date'),
+            date_fin: getValue(row, 'D', 'Date de fin', 'Date de fin', 'date_fin'),
+            lieu: getValue(row, 'E', 'Lieu', 'lieu', 'location'),
+            volet: normalizeVolet(getValue(row, 'F', 'Volet', 'volet')),
+            pole_id: row['G'] || row['Pôle ID'] || row['pole_id'] || null,
+            filiere_id: row['H'] || row['Filière ID'] || row['filiere_id'] || null,
+            nombre_beneficiaires: safeParseInt(row['I'] || row['Nombre de bénéficiaires'] || row['nombre_beneficiaires']),
+            nombre_candidats: safeParseInt(row['J'] || row['Nombre de candidats'] || row['nombre_candidats']),
+            nombre_candidats_retenus: safeParseInt(row['K'] || row['Nombre de candidats retenus'] || row['nombre_candidats_retenus']),
             statut: 'planifie',
             actif: true
           };
