@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useSettings } from '@/hooks/useSettings'
+import { useEvenements } from '@/hooks/useEvenements'
 import { supabase } from '@/lib/supabase'
 import { 
   Calendar, Plus, Search, Filter, Grid, List, 
@@ -21,6 +22,7 @@ import { useRole } from '@/hooks/useRole'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
+  const { saveEvenement } = useEvenements()
   const { currentUser } = useUser()
   const { isAdmin } = useRole()
   
