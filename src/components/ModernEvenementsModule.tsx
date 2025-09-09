@@ -601,13 +601,59 @@ export const ModernEvenementsModule = () => {
           console.log(`🔍 Structure ligne ${i + 1}:`, Object.keys(row));
           console.log(`🔍 Valeurs ligne ${i + 1}:`, row);
 
-          // Essayer de détecter automatiquement les colonnes
-          const titre = getValue(row, 
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-            'Nom de l\'événement', 'Titre', 'titre', 'nom', 'Nom', 'NOM',
-            'Event Name', 'event_name', 'Event', 'EVENT',
-            'Intitulé', 'intitule', 'INTITULE'
-          );
+          // Fonction intelligente pour détecter le titre
+          const detectTitre = (row: any): string => {
+            // Essayer d'abord les noms de colonnes les plus courants
+            const titreKeys = [
+              'Titre', 'titre', 'TITRE', 'Titres', 'titres',
+              'Nom', 'nom', 'NOM', 'Noms', 'noms',
+              'Nom de l\'événement', 'nom_evenement', 'nom_evenement',
+              'Event Name', 'event_name', 'EVENT_NAME',
+              'Intitulé', 'intitule', 'INTITULE',
+              'Libellé', 'libelle', 'LIBELLE',
+              'Description', 'description', 'DESCRIPTION'
+            ];
+            
+            // Chercher dans les noms de colonnes
+            for (const key of titreKeys) {
+              if (row[key] && String(row[key]).trim() !== '') {
+                console.log(`✅ Titre trouvé avec clé "${key}":`, row[key]);
+                return String(row[key]).trim();
+              }
+            }
+            
+            // Si pas trouvé, chercher dans les colonnes A, B, C, etc.
+            const columnKeys = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+            for (const key of columnKeys) {
+              if (row[key] && String(row[key]).trim() !== '') {
+                console.log(`✅ Titre trouvé avec colonne "${key}":`, row[key]);
+                return String(row[key]).trim();
+              }
+            }
+            
+            // Si toujours pas trouvé, chercher la première valeur non-vide
+            for (const [key, value] of Object.entries(row)) {
+              if (value && String(value).trim() !== '') {
+                console.log(`✅ Titre trouvé avec première valeur "${key}":`, value);
+                return String(value).trim();
+              }
+            }
+            
+            console.log(`❌ Aucun titre trouvé pour la ligne ${i + 1}`);
+            return '';
+          };
+
+          const titre = detectTitre(row);
+
+          // Fonction intelligente pour détecter d'autres champs
+          const detectField = (row: any, fieldKeys: string[], defaultValue: string = ''): string => {
+            for (const key of fieldKeys) {
+              if (row[key] && String(row[key]).trim() !== '') {
+                return String(row[key]).trim();
+              }
+            }
+            return defaultValue;
+          };
 
           // Fonction pour formater les dates
           const formatDate = (dateStr: string): string | null => {
@@ -627,10 +673,11 @@ export const ModernEvenementsModule = () => {
 
           const eventData = {
             titre: titre,
-            description: getValue(row, 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-              'Description', 'description', 'desc', 'DESCRIPTION',
-              'Description de l\'événement', 'description_evenement'
-            ) || 'Description par défaut',
+            description: detectField(row, [
+              'Description', 'description', 'DESCRIPTION', 'desc', 'DESC',
+              'Description de l\'événement', 'description_evenement', 'DESCRIPTION_EVENEMENT',
+              'Détails', 'details', 'DETAILS', 'Detail', 'detail', 'DETAIL'
+            ], 'Description par défaut'),
             date_debut: formatDate(getValue(row, 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
               'Date de début', 'Date de début', 'date_debut', 'date', 'DATE',
               'Start Date', 'start_date', 'Date début'
