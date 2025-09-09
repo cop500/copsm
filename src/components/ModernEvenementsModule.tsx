@@ -541,24 +541,40 @@ export const ModernEvenementsModule = () => {
             'Intitulé', 'intitule', 'INTITULE'
           );
 
+          // Fonction pour formater les dates
+          const formatDate = (dateStr: string): string | null => {
+            if (!dateStr || dateStr.trim() === '') return null;
+            
+            try {
+              // Essayer de parser la date
+              const date = new Date(dateStr);
+              if (isNaN(date.getTime())) return null;
+              
+              // Retourner au format ISO
+              return date.toISOString().split('T')[0];
+            } catch {
+              return null;
+            }
+          };
+
           const eventData = {
             titre: titre,
             description: getValue(row, 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
               'Description', 'description', 'desc', 'DESCRIPTION',
               'Description de l\'événement', 'description_evenement'
-            ),
-            date_debut: getValue(row, 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+            ) || 'Description par défaut',
+            date_debut: formatDate(getValue(row, 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
               'Date de début', 'Date de début', 'date_debut', 'date', 'DATE',
               'Start Date', 'start_date', 'Date début'
-            ),
-            date_fin: getValue(row, 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+            )) || new Date().toISOString().split('T')[0],
+            date_fin: formatDate(getValue(row, 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
               'Date de fin', 'Date de fin', 'date_fin', 'DATE_FIN',
               'End Date', 'end_date', 'Date fin'
-            ),
+            )),
             lieu: getValue(row, 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
               'Lieu', 'lieu', 'location', 'LIEU', 'LOCATION',
               'Place', 'place', 'PLACE'
-            ),
+            ) || 'Lieu non spécifié',
             volet: normalizeVolet(getValue(row, 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
               'Volet', 'volet', 'VOLET', 'Type', 'type', 'TYPE'
             )),
@@ -573,7 +589,9 @@ export const ModernEvenementsModule = () => {
             nombre_candidats_retenus: safeParseInt(row['K'] || row['L'] || row['M'] || row['N'] || row['O'] || row['P'] || row['Q'] || row['R'] || row['S'] || row['T'] || row['U'] || row['V'] || row['W'] || row['X'] || row['Y'] || row['Z'] || 
               row['Nombre de candidats retenus'] || row['nombre_candidats_retenus'] || row['NOMBRE_CANDIDATS_RETENUS']),
             statut: 'planifie',
-            actif: true
+            actif: true,
+            responsable_cop: 'Import Excel',
+            type_evenement_id: null
           };
 
           // Validation des données obligatoires - plus flexible
@@ -584,12 +602,22 @@ export const ModernEvenementsModule = () => {
 
           console.log(`🔍 Traitement ligne ${i + 1}:`, eventData);
 
-          const result = await saveEvenement(eventData);
-          if (result.success) {
-            successCount++;
-          } else {
+          try {
+            const result = await saveEvenement(eventData);
+            if (result.success) {
+              successCount++;
+              console.log(`✅ Ligne ${i + 1} sauvegardée avec succès`);
+            } else {
+              errorCount++;
+              const errorMsg = `Ligne ${i + 1}: ${result.error || 'Erreur inconnue'}`;
+              errors.push(errorMsg);
+              console.error(`❌ Erreur sauvegarde ligne ${i + 1}:`, result.error);
+            }
+          } catch (saveError: any) {
             errorCount++;
-            errors.push(`Ligne ${i + 1}: ${result.error || 'Erreur inconnue'}`);
+            const errorMsg = `Ligne ${i + 1}: Erreur sauvegarde - ${saveError.message || saveError}`;
+            errors.push(errorMsg);
+            console.error(`❌ Erreur sauvegarde ligne ${i + 1}:`, saveError);
           }
         } catch (error: any) {
           errorCount++;
