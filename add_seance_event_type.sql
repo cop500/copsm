@@ -1,4 +1,5 @@
--- Script pour ajouter les types d'événements "Séance", "Forum d'orientation" et "Campagne"
+-- Script pour ajouter les types d'événements "Forum d'orientation" et "Campagne"
+-- (Séance existe déjà, donc on l'ignore)
 -- Exécuter ce script dans l'éditeur SQL de Supabase
 
 INSERT INTO event_types (
@@ -11,16 +12,6 @@ INSERT INTO event_types (
   created_at,
   updated_at
 ) VALUES 
-(
-  'Séance',
-  'seance',
-  'Séance de formation, d''information ou de coaching',
-  '#8B5CF6', -- Couleur violette
-  'Users', -- Icône utilisateurs
-  true,
-  NOW(),
-  NOW()
-),
 (
   'Forum d''orientation',
   'forum_orientation',
@@ -40,7 +31,8 @@ INSERT INTO event_types (
   true,
   NOW(),
   NOW()
-);
+)
+ON CONFLICT (code) DO NOTHING;
 
 -- Vérifier que les insertions ont bien fonctionné
 SELECT * FROM event_types WHERE code IN ('seance', 'forum_orientation', 'campagne');
