@@ -59,6 +59,11 @@ export const ModernEvenementsModule = () => {
   const [importing, setImporting] = useState(false)
   const [importPreview, setImportPreview] = useState<any[]>([])
   
+  // États pour la suppression multiple
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([])
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  
   // Filtre par volet
   const [voletFilter, setVoletFilter] = useState('tous')
   
@@ -380,6 +385,69 @@ export const ModernEvenementsModule = () => {
     };
     
     reader.readAsArrayBuffer(file);
+  };
+
+  // Fonctions de gestion de la suppression multiple
+  const handleSelectEvent = (eventId: string) => {
+    setSelectedEvents(prev => 
+      prev.includes(eventId) 
+        ? prev.filter(id => id !== eventId)
+        : [...prev, eventId]
+    );
+  };
+
+  const handleSelectAllEvents = () => {
+    if (selectedEvents.length === evenements.length) {
+      setSelectedEvents([]);
+    } else {
+      setSelectedEvents(evenements.map(e => e.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEvents.length === 0) return;
+    
+    setDeleting(true);
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const eventId of selectedEvents) {
+        try {
+          const { error } = await supabase
+            .from('evenements')
+            .delete()
+            .eq('id', eventId);
+          
+          if (error) throw error;
+          successCount++;
+        } catch (error) {
+          console.error(`Erreur suppression événement ${eventId}:`, error);
+          errorCount++;
+        }
+      }
+      
+      // Recharger les événements
+      await loadEvenements();
+      
+      // Afficher le résultat
+      const message = `Suppression terminée : ${successCount} événements supprimés`;
+      if (errorCount > 0) {
+        alert(`${message}, ${errorCount} erreurs`);
+      } else {
+        alert(message);
+      }
+      
+      // Réinitialiser
+      setSelectedEvents([]);
+      setShowBulkDeleteModal(false);
+      
+    } catch (error) {
+      console.error('Erreur suppression multiple:', error);
+      alert('Erreur lors de la suppression multiple');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Fonction de normalisation des volets (définie au niveau du composant)
@@ -800,13 +868,25 @@ export const ModernEvenementsModule = () => {
           </div>
           <div className="flex items-center gap-3">
             {isAdmin && activeTab === 'evenements' && (
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
-              >
-                <FileSpreadsheet className="w-5 h-5" />
-                Importer Excel
-              </button>
+              <>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+                >
+                  <FileSpreadsheet className="w-5 h-5" />
+                  Importer Excel
+                </button>
+                
+                {selectedEvents.length > 0 && (
+                  <button
+                    onClick={() => setShowBulkDeleteModal(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    Supprimer ({selectedEvents.length})
+                  </button>
+                )}
+              </>
             )}
             <button
               onClick={() => {
@@ -1136,6 +1216,9 @@ export const ModernEvenementsModule = () => {
                 onEdit={handleEditEvent}
                 onDelete={handleDeleteEvent}
                 onView={handleViewEvent}
+                isSelected={selectedEvents.includes(event.id)}
+                onSelect={() => handleSelectEvent(event.id)}
+                showSelection={isAdmin}
                 onGenerateContent={handleGenerateContent}
               />
             ))
@@ -1689,6 +1772,47 @@ export const ModernEvenementsModule = () => {
                 className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de suppression multiple */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Confirmer la suppression
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer {selectedEvents.length} événement(s) ? 
+              Cette action est irréversible.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowBulkDeleteModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                disabled={deleting}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Suppression...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer
+                  </>
+                )}
               </button>
             </div>
           </div>

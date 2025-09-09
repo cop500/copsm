@@ -28,6 +28,9 @@ interface EventCardProps {
   onDelete?: (id: string) => void
   onView?: (event: any) => void
   onGenerateContent?: (event: any) => void
+  isSelected?: boolean
+  onSelect?: () => void
+  showSelection?: boolean
   onAddPhotos?: (event: any) => void
 }
 
@@ -36,7 +39,10 @@ export const EventCard: React.FC<EventCardProps> = ({
   onEdit, 
   onDelete, 
   onView,
-  onGenerateContent
+  onGenerateContent,
+  isSelected = false,
+  onSelect,
+  showSelection = false
 }) => {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [showPhotoModal, setShowPhotoModal] = useState(false)
@@ -103,7 +109,18 @@ export const EventCard: React.FC<EventCardProps> = ({
   return (
     <>
       {/* Card principale */}
-      <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+      <div className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
+        {/* Checkbox de sélection */}
+        {showSelection && (
+          <div className="absolute top-3 left-3 z-10">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={onSelect}
+              className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+          </div>
+        )}
         {/* Section photos */}
         {event.photos_urls && event.photos_urls.length > 0 ? (
           <div className="relative h-48 overflow-hidden">
