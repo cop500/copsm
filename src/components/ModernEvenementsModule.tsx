@@ -304,6 +304,32 @@ export const ModernEvenementsModule = () => {
         'Nombre bénéficiaires': 1,
         'Nombre candidats': 0,
         'Nombre candidats retenus': 0
+      },
+      {
+        'Titre': 'Exemple forum orientation',
+        'Type d\'événement': 'Forum d\'orientation',
+        'Date de début': '2024-02-15T09:00',
+        'Lieu': 'Centre de conférences',
+        'Description': 'Forum d\'orientation professionnelle',
+        'Responsable COP': 'Pierre Moreau',
+        'Statut': 'planifie',
+        'Volet': 'information_communication',
+        'Nombre bénéficiaires': 200,
+        'Nombre candidats': 0,
+        'Nombre candidats retenus': 0
+      },
+      {
+        'Titre': 'Exemple campagne',
+        'Type d\'événement': 'Campagne',
+        'Date de début': '2024-02-01T08:00',
+        'Lieu': 'Multi-sites',
+        'Description': 'Campagne de sensibilisation aux métiers',
+        'Responsable COP': 'Claire Dubois',
+        'Statut': 'planifie',
+        'Volet': 'information_communication',
+        'Nombre bénéficiaires': 500,
+        'Nombre candidats': 0,
+        'Nombre candidats retenus': 0
       }
     ];
 
@@ -311,7 +337,7 @@ export const ModernEvenementsModule = () => {
     const valeursAutorisees = [
       { 'Champ': 'Volet', 'Valeurs autorisées': 'information_communication, accompagnement_projets, assistance_carriere, assistance_filiere' },
       { 'Champ': 'Statut', 'Valeurs autorisées': 'planifie, en_cours, termine, annule' },
-      { 'Champ': 'Type d\'événement', 'Valeurs autorisées': 'Job Day, Salon, Séminaire, Simulation Entretien, Visite d\'Entreprise, Talent Acquisition, Sourcing, HIRING DRIVE, Speed Hiring, Séance' },
+      { 'Champ': 'Type d\'événement', 'Valeurs autorisées': 'Job Day, Salon, Séminaire, Simulation Entretien, Visite d\'Entreprise, Talent Acquisition, Sourcing, HIRING DRIVE, Speed Hiring, Séance, Forum d\'orientation, Campagne' },
       { 'Champ': 'Métriques', 'Description': 'Nombre bénéficiaires, candidats et candidats retenus (optionnel)' }
     ];
 
