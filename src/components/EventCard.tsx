@@ -109,16 +109,21 @@ export const EventCard: React.FC<EventCardProps> = ({
   return (
     <>
       {/* Card principale */}
-      <div className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
-        {/* Checkbox de sélection */}
+      <div className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group relative ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+        {/* Checkbox de sélection - Améliorée */}
         {showSelection && (
-          <div className="absolute top-3 left-3 z-10">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={onSelect}
-              className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
+          <div className="absolute top-3 left-3 z-20">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={onSelect}
+                className="w-6 h-6 text-blue-600 bg-white border-2 border-gray-300 rounded-md focus:ring-blue-500 focus:ring-2 shadow-lg hover:border-blue-400 transition-all"
+              />
+              <span className="ml-2 text-sm font-medium text-gray-700 bg-white/90 px-2 py-1 rounded-md shadow-sm">
+                Sélectionner
+              </span>
+            </label>
           </div>
         )}
         {/* Section photos */}

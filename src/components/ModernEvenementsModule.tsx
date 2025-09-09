@@ -865,6 +865,11 @@ export const ModernEvenementsModule = () => {
             <p className="text-gray-600 mt-2">
               Organisez et gérez vos événements et ateliers d'insertion professionnelle
             </p>
+            {isAdmin && activeTab === 'evenements' && selectedEvents.length > 0 && (
+              <div className="mt-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium inline-block">
+                {selectedEvents.length} événement(s) sélectionné(s)
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {isAdmin && activeTab === 'evenements' && (
@@ -875,6 +880,23 @@ export const ModernEvenementsModule = () => {
                 >
                   <FileSpreadsheet className="w-5 h-5" />
                   Importer Excel
+                </button>
+                
+                <button
+                  onClick={handleSelectAllEvents}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+                >
+                  {selectedEvents.length === evenements.length ? (
+                    <>
+                      <X className="w-5 h-5" />
+                      Tout désélectionner
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5" />
+                      Tout sélectionner
+                    </>
+                  )}
                 </button>
                 
                 {selectedEvents.length > 0 && (
