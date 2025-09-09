@@ -124,9 +124,13 @@ export function useEvenements() {
       
       // Invalider le cache au lieu de recharger
       cache.delete('evenements');
+      
+      // Retourner un objet avec success: true
+      return { success: true };
     } catch (err: any) {
       console.error('Erreur sauvegarde événement:', err);
-      throw err;
+      // Retourner un objet avec success: false et l'erreur
+      return { success: false, error: err.message || 'Erreur inconnue' };
     }
   };
 

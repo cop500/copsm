@@ -603,15 +603,25 @@ export const ModernEvenementsModule = () => {
           console.log(`🔍 Traitement ligne ${i + 1}:`, eventData);
 
           try {
+            console.log(`🔍 Appel saveEvenement pour ligne ${i + 1}:`, eventData);
             const result = await saveEvenement(eventData);
-            if (result.success) {
+            console.log(`🔍 Résultat saveEvenement ligne ${i + 1}:`, result);
+            
+            // Vérifier si result existe et a la propriété success
+            if (result && typeof result === 'object' && result.success) {
               successCount++;
               console.log(`✅ Ligne ${i + 1} sauvegardée avec succès`);
-            } else {
+            } else if (result && typeof result === 'object' && result.error) {
               errorCount++;
-              const errorMsg = `Ligne ${i + 1}: ${result.error || 'Erreur inconnue'}`;
+              const errorMsg = `Ligne ${i + 1}: ${result.error}`;
               errors.push(errorMsg);
               console.error(`❌ Erreur sauvegarde ligne ${i + 1}:`, result.error);
+            } else {
+              // Si result est undefined ou n'a pas la structure attendue
+              errorCount++;
+              const errorMsg = `Ligne ${i + 1}: Erreur - résultat inattendu de saveEvenement`;
+              errors.push(errorMsg);
+              console.error(`❌ Résultat inattendu ligne ${i + 1}:`, result);
             }
           } catch (saveError: any) {
             errorCount++;
