@@ -8,7 +8,7 @@ import { useRealTime } from './useRealTime';
 
 // Cache pour éviter les rechargements inutiles
 const cache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes de cache
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes de cache (augmenté pour éviter les timeouts)
 
 export function useEvenements() {
   const [evenements, setEvenements] = useState<any[]>([]);
@@ -26,6 +26,19 @@ export function useEvenements() {
       setEvenements(cached.data);
       setLoading(false);
       return;
+    }
+
+    // Vérifier si la session est toujours valide
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn('Session expirée, rechargement des données...');
+        // Forcer le rechargement même si le cache existe
+        forceRefresh = true;
+      }
+    } catch (error) {
+      console.warn('Erreur vérification session:', error);
+      forceRefresh = true;
     }
 
     setLoading(true);
@@ -107,6 +120,12 @@ export function useEvenements() {
   // Ajout ou modification d'un événement - optimisé
   const saveEvenement = async (evenement: any) => {
     try {
+      // Vérifier la session avant de sauvegarder
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return { success: false, error: 'Session expirée. Veuillez vous reconnecter.' };
+      }
+
       if (evenement.id) {
         // Mise à jour
         const { error } = await supabase
@@ -129,6 +148,13 @@ export function useEvenements() {
       return { success: true };
     } catch (err: any) {
       console.error('Erreur sauvegarde événement:', err);
+      
+      // Si erreur de session, forcer le rechargement
+      if (err.message?.includes('session') || err.message?.includes('auth')) {
+        cache.delete('evenements');
+        await fetchEvenements(true);
+      }
+      
       // Retourner un objet avec success: false et l'erreur
       return { success: false, error: err.message || 'Erreur inconnue' };
     }
@@ -139,11 +165,25 @@ export function useEvenements() {
     fetchEvenements(true);
   }, [fetchEvenements]);
 
+  // Fonction pour vérifier et recharger si nécessaire
+  const ensureDataFresh = useCallback(async () => {
+    const now = Date.now();
+    const cacheKey = 'evenements';
+    const cached = cache.get(cacheKey);
+    
+    // Si pas de cache ou cache expiré, recharger
+    if (!cached || (now - cached.timestamp) > CACHE_DURATION) {
+      console.log('🔄 Données expirées, rechargement automatique...');
+      await fetchEvenements(true);
+    }
+  }, [fetchEvenements]);
+
   return { 
     evenements, 
     loading, 
     error,
     refresh, 
-    saveEvenement 
+    saveEvenement,
+    ensureDataFresh
   };
 }

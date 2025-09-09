@@ -22,7 +22,7 @@ import { useRole } from '@/hooks/useRole'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
-  const { saveEvenement } = useEvenements()
+  const { saveEvenement, ensureDataFresh } = useEvenements()
   const { currentUser } = useUser()
   const { isAdmin } = useRole()
   
@@ -148,7 +148,9 @@ export const ModernEvenementsModule = () => {
   }
 
   // Modifier un événement
-  const handleEditEvent = (event: any) => {
+  const handleEditEvent = async (event: any) => {
+    // Vérifier et recharger les données si nécessaire avant modification
+    await ensureDataFresh()
     setSelectedEvent(event)
     setShowForm(true)
   }
