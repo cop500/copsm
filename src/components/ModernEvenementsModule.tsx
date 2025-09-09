@@ -328,37 +328,7 @@ export const ModernEvenementsModule = () => {
           throw new Error('Le fichier Excel ne contient aucune donnée');
         }
         
-        // Fonction pour normaliser le volet
-        const normalizeVolet = (voletValue: string): string => {
-          if (!voletValue) return 'information_communication';
-          
-          const voletLower = voletValue.toLowerCase().trim();
-          
-          // Mapping des variations possibles vers les valeurs autorisées
-          const voletMapping: { [key: string]: string } = {
-            'information/communication': 'information_communication',
-            'information_communication': 'information_communication',
-            'information': 'information_communication',
-            'communication': 'information_communication',
-            
-            'accompagnement des stagiaires dans la réalisation de leur projets professionnels': 'accompagnement_projets',
-            'accompagnement_projets': 'accompagnement_projets',
-            'accompagnement': 'accompagnement_projets',
-            'projets professionnels': 'accompagnement_projets',
-            
-            'assistance au choix de carrière': 'assistance_carriere',
-            'assistance_carriere': 'assistance_carriere',
-            'carrière': 'assistance_carriere',
-            'carriere': 'assistance_carriere',
-            
-            'assistance au choix de filière': 'assistance_filiere',
-            'assistance_filiere': 'assistance_filiere',
-            'filière': 'assistance_filiere',
-            'filiere': 'assistance_filiere'
-          };
-          
-          return voletMapping[voletLower] || 'information_communication';
-        };
+        // Utiliser la fonction normalizeVolet définie au niveau du composant
 
         // Mapper les colonnes Excel vers nos champs
         const mappedData = jsonData.map((row: any, index: number) => {
@@ -408,6 +378,40 @@ export const ModernEvenementsModule = () => {
     };
     
     reader.readAsArrayBuffer(file);
+  };
+
+  // Fonction de normalisation des volets (définie au niveau du composant)
+  const normalizeVolet = (voletValue: string): string => {
+    if (!voletValue) return 'information_communication';
+    
+    const voletLower = voletValue.toLowerCase().trim();
+    
+    // Mapping des variations possibles vers les valeurs autorisées
+    const voletMapping: { [key: string]: string } = {
+      'information/communication': 'information_communication',
+      'information_communication': 'information_communication',
+      'information': 'information_communication',
+      'communication': 'information_communication',
+      
+      'accompagnement des stagiaires dans la réalisation de leur projets professionnels': 'accompagnement_projets',
+      'accompagnement_projets': 'accompagnement_projets',
+      'accompagnement': 'accompagnement_projets',
+      'projets professionnels': 'accompagnement_projets',
+      
+      'assistance au choix de carrière': 'assistance_carriere',
+      'assistance_carriere': 'assistance_carriere',
+      'carrière': 'assistance_carriere',
+      'carriere': 'assistance_carriere',
+      'carrière': 'assistance_carriere',
+      
+      'assistance au choix de filière': 'assistance_filiere',
+      'assistance_filiere': 'assistance_filiere',
+      'filière': 'assistance_filiere',
+      'filiere': 'assistance_filiere',
+      'filière': 'assistance_filiere'
+    };
+    
+    return voletMapping[voletLower] || 'information_communication';
   };
 
   // Fonction d'import Excel
