@@ -419,49 +419,128 @@ export const ModernEvenementsModule = () => {
 
     setImporting(true);
     try {
-      const workbook = XLSX.read(importFile, { type: 'array' });
+      console.log('🔍 Début de l\'import Excel...');
+      console.log('🔍 Taille du fichier:', importFile.size, 'bytes');
+      
+      // Vérifier la taille du fichier (limite à 10MB)
+      if (importFile.size > 10 * 1024 * 1024) {
+        throw new Error('Fichier trop volumineux. Taille maximale : 10MB');
+      }
+
+      const workbook = XLSX.read(importFile, { 
+        type: 'array',
+        cellDates: true,
+        cellNF: false,
+        cellText: false
+      });
+      
+      console.log('🔍 Noms des feuilles:', workbook.SheetNames);
+      
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        throw new Error('Aucune feuille trouvée dans le fichier Excel');
+      }
+      
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const data = XLSX.utils.sheet_to_json(worksheet);
+      
+      if (!worksheet) {
+        throw new Error('Impossible de lire la feuille Excel');
+      }
+      
+      // Convertir en JSON avec options sécurisées
+      const data = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: '',
+        blankrows: false
+      });
+      
+      console.log('🔍 Nombre de lignes:', data.length);
+      
+      if (!data || data.length === 0) {
+        throw new Error('Aucune donnée trouvée dans le fichier Excel');
+      }
 
       let successCount = 0;
       let errorCount = 0;
+      const errors: string[] = [];
 
-      for (const row of data) {
+      // Traiter ligne par ligne avec validation
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        
         try {
+          // Vérifier que la ligne n'est pas vide
+          if (!row || row.length === 0) {
+            continue;
+          }
+          
+          // Fonction sécurisée pour parser les nombres
+          const safeParseInt = (value: any, defaultValue: number = 0): number => {
+            if (value === null || value === undefined || value === '') {
+              return defaultValue;
+            }
+            const parsed = parseInt(String(value).replace(/[^\d-]/g, ''), 10);
+            return isNaN(parsed) ? defaultValue : Math.max(0, Math.min(parsed, 999999)); // Limite entre 0 et 999999
+          };
+
           const eventData = {
-            titre: row['Nom de l\'événement'] || row['Titre'] || '',
-            description: row['Description'] || '',
-            date_debut: row['Date de début'] || '',
-            date_fin: row['Date de fin'] || '',
-            lieu: row['Lieu'] || '',
-            volet: normalizeVolet(row['Volet'] || ''),
-            pole_id: row['Pôle ID'] || null,
-            filiere_id: row['Filière ID'] || null,
-            nombre_beneficiaires: parseInt(row['Nombre de bénéficiaires'] || '0'),
-            nombre_candidats: parseInt(row['Nombre de candidats'] || '0'),
-            nombre_candidats_retenus: parseInt(row['Nombre de candidats retenus'] || '0'),
+            titre: String(row[0] || row['Nom de l\'événement'] || row['Titre'] || '').trim(),
+            description: String(row[1] || row['Description'] || '').trim(),
+            date_debut: String(row[2] || row['Date de début'] || '').trim(),
+            date_fin: String(row[3] || row['Date de fin'] || '').trim(),
+            lieu: String(row[4] || row['Lieu'] || '').trim(),
+            volet: normalizeVolet(String(row[5] || row['Volet'] || '')),
+            pole_id: row[6] || row['Pôle ID'] || null,
+            filiere_id: row[7] || row['Filière ID'] || null,
+            nombre_beneficiaires: safeParseInt(row[8] || row['Nombre de bénéficiaires']),
+            nombre_candidats: safeParseInt(row[9] || row['Nombre de candidats']),
+            nombre_candidats_retenus: safeParseInt(row[10] || row['Nombre de candidats retenus']),
             statut: 'planifie',
             actif: true
           };
+
+          // Validation des données obligatoires
+          if (!eventData.titre) {
+            throw new Error(`Ligne ${i + 1}: Titre manquant`);
+          }
+
+          console.log(`🔍 Traitement ligne ${i + 1}:`, eventData);
 
           const result = await saveEvenement(eventData);
           if (result.success) {
             successCount++;
           } else {
             errorCount++;
+            errors.push(`Ligne ${i + 1}: ${result.error || 'Erreur inconnue'}`);
           }
-        } catch (error) {
+        } catch (error: any) {
           errorCount++;
+          errors.push(`Ligne ${i + 1}: ${error.message || 'Erreur inconnue'}`);
+          console.error(`❌ Erreur ligne ${i + 1}:`, error);
         }
       }
 
-      alert(`Import terminé : ${successCount} événements ajoutés, ${errorCount} erreurs`);
+      console.log(`✅ Import terminé: ${successCount} succès, ${errorCount} erreurs`);
+      
+      let message = `Import terminé : ${successCount} événements ajoutés`;
+      if (errorCount > 0) {
+        message += `, ${errorCount} erreurs`;
+        if (errors.length > 0) {
+          console.log('❌ Détails des erreurs:', errors);
+        }
+      }
+      
+      alert(message);
       setShowImportModal(false);
       setImportFile(null);
       setImportPreview([]);
-    } catch (error) {
-      alert('Erreur lors de l\'import : ' + error);
+      
+      // Recharger les événements
+      loadEvenements();
+      
+    } catch (error: any) {
+      console.error('❌ Erreur lors de l\'import:', error);
+      alert('Erreur lors de l\'import : ' + (error.message || error));
     } finally {
       setImporting(false);
     }
