@@ -8,7 +8,7 @@ import {
   Calendar, Plus, Search, Filter, Grid, List, 
   Clock, CheckCircle, AlertTriangle, XCircle,
   TrendingUp, Users, MapPin, FileText, Zap, Edit3,
-  BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download
+  BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download, X
 } from 'lucide-react'
 import { NewEventForm } from './NewEventForm'
 import { EventCard } from './EventCard'
