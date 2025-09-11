@@ -107,58 +107,79 @@ export default function IndicateursDashboardCards() {
       {/* Modale édition admin */}
       {editOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-2xl flex flex-col gap-6 border border-blue-100/50">
-            <div className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-              <Settings className="w-6 h-6 text-blue-600 mr-3" />
-              Modifier les indicateurs
+          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-4xl max-h-[90vh] flex flex-col border border-blue-100/50">
+            <div className="text-2xl font-bold text-gray-900 mb-4 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center">
+                <Settings className="w-6 h-6 text-blue-600 mr-3" />
+                Modifier les indicateurs
+              </div>
+              <button
+                onClick={() => setEditOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Fermer"
+              >
+                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {editData.map((ind, idx) => (
-                <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border border-gray-200 rounded-xl">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
-                    <input
-                      type="text"
-                      value={ind.titre}
-                      onChange={(e) => handleChange(idx, 'titre', e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Valeur</label>
-                    <input
-                      type="text"
-                      value={ind.valeur}
-                      onChange={(e) => handleChange(idx, 'valeur', e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tendance</label>
-                    <input
-                      type="text"
-                      value={ind.trend}
-                      onChange={(e) => handleChange(idx, 'trend', e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
-                    <select
-                      value={ind.couleur}
-                      onChange={(e) => handleChange(idx, 'couleur', e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="blue">Bleu</option>
-                      <option value="green">Vert</option>
-                      <option value="purple">Violet</option>
-                      <option value="orange">Orange</option>
-                    </select>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-y-auto flex-1 min-h-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titre</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valeur</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tendance</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Couleur</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {editData.map((ind, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
+                            value={ind.titre}
+                            onChange={(e) => handleChange(idx, 'titre', e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
+                            value={ind.valeur}
+                            onChange={(e) => handleChange(idx, 'valeur', e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
+                            value={ind.trend}
+                            onChange={(e) => handleChange(idx, 'trend', e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={ind.couleur}
+                            onChange={(e) => handleChange(idx, 'couleur', e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="blue">Bleu</option>
+                            <option value="green">Vert</option>
+                            <option value="purple">Violet</option>
+                            <option value="orange">Orange</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 flex-shrink-0 mt-4 bg-white">
               <button
                 onClick={() => setEditOpen(false)}
                 className="px-6 py-3 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium transition-colors"
@@ -179,58 +200,71 @@ export default function IndicateursDashboardCards() {
       {/* Modale ajout admin */}
       {addOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-2xl flex flex-col gap-6 border border-blue-100/50">
-            <div className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-              <PlusCircle className="w-6 h-6 text-blue-600 mr-3" />
-              Ajouter un indicateur
+          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-2xl max-h-[85vh] flex flex-col border border-blue-100/50">
+            <div className="text-2xl font-bold text-gray-900 mb-4 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center">
+                <PlusCircle className="w-6 h-6 text-blue-600 mr-3" />
+                Ajouter un indicateur
+              </div>
+              <button
+                onClick={() => setAddOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Fermer"
+              >
+                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
-                  <input
-                    type="text"
-                    value={addData.titre}
-                    onChange={(e) => setAddData({ ...addData, titre: e.target.value })}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Valeur</label>
-                  <input
-                    type="text"
-                    value={addData.valeur}
-                    onChange={(e) => setAddData({ ...addData, valeur: e.target.value })}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tendance</label>
-                  <input
-                    type="text"
-                    value={addData.trend}
-                    onChange={(e) => setAddData({ ...addData, trend: e.target.value })}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
-                  <select
-                    value={addData.couleur}
-                    onChange={(e) => setAddData({ ...addData, couleur: e.target.value })}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="blue">Bleu</option>
-                    <option value="green">Vert</option>
-                    <option value="purple">Violet</option>
-                    <option value="orange">Orange</option>
-                  </select>
+            <form onSubmit={handleAdd} className="flex flex-col flex-1 min-h-0">
+              <div className="space-y-4 flex-1 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                    <input
+                      type="text"
+                      value={addData.titre}
+                      onChange={(e) => setAddData({ ...addData, titre: e.target.value })}
+                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Valeur</label>
+                    <input
+                      type="text"
+                      value={addData.valeur}
+                      onChange={(e) => setAddData({ ...addData, valeur: e.target.value })}
+                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tendance</label>
+                    <input
+                      type="text"
+                      value={addData.trend}
+                      onChange={(e) => setAddData({ ...addData, trend: e.target.value })}
+                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
+                    <select
+                      value={addData.couleur}
+                      onChange={(e) => setAddData({ ...addData, couleur: e.target.value })}
+                      className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="blue">Bleu</option>
+                      <option value="green">Vert</option>
+                      <option value="purple">Violet</option>
+                      <option value="orange">Orange</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 flex-shrink-0 mt-4 bg-white">
                 <button
                   type="button"
                   onClick={() => setAddOpen(false)}

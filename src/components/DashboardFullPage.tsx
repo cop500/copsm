@@ -224,11 +224,6 @@ const DashboardFullPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Indicateurs dynamiques */}
-          <div className="mb-8">
-            <IndicateursDashboardCards />
-          </div>
-
           {/* Actions rapides */}
           <div className="mb-8">
             <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 shadow-xl border-2 border-black/30">
@@ -252,6 +247,11 @@ const DashboardFullPage: React.FC = () => {
                 })}
               </div>
             </div>
+          </div>
+
+          {/* Indicateurs dynamiques */}
+          <div className="mb-8">
+            <IndicateursDashboardCards />
           </div>
 
           {/* Bilan d'Employabilité */}

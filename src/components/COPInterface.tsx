@@ -409,11 +409,6 @@ const COPInterface: React.FC = () => {
           
           {/* Contenu avec z-index pour être au-dessus du background */}
           <div className="relative z-10">
-          {/* Indicateurs dynamiques avec ajout admin */}
-          <div className="mb-8">
-            <IndicateursDashboardCards />
-          </div>
-
           {/* Quick Actions */}
           <div className="mb-8">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100/50">
@@ -437,6 +432,11 @@ const COPInterface: React.FC = () => {
                 })}
               </div>
             </div>
+          </div>
+
+          {/* Indicateurs dynamiques avec ajout admin */}
+          <div className="mb-8">
+            <IndicateursDashboardCards />
           </div>
 
           {/* Bilan d'Employabilité - Nouvelle section */}
