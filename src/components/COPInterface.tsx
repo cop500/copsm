@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import NotesModule from './NotesModule';
-import { useIndicateursDashboard } from '@/hooks/useIndicateursDashboard';
+import IndicateursDashboardCards from './IndicateursDashboardCards';
 import { useRole } from '@/hooks/useRole';
 import { EmployabilityDashboard } from './EmployabilityDashboard';
 
@@ -167,8 +167,8 @@ const COPInterface: React.FC = () => {
 
   // Quick actions
   const quickActions = [
-    { name: 'Ajouter stagiaire', icon: Users, color: 'bg-blue-500 hover:bg-blue-600', href: '/stagiaires' },
-    { name: 'Nouvelle entreprise', icon: Building2, color: 'bg-green-500 hover:bg-green-600', href: '/entreprises-gestion' },
+    { name: 'Candidatures', icon: Users, color: 'bg-blue-500 hover:bg-blue-600', href: '/stagiaires' },
+    { name: 'Demandes entreprises', icon: Building2, color: 'bg-green-500 hover:bg-green-600', href: '/dashboard-admin' },
     { name: 'Planifier événement', icon: Calendar, color: 'bg-purple-500 hover:bg-purple-600', href: '/evenements' }
     // Action 'Envoyer CV' supprimée
   ];
@@ -282,6 +282,21 @@ const COPInterface: React.FC = () => {
                 </button>
               );
             })}
+            
+            {/* Bouton Vue plein écran */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => router.push('/dashboard-full')}
+                className="w-full flex items-center px-3 sm:px-4 py-3 sm:py-3 text-sm font-medium rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:translate-x-1"
+              >
+                <div className="mr-3 h-5 w-5 text-gray-400">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                  </svg>
+                </div>
+                Vue plein écran
+              </button>
+            </div>
           </nav>
 
           {/* User Profile */}
@@ -385,49 +400,62 @@ const COPInterface: React.FC = () => {
         </header>
 
         {/* Dashboard Content */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-screen relative">
+          {/* Background beige très léger avec touches de couleur */}
+          <div className="fixed inset-0 bg-gradient-to-br from-stone-50/60 via-amber-50/30 to-orange-50/40 pointer-events-none"></div>
+          <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-50/25 via-transparent to-amber-50/20 pointer-events-none"></div>
+          <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-orange-50/20 via-transparent to-stone-50/30 pointer-events-none"></div>
+          <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-50/15 via-transparent to-blue-50/10 pointer-events-none"></div>
+          
+          {/* Contenu avec z-index pour être au-dessus du background */}
+          <div className="relative z-10">
           {/* Indicateurs dynamiques avec ajout admin */}
-          <IndicateursDashboardCards />
+          <div className="mb-8">
+            <IndicateursDashboardCards />
+          </div>
 
           {/* Quick Actions */}
-          <div className="mb-6 sm:mb-8">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
-              <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-2" />
-              Actions rapides
-            </h3>
-            <div className="grid grid-cols-2 sm:flex sm:flex-col md:flex-row justify-center items-center gap-3 sm:gap-4">
-              {quickActions.map((action, index) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleNavigation(action.href)}
-                    className={`p-4 sm:p-6 rounded-xl text-white ${action.color} transition-all duration-300 flex flex-col items-center text-center group hover:scale-105 hover:shadow-lg`}
-                  >
-                    <Icon className="w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
-                    <span className="text-xs sm:text-sm font-medium">{action.name}</span>
-                  </button>
-                );
-              })}
+          <div className="mb-8">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-100/50">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <Target className="w-6 h-6 text-blue-600 mr-3" />
+                Actions rapides
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {quickActions.map((action, index) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleNavigation(action.href)}
+                      className={`p-6 rounded-2xl text-white ${action.color} transition-all duration-300 flex flex-col items-center text-center group hover:scale-105 hover:shadow-xl hover:-translate-y-1 border-2 border-transparent hover:border-white/20`}
+                    >
+                      <Icon className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-semibold">{action.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {/* Bilan d'Employabilité - Nouvelle section */}
           <div className="mb-8">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mr-2" />
-              Bilan d'Employabilité
-            </h3>
-            <EmployabilityDashboard />
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-green-100/50">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <TrendingUp className="w-6 h-6 text-green-600 mr-3" />
+                Bilan d'Employabilité
+              </h3>
+              <EmployabilityDashboard />
+            </div>
           </div>
 
-          {/* Zone centrale avec fond créatif */}
-          <div className="relative flex justify-center items-center min-h-[300px] sm:min-h-[400px]">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-blue-100" />
-            <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-200 opacity-30 rounded-full blur-2xl pointer-events-none" />
-            <div className="relative z-10 w-full max-w-2xl">
+          {/* Zone centrale avec fond créatif - Espace réduit */}
+          <div className="relative mt-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-purple-100/50">
               <NotesModule />
             </div>
+          </div>
           </div>
         </main>
       </div>
@@ -435,159 +463,5 @@ const COPInterface: React.FC = () => {
   );
 };
 
-// --- Composant pour les cartes dynamiques, ajout et édition admin ---
-function IndicateursDashboardCards() {
-  const { indicateurs, loading, error, updateIndicateur, reload } = useIndicateursDashboard();
-  const { isAdmin } = useRole();
-  const [editOpen, setEditOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [editData, setEditData] = useState<unknown[]>([]);
-  const [addData, setAddData] = useState({ titre: '', valeur: '', trend: '', couleur: 'blue', icone: 'TrendingUp' });
-
-  // Icônes disponibles
-  const iconMap = {
-    TrendingUp: <TrendingUp className="w-7 h-7" />,
-    Users: <Users className="w-7 h-7" />,
-    Building2: <Building2 className="w-7 h-7" />,
-    Mail: <Mail className="w-7 h-7" />,
-  };
-
-  // Ouvre la modale d'édition avec les valeurs actuelles
-  const handleEdit = () => {
-    setEditData(indicateurs.map(i => ({ ...i })));
-    setEditOpen(true);
-  };
-  // Gère la modification locale
-  const handleChange = (idx: number, field: string, value: string) => {
-    setEditData(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
-  };
-  // Sauvegarde toutes les modifs
-  const handleSave = async () => {
-    for (const ind of editData) {
-      await updateIndicateur(ind.id, {
-        titre: ind.titre,
-        valeur: ind.valeur,
-        trend: ind.trend,
-        couleur: ind.couleur,
-        icone: ind.icone,
-      });
-    }
-    setEditOpen(false);
-    reload();
-  };
-  // Ajout d'un indicateur
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { supabase } = await import('@/lib/supabase');
-    await supabase.from('indicateurs_dashboard').insert([
-      { ...addData, ordre: indicateurs.length }
-    ]);
-    setAddOpen(false);
-    setAddData({ titre: '', valeur: '', trend: '', couleur: 'blue', icone: 'TrendingUp' });
-    reload();
-  };
-  if (loading) return <div>Chargement…</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
-  return (
-    <div className="mb-8">
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-xl font-bold text-[#1D3557]">Indicateurs clés</div>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 border-2 border-dashed border-blue-300 rounded-xl px-4 py-2 text-blue-500 hover:bg-blue-50 transition">
-              <PlusCircle className="w-5 h-5" /> Ajouter un indicateur
-            </button>
-            <button onClick={handleEdit} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold transition">Modifier</button>
-          </div>
-        )}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {indicateurs.map((ind, idx) => (
-          <div key={ind.id} className={`bg-white rounded-xl p-4 sm:p-6 border-l-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group border-${ind.couleur || 'blue'}-500`}>
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-gray-500">{ind.titre}</p>
-                <p className={`text-2xl sm:text-3xl font-bold text-${ind.couleur || 'blue'}-600`}>{ind.valeur}</p>
-              </div>
-              <div className={`rounded-full p-3 bg-${ind.couleur || 'blue'}-100`}>{iconMap[ind.icone as keyof typeof iconMap] || <TrendingUp className="w-7 h-7" />}</div>
-            </div>
-            <div className={`mt-2 text-sm font-medium text-${ind.couleur || 'blue'}-600 flex items-center`}>{ind.trend}</div>
-          </div>
-        ))}
-        {isAdmin && (
-          <button
-            onClick={() => setAddOpen(true)}
-            className="flex flex-col items-center justify-center border-2 border-dashed border-blue-300 rounded-xl p-6 text-blue-500 hover:bg-blue-50 transition"
-          >
-            <span className="text-4xl">+</span>
-            <span className="mt-2 font-semibold">Ajouter un indicateur</span>
-          </button>
-        )}
-      </div>
-      {/* Modale édition admin */}
-      {editOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl p-4 sm:p-8 w-full max-w-2xl flex flex-col gap-4 sm:gap-6">
-            <div className="text-xl font-bold text-[#1D3557] mb-4">Modifier les indicateurs</div>
-            {editData.map((ind, idx) => (
-              <div key={ind.id} className="flex gap-4 items-center mb-2">
-                <input className="border rounded p-2 w-40" value={ind.titre} onChange={e => handleChange(idx, 'titre', e.target.value)} />
-                <input className="border rounded p-2 w-24" value={ind.valeur} onChange={e => handleChange(idx, 'valeur', e.target.value)} />
-                <input className="border rounded p-2 w-32" value={ind.trend || ''} onChange={e => handleChange(idx, 'trend', e.target.value)} placeholder="Tendance" />
-                <select className="border rounded p-2 w-28" value={ind.couleur || 'blue'} onChange={e => handleChange(idx, 'couleur', e.target.value)}>
-                  <option value="green">Vert</option>
-                  <option value="blue">Bleu</option>
-                  <option value="purple">Violet</option>
-                  <option value="orange">Orange</option>
-                  <option value="red">Rouge</option>
-                  <option value="gray">Gris</option>
-                </select>
-                <select className="border rounded p-2 w-32" value={ind.icone || 'TrendingUp'} onChange={e => handleChange(idx, 'icone', e.target.value)}>
-                  <option value="TrendingUp">Tendance</option>
-                  <option value="Users">Stagiaires</option>
-                  <option value="Building2">Entreprise</option>
-                  <option value="Mail">CV</option>
-                </select>
-              </div>
-            ))}
-            <div className="flex gap-2 justify-end mt-4">
-              <button className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300" onClick={() => setEditOpen(false)}>Annuler</button>
-              <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" onClick={handleSave}>Enregistrer</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Modale ajout admin */}
-      {addOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleAdd} className="bg-white rounded-xl shadow-xl p-4 sm:p-8 w-full max-w-md flex flex-col gap-4">
-            <div className="text-xl font-bold text-[#1D3557] mb-4">Ajouter un indicateur</div>
-            <input className="border rounded p-2" placeholder="Titre" value={addData.titre} onChange={e => setAddData(f => ({ ...f, titre: e.target.value }))} required />
-            <input className="border rounded p-2" placeholder="Valeur" value={addData.valeur} onChange={e => setAddData(f => ({ ...f, valeur: e.target.value }))} required />
-            <input className="border rounded p-2" placeholder="Tendance" value={addData.trend} onChange={e => setAddData(f => ({ ...f, trend: e.target.value }))} />
-            <select className="border rounded p-2" value={addData.couleur} onChange={e => setAddData(f => ({ ...f, couleur: e.target.value }))}>
-              <option value="green">Vert</option>
-              <option value="blue">Bleu</option>
-              <option value="purple">Violet</option>
-              <option value="orange">Orange</option>
-              <option value="red">Rouge</option>
-              <option value="gray">Gris</option>
-            </select>
-            <select className="border rounded p-2" value={addData.icone} onChange={e => setAddData(f => ({ ...f, icone: e.target.value }))}>
-              <option value="TrendingUp">Tendance</option>
-              <option value="Users">Stagiaires</option>
-              <option value="Building2">Entreprise</option>
-              <option value="Mail">CV</option>
-            </select>
-            <div className="flex gap-2 justify-end mt-4">
-              <button type="button" className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300" onClick={() => setAddOpen(false)}>Annuler</button>
-              <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Ajouter</button>
-            </div>
-          </form>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default COPInterface; 
