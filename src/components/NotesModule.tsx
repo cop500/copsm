@@ -121,25 +121,25 @@ export default function NotesModule() {
     <div className="space-y-4">
       {/* En-tête compact */}
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-blue-100 rounded-xl">
+        <div className="p-2 bg-blue-100 rounded-xl flex-shrink-0">
           <MessageSquare className="w-5 h-5 text-blue-600" />
         </div>
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Informations & Notes d'équipe</h3>
-          <p className="text-sm text-gray-500">Partagez des informations avec l'équipe</p>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 truncate">Informations & Notes d'équipe</h3>
+          <p className="text-sm text-gray-500 hidden sm:block">Partagez des informations avec l'équipe</p>
         </div>
       </div>
 
       {/* Zone de saisie compacte */}
       <div className="bg-white/20 backdrop-blur-sm border-2 border-black/30 rounded-xl p-3 shadow-lg">
         <div className="flex items-start gap-2 mb-2">
-          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xs">
+          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
             {profile?.prenom?.[0] && profile?.nom?.[0] 
               ? `${profile.prenom[0]}${profile.nom[0]}`.toUpperCase()
               : profile?.prenom?.[0] || profile?.nom?.[0] || 'U'
             }
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}

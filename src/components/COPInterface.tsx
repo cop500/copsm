@@ -400,7 +400,7 @@ const COPInterface: React.FC = () => {
         </header>
 
         {/* Dashboard Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-screen relative">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-screen relative pb-20">
           {/* Background beige très léger avec touches de couleur */}
           <div className="fixed inset-0 bg-gradient-to-br from-stone-50/60 via-amber-50/30 to-orange-50/40 pointer-events-none"></div>
           <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-50/25 via-transparent to-amber-50/20 pointer-events-none"></div>
@@ -451,8 +451,8 @@ const COPInterface: React.FC = () => {
           </div>
 
           {/* Zone centrale avec fond créatif - Espace réduit */}
-          <div className="relative mt-4">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-purple-100/50">
+          <div className="relative mt-4 mb-8">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-purple-100/50 min-h-[200px]">
               <NotesModule />
             </div>
           </div>

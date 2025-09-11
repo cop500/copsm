@@ -790,8 +790,23 @@ export const EmployabilityDashboard: React.FC = () => {
       {/* KPIs principaux */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map((kpi, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
+          <div key={index} className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
+            {/* Motifs décoratifs */}
+            <div 
+              className="absolute inset-0 opacity-20 pointer-events-none"
+              style={{
+                backgroundImage: `
+                  radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.4) 2px, transparent 2px),
+                  radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.4) 2px, transparent 2px),
+                  linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.2) 49%, rgba(156, 163, 175, 0.2) 51%, transparent 52%),
+                  linear-gradient(-45deg, transparent 48%, rgba(156, 163, 175, 0.2) 49%, rgba(156, 163, 175, 0.2) 51%, transparent 52%)
+                `,
+                backgroundSize: '30px 30px, 40px 40px, 20px 20px, 20px 20px',
+                backgroundPosition: '0 0, 15px 15px, 0 0, 10px 10px'
+              }}
+            ></div>
+            
+            <div className="flex items-center justify-between relative z-10">
               <div>
                 <p className="text-xs font-medium text-gray-600">{kpi.label}</p>
                 <p className="text-lg font-bold text-gray-900 mt-1">{kpi.value}</p>
@@ -817,9 +832,23 @@ export const EmployabilityDashboard: React.FC = () => {
       {/* Graphiques et métriques détaillées */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Événements par volet */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Événements par volet</h3>
-          <div className="space-y-2">
+        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
+          {/* Motifs décoratifs */}
+          <div 
+            className="absolute inset-0 opacity-15 pointer-events-none"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+                radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
+                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
+              `,
+              backgroundSize: '25px 25px, 35px 35px, 15px 15px',
+              backgroundPosition: '0 0, 12px 12px, 0 0'
+            }}
+          ></div>
+          
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 relative z-10">Événements par volet</h3>
+          <div className="space-y-2 relative z-10">
             {voletChartData.labels.map((label, index) => (
               <div key={index} className="flex items-center justify-between">
                 <span className="text-xs text-gray-600 truncate">{label}</span>
@@ -843,9 +872,23 @@ export const EmployabilityDashboard: React.FC = () => {
         </div>
 
         {/* Entreprises par secteur */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Entreprises par secteur</h3>
-          <div className="space-y-2">
+        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
+          {/* Motifs décoratifs */}
+          <div 
+            className="absolute inset-0 opacity-15 pointer-events-none"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+                radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
+                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
+              `,
+              backgroundSize: '25px 25px, 35px 35px, 15px 15px',
+              backgroundPosition: '0 0, 12px 12px, 0 0'
+            }}
+          ></div>
+          
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 relative z-10">Entreprises par secteur</h3>
+          <div className="space-y-2 relative z-10">
             {sectorChartData.labels.map((label, index) => (
               <div key={index} className="flex items-center justify-between">
                 <span className="text-xs text-gray-600 truncate">{label}</span>
@@ -872,12 +915,26 @@ export const EmployabilityDashboard: React.FC = () => {
       {/* Métriques détaillées */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Métriques des événements */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
+          {/* Motifs décoratifs */}
+          <div 
+            className="absolute inset-0 opacity-15 pointer-events-none"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
+                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
+              `,
+              backgroundSize: '20px 20px, 30px 30px, 12px 12px',
+              backgroundPosition: '0 0, 10px 10px, 0 0'
+            }}
+          ></div>
+          
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2 relative z-10">
             <Calendar className="w-4 h-4 text-blue-600" />
             Événements
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-2 relative z-10">
             <div className="flex justify-between items-center">
               <span className="text-xs text-gray-600">Total</span>
               <span className="text-sm font-semibold">{eventMetrics?.totalEvents}</span>
@@ -902,12 +959,26 @@ export const EmployabilityDashboard: React.FC = () => {
         </div>
 
         {/* Métriques des entreprises */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
+          {/* Motifs décoratifs */}
+          <div 
+            className="absolute inset-0 opacity-15 pointer-events-none"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
+                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
+              `,
+              backgroundSize: '20px 20px, 30px 30px, 12px 12px',
+              backgroundPosition: '0 0, 10px 10px, 0 0'
+            }}
+          ></div>
+          
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2 relative z-10">
             <Building2 className="w-4 h-4 text-purple-600" />
             Entreprises
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-2 relative z-10">
             <div className="flex justify-between items-center">
               <span className="text-xs text-gray-600">Total</span>
               <span className="text-sm font-semibold">{enterpriseMetrics?.totalEnterprises}</span>
@@ -934,12 +1005,26 @@ export const EmployabilityDashboard: React.FC = () => {
         </div>
 
                 {/* Top entreprises */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
+          {/* Motifs décoratifs */}
+          <div 
+            className="absolute inset-0 opacity-15 pointer-events-none"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
+                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
+              `,
+              backgroundSize: '20px 20px, 30px 30px, 12px 12px',
+              backgroundPosition: '0 0, 10px 10px, 0 0'
+            }}
+          ></div>
+          
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2 relative z-10">
             <Target className="w-4 h-4 text-red-600" />
             Top entreprises
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-2 relative z-10">
             {entreprises && entreprises.filter(e => e.partenaire_privilegie).length > 0 ? (
               entreprises
                 .filter(e => e.partenaire_privilegie)
@@ -970,9 +1055,23 @@ export const EmployabilityDashboard: React.FC = () => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(eventMetrics.eventsByPole).map(([poleName, eventCount]) => (
-              <div key={poleName} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">{poleName}</h4>
-                <div className="space-y-2">
+              <div key={poleName} className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
+                {/* Motifs décoratifs */}
+                <div 
+                  className="absolute inset-0 opacity-15 pointer-events-none"
+                  style={{
+                    backgroundImage: `
+                      radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+                      radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
+                      linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
+                    `,
+                    backgroundSize: '20px 20px, 30px 30px, 12px 12px',
+                    backgroundPosition: '0 0, 10px 10px, 0 0'
+                  }}
+                ></div>
+                
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 relative z-10">{poleName}</h4>
+                <div className="space-y-2 relative z-10">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">Événements</span>
                     <span className="text-sm font-semibold">{eventCount}</span>
