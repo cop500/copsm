@@ -65,7 +65,7 @@ const DashboardFullPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header avec navigation */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white/95 backdrop-blur-lg shadow-xl border-b border-gray-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo et titre */}
@@ -74,8 +74,8 @@ const DashboardFullPage: React.FC = () => {
                 <img src="/logo.png" alt="Logo MyWay" className="w-8 h-8 object-contain" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Centre d'Orientation Professionnelle</h1>
-                <p className="text-sm text-gray-500">Tableau de bord</p>
+                <h1 className="text-xl font-black text-black">Centre d'Orientation Professionnelle</h1>
+                <p className="text-sm font-bold text-gray-800">Tableau de bord</p>
               </div>
             </div>
 
@@ -96,10 +96,10 @@ const DashboardFullPage: React.FC = () => {
               {/* Profil utilisateur et actions */}
               <div className="flex items-center space-x-4">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-black text-black">
                     {profile?.prenom} {profile?.nom}
                   </p>
-                  <p className="text-xs text-gray-500 capitalize">
+                  <p className="text-xs font-bold text-gray-800 capitalize">
                     {profile?.role?.replace('_', ' ')}
                   </p>
                 </div>
@@ -108,7 +108,7 @@ const DashboardFullPage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  className="px-3 py-2 text-sm font-black text-black hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   title="Vue classique avec sidebar"
                 >
                   Vue classique
@@ -133,17 +133,17 @@ const DashboardFullPage: React.FC = () => {
         <div 
           className="fixed inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'url(/tableaudebord.jpg)',
+            backgroundImage: 'url(/background3.jpg)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            opacity: 0.25
+            opacity: 0.4
           }}
         ></div>
         {/* Overlay clair pour éclaircir l'image */}
-        <div className="fixed inset-0 bg-white/40 pointer-events-none"></div>
+        <div className="fixed inset-0 bg-white/25 pointer-events-none"></div>
         {/* Overlay beige très subtil */}
-        <div className="fixed inset-0 bg-gradient-to-br from-amber-50/30 via-stone-50/20 to-orange-50/25 pointer-events-none"></div>
+        <div className="fixed inset-0 bg-gradient-to-br from-amber-50/20 via-stone-50/15 to-orange-50/20 pointer-events-none"></div>
         
         {/* Motifs géométriques pour l'aspect tableau de bord */}
         <div 
