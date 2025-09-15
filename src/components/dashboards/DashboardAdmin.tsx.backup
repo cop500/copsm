@@ -24,7 +24,7 @@ interface DemandeEntreprise {
   type_demande: string;
   created_at: string;
   traite_par?: string | null;
-  statut?: string; // Ajout du statut
+  statut?: string;
 }
 
 const STATUTS = [
@@ -52,17 +52,11 @@ const DashboardAdmin = () => {
   const [nouveauCommentaire, setNouveauCommentaire] = useState('');
   const [loadingCommentaires, setLoadingCommentaires] = useState(false);
   
-  // États pour les filtres et statistiques
+  // États pour les filtres
   const [filterStatut, setFilterStatut] = useState<string>('tous');
-  const [statistiques, setStatistiques] = useState<{[key: string]: any}>({});
-  const [updatingStats, setUpdatingStats] = useState<string | null>(null);
-  const [editingStats, setEditingStats] = useState<string | null>(null);
-  const [tempStats, setTempStats] = useState<{[key: string]: any}>({});
   
   // États pour les notifications
   const [notifications, setNotifications] = useState<any[]>([]);
-  
-
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -71,6 +65,7 @@ const DashboardAdmin = () => {
       .from("demandes_entreprises")
       .select("*")
       .order("created_at", { ascending: false });
+    
     if (!error) {
       setDemandes(data || []);
     }
@@ -81,30 +76,30 @@ const DashboardAdmin = () => {
   const loadProfiles = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, nom, prenom, role"); // plus de filtre sur le rôle
-    if (!error) setProfiles(data || []);
+      .select("id, nom, prenom, role");
+    
+    if (!error) {
+      setProfiles(data || []);
+    }
   };
 
   // Supprimer une demande
   const handleDelete = async (demandeId: string) => {
     if (!window.confirm("Confirmer la suppression de cette demande ?")) return;
     
-    // Mise à jour optimiste
-    const demandeToDelete = demandes.find(d => d.id === demandeId);
-    setDemandes(prev => prev.filter(d => d.id !== demandeId));
-    
-    const { error } = await supabase
-      .from("demandes_entreprises")
-      .delete()
-      .eq("id", demandeId);
-    
-    if (!error) {
-      setMessage("Demande supprimée avec succès !");
-    } else {
-      // Restaurer si erreur
-      if (demandeToDelete) {
-        setDemandes(prev => [demandeToDelete, ...prev]);
+    try {
+      const { error } = await supabase
+        .from("demandes_entreprises")
+        .delete()
+        .eq("id", demandeId);
+      
+      if (!error) {
+        setDemandes(prev => prev.filter(d => d.id !== demandeId));
+        setMessage("Demande supprimée avec succès.");
+      } else {
+        setMessage("Erreur lors de la suppression.");
       }
+    } catch (error) {
       setMessage("Erreur lors de la suppression.");
     }
     setTimeout(() => setMessage(""), 3000);
@@ -142,27 +137,22 @@ const DashboardAdmin = () => {
     setAssigning(demandeId);
     
     // Mise à jour optimiste
-    const assignedProfile = profiles.find(p => p.id === userId);
     setDemandes(prev => prev.map(d => 
-      d.id === demandeId 
-        ? { ...d, traite_par: userId }
-        : d
+      d.id === demandeId ? { ...d, traite_par: userId } : d
     ));
     
-    const { error } = await supabase
-      .from("demandes_entreprises")
-      .update({ traite_par: userId })
-      .eq("id", demandeId);
-    
-    if (!error) {
-      setMessage("Demande assignée avec succès !");
-    } else {
-      // Restaurer si erreur
-      setDemandes(prev => prev.map(d => 
-        d.id === demandeId 
-          ? { ...d, traite_par: d.traite_par }
-          : d
-      ));
+    try {
+      const { error } = await supabase
+        .from("demandes_entreprises")
+        .update({ traite_par: userId })
+        .eq("id", demandeId);
+      
+      if (!error) {
+        setMessage("Demande assignée avec succès.");
+      } else {
+        setMessage("Erreur lors de l'assignation.");
+      }
+    } catch (error) {
       setMessage("Erreur lors de l'assignation.");
     }
     setAssigning(null);
@@ -171,27 +161,22 @@ const DashboardAdmin = () => {
 
   const handleStatutChange = async (demandeId: string, newStatut: string) => {
     // Mise à jour optimiste
-    const oldStatut = demandes.find(d => d.id === demandeId)?.statut;
     setDemandes(prev => prev.map(d => 
-      d.id === demandeId 
-        ? { ...d, statut: newStatut }
-        : d
+      d.id === demandeId ? { ...d, statut: newStatut } : d
     ));
     
-    const { error } = await supabase
-      .from('demandes_entreprises')
-      .update({ statut: newStatut })
-      .eq('id', demandeId);
-    
-    if (!error) {
-      setMessage('Statut mis à jour !');
-    } else {
-      // Restaurer si erreur
-      setDemandes(prev => prev.map(d => 
-        d.id === demandeId 
-          ? { ...d, statut: oldStatut }
-          : d
-      ));
+    try {
+      const { error } = await supabase
+        .from("demandes_entreprises")
+        .update({ statut: newStatut })
+        .eq("id", demandeId);
+      
+      if (!error) {
+        setMessage("Statut mis à jour avec succès.");
+      } else {
+        setMessage("Erreur lors de la mise à jour du statut.");
+      }
+    } catch (error) {
       setMessage("Erreur lors de la mise à jour du statut.");
     }
     setTimeout(() => setMessage(""), 3000);
@@ -247,11 +232,11 @@ const DashboardAdmin = () => {
   // Supprimer un commentaire
   const supprimerCommentaire = async (commentaireId: string, demandeId: string) => {
     if (!isAdmin) return;
-
+    
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) return;
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('commentaires_demandes_entreprises')
         .delete()
         .eq('id', commentaireId);
@@ -267,126 +252,6 @@ const DashboardAdmin = () => {
     setTimeout(() => setMessage(""), 3000);
   };
 
-  // Charger les statistiques d'une demande
-  const loadStatistiques = async (demandeId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('statistiques_demandes')
-        .select('*')
-        .eq('demande_id', demandeId)
-        .single();
-      
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Pas de données trouvées - c'est normal pour une nouvelle demande
-          return;
-        }
-        console.error('❌ Erreur lors du chargement des statistiques:', error);
-        throw error;
-      }
-      
-      if (data) {
-        setStatistiques(prev => ({ ...prev, [demandeId]: data }));
-      }
-    } catch (err: any) {
-      console.error('💥 Erreur chargement statistiques:', err);
-    }
-  };
-
-  // Mettre à jour les statistiques
-  const updateStatistiques = async (demandeId: string, stats: any) => {
-    setUpdatingStats(demandeId);
-    try {
-      // Vérifier d'abord si des statistiques existent déjà
-      const { data: existingStats, error: checkError } = await supabase
-        .from('statistiques_demandes')
-        .select('*')
-        .eq('demande_id', demandeId)
-        .maybeSingle();
-      
-      let result;
-      if (existingStats) {
-        // Mettre à jour les statistiques existantes
-        result = await supabase
-          .from('statistiques_demandes')
-          .update({
-            nombre_candidats: stats.nombre_candidats || 0,
-            nombre_candidats_retenus: stats.nombre_candidats_retenus || 0,
-            nombre_cv_envoyes: stats.nombre_cv_envoyes || 0,
-            updated_at: new Date().toISOString()
-          })
-          .eq('demande_id', demandeId)
-          .select();
-      } else {
-        // Insérer de nouvelles statistiques
-        result = await supabase
-          .from('statistiques_demandes')
-          .insert({
-            demande_id: demandeId,
-            nombre_candidats: stats.nombre_candidats || 0,
-            nombre_candidats_retenus: stats.nombre_candidats_retenus || 0,
-            nombre_cv_envoyes: stats.nombre_cv_envoyes || 0
-          })
-          .select();
-      }
-      
-      if (result.error) {
-        console.error('❌ Erreur lors de l\'opération:', result.error);
-        throw result.error;
-      }
-      
-      setStatistiques(prev => ({ ...prev, [demandeId]: { demande_id: demandeId, ...stats } }));
-      setEditingStats(null);
-      setTempStats(prev => ({ ...prev, [demandeId]: {} }));
-      setMessage('Statistiques mises à jour !');
-    } catch (err: any) {
-      console.error('💥 Erreur mise à jour statistiques:', err);
-      setMessage('Erreur lors de la mise à jour des statistiques');
-    }
-    setUpdatingStats(null);
-    setTimeout(() => setMessage(""), 3000);
-  };
-
-  // Modifier les statistiques
-  const editStatistiques = (demandeId: string) => {
-    setEditingStats(demandeId);
-    setTempStats(prev => ({ ...prev, [demandeId]: { ...statistiques[demandeId] } }));
-  };
-
-  // Annuler la modification
-  const cancelEditStatistiques = (demandeId: string) => {
-    setEditingStats(null);
-    setTempStats(prev => ({ ...prev, [demandeId]: {} }));
-  };
-
-  // Supprimer les statistiques (admin seulement)
-  const deleteStatistiques = async (demandeId: string) => {
-    if (!isAdmin) return;
-    
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ces statistiques ?')) return;
-    
-    setUpdatingStats(demandeId);
-    try {
-      const { error } = await supabase
-        .from('statistiques_demandes')
-        .delete()
-        .eq('demande_id', demandeId);
-      
-      if (error) throw error;
-      
-      setStatistiques(prev => {
-        const newStats = { ...prev };
-        delete newStats[demandeId];
-        return newStats;
-      });
-      setMessage('Statistiques supprimées !');
-    } catch (err: any) {
-      console.error('Erreur suppression statistiques:', err);
-      setMessage('Erreur lors de la suppression des statistiques');
-    }
-    setUpdatingStats(null);
-    setTimeout(() => setMessage(""), 3000);
-  };
 
   // Charger les notifications
   const loadNotifications = async () => {
@@ -425,7 +290,6 @@ const DashboardAdmin = () => {
   const handleDownloadPDF = async (demande: DemandeEntreprise) => {
     try {
       const commentairesDemande = commentaires.filter(c => c.demande_id === demande.id);
-      const statistiquesDemande = statistiques[demande.id] || null;
       
       // Traiter les profils pour récupérer les noms
       const profilsTraites = demande.profils.map((profil: any) => {
@@ -455,7 +319,7 @@ const DashboardAdmin = () => {
         profils: profilsTraites
       };
       
-      await downloadDemandePDF(demandeTraitee, commentairesDemande, statistiquesDemande);
+      await downloadDemandePDF(demandeTraitee, commentairesDemande, null);
       setMessage('PDF téléchargé avec succès !');
     } catch (error) {
       console.error('Erreur téléchargement PDF:', error);
@@ -468,7 +332,6 @@ const DashboardAdmin = () => {
   const handlePrint = (demande: DemandeEntreprise) => {
     try {
       const commentairesDemande = commentaires.filter(c => c.demande_id === demande.id);
-      const statistiquesDemande = statistiques[demande.id] || null;
       
       // Traiter les profils pour récupérer les noms
       const profilsTraites = demande.profils.map((profil: any) => {
@@ -498,7 +361,7 @@ const DashboardAdmin = () => {
         profils: profilsTraites
       };
       
-      printDemande(demandeTraitee, commentairesDemande, statistiquesDemande);
+      printDemande(demandeTraitee, commentairesDemande, null);
       setMessage('Impression lancée !');
     } catch (error) {
       console.error('Erreur impression:', error);
@@ -508,143 +371,174 @@ const DashboardAdmin = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
-      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
-      {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
-      
-      {/* Section Notifications */}
-      {notifications.length > 0 && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h2 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
-            <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">
-              {notifications.length}
-            </span>
-            Nouvelles demandes entreprises
-          </h2>
-          <div className="space-y-2">
-            {notifications.map((notification) => (
-              <div key={notification.id} className="bg-white p-3 rounded border border-blue-100 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {notification.demande?.entreprise_nom || 'Entreprise inconnue'}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Nouvelle demande reçue le {new Date(notification.created_at).toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-                <button
-                  onClick={() => supprimerNotification(notification.id)}
-                  className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                >
-                  Marquer comme vue
-                </button>
-              </div>
-            ))}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      {/* En-tête moderne avec gradient et motifs */}
+      <div className="relative bg-gradient-to-r from-[#004080] via-blue-600 to-indigo-600 shadow-xl">
+        {/* Motifs décoratifs */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-4 left-4 w-20 h-20 bg-white rounded-full"></div>
+          <div className="absolute top-8 right-8 w-16 h-16 bg-white rounded-full"></div>
+          <div className="absolute bottom-4 left-1/4 w-12 h-12 bg-white rounded-full"></div>
+          <div className="absolute bottom-8 right-1/4 w-8 h-8 bg-white rounded-full"></div>
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">
+              Gestion des Demandes Entreprises
+            </h1>
+            <p className="text-blue-100 text-lg font-medium">
+              Suivi et gestion des partenariats professionnels
+            </p>
           </div>
         </div>
-      )}
-      
-
-      
-      {/* Filtres */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par statut</label>
-          <select
-            value={filterStatut}
-            onChange={(e) => setFilterStatut(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-          >
-            <option value="tous">Tous les statuts</option>
-            <option value="en_attente">En attente</option>
-            <option value="en_cours">En cours</option>
-            <option value="terminee">Terminée</option>
-            <option value="refusee">Refusée</option>
-            <option value="annulee">Annulée</option>
-          </select>
-        </div>
       </div>
+
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {message && (
+          <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-400 rounded-lg shadow-sm">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-green-800">{message}</p>
+              </div>
+            </div>
+          </div>
+        )}
       
-      {loading || loadingSettings ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004080] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des demandes...</p>
+        {/* Section Notifications améliorée */}
+        {notifications.length > 0 && (
+          <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center">
+              <Calendar className="w-6 h-6 mr-3" />
+              Notifications récentes
+            </h2>
+            <div className="space-y-3">
+              {notifications.slice(0, 3).map((notification) => (
+                <div key={notification.id} className="flex items-center justify-between bg-white p-4 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-semibold text-blue-600">{notification.demande?.entreprise_nom}</span> - {notification.message}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(notification.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => supprimerNotification(notification.id)}
+                    className="ml-3 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                    title="Supprimer la notification"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Filtres améliorés */}
+        <div className="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Filtres</h3>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Statut de la demande</label>
+              <select
+                value={filterStatut}
+                onChange={(e) => setFilterStatut(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent bg-white shadow-sm transition-all duration-200"
+              >
+                <option value="tous">Tous les statuts</option>
+                {STATUTS.map((statut) => (
+                  <option key={statut.value} value={statut.value}>
+                    {statut.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-4 sm:space-y-6">
-          {demandes
-            .filter(demande => filterStatut === 'tous' || demande.statut === filterStatut)
-            .map((demande) => {
-            const assignedProfile = profiles.find((p) => p.id === demande.traite_par);
-            const isExpanded = selectedDemande?.id === demande.id;
-            const statutObj = STATUTS.find(s => s.value === demande.statut) || STATUTS[0];
+
+        {/* Liste des demandes */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004080] mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-medium">Chargement des demandes...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {demandes
+              .filter(demande => filterStatut === 'tous' || demande.statut === filterStatut)
+              .map((demande) => {
+                const assignedProfile = profiles.find(p => p.id === demande.traite_par);
+                const currentStatut = STATUTS.find(s => s.value === demande.statut);
+                
                 return (
-                  <div key={demande.id} className="bg-white rounded-xl shadow-lg border border-gray-200">
-                    {/* En-tête de la demande */}
-                    <div className="p-4 sm:p-6 border-b border-gray-200">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-0">
-                        <div>
-                          <h3 className="text-xl font-bold text-[#004080]">{demande.entreprise_nom}</h3>
-                          <p className="text-gray-600 mt-1">{demande.secteur}</p>
-                          <p className="text-sm text-gray-500 mt-2">
-                            Demande reçue le {new Date(demande.created_at).toLocaleDateString("fr-FR", {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
+                  <div key={demande.id} className="bg-white rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
+                    {/* En-tête de la carte avec gradient */}
+                    <div className="bg-gradient-to-r from-[#004080] to-blue-600 p-6 text-white">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4 mb-3">
+                            <h3 className="text-2xl font-bold text-white">{demande.entreprise_nom}</h3>
+                            {currentStatut && (
+                              <span className={`px-3 py-1 text-sm font-semibold text-white rounded-full ${currentStatut.color} shadow-lg`}>
+                                {currentStatut.label}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-blue-100">
+                            <div className="flex items-center gap-2">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                              </svg>
+                              <span className="font-medium">{demande.secteur}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                              </svg>
+                              <span className="font-medium">{demande.contact_nom}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                              </svg>
+                              <span className="font-medium">{new Date(demande.created_at).toLocaleDateString('fr-FR')}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        
+                        <div className="flex flex-wrap gap-3 mt-4 lg:mt-0">
                           <button
-                            onClick={async () => {
-                              if (isExpanded) {
+                            onClick={() => {
+                              if (selectedDemande?.id === demande.id) {
                                 setSelectedDemande(null);
                               } else {
                                 setSelectedDemande(demande);
-                                await loadCommentaires(demande.id);
-                                await loadStatistiques(demande.id);
+                                loadCommentaires(demande.id);
                               }
                             }}
-                            className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                            className="px-6 py-3 bg-white text-[#004080] rounded-xl hover:bg-blue-50 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
                           >
-                            {isExpanded ? "Masquer détails" : "Voir détails"}
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            {selectedDemande?.id === demande.id ? 'Masquer détails' : 'Voir détails'}
                           </button>
                           
-                          {/* Boutons PDF et Impression */}
-                          <div className="flex gap-2">
-                            {!isDirecteur && (
-                              <button
-                                onClick={() => handleDownloadPDF(demande)}
-                                className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex items-center gap-1"
-                                title="Télécharger PDF"
-                              >
-                                <Download className="w-4 h-4" />
-                                PDF
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handlePrint(demande)}
-                              className="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm flex items-center gap-1"
-                              title="Imprimer"
-                            >
-                              <Printer className="w-4 h-4" />
-                              Imprimer
-                            </button>
-                          </div>
-                          
-                          {isAdmin && !isDirecteur && (
+                          {!isDirecteur && (
                             <button
                               onClick={() => handleDelete(demande.id)}
-                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm sm:text-base"
+                              className="px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
                             >
+                              <Trash2 className="w-5 h-5" />
                               Supprimer
                             </button>
                           )}
@@ -652,486 +546,357 @@ const DashboardAdmin = () => {
                       </div>
                     </div>
 
-                    {/* Détails de la demande */}
-                    {isExpanded && (
-                      <div className="p-4 sm:p-6 bg-gray-50">
-                        {/* Statut de la demande */}
-                        <div className="mb-6 flex items-center gap-4">
-                          <span className="font-medium">Statut :</span>
-                          {isAdmin ? (
-                            <select
-                              value={demande.statut || 'en_attente'}
-                              onChange={e => handleStatutChange(demande.id, e.target.value)}
-                              className="border rounded px-3 py-2 text-sm"
-                            >
-                              {STATUTS.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${statutObj.color}`}>{statutObj.label}</span>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                          {/* Informations entreprise */}
-                          <div>
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Informations entreprise</h4>
-                            <div className="space-y-3">
-                              <div>
-                                <span className="font-medium">Adresse :</span>
-                                <p className="text-gray-700">{demande.entreprise_adresse}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Ville :</span>
-                                <p className="text-gray-700">{demande.entreprise_ville}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Email :</span>
-                                <p className="text-gray-700">{demande.entreprise_email}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Contact */}
-                          <div>
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Contact</h4>
-                            <div className="space-y-3">
-                              <div>
-                                <span className="font-medium">Nom :</span>
-                                <p className="text-gray-700">{demande.contact_nom}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Email :</span>
-                                <p className="text-gray-700">{demande.contact_email}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Téléphone :</span>
-                                <p className="text-gray-700">{demande.contact_tel}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Profils demandés et Commentaires */}
-                        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Profils demandés */}
-                          <div>
-                          <h4 className="text-lg font-semibold text-[#004080] mb-4">Profils demandés</h4>
+                    {selectedDemande?.id === demande.id && (
+                      <div className="p-6 bg-gray-50">
+                        {/* Informations détaillées améliorées */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                            <h4 className="text-xl font-bold text-[#004080] mb-4 flex items-center">
+                              <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                              </svg>
+                              Informations entreprise
+                            </h4>
                             <div className="space-y-4">
-                            {demande.profils && demande.profils.map((profil: any, index: number) => {
-                              const pole = poles.find(p => p.id === profil.pole_id);
-                              const filiere = filieres.find(f => f.id === profil.filiere_id);
-                              return (
-                                <div key={index} className="bg-white p-4 rounded-lg border">
-                                  <h5 className="font-semibold text-[#004080] mb-2">Profil {index + 1}</h5>
-                                  <div className="space-y-2 text-sm">
-                                    <p><span className="font-medium">Pôle :</span> {pole ? pole.nom : <span className="text-gray-400">Non renseigné</span>}</p>
-                                    <p><span className="font-medium">Filière :</span> {filiere ? filiere.nom : <span className="text-gray-400">Non renseignée</span>}</p>
-                                    <p><span className="font-medium">Poste :</span> {profil.poste_intitule}</p>
-                                    <p><span className="font-medium">Description :</span> {profil.poste_description}</p>
-                                    <p><span className="font-medium">Nombre :</span> {profil.nb_profils}</p>
-                                    <p><span className="font-medium">Type contrat :</span> {profil.type_contrat}</p>
-                                    <p><span className="font-medium">Salaire :</span> {profil.salaire}</p>
-                                    <p><span className="font-medium">Durée :</span> {profil.duree}</p>
-                                    <p><span className="font-medium">Compétences :</span> {profil.competences}</p>
-                                    <p><span className="font-medium">Date début :</span> {profil.date_debut}</p>
+                              <div className="flex items-start gap-3">
+                                <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                </svg>
+                                <div>
+                                  <p className="font-semibold text-gray-700">Adresse</p>
+                                  <p className="text-gray-600">{demande.entreprise_adresse}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                </svg>
+                                <div>
+                                  <p className="font-semibold text-gray-700">Ville</p>
+                                  <p className="text-gray-600">{demande.entreprise_ville}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                </svg>
+                                <div>
+                                  <p className="font-semibold text-gray-700">Email</p>
+                                  <p className="text-gray-600">{demande.entreprise_email}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                </svg>
+                                <div>
+                                  <p className="font-semibold text-gray-700">Téléphone</p>
+                                  <p className="text-gray-600">{demande.contact_tel}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                            <h4 className="text-xl font-bold text-[#004080] mb-4 flex items-center">
+                              <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                              </svg>
+                              Détails de la demande
+                            </h4>
+                            <div className="space-y-4">
+                              <div className="flex items-start gap-3">
+                                <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                </svg>
+                                <div>
+                                  <p className="font-semibold text-gray-700">Type</p>
+                                  <p className="text-gray-600">{demande.type_demande}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                </svg>
+                                <div>
+                                  <p className="font-semibold text-gray-700">Événement</p>
+                                  <p className="text-gray-600">{demande.evenement_type}</p>
+                                </div>
+                              </div>
+                              {demande.evenement_date && (
+                                <div className="flex items-start gap-3">
+                                  <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                  </svg>
+                                  <div>
+                                    <p className="font-semibold text-gray-700">Date événement</p>
+                                    <p className="text-gray-600">{new Date(demande.evenement_date).toLocaleDateString('fr-FR')}</p>
                                   </div>
                                 </div>
-                              );
-                            })}
+                              )}
                             </div>
                           </div>
+                        </div>
 
-                          {/* Section Commentaires - Masquée pour le directeur */}
-                          {!isDirecteur && (
-                            <div>
-                              <h4 className="text-lg font-semibold text-[#004080] mb-4 flex items-center">
-                                <MessageSquare className="w-5 h-5 mr-2" />
-                                Commentaires
-                              </h4>
+                        {/* Profils demandés améliorés */}
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                          <h4 className="text-xl font-bold text-[#004080] mb-6 flex items-center">
+                            <User className="w-6 h-6 mr-3" />
+                            Profils demandés
+                          </h4>
+                          <div className="space-y-4">
+                            {demande.profils.map((profil, index) => (
+                              <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                  {profil.pole_id && (
+                                    <div className="flex items-center gap-2">
+                                      <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                                      </svg>
+                                      <div>
+                                        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Pôle</p>
+                                        <p className="text-sm font-medium text-gray-700">{poles?.find(p => p.id === profil.pole_id)?.nom || `Pôle ${profil.pole_id}`}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {profil.filiere && (
+                                    <div className="flex items-center gap-2">
+                                      <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                      </svg>
+                                      <div>
+                                        <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Filière</p>
+                                        <p className="text-sm font-medium text-gray-700">{profil.filiere}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {profil.poste && (
+                                    <div className="flex items-center gap-2">
+                                      <svg className="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h2zm3-2a1 1 0 00-1 1v1h2V5a1 1 0 00-1-1z" clipRule="evenodd" />
+                                      </svg>
+                                      <div>
+                                        <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Poste</p>
+                                        <p className="text-sm font-medium text-gray-700">{profil.poste}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                {(profil.duree || profil.salaire) && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-blue-200">
+                                    {profil.duree && (
+                                      <div className="flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                        </svg>
+                                        <div>
+                                          <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide">Durée</p>
+                                          <p className="text-sm font-medium text-gray-700">{profil.duree}</p>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {profil.salaire && (
+                                      <div className="flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                          <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                                        </svg>
+                                        <div>
+                                          <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Salaire</p>
+                                          <p className="text-sm font-medium text-gray-700">{profil.salaire}</p>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Section Commentaires - Masquée pour le directeur */}
+                        {!isDirecteur && (
+                          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                            <h4 className="text-xl font-bold text-[#004080] mb-6 flex items-center">
+                              <MessageSquare className="w-6 h-6 mr-3" />
+                              Commentaires
+                            </h4>
                             
                             {/* Liste des commentaires */}
-                            <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                            <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
                               {loadingCommentaires ? (
                                 <div className="text-center py-4">
                                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#004080] mx-auto"></div>
                                   <p className="text-sm text-gray-500 mt-2">Chargement des commentaires...</p>
                                 </div>
                               ) : commentaires.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500">
-                                  <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                                  <p className="text-sm">Aucun commentaire pour le moment</p>
-                                </div>
+                                <p className="text-gray-500 text-sm text-center py-4">Aucun commentaire pour le moment</p>
                               ) : (
-                                commentaires.map((commentaire, index) => (
-                                  <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
-                                    <div className="flex items-start justify-between mb-2">
-                                      <div className="flex items-center">
-                                        <User className="w-4 h-4 text-gray-500 mr-2" />
-                                        <span className="font-medium text-sm text-gray-700">{commentaire.auteur}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex items-center text-xs text-gray-500">
-                                          <Calendar className="w-3 h-3 mr-1" />
-                                          {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
+                                commentaires.map((commentaire) => (
+                                  <div key={commentaire.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-sm font-semibold text-gray-700">{commentaire.auteur}</span>
+                                          <span className="text-xs text-gray-500">
+                                            {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
+                                              day: '2-digit',
+                                              month: '2-digit',
+                                              year: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                          </span>
                                         </div>
-                                        {/* Bouton de suppression pour les admins */}
-                                        {isAdmin && !isDirecteur && (
-                                          <button
-                                            onClick={() => supprimerCommentaire(commentaire.id, demande.id)}
-                                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                                            title="Supprimer ce commentaire"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </button>
-                                        )}
+                                        <p className="text-sm text-gray-600">{commentaire.contenu}</p>
                                       </div>
+                                      {isAdmin && !isDirecteur && (
+                                        <button
+                                          onClick={() => supprimerCommentaire(commentaire.id, demande.id)}
+                                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                          title="Supprimer ce commentaire"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      )}
                                     </div>
-                                    <p className="text-sm text-gray-800">{commentaire.contenu}</p>
                                   </div>
                                 ))
                               )}
                             </div>
-
+                            
                             {/* Formulaire d'ajout de commentaire */}
-                            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                              <div className="flex items-end gap-2">
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                              <div className="flex items-end gap-3">
                                 <div className="flex-1">
                                   <textarea
                                     value={nouveauCommentaire}
                                     onChange={(e) => setNouveauCommentaire(e.target.value)}
                                     placeholder="Ajouter un commentaire..."
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent resize-none"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent resize-none"
                                     rows={3}
                                   />
                                 </div>
                                 <button
                                   onClick={() => ajouterCommentaire(demande.id)}
                                   disabled={!nouveauCommentaire.trim()}
-                                  className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                                  className="px-6 py-3 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 font-semibold"
                                 >
-                                  <Send className="w-4 h-4" />
+                                  <Send className="w-5 h-5" />
+                                  Publier
                                 </button>
                               </div>
                             </div>
                           </div>
-                          )}
-                        </div>
+                        )}
+                      </div>
 
-                        {/* Section Statistiques - Masquée pour le directeur */}
-                        {!isDirecteur && (
-                          <div className="mt-8">
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">
-                              Statistiques
-                            {process.env.NODE_ENV === 'development' && (
-                              <span className="text-xs text-gray-500 ml-2">
-                                (Debug: {statistiques[demande.id] ? 'Avec données' : 'Sans données'})
-                              </span>
-                            )}
-                          </h4>
-                          <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            {editingStats === demande.id ? (
-                              // Mode édition
-                              <>
-                                {demande.evenement_type === 'jobday' ? (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nombre de candidats
-                                      </label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        value={tempStats[demande.id]?.nombre_candidats || ''}
-                                        onChange={(e) => {
-                                          const newStats = { ...tempStats[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
-                                          setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                        placeholder="0"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nombre de candidats retenus
-                                      </label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        value={tempStats[demande.id]?.nombre_candidats_retenus || ''}
-                                        onChange={(e) => {
-                                          const newStats = { ...tempStats[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
-                                          setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                        placeholder="0"
-                                      />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                      Nombre de CV envoyés
-                                    </label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={tempStats[demande.id]?.nombre_cv_envoyes || ''}
-                                      onChange={(e) => {
-                                        const newStats = { ...tempStats[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
-                                        setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                      }}
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                      placeholder="0"
-                                    />
-                                  </div>
-                                )}
-                                
-                                {/* Boutons d'édition */}
-                                <div className="mt-4 flex justify-end gap-2">
-                                  <button
-                                    onClick={() => cancelEditStatistiques(demande.id)}
-                                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-                                  >
-                                    Annuler
-                                  </button>
-                                  <button
-                                    onClick={() => updateStatistiques(demande.id, tempStats[demande.id] || {})}
-                                    disabled={updatingStats === demande.id}
-                                    className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
-                                  >
-                                    {updatingStats === demande.id ? (
-                                      <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Sauvegarde...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Valider
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              </>
-                            ) : (
-                              // Mode affichage
-                              <>
-                                {statistiques[demande.id] && Object.keys(statistiques[demande.id]).length > 0 ? (
-                                  <div className="space-y-3">
-                                    {demande.evenement_type === 'jobday' ? (
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="bg-gray-50 p-3 rounded-lg">
-                                          <span className="text-sm font-medium text-gray-700">Nombre de candidats :</span>
-                                          <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_candidats || 0}</span>
-                                        </div>
-                                        <div className="bg-gray-50 p-3 rounded-lg">
-                                          <span className="text-sm font-medium text-gray-700">Nombre de candidats retenus :</span>
-                                          <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_candidats_retenus || 0}</span>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="bg-gray-50 p-3 rounded-lg">
-                                        <span className="text-sm font-medium text-gray-700">Nombre de CV envoyés :</span>
-                                        <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_cv_envoyes || 0}</span>
-                                      </div>
-                                    )}
-                                    
-                                    {/* Boutons d'action */}
-                                    <div className="flex justify-end gap-2 pt-2">
-                                      {!isDirecteur && (
-                                        <button
-                                          onClick={() => editStatistiques(demande.id)}
-                                          className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                                        >
-                                          Modifier
-                                        </button>
-                                      )}
-                                      {isAdmin && !isDirecteur && (
-                                        <button
-                                          onClick={() => deleteStatistiques(demande.id)}
-                                          disabled={updatingStats === demande.id}
-                                          className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:bg-gray-300"
-                                        >
-                                          {updatingStats === demande.id ? 'Suppression...' : 'Supprimer'}
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ) : (
-                                  // Pas de statistiques - mode saisie initiale
-                                  <>
-                                    {demande.evenement_type === 'jobday' ? (
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Nombre de candidats
-                                          </label>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            value={tempStats[demande.id]?.nombre_candidats || ''}
-                                            onChange={(e) => {
-                                              const newStats = { ...tempStats[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
-                                              setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Nombre de candidats retenus
-                                          </label>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            value={tempStats[demande.id]?.nombre_candidats_retenus || ''}
-                                            onChange={(e) => {
-                                              const newStats = { ...tempStats[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
-                                              setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                          Nombre de CV envoyés
-                                        </label>
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          value={tempStats[demande.id]?.nombre_cv_envoyes || ''}
-                                          onChange={(e) => {
-                                            const newStats = { ...tempStats[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
-                                            setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                          }}
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                          placeholder="0"
-                                        />
-                                      </div>
-                                    )}
-                                    
-                                    {/* Bouton de validation initiale */}
-                                    <div className="mt-4 flex justify-end">
-                                      <button
-                                        onClick={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
-                                        disabled={updatingStats === demande.id}
-                                        className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
-                                      >
-                                        {updatingStats === demande.id ? (
-                                          <>
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                            Sauvegarde...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            Valider les statistiques
-                                          </>
-                                        )}
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
 
-                        {/* Événement et fichier */}
-                        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                          <div>
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Événement</h4>
-                            <div className="space-y-3">
-                              <div>
-                                <span className="font-medium">Type :</span>
-                                <p className="text-gray-700">
-                                  {demande.evenement_type === 'jobday' ? 'Job Day' : 'Demande de CV'}
-                                </p>
+                        {/* Actions améliorées */}
+                        <div className="mt-8 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                          <h4 className="text-lg font-semibold text-gray-800 mb-4">Actions</h4>
+                          <div className="flex flex-wrap gap-4">
+                            {!isDirecteur ? (
+                              <div className="flex-1 min-w-[200px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Changer le statut</label>
+                                <select
+                                  value={demande.statut || 'en_attente'}
+                                  onChange={(e) => handleStatutChange(demande.id, e.target.value)}
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent bg-white shadow-sm transition-all duration-200"
+                                >
+                                  {STATUTS.map((statut) => (
+                                    <option key={statut.value} value={statut.value}>
+                                      {statut.label}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
-                              {demande.evenement_date && (
-                                <div>
-                                  <span className="font-medium">Date souhaitée :</span>
-                                  <p className="text-gray-700">{new Date(demande.evenement_date).toLocaleDateString("fr-FR")}</p>
+                            ) : (
+                              <div className="flex-1 min-w-[200px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Statut actuel</label>
+                                <div className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg border">
+                                  <span className="font-semibold">{currentStatut?.label || 'En attente'}</span>
                                 </div>
+                              </div>
+                            )}
+                            
+                            <div className="flex gap-3">
+                              {!isDirecteur && (
+                                <button
+                                  onClick={() => handleDownloadPDF(demande)}
+                                  className="px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                                  title="Télécharger PDF"
+                                >
+                                  <Download className="w-5 h-5" />
+                                  PDF
+                                </button>
                               )}
+                              
+                              <button
+                                onClick={() => handlePrint(demande)}
+                                className="px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                                title="Imprimer"
+                              >
+                                <Printer className="w-5 h-5" />
+                                Imprimer
+                              </button>
                             </div>
                           </div>
-
-                          {demande.fichier_url && (
-                            <div>
-                              <h4 className="text-lg font-semibold text-[#004080] mb-4">Fichier joint</h4>
-                              <a
-                                href={demande.fichier_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                              >
-                                📎 Voir le fichier
-                              </a>
-                            </div>
-                          )}
                         </div>
-
-                        {/* Assignation (admin seulement) */}
-                        {isAdmin ? (
-                          <div className="mt-8 pt-6 border-t border-gray-200">
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Suivi du dossier</h4>
-                            <div className="flex items-center gap-4">
-                              <span className="font-medium">Suivi par :</span>
-                              <select
-                                value={demande.traite_par || ""}
-                                onChange={(e) => handleAssign(demande.id, e.target.value)}
-                                disabled={assigning === demande.id}
-                                className="border rounded-lg px-3 py-2"
-                              >
-                                <option value="">Non suivi</option>
-                                {profiles.map((profile) => (
-                                  <option key={profile.id} value={profile.id}>
-                                    {profile.prenom} {profile.nom} ({profile.role})
-                                  </option>
-                                ))}
-                              </select>
-                              {assigning === demande.id && (
-                                <span className="text-sm text-gray-500">Mise à jour...</span>
-                              )}
-                            </div>
-                          </div>
-                          )}
-                        ) : (
-                          <div className="mt-8 pt-6 border-t border-gray-200">
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Suivi du dossier</h4>
-                            <div className="flex items-center gap-4">
-                              <span className="font-medium">Suivi par :</span>
-                              <span className="text-gray-800 font-semibold">
-                                {assignedProfile ? `${assignedProfile.prenom} ${assignedProfile.nom}` : <span className="text-gray-400">Non suivi</span>}
-                              </span>
-                            </div>
+                        
+                        {/* Section Suivi du dossier - Masquée pour le directeur */}
+                        {!isDirecteur && (
+                          <div className="mt-6 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                            <h4 className="text-lg font-semibold text-gray-800 mb-4">Suivi du dossier</h4>
+                            {demande.traite_par ? (
+                              <div className="flex items-center gap-4">
+                                <span className="font-medium text-gray-700">Suivi par :</span>
+                                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
+                                  <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                  </svg>
+                                  <span className="text-gray-800 font-semibold">
+                                    {assignedProfile ? `${assignedProfile.prenom} ${assignedProfile.nom}` : <span className="text-gray-400">Non suivi</span>}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-4">
+                                <span className="font-medium text-gray-700">Assigner à :</span>
+                                <select
+                                  value={demande.traite_par || ""}
+                                  onChange={(e) => handleAssign(demande.id, e.target.value)}
+                                  disabled={assigning === demande.id}
+                                  className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent bg-white shadow-sm transition-all duration-200"
+                                >
+                                  <option value="">Non suivi</option>
+                                  {profiles.map((profile) => (
+                                    <option key={profile.id} value={profile.id}>
+                                      {profile.prenom} {profile.nom} ({profile.role})
+                                    </option>
+                                  ))}
+                                </select>
+                                {assigning === demande.id && (
+                                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                                    Mise à jour...
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     )}
                   </div>
                 );
-            })}
+              })}
           </div>
         )}
       </div>
-    );
+    </div>
+  );
 };
 
 export default DashboardAdmin;
