@@ -7,7 +7,7 @@ import { useRole } from '@/hooks/useRole';
 
 export default function IndicateursDashboardCards() {
   const { indicateurs, loading, error, updateIndicateur, reload } = useIndicateursDashboard();
-  const { isAdmin } = useRole();
+  const { isAdmin, isDirecteur } = useRole();
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editData, setEditData] = useState<unknown[]>([]);
@@ -69,7 +69,7 @@ export default function IndicateursDashboardCards() {
           <TrendingUp className="w-6 h-6 text-blue-600 mr-3" />
           Indicateurs clés
         </h2>
-        {isAdmin && (
+        {isAdmin && !isDirecteur && (
           <div className="flex gap-3">
             <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 border-2 border-dashed border-blue-300 rounded-xl px-4 py-2 text-blue-600 hover:bg-blue-50 transition-all duration-300 hover:scale-105">
               <PlusCircle className="w-5 h-5" /> Ajouter un indicateur
@@ -93,7 +93,7 @@ export default function IndicateursDashboardCards() {
             </div>
           </div>
         ))}
-        {isAdmin && (
+        {isAdmin && !isDirecteur && (
           <button
             onClick={() => setAddOpen(true)}
             className="flex flex-col items-center justify-center border-2 border-dashed border-black/40 rounded-2xl p-6 text-gray-700 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-lg bg-white/10 backdrop-blur-sm"

@@ -24,7 +24,7 @@ export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
   const { saveEvenement, ensureDataFresh } = useEvenements()
   const { currentUser } = useUser()
-  const { isAdmin } = useRole()
+  const { isAdmin, isDirecteur } = useRole()
   
   // Debug logs
   console.log('🔍 === DEBUG MODERN EVENEMENTS ===')
@@ -987,7 +987,7 @@ export const ModernEvenementsModule = () => {
                   )}
                 </button>
                 
-                {selectedEvents.length > 0 && (
+                {selectedEvents.length > 0 && !isDirecteur && (
                   <button
                     onClick={() => setShowBulkDeleteModal(true)}
                     className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
@@ -998,24 +998,26 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            <button
-              onClick={() => {
-                if (activeTab === 'evenements') {
-                  setSelectedEvent(null)
-                  setShowForm(true)
-                } else {
-                  handleCreateAtelier()
-                }
-              }}
-              className={`${
-                activeTab === 'evenements' 
-                  ? 'bg-blue-600 hover:bg-blue-700' 
-                  : 'bg-purple-600 hover:bg-purple-700'
-              } text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg`}
-            >
-              <Plus className="w-5 h-5" />
-              {activeTab === 'evenements' ? 'Nouvel Événement' : 'Nouvel Atelier'}
-            </button>
+            {!isDirecteur && (
+              <button
+                onClick={() => {
+                  if (activeTab === 'evenements') {
+                    setSelectedEvent(null)
+                    setShowForm(true)
+                  } else {
+                    handleCreateAtelier()
+                  }
+                }}
+                className={`${
+                  activeTab === 'evenements' 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : 'bg-purple-600 hover:bg-purple-700'
+                } text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg`}
+              >
+                <Plus className="w-5 h-5" />
+                {activeTab === 'evenements' ? 'Nouvel Événement' : 'Nouvel Atelier'}
+              </button>
+            )}
             {activeTab === 'ateliers' && (
               <button
                 onClick={() => setShowInscriptionsManager(true)}
@@ -1053,17 +1055,19 @@ export const ModernEvenementsModule = () => {
               <Calendar className="w-4 h-4" />
               Événements
             </button>
-            <button
-              onClick={() => setActiveTab('ateliers')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                activeTab === 'ateliers'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              Ateliers
-            </button>
+            {!isDirecteur && (
+              <button
+                onClick={() => setActiveTab('ateliers')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'ateliers'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                Ateliers
+              </button>
+            )}
           </nav>
         </div>
       </div>
@@ -1120,55 +1124,57 @@ export const ModernEvenementsModule = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-3xl font-bold text-gray-900">{ateliers.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-purple-600" />
+        !isDirecteur && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total</p>
+                  <p className="text-3xl font-bold text-gray-900">{ateliers.length}</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-purple-600" />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Planifiés</p>
-                <p className="text-3xl font-bold text-blue-600">{ateliers.filter(a => a.statut === 'planifie').length}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-600" />
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Planifiés</p>
+                  <p className="text-3xl font-bold text-blue-600">{ateliers.filter(a => a.statut === 'planifie').length}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-blue-600" />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">En cours</p>
-                <p className="text-3xl font-bold text-yellow-600">{ateliers.filter(a => a.statut === 'en_cours').length}</p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-yellow-600" />
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">En cours</p>
+                  <p className="text-3xl font-bold text-yellow-600">{ateliers.filter(a => a.statut === 'en_cours').length}</p>
+                </div>
+                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-yellow-600" />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Terminés</p>
-                <p className="text-3xl font-bold text-green-600">{ateliers.filter(a => a.statut === 'termine').length}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Terminés</p>
+                  <p className="text-3xl font-bold text-green-600">{ateliers.filter(a => a.statut === 'termine').length}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Filtres et recherche */}
@@ -1323,13 +1329,13 @@ export const ModernEvenementsModule = () => {
               <EventCard
                 key={event.id}
                 event={event}
-                onEdit={handleEditEvent}
-                onDelete={handleDeleteEvent}
+                onEdit={!isDirecteur ? handleEditEvent : undefined}
+                onDelete={!isDirecteur ? handleDeleteEvent : undefined}
                 onView={handleViewEvent}
                 isSelected={selectedEvents.includes(event.id)}
                 onSelect={() => handleSelectEvent(event.id)}
-                showSelection={isAdmin}
-                onGenerateContent={handleGenerateContent}
+                showSelection={isAdmin && !isDirecteur}
+                onGenerateContent={!isDirecteur ? handleGenerateContent : undefined}
               />
             ))
           ) : (
@@ -1359,20 +1365,24 @@ export const ModernEvenementsModule = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleEditAtelier(atelier)}
-                        className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                        title="Modifier"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAtelier(atelier.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!isDirecteur && (
+                        <>
+                          <button
+                            onClick={() => handleEditAtelier(atelier)}
+                            className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                            title="Modifier"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAtelier(atelier.id)}
+                            className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1426,8 +1436,8 @@ export const ModernEvenementsModule = () => {
         />
       )}
 
-      {/* Modal Générateur IA */}
-      {showAIGenerator && (
+      {/* Modal Générateur IA - Masqué pour le directeur */}
+      {showAIGenerator && !isDirecteur && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
@@ -1459,8 +1469,8 @@ export const ModernEvenementsModule = () => {
         </div>
       )}
 
-      {/* Affichage du contenu généré */}
-      {generatedContent && (
+      {/* Affichage du contenu généré - Masqué pour le directeur */}
+      {generatedContent && !isDirecteur && (
         <>
           {console.log('📄 Affichage du modal de contenu généré')}
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1709,16 +1719,18 @@ export const ModernEvenementsModule = () => {
                   <Zap className="w-4 h-4" />
                   Générer contenu IA
                 </button>
-                <button
-                  onClick={() => {
-                    setShowEventDetail(false)
-                    handleEditEvent(selectedEvent)
-                  }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Modifier
-                </button>
+                {!isDirecteur && (
+                  <button
+                    onClick={() => {
+                      setShowEventDetail(false)
+                      handleEditEvent(selectedEvent)
+                    }}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Modifier
+                  </button>
+                )}
                 <button
                   onClick={() => setShowEventDetail(false)}
                   className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
@@ -1950,13 +1962,15 @@ export const ModernEvenementsModule = () => {
                 <p className="text-gray-600 mb-3">
                   Téléchargez le fichier template pour voir le format attendu
                 </p>
-                <button
-                  onClick={downloadTemplate}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Télécharger template_evenements.xlsx
-                </button>
+                {!isDirecteur && (
+                  <button
+                    onClick={downloadTemplate}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Télécharger template_evenements.xlsx
+                  </button>
+                )}
               </div>
 
               {/* Section 2: Upload du fichier */}

@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useCandidatures } from '@/hooks/useCandidatures'
 import { useSettings } from '@/hooks/useSettings'
+import { useRole } from '@/hooks/useRole'
 import { 
   X, Save, Trash2, Eye, Clock, CheckCircle, AlertTriangle,
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
@@ -36,6 +37,7 @@ interface CandidatureAction {
 export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature } = useCandidatures()
   const { poles, filieres, loading: settingsLoading } = useSettings()
+  const { isDirecteur } = useRole()
   
   // États pour les filtres et actions
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
@@ -666,39 +668,47 @@ export default function StagiairesPage() {
                           Détails
                </button>
                         
-                        <select
-                          value={candidature.statut_candidature || 'envoye'}
-                          onChange={async (e) => {
-                            const result = await updateStatutCandidature(candidature.id, e.target.value)
-                            if (result.success) {
-                              showMessage('Statut mis à jour avec succès')
-                            } else {
-                              showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
-                            }
-                          }}
-                          className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500"
-                        >
-                          {Object.entries(statusConfig).map(([status, config]) => (
-                            <option key={status} value={status}>{config.label}</option>
-                          ))}
-                        </select>
-                        
-               <button
-                          onClick={async () => {
-                            if (window.confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
-                              const result = await deleteCandidature(candidature.id)
+                        {!isDirecteur ? (
+                          <select
+                            value={candidature.statut_candidature || 'envoye'}
+                            onChange={async (e) => {
+                              const result = await updateStatutCandidature(candidature.id, e.target.value)
                               if (result.success) {
-                                showMessage('Candidature supprimée avec succès')
+                                showMessage('Statut mis à jour avec succès')
                               } else {
-                                showMessage(result.error || 'Erreur lors de la suppression', 'error')
+                                showMessage(result.error || 'Erreur lors de la mise à jour', 'error')
                               }
-                            }
-                          }}
-                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-               </button>
+                            }}
+                            className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500"
+                          >
+                            {Object.entries(statusConfig).map(([status, config]) => (
+                              <option key={status} value={status}>{config.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                            {statusConfig[candidature.statut_candidature || 'envoye']?.label || 'Envoyé'}
+                          </span>
+                        )}
+                        
+               {!isDirecteur && (
+                 <button
+                   onClick={async () => {
+                     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
+                       const result = await deleteCandidature(candidature.id)
+                       if (result.success) {
+                         showMessage('Candidature supprimée avec succès')
+                       } else {
+                         showMessage(result.error || 'Erreur lors de la suppression', 'error')
+                       }
+                     }
+                   }}
+                   className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                   title="Supprimer"
+                 >
+                   <Trash2 className="w-4 h-4" />
+                 </button>
+               )}
              </div>
                        </div>
                        </div>

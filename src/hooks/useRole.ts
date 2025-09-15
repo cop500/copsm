@@ -11,5 +11,6 @@ export function useRole() {
     isManager: role === 'manager_cop',
     isConseiller: role === 'conseiller_cop',
     isCarriere: role === 'conseillere_carriere',
+    isDirecteur: role === 'directeur',
   };
 } 

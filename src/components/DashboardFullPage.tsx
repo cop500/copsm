@@ -25,7 +25,7 @@ interface QuickAction {
 const DashboardFullPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { profile, signOut } = useAuth();
-  const { isAdmin } = useRole();
+  const { isAdmin, isDirecteur } = useRole();
   const router = useRouter();
 
   // Actions rapides
@@ -51,7 +51,12 @@ const DashboardFullPage: React.FC = () => {
   ];
 
   const handleNavigation = (href: string) => {
-    router.push(href);
+    if (isDirecteur) {
+      // Pour le directeur, ajouter un paramètre pour indiquer le mode lecture seule
+      router.push(`${href}?mode=lecture`);
+    } else {
+      router.push(href);
+    }
   };
 
   const handleSignOut = async () => {
@@ -132,15 +137,17 @@ const DashboardFullPage: React.FC = () => {
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                   {profile?.prenom?.[0] || profile?.nom?.[0] || 'U'}
                 </div>
-                      <button
-                        onClick={() => router.push('/dashboard')}
-                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Vue classique avec sidebar"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                        </svg>
-                      </button>
+                      {!isDirecteur && (
+                        <button
+                          onClick={() => router.push('/dashboard')}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Vue classique avec sidebar"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                          </svg>
+                        </button>
+                      )}
                 <button
                   onClick={handleSignOut}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"

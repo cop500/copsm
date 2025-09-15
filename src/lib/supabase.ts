@@ -68,6 +68,15 @@ export const getUserPermissions = (role: UserRole): UserPermissions => {
         canAccessSettings: false,
         canExport: false
       }
+    case 'directeur':
+      return {
+        canRead: true,
+        canWrite: false, // Lecture seule sauf pour les notes d'équipe
+        canDelete: false, // Pas de suppression sauf ses propres notes
+        canManageUsers: false,
+        canAccessSettings: false,
+        canExport: false // Pas d'export
+      }
     default:
       return {
         canRead: false,

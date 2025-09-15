@@ -2,7 +2,7 @@
 // src/types/index.ts - Types principaux COP
 // ========================================
 
-export type UserRole = 'business_developer' | 'manager_cop' | 'conseiller_cop' | 'conseillere_carriere'
+export type UserRole = 'business_developer' | 'manager_cop' | 'conseiller_cop' | 'conseillere_carriere' | 'directeur'
 
 export interface Profile {
   id: string

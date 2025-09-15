@@ -46,7 +46,13 @@ export default function LoginPage() {
     try {
       await signIn(email, password)
       toast.success('Connexion réussie !')
-      router.push('/dashboard-full')
+      
+      // Rediriger selon le rôle
+      if (email.toLowerCase() === 'directeurcmc@cop.com') {
+        router.push('/dashboard-directeur')
+      } else {
+        router.push('/dashboard-full')
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : 'Erreur de connexion'

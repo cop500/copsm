@@ -24,7 +24,7 @@ interface DemandeEntreprise {
   type_demande: string;
   created_at: string;
   traite_par?: string | null;
-  statut?: string; // Ajout du statut
+  statut?: string;
 }
 
 const STATUTS = [
@@ -41,8 +41,10 @@ const DashboardAdmin = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assigning, setAssigning] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
+  const [selectedDemande, setSelectedDemande] = useState<DemandeEntreprise | null>(null);
   const { currentUser } = useUser();
   const isAdmin = currentUser?.role === 'business_developer';
+  const isDirecteur = currentUser?.role === 'directeur';
   const { poles, filieres, loading: loadingSettings } = useSettings();
   
   // États pour les commentaires
@@ -59,8 +61,6 @@ const DashboardAdmin = () => {
   
   // États pour les notifications
   const [notifications, setNotifications] = useState<any[]>([]);
-  
-
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -69,6 +69,7 @@ const DashboardAdmin = () => {
       .from("demandes_entreprises")
       .select("*")
       .order("created_at", { ascending: false });
+    
     if (!error) {
       setDemandes(data || []);
     }
@@ -79,30 +80,30 @@ const DashboardAdmin = () => {
   const loadProfiles = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, nom, prenom, role"); // plus de filtre sur le rôle
-    if (!error) setProfiles(data || []);
+      .select("id, nom, prenom, role");
+    
+    if (!error) {
+      setProfiles(data || []);
+    }
   };
 
   // Supprimer une demande
   const handleDelete = async (demandeId: string) => {
     if (!window.confirm("Confirmer la suppression de cette demande ?")) return;
     
-    // Mise à jour optimiste
-    const demandeToDelete = demandes.find(d => d.id === demandeId);
-    setDemandes(prev => prev.filter(d => d.id !== demandeId));
-    
-    const { error } = await supabase
-      .from("demandes_entreprises")
-      .delete()
-      .eq("id", demandeId);
-    
-    if (!error) {
-      setMessage("Demande supprimée avec succès !");
-    } else {
-      // Restaurer si erreur
-      if (demandeToDelete) {
-        setDemandes(prev => [demandeToDelete, ...prev]);
+    try {
+      const { error } = await supabase
+        .from("demandes_entreprises")
+        .delete()
+        .eq("id", demandeId);
+      
+      if (!error) {
+        setDemandes(prev => prev.filter(d => d.id !== demandeId));
+        setMessage("Demande supprimée avec succès.");
+      } else {
+        setMessage("Erreur lors de la suppression.");
       }
+    } catch (error) {
       setMessage("Erreur lors de la suppression.");
     }
     setTimeout(() => setMessage(""), 3000);
@@ -140,27 +141,22 @@ const DashboardAdmin = () => {
     setAssigning(demandeId);
     
     // Mise à jour optimiste
-    const assignedProfile = profiles.find(p => p.id === userId);
     setDemandes(prev => prev.map(d => 
-      d.id === demandeId 
-        ? { ...d, traite_par: userId }
-        : d
+      d.id === demandeId ? { ...d, traite_par: userId } : d
     ));
     
-    const { error } = await supabase
-      .from("demandes_entreprises")
-      .update({ traite_par: userId })
-      .eq("id", demandeId);
-    
-    if (!error) {
-      setMessage("Demande assignée avec succès !");
-    } else {
-      // Restaurer si erreur
-      setDemandes(prev => prev.map(d => 
-        d.id === demandeId 
-          ? { ...d, traite_par: d.traite_par }
-          : d
-      ));
+    try {
+      const { error } = await supabase
+        .from("demandes_entreprises")
+        .update({ traite_par: userId })
+        .eq("id", demandeId);
+      
+      if (!error) {
+        setMessage("Demande assignée avec succès.");
+      } else {
+        setMessage("Erreur lors de l'assignation.");
+      }
+    } catch (error) {
       setMessage("Erreur lors de l'assignation.");
     }
     setAssigning(null);
@@ -169,27 +165,22 @@ const DashboardAdmin = () => {
 
   const handleStatutChange = async (demandeId: string, newStatut: string) => {
     // Mise à jour optimiste
-    const oldStatut = demandes.find(d => d.id === demandeId)?.statut;
     setDemandes(prev => prev.map(d => 
-      d.id === demandeId 
-        ? { ...d, statut: newStatut }
-        : d
+      d.id === demandeId ? { ...d, statut: newStatut } : d
     ));
     
-    const { error } = await supabase
-      .from('demandes_entreprises')
-      .update({ statut: newStatut })
-      .eq('id', demandeId);
-    
-    if (!error) {
-      setMessage('Statut mis à jour !');
-    } else {
-      // Restaurer si erreur
-      setDemandes(prev => prev.map(d => 
-        d.id === demandeId 
-          ? { ...d, statut: oldStatut }
-          : d
-      ));
+    try {
+      const { error } = await supabase
+        .from("demandes_entreprises")
+        .update({ statut: newStatut })
+        .eq("id", demandeId);
+      
+      if (!error) {
+        setMessage("Statut mis à jour avec succès.");
+      } else {
+        setMessage("Erreur lors de la mise à jour du statut.");
+      }
+    } catch (error) {
       setMessage("Erreur lors de la mise à jour du statut.");
     }
     setTimeout(() => setMessage(""), 3000);
@@ -245,11 +236,11 @@ const DashboardAdmin = () => {
   // Supprimer un commentaire
   const supprimerCommentaire = async (commentaireId: string, demandeId: string) => {
     if (!isAdmin) return;
-
+    
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) return;
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('commentaires_demandes_entreprises')
         .delete()
         .eq('id', commentaireId);
@@ -310,7 +301,7 @@ const DashboardAdmin = () => {
           .update({
             nombre_candidats: stats.nombre_candidats || 0,
             nombre_candidats_retenus: stats.nombre_candidats_retenus || 0,
-            nombre_cv_envoyes: stats.nombre_cv_envoyes || 0,
+            nombre_candidats_embauches: stats.nombre_candidats_embauches || 0,
             updated_at: new Date().toISOString()
           })
           .eq('demande_id', demandeId)
@@ -323,7 +314,7 @@ const DashboardAdmin = () => {
             demande_id: demandeId,
             nombre_candidats: stats.nombre_candidats || 0,
             nombre_candidats_retenus: stats.nombre_candidats_retenus || 0,
-            nombre_cv_envoyes: stats.nombre_cv_envoyes || 0
+            nombre_candidats_embauches: stats.nombre_candidats_embauches || 0
           })
           .select();
       }
@@ -505,13 +496,6 @@ const DashboardAdmin = () => {
     setTimeout(() => setMessage(""), 3000);
   };
 
-  // Charger les nouvelles demandes
-
-
-
-
-  const [selectedDemande, setSelectedDemande] = useState<DemandeEntreprise | null>(null);
-
   return (
     <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#004080]">Gestion des demandes entreprises</h1>
@@ -521,231 +505,188 @@ const DashboardAdmin = () => {
       {notifications.length > 0 && (
         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h2 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
-            <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">
-              {notifications.length}
-            </span>
-            Nouvelles demandes entreprises
+            <Calendar className="w-5 h-5 mr-2" />
+            Notifications récentes
           </h2>
           <div className="space-y-2">
-            {notifications.map((notification) => (
-              <div key={notification.id} className="bg-white p-3 rounded border border-blue-100 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {notification.demande?.entreprise_nom || 'Entreprise inconnue'}
+            {notifications.slice(0, 3).map((notification) => (
+              <div key={notification.id} className="flex items-center justify-between bg-white p-3 rounded border">
+                <div className="flex-1">
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">{notification.demande?.entreprise_nom}</span> - {notification.message}
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Nouvelle demande reçue le {new Date(notification.created_at).toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(notification.created_at).toLocaleDateString('fr-FR')}
                   </p>
                 </div>
                 <button
                   onClick={() => supprimerNotification(notification.id)}
-                  className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                  className="ml-2 p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  title="Supprimer la notification"
                 >
-                  Marquer comme vue
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}
           </div>
         </div>
       )}
-      
 
-      
       {/* Filtres */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par statut</label>
-          <select
-            value={filterStatut}
-            onChange={(e) => setFilterStatut(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-          >
-            <option value="tous">Tous les statuts</option>
-            <option value="en_attente">En attente</option>
-            <option value="en_cours">En cours</option>
-            <option value="terminee">Terminée</option>
-            <option value="refusee">Refusée</option>
-            <option value="annulee">Annulée</option>
-          </select>
-        </div>
+      <div className="mb-6 flex flex-wrap gap-4">
+        <select
+          value={filterStatut}
+          onChange={(e) => setFilterStatut(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+        >
+          <option value="tous">Tous les statuts</option>
+          {STATUTS.map((statut) => (
+            <option key={statut.value} value={statut.value}>
+              {statut.label}
+            </option>
+          ))}
+        </select>
       </div>
-      
-      {loading || loadingSettings ? (
+
+      {/* Liste des demandes */}
+      {loading ? (
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004080] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des demandes...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004080] mx-auto"></div>
+          <p className="mt-2 text-gray-600">Chargement des demandes...</p>
         </div>
       ) : (
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-6">
           {demandes
             .filter(demande => filterStatut === 'tous' || demande.statut === filterStatut)
             .map((demande) => {
-            const assignedProfile = profiles.find((p) => p.id === demande.traite_par);
-            const isExpanded = selectedDemande?.id === demande.id;
-            const statutObj = STATUTS.find(s => s.value === demande.statut) || STATUTS[0];
-                return (
-                  <div key={demande.id} className="bg-white rounded-xl shadow-lg border border-gray-200">
-                    {/* En-tête de la demande */}
-                    <div className="p-4 sm:p-6 border-b border-gray-200">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-0">
+              const assignedProfile = profiles.find(p => p.id === demande.traite_par);
+              const currentStatut = STATUTS.find(s => s.value === demande.statut);
+              
+              return (
+                <div key={demande.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">{demande.entreprise_nom}</h3>
+                        {currentStatut && (
+                          <span className={`px-2 py-1 text-xs font-medium text-white rounded-full ${currentStatut.color}`}>
+                            {currentStatut.label}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        <strong>Secteur:</strong> {demande.secteur}
+                      </p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        <strong>Contact:</strong> {demande.contact_nom} ({demande.contact_email})
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>Date:</strong> {new Date(demande.created_at).toLocaleDateString('fr-FR')}
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mt-4 lg:mt-0">
+                      <button
+                        onClick={() => {
+                          if (selectedDemande?.id === demande.id) {
+                            setSelectedDemande(null);
+                          } else {
+                            setSelectedDemande(demande);
+                            loadCommentaires(demande.id);
+                            loadStatistiques(demande.id);
+                          }
+                        }}
+                        className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                      >
+                        {selectedDemande?.id === demande.id ? 'Masquer détails' : 'Voir détails'}
+                      </button>
+                      
+                      {!isDirecteur && (
+                        <button
+                          onClick={() => handleDelete(demande.id)}
+                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm sm:text-base"
+                        >
+                          Supprimer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedDemande?.id === demande.id && (
+                    <div className="border-t border-gray-200 pt-6">
+                      {/* Informations détaillées */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                          <h3 className="text-xl font-bold text-[#004080]">{demande.entreprise_nom}</h3>
-                          <p className="text-gray-600 mt-1">{demande.secteur}</p>
-                          <p className="text-sm text-gray-500 mt-2">
-                            Demande reçue le {new Date(demande.created_at).toLocaleDateString("fr-FR", {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <button
-                            onClick={async () => {
-                              if (isExpanded) {
-                                setSelectedDemande(null);
-                              } else {
-                                setSelectedDemande(demande);
-                                await loadCommentaires(demande.id);
-                                await loadStatistiques(demande.id);
-                              }
-                            }}
-                            className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                          >
-                            {isExpanded ? "Masquer détails" : "Voir détails"}
-                          </button>
-                          
-                          {/* Boutons PDF et Impression */}
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleDownloadPDF(demande)}
-                              className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex items-center gap-1"
-                              title="Télécharger PDF"
-                            >
-                              <Download className="w-4 h-4" />
-                              PDF
-                            </button>
-                            <button
-                              onClick={() => handlePrint(demande)}
-                              className="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm flex items-center gap-1"
-                              title="Imprimer"
-                            >
-                              <Printer className="w-4 h-4" />
-                              Imprimer
-                            </button>
+                          <h4 className="text-md font-semibold text-[#004080] mb-3">Informations entreprise</h4>
+                          <div className="space-y-2 text-sm">
+                            <p><strong>Adresse:</strong> {demande.entreprise_adresse}</p>
+                            <p><strong>Ville:</strong> {demande.entreprise_ville}</p>
+                            <p><strong>Email:</strong> {demande.entreprise_email}</p>
+                            <p><strong>Téléphone:</strong> {demande.contact_tel}</p>
                           </div>
-                          
-                          {isAdmin && (
-                            <button
-                              onClick={() => handleDelete(demande.id)}
-                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm sm:text-base"
-                            >
-                              Supprimer
-                            </button>
-                          )}
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-md font-semibold text-[#004080] mb-3">Détails de la demande</h4>
+                          <div className="space-y-2 text-sm">
+                            <p><strong>Type:</strong> {demande.type_demande}</p>
+                            <p><strong>Événement:</strong> {demande.evenement_type}</p>
+                            {demande.evenement_date && (
+                              <p><strong>Date événement:</strong> {new Date(demande.evenement_date).toLocaleDateString('fr-FR')}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Détails de la demande */}
-                    {isExpanded && (
-                      <div className="p-4 sm:p-6 bg-gray-50">
-                        {/* Statut de la demande */}
-                        <div className="mb-6 flex items-center gap-4">
-                          <span className="font-medium">Statut :</span>
-                          {isAdmin ? (
-                            <select
-                              value={demande.statut || 'en_attente'}
-                              onChange={e => handleStatutChange(demande.id, e.target.value)}
-                              className="border rounded px-3 py-2 text-sm"
-                            >
-                              {STATUTS.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${statutObj.color}`}>{statutObj.label}</span>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                          {/* Informations entreprise */}
-                          <div>
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Informations entreprise</h4>
-                            <div className="space-y-3">
-                              <div>
-                                <span className="font-medium">Adresse :</span>
-                                <p className="text-gray-700">{demande.entreprise_adresse}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Ville :</span>
-                                <p className="text-gray-700">{demande.entreprise_ville}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Email :</span>
-                                <p className="text-gray-700">{demande.entreprise_email}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Contact */}
-                          <div>
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Contact</h4>
-                            <div className="space-y-3">
-                              <div>
-                                <span className="font-medium">Nom :</span>
-                                <p className="text-gray-700">{demande.contact_nom}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Email :</span>
-                                <p className="text-gray-700">{demande.contact_email}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Téléphone :</span>
-                                <p className="text-gray-700">{demande.contact_tel}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Profils demandés et Commentaires */}
-                        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Profils demandés et Commentaires */}
+                      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Profils demandés */}
-                          <div>
-                          <h4 className="text-lg font-semibold text-[#004080] mb-4">Profils demandés</h4>
-                            <div className="space-y-4">
-                            {demande.profils && demande.profils.map((profil: any, index: number) => {
-                              const pole = poles.find(p => p.id === profil.pole_id);
-                              const filiere = filieres.find(f => f.id === profil.filiere_id);
-                              return (
-                                <div key={index} className="bg-white p-4 rounded-lg border">
-                                  <h5 className="font-semibold text-[#004080] mb-2">Profil {index + 1}</h5>
-                                  <div className="space-y-2 text-sm">
-                                    <p><span className="font-medium">Pôle :</span> {pole ? pole.nom : <span className="text-gray-400">Non renseigné</span>}</p>
-                                    <p><span className="font-medium">Filière :</span> {filiere ? filiere.nom : <span className="text-gray-400">Non renseignée</span>}</p>
-                                    <p><span className="font-medium">Poste :</span> {profil.poste_intitule}</p>
-                                    <p><span className="font-medium">Description :</span> {profil.poste_description}</p>
-                                    <p><span className="font-medium">Nombre :</span> {profil.nb_profils}</p>
-                                    <p><span className="font-medium">Type contrat :</span> {profil.type_contrat}</p>
-                                    <p><span className="font-medium">Salaire :</span> {profil.salaire}</p>
-                                    <p><span className="font-medium">Durée :</span> {profil.duree}</p>
-                                    <p><span className="font-medium">Compétences :</span> {profil.competences}</p>
-                                    <p><span className="font-medium">Date début :</span> {profil.date_debut}</p>
-                                  </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-[#004080] mb-4 flex items-center">
+                            <User className="w-5 h-5 mr-2" />
+                            Profils demandés
+                          </h4>
+                          <div className="space-y-3">
+                            {demande.profils.map((profil, index) => (
+                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-2">
+                                  {profil.pole_id && (
+                                    <div>
+                                      <strong>Pôle:</strong> {poles?.find(p => p.id === profil.pole_id)?.nom || `Pôle ${profil.pole_id}`}
+                                    </div>
+                                  )}
+                                  {profil.filiere && (
+                                    <div>
+                                      <strong>Filière:</strong> {profil.filiere}
+                                    </div>
+                                  )}
+                                  {profil.poste && (
+                                    <div>
+                                      <strong>Poste:</strong> {profil.poste}
+                                    </div>
+                                  )}
                                 </div>
-                              );
-                            })}
-                            </div>
+                                {(profil.duree || profil.salaire) && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                                    {profil.duree && (
+                                      <div>
+                                        <strong>Durée:</strong> {profil.duree}
+                                      </div>
+                                    )}
+                                    {profil.salaire && (
+                                      <div>
+                                        <strong>Salaire:</strong> {profil.salaire}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
+                        </div>
 
-                          {/* Section Commentaires */}
+                        {/* Section Commentaires - Masquée pour le directeur */}
+                        {!isDirecteur && (
                           <div>
                             <h4 className="text-lg font-semibold text-[#004080] mb-4 flex items-center">
                               <MessageSquare className="w-5 h-5 mr-2" />
@@ -760,47 +701,41 @@ const DashboardAdmin = () => {
                                   <p className="text-sm text-gray-500 mt-2">Chargement des commentaires...</p>
                                 </div>
                               ) : commentaires.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500">
-                                  <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                                  <p className="text-sm">Aucun commentaire pour le moment</p>
-                                </div>
+                                <p className="text-gray-500 text-sm text-center py-4">Aucun commentaire pour le moment</p>
                               ) : (
-                                commentaires.map((commentaire, index) => (
-                                  <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
-                                    <div className="flex items-start justify-between mb-2">
-                                      <div className="flex items-center">
-                                        <User className="w-4 h-4 text-gray-500 mr-2" />
-                                        <span className="font-medium text-sm text-gray-700">{commentaire.auteur}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex items-center text-xs text-gray-500">
-                                          <Calendar className="w-3 h-3 mr-1" />
-                                          {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
+                                commentaires.map((commentaire) => (
+                                  <div key={commentaire.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className="text-sm font-medium text-gray-700">{commentaire.auteur}</span>
+                                          <span className="text-xs text-gray-500">
+                                            {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
+                                              day: '2-digit',
+                                              month: '2-digit',
+                                              year: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                          </span>
                                         </div>
-                                        {/* Bouton de suppression pour les admins */}
-                                        {isAdmin && (
-                                          <button
-                                            onClick={() => supprimerCommentaire(commentaire.id, demande.id)}
-                                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                                            title="Supprimer ce commentaire"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </button>
-                                        )}
+                                        <p className="text-sm text-gray-600">{commentaire.contenu}</p>
                                       </div>
+                                      {isAdmin && !isDirecteur && (
+                                        <button
+                                          onClick={() => supprimerCommentaire(commentaire.id, demande.id)}
+                                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                          title="Supprimer ce commentaire"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      )}
                                     </div>
-                                    <p className="text-sm text-gray-800">{commentaire.contenu}</p>
                                   </div>
                                 ))
                               )}
                             </div>
-
+                            
                             {/* Formulaire d'ajout de commentaire */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
                               <div className="flex items-end gap-2">
@@ -823,9 +758,11 @@ const DashboardAdmin = () => {
                               </div>
                             </div>
                           </div>
-                        </div>
+                        )}
+                      </div>
 
-                        {/* Section Statistiques */}
+                      {/* Section Statistiques - Masquée pour le directeur */}
+                      {!isDirecteur && (
                         <div className="mt-8">
                           <h4 className="text-lg font-semibold text-[#004080] mb-4">
                             Statistiques
@@ -838,297 +775,229 @@ const DashboardAdmin = () => {
                           <div className="bg-white p-6 rounded-lg border border-gray-200">
                             {editingStats === demande.id ? (
                               // Mode édition
-                              <>
-                                {demande.evenement_type === 'jobday' ? (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nombre de candidats
-                                      </label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        value={tempStats[demande.id]?.nombre_candidats || ''}
-                                        onChange={(e) => {
-                                          const newStats = { ...tempStats[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
-                                          setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                        placeholder="0"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nombre de candidats retenus
-                                      </label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        value={tempStats[demande.id]?.nombre_candidats_retenus || ''}
-                                        onChange={(e) => {
-                                          const newStats = { ...tempStats[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
-                                          setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                        placeholder="0"
-                                      />
-                                    </div>
-                                  </div>
-                                ) : (
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                      Nombre de CV envoyés
+                                      Nombre de candidats
                                     </label>
                                     <input
                                       type="number"
                                       min="0"
-                                      value={tempStats[demande.id]?.nombre_cv_envoyes || ''}
+                                      value={tempStats[demande.id]?.nombre_candidats || ''}
                                       onChange={(e) => {
-                                        const newStats = { ...tempStats[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
+                                        const newStats = { ...tempStats[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
                                         setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
                                       }}
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                      placeholder="0"
                                     />
                                   </div>
-                                )}
-                                
-                                {/* Boutons d'édition */}
-                                <div className="mt-4 flex justify-end gap-2">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Candidats retenus
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={tempStats[demande.id]?.nombre_candidats_retenus || ''}
+                                      onChange={(e) => {
+                                        const newStats = { ...tempStats[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
+                                        setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
+                                      }}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Candidats embauchés
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={tempStats[demande.id]?.nombre_candidats_embauches || ''}
+                                      onChange={(e) => {
+                                        const newStats = { ...tempStats[demande.id], nombre_candidats_embauches: parseInt(e.target.value) || 0 };
+                                        setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
+                                      }}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex gap-3">
                                   <button
-                                    onClick={() => cancelEditStatistiques(demande.id)}
-                                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-                                  >
-                                    Annuler
-                                  </button>
-                                  <button
-                                    onClick={() => updateStatistiques(demande.id, tempStats[demande.id] || {})}
+                                    onClick={() => updateStatistiques(demande.id, tempStats[demande.id])}
                                     disabled={updatingStats === demande.id}
-                                    className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
                                   >
                                     {updatingStats === demande.id ? (
                                       <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                         Sauvegarde...
                                       </>
                                     ) : (
-                                      <>
-                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Valider
-                                      </>
+                                      'Sauvegarder'
                                     )}
                                   </button>
+                                  <button
+                                    onClick={() => cancelEditStatistiques(demande.id)}
+                                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                                  >
+                                    Annuler
+                                  </button>
                                 </div>
-                              </>
+                              </div>
                             ) : (
                               // Mode affichage
-                              <>
-                                {statistiques[demande.id] && Object.keys(statistiques[demande.id]).length > 0 ? (
-                                  <div className="space-y-3">
-                                    {demande.evenement_type === 'jobday' ? (
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="bg-gray-50 p-3 rounded-lg">
-                                          <span className="text-sm font-medium text-gray-700">Nombre de candidats :</span>
-                                          <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_candidats || 0}</span>
-                                        </div>
-                                        <div className="bg-gray-50 p-3 rounded-lg">
-                                          <span className="text-sm font-medium text-gray-700">Nombre de candidats retenus :</span>
-                                          <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_candidats_retenus || 0}</span>
-                                        </div>
+                              <div className="space-y-4">
+                                {statistiques[demande.id] ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="text-center">
+                                      <div className="text-2xl font-bold text-blue-600">
+                                        {statistiques[demande.id].nombre_candidats || 0}
                                       </div>
-                                    ) : (
-                                      <div className="bg-gray-50 p-3 rounded-lg">
-                                        <span className="text-sm font-medium text-gray-700">Nombre de CV envoyés :</span>
-                                        <span className="ml-2 text-lg font-semibold text-[#004080]">{statistiques[demande.id].nombre_cv_envoyes || 0}</span>
+                                      <div className="text-sm text-gray-600">Candidats</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-2xl font-bold text-yellow-600">
+                                        {statistiques[demande.id].nombre_candidats_retenus || 0}
                                       </div>
-                                    )}
-                                    
-                                    {/* Boutons d'action */}
-                                    <div className="flex justify-end gap-2 pt-2">
-                                      <button
-                                        onClick={() => editStatistiques(demande.id)}
-                                        className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                                      >
-                                        Modifier
-                                      </button>
-                                      {isAdmin && (
-                                        <button
-                                          onClick={() => deleteStatistiques(demande.id)}
-                                          disabled={updatingStats === demande.id}
-                                          className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:bg-gray-300"
-                                        >
-                                          {updatingStats === demande.id ? 'Suppression...' : 'Supprimer'}
-                                        </button>
-                                      )}
+                                      <div className="text-sm text-gray-600">Retenus</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-2xl font-bold text-green-600">
+                                        {statistiques[demande.id].nombre_candidats_embauches || 0}
+                                      </div>
+                                      <div className="text-sm text-gray-600">Embauchés</div>
                                     </div>
                                   </div>
                                 ) : (
-                                  // Pas de statistiques - mode saisie initiale
-                                  <>
-                                    {demande.evenement_type === 'jobday' ? (
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Nombre de candidats
-                                          </label>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            value={tempStats[demande.id]?.nombre_candidats || ''}
-                                            onChange={(e) => {
-                                              const newStats = { ...tempStats[demande.id], nombre_candidats: parseInt(e.target.value) || 0 };
-                                              setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Nombre de candidats retenus
-                                          </label>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            value={tempStats[demande.id]?.nombre_candidats_retenus || ''}
-                                            onChange={(e) => {
-                                              const newStats = { ...tempStats[demande.id], nombre_candidats_retenus: parseInt(e.target.value) || 0 };
-                                              setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                          Nombre de CV envoyés
-                                        </label>
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          value={tempStats[demande.id]?.nombre_cv_envoyes || ''}
-                                          onChange={(e) => {
-                                            const newStats = { ...tempStats[demande.id], nombre_cv_envoyes: parseInt(e.target.value) || 0 };
-                                            setTempStats(prev => ({ ...prev, [demande.id]: newStats }));
-                                          }}
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-                                          placeholder="0"
-                                        />
-                                      </div>
-                                    )}
-                                    
-                                    {/* Bouton de validation initiale */}
-                                    <div className="mt-4 flex justify-end">
-                                      <button
-                                        onClick={() => updateStatistiques(demande.id, statistiques[demande.id] || {})}
-                                        disabled={updatingStats === demande.id}
-                                        className="px-4 py-2 bg-[#004080] text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
-                                      >
-                                        {updatingStats === demande.id ? (
-                                          <>
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                            Sauvegarde...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            Valider les statistiques
-                                          </>
-                                        )}
-                                      </button>
-                                    </div>
-                                  </>
+                                  <div className="text-center py-4">
+                                    <p className="text-gray-500 mb-4">Aucune statistique disponible</p>
+                                    <button
+                                      onClick={() => editStatistiques(demande.id)}
+                                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    >
+                                      Ajouter des statistiques
+                                    </button>
+                                  </div>
                                 )}
-                              </>
+                                
+                                {statistiques[demande.id] && (
+                                  <div className="flex gap-3">
+                                    <button
+                                      onClick={() => editStatistiques(demande.id)}
+                                      className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                    >
+                                      Modifier
+                                    </button>
+                                    {isAdmin && !isDirecteur && (
+                                      <button
+                                        onClick={() => deleteStatistiques(demande.id)}
+                                        disabled={updatingStats === demande.id}
+                                        className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:bg-gray-300"
+                                      >
+                                        {updatingStats === demande.id ? 'Suppression...' : 'Supprimer'}
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
+                      )}
 
-                        {/* Événement et fichier */}
-                        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                          <div>
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Événement</h4>
-                            <div className="space-y-3">
-                              <div>
-                                <span className="font-medium">Type :</span>
-                                <p className="text-gray-700">
-                                  {demande.evenement_type === 'jobday' ? 'Job Day' : 'Demande de CV'}
-                                </p>
-                              </div>
-                              {demande.evenement_date && (
-                                <div>
-                                  <span className="font-medium">Date souhaitée :</span>
-                                  <p className="text-gray-700">{new Date(demande.evenement_date).toLocaleDateString("fr-FR")}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {demande.fichier_url && (
-                            <div>
-                              <h4 className="text-lg font-semibold text-[#004080] mb-4">Fichier joint</h4>
-                              <a
-                                href={demande.fichier_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                              >
-                                📎 Voir le fichier
-                              </a>
+                      {/* Actions */}
+                      <div className="mt-8 pt-6 border-t border-gray-200">
+                        <div className="flex flex-wrap gap-3">
+                          {!isDirecteur ? (
+                            <select
+                              value={demande.statut || 'en_attente'}
+                              onChange={(e) => handleStatutChange(demande.id, e.target.value)}
+                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
+                            >
+                              {STATUTS.map((statut) => (
+                                <option key={statut.value} value={statut.value}>
+                                  {statut.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <div className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg">
+                              <span className="font-medium">Statut :</span> {currentStatut?.label || 'En attente'}
                             </div>
                           )}
+                          
+                          {!isDirecteur && (
+                            <button
+                              onClick={() => handleDownloadPDF(demande)}
+                              className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex items-center gap-1"
+                              title="Télécharger PDF"
+                            >
+                              <Download className="w-4 h-4" />
+                              PDF
+                            </button>
+                          )}
+                          
+                          <button
+                            onClick={() => handlePrint(demande)}
+                            className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm flex items-center gap-1"
+                            title="Imprimer"
+                          >
+                            <Printer className="w-4 h-4" />
+                            Imprimer
+                          </button>
                         </div>
-
-                        {/* Assignation (admin seulement) */}
-                        {isAdmin ? (
-                          <div className="mt-8 pt-6 border-t border-gray-200">
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Suivi du dossier</h4>
-                            <div className="flex items-center gap-4">
-                              <span className="font-medium">Suivi par :</span>
-                              <select
-                                value={demande.traite_par || ""}
-                                onChange={(e) => handleAssign(demande.id, e.target.value)}
-                                disabled={assigning === demande.id}
-                                className="border rounded-lg px-3 py-2"
-                              >
-                                <option value="">Non suivi</option>
-                                {profiles.map((profile) => (
-                                  <option key={profile.id} value={profile.id}>
-                                    {profile.prenom} {profile.nom} ({profile.role})
-                                  </option>
-                                ))}
-                              </select>
-                              {assigning === demande.id && (
-                                <span className="text-sm text-gray-500">Mise à jour...</span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-8 pt-6 border-t border-gray-200">
-                            <h4 className="text-lg font-semibold text-[#004080] mb-4">Suivi du dossier</h4>
-                            <div className="flex items-center gap-4">
-                              <span className="font-medium">Suivi par :</span>
-                              <span className="text-gray-800 font-semibold">
-                                {assignedProfile ? `${assignedProfile.prenom} ${assignedProfile.nom}` : <span className="text-gray-400">Non suivi</span>}
-                              </span>
-                            </div>
-                          </div>
+                        
+                        {/* Section Suivi du dossier - Masquée pour le directeur */}
+                        {!isDirecteur && (
+                          <>
+                            {demande.traite_par ? (
+                              <div className="mt-8 pt-6 border-t border-gray-200">
+                                <h4 className="text-lg font-semibold text-[#004080] mb-4">Suivi du dossier</h4>
+                                <div className="flex items-center gap-4">
+                                  <span className="font-medium">Suivi par :</span>
+                                  <span className="text-gray-800 font-semibold">
+                                    {assignedProfile ? `${assignedProfile.prenom} ${assignedProfile.nom}` : <span className="text-gray-400">Non suivi</span>}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-8 pt-6 border-t border-gray-200">
+                                <h4 className="text-lg font-semibold text-[#004080] mb-4">Suivi du dossier</h4>
+                                <div className="flex items-center gap-4">
+                                  <span className="font-medium">Suivi par :</span>
+                                  <select
+                                    value={demande.traite_par || ""}
+                                    onChange={(e) => handleAssign(demande.id, e.target.value)}
+                                    disabled={assigning === demande.id}
+                                    className="border rounded-lg px-3 py-2"
+                                  >
+                                    <option value="">Non suivi</option>
+                                    {profiles.map((profile) => (
+                                      <option key={profile.id} value={profile.id}>
+                                        {profile.prenom} {profile.nom} ({profile.role})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {assigning === demande.id && (
+                                    <span className="text-sm text-gray-500">Mise à jour...</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
-                    )}
-                  </div>
-                );
+                    </div>
+                  )}
+                </div>
+              );
             })}
-          </div>
-        )}
-      </div>
-    );
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default DashboardAdmin;

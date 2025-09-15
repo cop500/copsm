@@ -8,7 +8,7 @@ import { Send, Trash2, User, Calendar, MessageSquare, MoreVertical } from 'lucid
 export default function NotesModule() {
   const { rappels, addRappel, deleteRappel, loading, error } = useRappels();
   const { profile } = useAuth();
-  const { isAdmin } = useRole();
+  const { isAdmin, isDirecteur } = useRole();
   const [newMessage, setNewMessage] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -225,7 +225,7 @@ export default function NotesModule() {
                   <span>{getTimeAgo(note.created_at)}</span>
                 </div>
               </div>
-              {isAdmin && (
+              {(isAdmin || (isDirecteur && note.created_by === profile?.id)) && (
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
                     onClick={() => setShowDeleteConfirm(note.id)}

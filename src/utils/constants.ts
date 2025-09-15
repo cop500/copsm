@@ -7,6 +7,7 @@ export const ROLES = {
   MANAGER_COP: 'manager_cop' as const,
   CONSEILLER_COP: 'conseiller_cop' as const,
   CONSEILLERE_CARRIERE: 'conseillere_carriere' as const,
+  DIRECTEUR: 'directeur' as const,
 }
 
 export const ROLE_LABELS = {
@@ -14,6 +15,7 @@ export const ROLE_LABELS = {
   [ROLES.MANAGER_COP]: 'Manager COP',
   [ROLES.CONSEILLER_COP]: 'Conseiller COP',
   [ROLES.CONSEILLERE_CARRIERE]: 'Conseillère Carrière',
+  [ROLES.DIRECTEUR]: 'Directeur',
 }
 
 export const STATUTS_ENTREPRISE = [
