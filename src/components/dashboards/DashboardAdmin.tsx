@@ -502,7 +502,7 @@ const DashboardAdmin = () => {
                           {selectedDemande?.id === demande.id ? 'Masquer détails' : 'Voir détails'}
                         </button>
                         
-                        {!isDirecteur && (
+                        {isAdmin && (
                           <button
                             onClick={() => handleDelete(demande.id)}
                             className="px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
@@ -873,7 +873,7 @@ const DashboardAdmin = () => {
                       <div className="mt-8 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <h4 className="text-lg font-semibold text-gray-800 mb-4">Actions</h4>
                         <div className="flex flex-wrap gap-4">
-                          {!isDirecteur ? (
+                          {isAdmin ? (
                             <div className="flex-1 min-w-[200px]">
                               <label className="block text-sm font-medium text-gray-700 mb-2">Changer le statut</label>
                               <select
