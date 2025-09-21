@@ -952,7 +952,7 @@ export const EmployabilityDashboard: React.FC = () => {
               <span className="text-sm font-semibold">{eventMetrics?.totalRetained}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Taux d'insertion</span>
+              <span className="text-xs text-gray-600">Taux de conversion</span>
               <span className="text-sm font-semibold text-green-600">{eventMetrics?.conversionRate}%</span>
             </div>
           </div>
@@ -1077,7 +1077,7 @@ export const EmployabilityDashboard: React.FC = () => {
                     <span className="text-sm font-semibold">{eventCount}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Taux d'insertion</span>
+                    <span className="text-xs text-gray-600">Taux de conversion</span>
                     <span className="text-sm font-semibold text-green-600">
                       {eventMetrics.conversionRateByPole[poleName] || 0}%
                     </span>

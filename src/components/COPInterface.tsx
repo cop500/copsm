@@ -316,9 +316,14 @@ const COPInterface: React.FC = () => {
                   )}
                 </span>
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-gray-900">{profile?.prenom} {profile?.nom}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {profile?.role === 'directeur' ? 'HABIB AADI' : `${profile?.prenom} ${profile?.nom}`}
+                  </p>
                   {profile?.role === 'business_developer' && (
                     <p className="text-xs text-gray-500">Administrateur</p>
+                  )}
+                  {profile?.role === 'directeur' && (
+                    <p className="text-xs text-gray-500">Directeur CMC</p>
                   )}
                   <div className="text-xs text-red-500 mt-1">role: {profile?.role}</div>
                 </div>

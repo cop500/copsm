@@ -100,7 +100,7 @@ const ModernCOPInterface = () => {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-105 group">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Taux d'insertion</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Taux de conversion</p>
               <p className="text-3xl font-bold text-green-600">{stats.tauxInsertion}%</p>
               <div className="w-full bg-green-100 rounded-full h-2 mt-3">
                 <div 
