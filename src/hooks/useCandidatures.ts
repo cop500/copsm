@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useRealTime } from './useRealTime'
 
 interface Candidature {
   id: string
@@ -37,6 +38,7 @@ export const useCandidatures = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [newCandidatureCount, setNewCandidatureCount] = useState(0)
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false)
 
   // Charger toutes les candidatures
   const loadCandidatures = async () => {
@@ -116,7 +118,33 @@ export const useCandidatures = () => {
   // Fonction pour recharger les candidatures
   const refreshCandidatures = useCallback(async () => {
     await loadCandidatures()
+    setNewCandidatureCount(0) // Reset le compteur après actualisation
   }, [])
+
+  // Handler stable pour les changements en temps réel
+  const handleRealtimeChange = useCallback(({ eventType, new: newRow, old: oldRow }) => {
+    console.log(`🔄 Événement temps réel: ${eventType}`, { newRow, oldRow })
+    
+    setCandidatures((prev) => {
+      if (eventType === 'INSERT' && newRow) {
+        console.log('➕ Nouvelle candidature ajoutée:', newRow)
+        setNewCandidatureCount(prev => prev + 1)
+        return [newRow, ...prev]
+      }
+      if (eventType === 'UPDATE' && newRow) {
+        console.log('✏️ Candidature mise à jour:', newRow)
+        return prev.map((item) => (item.id === newRow.id ? newRow : item))
+      }
+      if (eventType === 'DELETE' && oldRow) {
+        console.log('🗑️ Candidature supprimée:', oldRow)
+        return prev.filter((item) => item.id !== oldRow.id)
+      }
+      return prev
+    })
+  }, [])
+
+  // Synchronisation en temps réel
+  useRealTime('candidatures_stagiaires', handleRealtimeChange)
 
   return {
     candidatures,
@@ -125,6 +153,9 @@ export const useCandidatures = () => {
     loadCandidatures,
     updateStatutCandidature,
     deleteCandidature,
-    refreshCandidatures
+    refreshCandidatures,
+    newCandidatureCount,
+    clearNewCandidatureCount: () => setNewCandidatureCount(0),
+    isRealtimeConnected
   }
 } 

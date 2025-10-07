@@ -35,7 +35,7 @@ interface CandidatureAction {
 }
 
 export default function StagiairesPage() {
-  const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures } = useCandidatures()
+  const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
   const { poles, filieres, loading: settingsLoading } = useSettings()
   const { isDirecteur } = useRole()
   
@@ -481,17 +481,33 @@ export default function StagiairesPage() {
       {/* Liste des candidatures */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            Candidatures reçues ({filteredCandidatures.length})
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold">
+              Candidatures reçues ({filteredCandidatures.length})
+            </h2>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+              <span className="text-xs text-gray-500">
+                {isRealtimeConnected ? 'Temps réel actif' : 'Temps réel inactif'}
+              </span>
+            </div>
+          </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => refreshCandidatures()}
-              className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 flex items-center gap-1"
+              onClick={() => {
+                refreshCandidatures()
+                clearNewCandidatureCount()
+              }}
+              className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 flex items-center gap-1 relative"
               title="Actualiser les candidatures"
             >
               <RefreshCw className="w-4 h-4" />
               Actualiser
+              {newCandidatureCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                  {newCandidatureCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setShowBulkActions(!showBulkActions)}
