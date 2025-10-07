@@ -115,6 +115,16 @@ export const useCandidatures = () => {
     loadCandidatures()
   }, [])
 
+  // Polling automatique toutes les 30 secondes (fallback si temps réel ne fonctionne pas)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Polling automatique - rechargement des candidatures')
+      loadCandidatures()
+    }, 30000) // 30 secondes
+
+    return () => clearInterval(interval)
+  }, [])
+
   // Fonction pour recharger les candidatures
   const refreshCandidatures = useCallback(async () => {
     await loadCandidatures()
@@ -144,7 +154,12 @@ export const useCandidatures = () => {
   }, [])
 
   // Synchronisation en temps réel
-  useRealTime('candidatures_stagiaires', handleRealtimeChange)
+  const { isConnected } = useRealTime('candidatures_stagiaires', handleRealtimeChange)
+  
+  // Mettre à jour le statut de connexion
+  useEffect(() => {
+    setIsRealtimeConnected(isConnected)
+  }, [isConnected])
 
   return {
     candidatures,

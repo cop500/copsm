@@ -486,9 +486,9 @@ export default function StagiairesPage() {
               Candidatures reçues ({filteredCandidatures.length})
             </h2>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+              <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-orange-500'}`}></div>
               <span className="text-xs text-gray-500">
-                {isRealtimeConnected ? 'Temps réel actif' : 'Temps réel inactif'}
+                {isRealtimeConnected ? 'Temps réel actif' : 'Actualisation auto (30s)'}
               </span>
             </div>
           </div>
