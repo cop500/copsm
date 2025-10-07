@@ -85,6 +85,46 @@ const CandidaturePage = () => {
   
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [sessionActive, setSessionActive] = useState(true)
+
+  // Sauvegarde automatique des données dans localStorage
+  useEffect(() => {
+    const savedData = localStorage.getItem('candidature_form_data')
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData)
+        setFormData(prev => ({ ...prev, ...parsedData }))
+        console.log('📁 Données de formulaire restaurées depuis localStorage')
+      } catch (error) {
+        console.error('Erreur restauration données:', error)
+      }
+    }
+  }, [])
+
+  // Sauvegarder automatiquement les données à chaque changement
+  useEffect(() => {
+    if (formData.nom || formData.prenom || formData.email || formData.telephone) {
+      localStorage.setItem('candidature_form_data', JSON.stringify(formData))
+      console.log('💾 Données sauvegardées automatiquement')
+    }
+  }, [formData])
+
+  // Gestion de la session active (éviter les timeouts)
+  useEffect(() => {
+    const keepAliveInterval = setInterval(() => {
+      // Vérifier la connexion Supabase
+      supabase.auth.getSession().then(({ data, error }) => {
+        if (error) {
+          console.warn('⚠️ Session expirée, reconnexion...')
+          setSessionActive(false)
+        } else {
+          setSessionActive(true)
+        }
+      })
+    }, 30000) // Vérifier toutes les 30 secondes
+
+    return () => clearInterval(keepAliveInterval)
+  }, [])
 
   // Charger les demandes entreprises actives
   const loadDemandes = async () => {
@@ -145,22 +185,22 @@ const CandidaturePage = () => {
     loadDemandes()
   }, [])
 
-  // Upload du CV
-  const handleFileUpload = async (file: File) => {
+  // Upload du CV avec retry et gestion robuste
+  const handleFileUpload = async (file: File, retryCount = 0) => {
     if (!file) return null
     
     try {
       setUploading(true)
-      console.log('Début upload CV:', file.name)
+      console.log(`🔄 Début upload CV (tentative ${retryCount + 1}):`, file.name)
       
       // Vérifier le type de fichier
       if (file.type !== 'application/pdf') {
         throw new Error('Seuls les fichiers PDF sont acceptés')
       }
       
-      // Vérifier la taille (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('Le fichier est trop volumineux (max 5MB)')
+      // Vérifier la taille (max 10MB pour plus de flexibilité)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('Le fichier est trop volumineux (max 10MB)')
       }
       
       // Nettoyer le nom du fichier pour éviter les caractères spéciaux
@@ -169,51 +209,93 @@ const CandidaturePage = () => {
         .replace(/_{2,}/g, '_') // Remplacer les underscores multiples par un seul
         .replace(/^_|_$/g, '') // Supprimer les underscores au début et à la fin
       
-      const fileName = `cv_${Date.now()}_${cleanFileName}`
-      console.log('Tentative upload vers bucket cv-stagiaires:', fileName)
+      const fileName = `cv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${cleanFileName}`
+      console.log('📁 Nom de fichier généré:', fileName)
+      
+      // Stratégie d'upload avec fallback
+      let uploadResult = null
+      let bucketUsed = ''
       
       // Essayer d'abord le bucket cv-stagiaires
-      let { data, error } = await supabase.storage
-        .from('cv-stagiaires')
-        .upload(fileName, file)
-      
-      // Si le bucket cv-stagiaires n'existe pas, essayer le bucket fichiers
-      if (error && error.message.includes('not found')) {
-        console.log('Bucket cv-stagiaires non trouvé, essai avec bucket fichiers...')
+      try {
+        console.log('🔄 Tentative upload vers bucket cv-stagiaires...')
+        const result = await supabase.storage
+          .from('cv-stagiaires')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
+        
+        if (result.error) {
+          throw result.error
+        }
+        
+        uploadResult = result
+        bucketUsed = 'cv-stagiaires'
+        console.log('✅ Upload réussi vers cv-stagiaires')
+      } catch (cvError: any) {
+        console.log('⚠️ Échec cv-stagiaires, essai avec bucket fichiers...', cvError.message)
+        
+        // Fallback vers bucket fichiers
         const fallbackFileName = `cv_stagiaires/${fileName}`
         const result = await supabase.storage
           .from('fichiers')
-          .upload(fallbackFileName, file)
-        data = result.data
-        error = result.error
+          .upload(fallbackFileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
+        
+        if (result.error) {
+          throw result.error
+        }
+        
+        uploadResult = result
+        bucketUsed = 'fichiers'
+        console.log('✅ Upload réussi vers fichiers/cv_stagiaires/')
       }
       
-      if (error) {
-        console.error('Erreur upload Supabase:', error)
-        throw new Error(`Erreur upload: ${error.message}`)
-      }
-      
-      console.log('Upload réussi, récupération URL publique')
-      
-      // Récupérer l'URL publique selon le bucket utilisé
+      // Récupérer l'URL publique
       let urlData
-      if (data.path.includes('cv_stagiaires/')) {
-        // Utiliser le bucket fichiers avec le chemin cv_stagiaires/
+      if (bucketUsed === 'fichiers') {
         urlData = supabase.storage
           .from('fichiers')
-          .getPublicUrl(data.path)
+          .getPublicUrl(uploadResult.data.path)
       } else {
-        // Utiliser le bucket cv-stagiaires
         urlData = supabase.storage
           .from('cv-stagiaires')
           .getPublicUrl(fileName)
       }
       
-      console.log('URL publique récupérée:', urlData.publicUrl)
+      console.log('🔗 URL publique récupérée:', urlData.publicUrl)
       return urlData.publicUrl
+      
     } catch (err: any) {
-      console.error('Erreur upload complète:', err)
-      setError(`Erreur upload CV: ${err.message}`)
+      console.error('❌ Erreur upload complète:', err)
+      
+      // Retry automatique pour les erreurs réseau
+      if (retryCount < 2 && (
+        err.message.includes('network') || 
+        err.message.includes('timeout') || 
+        err.message.includes('fetch')
+      )) {
+        console.log(`🔄 Retry automatique (${retryCount + 1}/2)...`)
+        await new Promise(resolve => setTimeout(resolve, 2000)) // Attendre 2s
+        return handleFileUpload(file, retryCount + 1)
+      }
+      
+      // Message d'erreur plus détaillé
+      let errorMessage = 'Erreur upload CV'
+      if (err.message.includes('network')) {
+        errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.'
+      } else if (err.message.includes('size')) {
+        errorMessage = 'Fichier trop volumineux (max 10MB)'
+      } else if (err.message.includes('type')) {
+        errorMessage = 'Seuls les fichiers PDF sont acceptés'
+      } else {
+        errorMessage = `Erreur upload: ${err.message}`
+      }
+      
+      setError(errorMessage)
       return null
     } finally {
       setUploading(false)
@@ -323,6 +405,8 @@ Vous recevrez une réponse dans les plus brefs délais.
 Merci pour votre confiance !`)
       
       setSuccess(true)
+      
+      // Nettoyer les données et localStorage après succès
       setFormData({
         nom: '',
         prenom: '',
@@ -337,6 +421,10 @@ Merci pour votre confiance !`)
       })
       setCvFile(null)
       setSelectedDemande(null)
+      
+      // Nettoyer localStorage
+      localStorage.removeItem('candidature_form_data')
+      console.log('🧹 Données nettoyées après succès')
       
     } catch (err: any) {
       console.error('Erreur soumission complète:', err)
@@ -448,6 +536,14 @@ Merci pour votre confiance !`)
                     DÉPOSER VOTRE CANDIDATURE
                   </span>
                 </p>
+                
+                {/* Indicateur de session */}
+                <div className="flex items-center justify-center mt-3 space-x-2">
+                  <div className={`w-2 h-2 rounded-full ${sessionActive ? 'bg-green-400' : 'bg-orange-400'} animate-pulse`}></div>
+                  <span className="text-xs text-blue-200">
+                    {sessionActive ? 'Session active' : 'Reconnexion...'}
+                  </span>
+                </div>
                 
                 {/* Éléments décoratifs subtils */}
                 <div className="flex justify-center mt-4 space-x-2">
