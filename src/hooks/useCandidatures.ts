@@ -2,9 +2,8 @@
 // src/hooks/useCandidatures.ts - Hook pour gestion des candidatures
 // ========================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRealTime } from './useRealTime'
 
 interface Candidature {
   id: string
@@ -114,25 +113,10 @@ export const useCandidatures = () => {
     loadCandidatures()
   }, [])
 
-  // Synchronisation en temps réel
-  useRealTime('candidatures_stagiaires', ({ eventType, new: newRow, old: oldRow }) => {
-    setCandidatures((prev) => {
-      if (eventType === 'INSERT' && newRow) {
-        // Ajouter la nouvelle candidature au début de la liste
-        setNewCandidatureCount(prev => prev + 1)
-        return [newRow, ...prev]
-      }
-      if (eventType === 'UPDATE' && newRow) {
-        // Mettre à jour la candidature existante
-        return prev.map((item) => (item.id === newRow.id ? newRow : item))
-      }
-      if (eventType === 'DELETE' && oldRow) {
-        // Supprimer la candidature
-        return prev.filter((item) => item.id !== oldRow.id)
-      }
-      return prev
-    })
-  })
+  // Fonction pour recharger les candidatures
+  const refreshCandidatures = useCallback(async () => {
+    await loadCandidatures()
+  }, [])
 
   return {
     candidatures,
@@ -141,7 +125,6 @@ export const useCandidatures = () => {
     loadCandidatures,
     updateStatutCandidature,
     deleteCandidature,
-    newCandidatureCount,
-    clearNewCandidatureCount: () => setNewCandidatureCount(0)
+    refreshCandidatures
   }
 } 

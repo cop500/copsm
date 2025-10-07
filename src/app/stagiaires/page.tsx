@@ -35,15 +35,13 @@ interface CandidatureAction {
 }
 
 export default function StagiairesPage() {
-  const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, newCandidatureCount, clearNewCandidatureCount } = useCandidatures()
+  const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures } = useCandidatures()
   const { poles, filieres, loading: settingsLoading } = useSettings()
   const { isDirecteur } = useRole()
   
   // États pour les filtres et actions
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
   const [candidatureSearch, setCandidatureSearch] = useState('')
-  const [newCandidatureNotification, setNewCandidatureNotification] = useState(false)
-  const [lastCandidatureCount, setLastCandidatureCount] = useState(0)
   const [dateFilter, setDateFilter] = useState('tous')
   const [entrepriseFilter, setEntrepriseFilter] = useState('')
   const [poleFilter, setPoleFilter] = useState('')
@@ -302,30 +300,9 @@ export default function StagiairesPage() {
   const getStatusCount = (status: CandidatureStatus) => 
     candidaturesStagiaires.filter(c => c.statut_candidature === status).length
 
-  // Notification pour nouvelles candidatures
-  useEffect(() => {
-    if (candidaturesStagiaires.length > lastCandidatureCount && lastCandidatureCount > 0) {
-      setNewCandidatureNotification(true)
-      setTimeout(() => setNewCandidatureNotification(false), 5000)
-    }
-    setLastCandidatureCount(candidaturesStagiaires.length)
-  }, [candidaturesStagiaires.length, lastCandidatureCount])
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Notification nouvelle candidature */}
-      {newCandidatureNotification && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-pulse">
-          <CheckCircle className="w-5 h-5" />
-          <span>Nouvelle candidature reçue !</span>
-          <button
-            onClick={() => setNewCandidatureNotification(false)}
-            className="ml-2 text-white hover:text-gray-200"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Messages */}
       {message && (
@@ -509,20 +486,12 @@ export default function StagiairesPage() {
           </h2>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => {
-                loadCandidatures()
-                clearNewCandidatureCount()
-              }}
-              className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 flex items-center gap-1 relative"
+              onClick={() => refreshCandidatures()}
+              className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 flex items-center gap-1"
               title="Actualiser les candidatures"
             >
               <RefreshCw className="w-4 h-4" />
               Actualiser
-              {newCandidatureCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {newCandidatureCount}
-                </span>
-              )}
             </button>
             <button
               onClick={() => setShowBulkActions(!showBulkActions)}
