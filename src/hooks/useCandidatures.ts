@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useRealTime } from './useRealTime'
 
 interface Candidature {
   id: string
@@ -36,6 +37,7 @@ export const useCandidatures = () => {
   const [candidatures, setCandidatures] = useState<Candidature[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [newCandidatureCount, setNewCandidatureCount] = useState(0)
 
   // Charger toutes les candidatures
   const loadCandidatures = async () => {
@@ -112,12 +114,34 @@ export const useCandidatures = () => {
     loadCandidatures()
   }, [])
 
+  // Synchronisation en temps réel
+  useRealTime('candidatures_stagiaires', ({ eventType, new: newRow, old: oldRow }) => {
+    setCandidatures((prev) => {
+      if (eventType === 'INSERT' && newRow) {
+        // Ajouter la nouvelle candidature au début de la liste
+        setNewCandidatureCount(prev => prev + 1)
+        return [newRow, ...prev]
+      }
+      if (eventType === 'UPDATE' && newRow) {
+        // Mettre à jour la candidature existante
+        return prev.map((item) => (item.id === newRow.id ? newRow : item))
+      }
+      if (eventType === 'DELETE' && oldRow) {
+        // Supprimer la candidature
+        return prev.filter((item) => item.id !== oldRow.id)
+      }
+      return prev
+    })
+  })
+
   return {
     candidatures,
     loading,
     error,
     loadCandidatures,
     updateStatutCandidature,
-    deleteCandidature
+    deleteCandidature,
+    newCandidatureCount,
+    clearNewCandidatureCount: () => setNewCandidatureCount(0)
   }
 } 
