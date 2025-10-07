@@ -208,23 +208,37 @@ const CandidaturePage = () => {
         .replace(/[^a-zA-Z0-9.-]/g, '_') // Remplacer les caractères spéciaux par des underscores
         .replace(/_{2,}/g, '_') // Remplacer les underscores multiples par un seul
         .replace(/^_|_$/g, '') // Supprimer les underscores au début et à la fin
+        .substring(0, 50) // Limiter la longueur du nom
       
-      const fileName = `cv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${cleanFileName}`
+      // Générer un nom unique plus simple
+      const timestamp = Date.now()
+      const randomId = Math.random().toString(36).substr(2, 6)
+      const fileName = `cv_${timestamp}_${randomId}.pdf`
       console.log('📁 Nom de fichier généré:', fileName)
+      console.log('📁 Nom original:', file.name)
+      console.log('📁 Nom nettoyé:', cleanFileName)
       
       // Stratégie d'upload avec fallback
       let uploadResult = null
       let bucketUsed = ''
       
-      // Essayer d'abord le bucket cv-stagiaires
+      // Essayer d'abord le bucket cv-stagiaires avec timeout
       try {
         console.log('🔄 Tentative upload vers bucket cv-stagiaires...')
-        const result = await supabase.storage
+        
+        // Créer une promesse avec timeout
+        const uploadPromise = supabase.storage
           .from('cv-stagiaires')
           .upload(fileName, file, {
             cacheControl: '3600',
             upsert: false
           })
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout upload (30s)')), 30000)
+        )
+        
+        const result = await Promise.race([uploadPromise, timeoutPromise]) as any
         
         if (result.error) {
           throw result.error
@@ -236,22 +250,34 @@ const CandidaturePage = () => {
       } catch (cvError: any) {
         console.log('⚠️ Échec cv-stagiaires, essai avec bucket fichiers...', cvError.message)
         
-        // Fallback vers bucket fichiers
-        const fallbackFileName = `cv_stagiaires/${fileName}`
-        const result = await supabase.storage
-          .from('fichiers')
-          .upload(fallbackFileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          })
-        
-        if (result.error) {
-          throw result.error
+        // Fallback vers bucket fichiers avec timeout
+        try {
+          const fallbackFileName = `cv_stagiaires/${fileName}`
+          
+          const uploadPromise = supabase.storage
+            .from('fichiers')
+            .upload(fallbackFileName, file, {
+              cacheControl: '3600',
+              upsert: false
+            })
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout upload fallback (30s)')), 30000)
+          )
+          
+          const result = await Promise.race([uploadPromise, timeoutPromise]) as any
+          
+          if (result.error) {
+            throw result.error
+          }
+          
+          uploadResult = result
+          bucketUsed = 'fichiers'
+          console.log('✅ Upload réussi vers fichiers/cv_stagiaires/')
+        } catch (fallbackError: any) {
+          console.error('❌ Échec complet upload:', fallbackError.message)
+          throw fallbackError
         }
-        
-        uploadResult = result
-        bucketUsed = 'fichiers'
-        console.log('✅ Upload réussi vers fichiers/cv_stagiaires/')
       }
       
       // Récupérer l'URL publique
@@ -276,24 +302,39 @@ const CandidaturePage = () => {
       if (retryCount < 2 && (
         err.message.includes('network') || 
         err.message.includes('timeout') || 
-        err.message.includes('fetch')
+        err.message.includes('fetch') ||
+        err.message.includes('Timeout upload')
       )) {
         console.log(`🔄 Retry automatique (${retryCount + 1}/2)...`)
-        await new Promise(resolve => setTimeout(resolve, 2000)) // Attendre 2s
+        await new Promise(resolve => setTimeout(resolve, 3000)) // Attendre 3s
         return handleFileUpload(file, retryCount + 1)
       }
       
       // Message d'erreur plus détaillé
       let errorMessage = 'Erreur upload CV'
-      if (err.message.includes('network')) {
+      if (err.message.includes('Timeout upload')) {
+        errorMessage = 'Upload trop lent. Vérifiez votre connexion internet et réessayez.'
+      } else if (err.message.includes('network')) {
         errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.'
       } else if (err.message.includes('size')) {
         errorMessage = 'Fichier trop volumineux (max 10MB)'
       } else if (err.message.includes('type')) {
         errorMessage = 'Seuls les fichiers PDF sont acceptés'
+      } else if (err.message.includes('not found')) {
+        errorMessage = 'Erreur de configuration serveur. Contactez l\'administrateur.'
       } else {
         errorMessage = `Erreur upload: ${err.message}`
       }
+      
+      console.error('❌ Erreur détaillée upload:', {
+        message: err.message,
+        name: err.name,
+        stack: err.stack,
+        retryCount,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      })
       
       setError(errorMessage)
       return null
@@ -809,11 +850,24 @@ Merci pour votre confiance !`)
                         {cvFile ? cvFile.name : 'Cliquez pour sélectionner votre CV'}
                       </p>
                       <p className="text-sm text-gray-500 mb-2">
-                        Format PDF uniquement, max 5MB
+                        Format PDF uniquement, max 10MB
                       </p>
                       <p className="text-xs text-blue-600 font-medium">
                         💡 Conseil : Nommez votre CV "Nom_Prénom_CV.pdf" avant l'upload
                       </p>
+                      
+                      {/* Indicateur d'upload en cours */}
+                      {uploading && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center justify-center space-x-3">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                            <span className="text-blue-700 font-medium">Upload en cours...</span>
+                          </div>
+                          <p className="text-blue-600 text-sm mt-2">
+                            Veuillez patienter, votre CV est en cours d'upload
+                          </p>
+                        </div>
+                      )}
                     </label>
                   </div>
                 </div>
