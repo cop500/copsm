@@ -172,9 +172,21 @@ const CandidaturePage = () => {
       const fileName = `cv_${Date.now()}_${cleanFileName}`
       console.log('Tentative upload vers bucket cv-stagiaires:', fileName)
       
-      const { data, error } = await supabase.storage
+      // Essayer d'abord le bucket cv-stagiaires
+      let { data, error } = await supabase.storage
         .from('cv-stagiaires')
         .upload(fileName, file)
+      
+      // Si le bucket cv-stagiaires n'existe pas, essayer le bucket fichiers
+      if (error && error.message.includes('not found')) {
+        console.log('Bucket cv-stagiaires non trouvé, essai avec bucket fichiers...')
+        const fallbackFileName = `cv_stagiaires/${fileName}`
+        const result = await supabase.storage
+          .from('fichiers')
+          .upload(fallbackFileName, file)
+        data = result.data
+        error = result.error
+      }
       
       if (error) {
         console.error('Erreur upload Supabase:', error)
@@ -183,10 +195,19 @@ const CandidaturePage = () => {
       
       console.log('Upload réussi, récupération URL publique')
       
-      // Récupérer l'URL publique
-      const { data: urlData } = supabase.storage
-        .from('cv-stagiaires')
-        .getPublicUrl(fileName)
+      // Récupérer l'URL publique selon le bucket utilisé
+      let urlData
+      if (data.path.includes('cv_stagiaires/')) {
+        // Utiliser le bucket fichiers avec le chemin cv_stagiaires/
+        urlData = supabase.storage
+          .from('fichiers')
+          .getPublicUrl(data.path)
+      } else {
+        // Utiliser le bucket cv-stagiaires
+        urlData = supabase.storage
+          .from('cv-stagiaires')
+          .getPublicUrl(fileName)
+      }
       
       console.log('URL publique récupérée:', urlData.publicUrl)
       return urlData.publicUrl
@@ -207,8 +228,18 @@ const CandidaturePage = () => {
     console.log('Demande sélectionnée:', selectedDemande)
     console.log('CV file:', cvFile)
     
-    if (!selectedDemande || !cvFile) {
-      setError('Veuillez sélectionner une demande et uploader votre CV')
+    if (!selectedDemande) {
+      setError('Veuillez sélectionner une offre d\'emploi')
+      return
+    }
+    
+    if (!cvFile) {
+      setError('Veuillez sélectionner votre CV (fichier PDF)')
+      return
+    }
+    
+    if (!formData.nom || !formData.prenom || !formData.email || !formData.telephone) {
+      setError('Veuillez remplir tous les champs obligatoires')
       return
     }
     
@@ -228,20 +259,22 @@ const CandidaturePage = () => {
       console.log('CV uploadé avec succès:', cvUrl)
       console.log('Vérification candidature existante...')
       
-      // Vérifier si candidature déjà existante (par entreprise et poste)
+      // Vérifier si candidature déjà existante (par email du candidat ET entreprise/poste)
       const { data: existingCandidature, error: checkError } = await supabase
         .from('candidatures_stagiaires')
-        .select('id')
+        .select('id, nom, prenom')
+        .eq('email', formData.email)
         .eq('entreprise_nom', selectedDemande.display_nom)
         .eq('poste', selectedDemande.display_poste)
         .maybeSingle()
       
       if (checkError) {
         console.error('Erreur vérification candidature existante:', checkError)
+        // Ne pas bloquer si erreur de vérification, continuer
       }
       
       if (existingCandidature) {
-        setError('Vous avez déjà postulé à cette demande')
+        setError(`Vous avez déjà postulé à cette offre chez ${selectedDemande.display_nom} pour le poste ${selectedDemande.display_poste}`)
         return
       }
       
@@ -276,17 +309,18 @@ const CandidaturePage = () => {
       console.log('Candidature insérée avec succès')
       
              // Afficher un message de succès avec les informations
-       alert(`Candidature envoyée avec succès !
+       alert(`✅ Candidature envoyée avec succès !
        
- Entreprise: ${selectedDemande.display_nom}
- Poste: ${selectedDemande.display_poste}
- Type: ${selectedDemande.display_type}
- Nom: ${formData.nom}
- Prénom: ${formData.prenom}
- Email: ${formData.email}
- Téléphone: ${formData.telephone}
- 
- Votre candidature a été enregistrée et sera traitée dans les plus brefs délais.`)
+📋 Détails de votre candidature :
+• Entreprise : ${selectedDemande.display_nom}
+• Poste : ${selectedDemande.display_poste}
+• Type de contrat : ${selectedDemande.display_type}
+• Date : ${new Date().toLocaleDateString('fr-FR')}
+       
+📧 Votre candidature a été transmise à l'entreprise.
+Vous recevrez une réponse dans les plus brefs délais.
+       
+Merci pour votre confiance !`)
       
       setSuccess(true)
       setFormData({
