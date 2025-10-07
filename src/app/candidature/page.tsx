@@ -218,79 +218,24 @@ const CandidaturePage = () => {
       console.log('📁 Nom original:', file.name)
       console.log('📁 Nom nettoyé:', cleanFileName)
       
-      // Stratégie d'upload avec fallback
-      let uploadResult = null
-      let bucketUsed = ''
+      // Upload simple vers cv-stagiaires (comme dans le test qui fonctionne)
+      console.log('🔄 Upload vers bucket cv-stagiaires...')
       
-      // Essayer d'abord le bucket cv-stagiaires avec timeout
-      try {
-        console.log('🔄 Tentative upload vers bucket cv-stagiaires...')
-        
-        // Créer une promesse avec timeout
-        const uploadPromise = supabase.storage
-          .from('cv-stagiaires')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          })
-        
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout upload (30s)')), 30000)
-        )
-        
-        const result = await Promise.race([uploadPromise, timeoutPromise]) as any
-        
-        if (result.error) {
-          throw result.error
-        }
-        
-        uploadResult = result
-        bucketUsed = 'cv-stagiaires'
-        console.log('✅ Upload réussi vers cv-stagiaires')
-      } catch (cvError: any) {
-        console.log('⚠️ Échec cv-stagiaires, essai avec bucket fichiers...', cvError.message)
-        
-        // Fallback vers bucket fichiers avec timeout
-        try {
-          const fallbackFileName = `cv_stagiaires/${fileName}`
-          
-          const uploadPromise = supabase.storage
-            .from('fichiers')
-            .upload(fallbackFileName, file, {
-              cacheControl: '3600',
-              upsert: false
-            })
-          
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout upload fallback (30s)')), 30000)
-          )
-          
-          const result = await Promise.race([uploadPromise, timeoutPromise]) as any
-          
-          if (result.error) {
-            throw result.error
-          }
-          
-          uploadResult = result
-          bucketUsed = 'fichiers'
-          console.log('✅ Upload réussi vers fichiers/cv_stagiaires/')
-        } catch (fallbackError: any) {
-          console.error('❌ Échec complet upload:', fallbackError.message)
-          throw fallbackError
-        }
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('cv-stagiaires')
+        .upload(fileName, file)
+      
+      if (uploadError) {
+        console.error('❌ Erreur upload cv-stagiaires:', uploadError)
+        throw uploadError
       }
+      
+      console.log('✅ Upload réussi vers cv-stagiaires')
       
       // Récupérer l'URL publique
-      let urlData
-      if (bucketUsed === 'fichiers') {
-        urlData = supabase.storage
-          .from('fichiers')
-          .getPublicUrl(uploadResult.data.path)
-      } else {
-        urlData = supabase.storage
-          .from('cv-stagiaires')
-          .getPublicUrl(fileName)
-      }
+      const { data: urlData } = supabase.storage
+        .from('cv-stagiaires')
+        .getPublicUrl(fileName)
       
       console.log('🔗 URL publique récupérée:', urlData.publicUrl)
       return urlData.publicUrl
@@ -298,43 +243,17 @@ const CandidaturePage = () => {
     } catch (err: any) {
       console.error('❌ Erreur upload complète:', err)
       
-      // Retry automatique pour les erreurs réseau
-      if (retryCount < 2 && (
-        err.message.includes('network') || 
-        err.message.includes('timeout') || 
-        err.message.includes('fetch') ||
-        err.message.includes('Timeout upload')
-      )) {
-        console.log(`🔄 Retry automatique (${retryCount + 1}/2)...`)
-        await new Promise(resolve => setTimeout(resolve, 3000)) // Attendre 3s
-        return handleFileUpload(file, retryCount + 1)
-      }
-      
-      // Message d'erreur plus détaillé
+      // Message d'erreur simple
       let errorMessage = 'Erreur upload CV'
-      if (err.message.includes('Timeout upload')) {
-        errorMessage = 'Upload trop lent. Vérifiez votre connexion internet et réessayez.'
-      } else if (err.message.includes('network')) {
-        errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.'
-      } else if (err.message.includes('size')) {
+      if (err.message.includes('size')) {
         errorMessage = 'Fichier trop volumineux (max 10MB)'
       } else if (err.message.includes('type')) {
         errorMessage = 'Seuls les fichiers PDF sont acceptés'
-      } else if (err.message.includes('not found')) {
-        errorMessage = 'Erreur de configuration serveur. Contactez l\'administrateur.'
       } else {
         errorMessage = `Erreur upload: ${err.message}`
       }
       
-      console.error('❌ Erreur détaillée upload:', {
-        message: err.message,
-        name: err.name,
-        stack: err.stack,
-        retryCount,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type
-      })
+      console.error('❌ Erreur upload:', err.message)
       
       setError(errorMessage)
       return null
