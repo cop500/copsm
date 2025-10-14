@@ -187,7 +187,7 @@ export default function EnqueteInsertionPublic() {
         <form onSubmit={handleSubmit} className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200/50 p-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-900 mb-2">
                 Nom * <span className="text-red-500">*</span>
               </label>
               <input
@@ -199,7 +199,7 @@ export default function EnqueteInsertionPublic() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-900 mb-2">
                 Prénom * <span className="text-red-500">*</span>
               </label>
               <input
@@ -213,7 +213,7 @@ export default function EnqueteInsertionPublic() {
           </div>
 
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-gray-900 mb-2">
               Genre * <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-4">
@@ -236,7 +236,7 @@ export default function EnqueteInsertionPublic() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-900 mb-2">
                 Pôle * <span className="text-red-500">*</span>
               </label>
               <select
@@ -254,7 +254,7 @@ export default function EnqueteInsertionPublic() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-900 mb-2">
                 Filière * <span className="text-red-500">*</span>
               </label>
               <select
@@ -279,7 +279,7 @@ export default function EnqueteInsertionPublic() {
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-bold text-gray-900 mb-3">
               Poursuivez-vous actuellement vos études ? * <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-4">
@@ -313,7 +313,7 @@ export default function EnqueteInsertionPublic() {
           {formData.poursuite_etudes && (
             <div className="bg-blue-50 p-4 rounded-lg space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-gray-900 mb-2">
                   Type de formation * <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -331,7 +331,7 @@ export default function EnqueteInsertionPublic() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-gray-900 mb-2">
                   Option/Spécialité * <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -345,7 +345,7 @@ export default function EnqueteInsertionPublic() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
                     Ville * <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -358,7 +358,7 @@ export default function EnqueteInsertionPublic() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
                     Établissement * <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -375,7 +375,7 @@ export default function EnqueteInsertionPublic() {
           )}
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-bold text-gray-900 mb-3">
               Êtes-vous actuellement en activité ? * <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-4">
@@ -409,7 +409,7 @@ export default function EnqueteInsertionPublic() {
           {formData.en_activite && (
             <div className="bg-green-50 p-4 rounded-lg space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-gray-900 mb-2">
                   Type d'activité * <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -428,7 +428,7 @@ export default function EnqueteInsertionPublic() {
               {formData.type_activite === 'emploi_salarie' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
                       Intitulé de l'entreprise * <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -441,7 +441,7 @@ export default function EnqueteInsertionPublic() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
                       Poste occupé * <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -458,7 +458,7 @@ export default function EnqueteInsertionPublic() {
 
               {formData.type_activite === 'travail_independant' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-900 mb-2">
                     Nom du brand/activité * <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -475,7 +475,7 @@ export default function EnqueteInsertionPublic() {
               {formData.type_activite === 'stage' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
                       Type de stage * <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -492,7 +492,7 @@ export default function EnqueteInsertionPublic() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
                       Intitulé de l'organisme * <span className="text-red-500">*</span>
                     </label>
                     <input
