@@ -1,8 +1,8 @@
 import { Resend } from 'resend'
 import { getEmailConfig } from './email-config'
 
-// Initialiser Resend avec la clé API
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Initialiser Resend avec la clé API (seulement si disponible)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 interface DemandeEntreprise {
   id: string
@@ -23,6 +23,12 @@ interface EmailConfig {
 
 export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
   try {
+    // Vérifier si Resend est configuré
+    if (!resend) {
+      console.log('⚠️ Resend non configuré - notifications email désactivées')
+      return { success: false, reason: 'resend_not_configured' }
+    }
+
     // Récupérer la configuration
     const config = await getEmailConfig()
     
@@ -66,6 +72,12 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
 
 export async function sendTestEmail(demande: DemandeEntreprise & { config: EmailConfig }) {
   try {
+    // Vérifier si Resend est configuré
+    if (!resend) {
+      console.log('⚠️ Resend non configuré - impossible d\'envoyer l\'email de test')
+      throw new Error('Resend non configuré')
+    }
+
     const { config } = demande
     
     // Construire le lien vers la demande
