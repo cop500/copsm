@@ -88,15 +88,15 @@ const DashboardAdmin = () => {
     if (!window.confirm("Confirmer la suppression de cette demande ?")) return;
     
     try {
-      const { error } = await supabase
-        .from("demandes_entreprises")
-        .delete()
-        .eq("id", demandeId);
-      
-      if (!error) {
+    const { error } = await supabase
+      .from("demandes_entreprises")
+      .delete()
+      .eq("id", demandeId);
+    
+    if (!error) {
         setDemandes(prev => prev.filter(d => d.id !== demandeId));
         setMessage("Demande supprimée avec succès.");
-      } else {
+    } else {
         setMessage("Erreur lors de la suppression.");
       }
     } catch (error) {
@@ -142,14 +142,14 @@ const DashboardAdmin = () => {
     ));
     
     try {
-      const { error } = await supabase
-        .from("demandes_entreprises")
-        .update({ traite_par: userId })
-        .eq("id", demandeId);
-      
-      if (!error) {
+    const { error } = await supabase
+      .from("demandes_entreprises")
+      .update({ traite_par: userId })
+      .eq("id", demandeId);
+    
+    if (!error) {
         setMessage("Demande assignée avec succès.");
-      } else {
+    } else {
         setMessage("Erreur lors de l'assignation.");
       }
     } catch (error) {
@@ -166,14 +166,14 @@ const DashboardAdmin = () => {
     ));
     
     try {
-      const { error } = await supabase
+    const { error } = await supabase
         .from("demandes_entreprises")
-        .update({ statut: newStatut })
+      .update({ statut: newStatut })
         .eq("id", demandeId);
-      
-      if (!error) {
+    
+    if (!error) {
         setMessage("Statut mis à jour avec succès.");
-      } else {
+    } else {
         setMessage("Erreur lors de la mise à jour du statut.");
       }
     } catch (error) {
@@ -234,7 +234,7 @@ const DashboardAdmin = () => {
     if (!isAdmin) return;
     
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) return;
-
+    
     try {
       const { error } = await supabase
         .from('commentaires_demandes_entreprises')
@@ -374,7 +374,7 @@ const DashboardAdmin = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
+    <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-black text-[#1E40AF] mb-2">
             Gestion des Demandes Entreprises
@@ -415,23 +415,23 @@ const DashboardAdmin = () => {
           </div>
         </div>
       )}
-
+      
       {/* Filtres */}
       <div className="mb-6 flex flex-wrap gap-4">
-        <select
-          value={filterStatut}
-          onChange={(e) => setFilterStatut(e.target.value)}
+          <select
+            value={filterStatut}
+            onChange={(e) => setFilterStatut(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004080] focus:border-transparent"
-        >
-          <option value="tous">Tous les statuts</option>
+          >
+            <option value="tous">Tous les statuts</option>
           {STATUTS.map((statut) => (
             <option key={statut.value} value={statut.value}>
               {statut.label}
             </option>
           ))}
-        </select>
+          </select>
       </div>
-
+      
       {/* Liste des demandes */}
       {loading ? (
         <div className="text-center py-8">
@@ -446,7 +446,7 @@ const DashboardAdmin = () => {
               const assignedProfile = profiles.find(p => p.id === demande.traite_par);
               const currentStatut = STATUTS.find(s => s.value === demande.statut);
               
-              return (
+                return (
                 <div key={demande.id} className="bg-white rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
                   {/* En-tête de la carte avec gradient */}
                   <div className="p-6 text-[#1E40AF]" style={{background: 'linear-gradient(to right, #F1F5F9, #E2E8F0)'}}>
@@ -484,12 +484,12 @@ const DashboardAdmin = () => {
                       </div>
                       
                       <div className="flex flex-wrap gap-3 mt-4 lg:mt-0">
-                        <button
+                          <button
                           onClick={() => {
                             if (selectedDemande?.id === demande.id) {
-                              setSelectedDemande(null);
-                        } else {
-                          setSelectedDemande(demande);
+                                setSelectedDemande(null);
+                              } else {
+                                setSelectedDemande(demande);
                           loadCommentaires(demande.id);
                         }
                           }}
@@ -500,22 +500,22 @@ const DashboardAdmin = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                           {selectedDemande?.id === demande.id ? 'Masquer détails' : 'Voir détails'}
-                        </button>
-                        
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDelete(demande.id)}
+                          </button>
+                          
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDelete(demande.id)}
                             className="px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
-                          >
+                            >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            Supprimer
-                          </button>
-                        )}
+                              Supprimer
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
                   {selectedDemande?.id === demande.id && (
                     <div className="p-6 bg-gray-50">
@@ -536,13 +536,13 @@ const DashboardAdmin = () => {
                               <div>
                                 <p className="font-semibold text-gray-700">Adresse</p>
                                 <p className="text-gray-600">{demande.entreprise_adresse}</p>
-                              </div>
+                        </div>
                             </div>
                             <div className="flex items-start gap-3">
                               <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                               </svg>
-                              <div>
+                          <div>
                                 <p className="font-semibold text-gray-700">Ville</p>
                                 <p className="text-gray-600">{demande.entreprise_ville}</p>
                               </div>
@@ -606,9 +606,9 @@ const DashboardAdmin = () => {
                                 </div>
                               </div>
                             )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
 
                       {/* Profils demandés */}
                       <div className="mt-8">
@@ -629,7 +629,7 @@ const DashboardAdmin = () => {
                                       <svg className="w-4 h-4 text-[#1E40AF]" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
                                       </svg>
-                                      <div>
+                          <div>
                                         <p className="text-xs font-semibold text-[#1E40AF] uppercase tracking-wide">Pôle</p>
                                         <p className="text-sm font-medium text-gray-700">{poles?.find(p => p.id === profil.pole_id)?.nom || `Pôle ${profil.pole_id}`}</p>
                                       </div>
@@ -642,7 +642,7 @@ const DashboardAdmin = () => {
                                       <svg className="w-4 h-4 text-[#1E40AF]" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                                       </svg>
-                                      <div>
+                              <div>
                                         <p className="text-xs font-semibold text-[#1E40AF] uppercase tracking-wide">Filière</p>
                                         <p className="text-sm font-medium text-gray-700">
                                           {profil.filiere_id 
@@ -650,7 +650,7 @@ const DashboardAdmin = () => {
                                             : profil.filiere
                                           }
                                         </p>
-                                      </div>
+                              </div>
                                     </div>
                                   )}
                                   
@@ -660,10 +660,10 @@ const DashboardAdmin = () => {
                                       <svg className="w-4 h-4 text-[#1E40AF]" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h2zm3-2a1 1 0 00-1 1v1h2V5a1 1 0 00-1-1z" clipRule="evenodd" />
                                       </svg>
-                                      <div>
+                              <div>
                                         <p className="text-xs font-semibold text-[#1E40AF] uppercase tracking-wide">Poste</p>
                                         <p className="text-sm font-medium text-gray-700">{profil.poste || profil.titre || profil.fonction}</p>
-                                      </div>
+                              </div>
                                     </div>
                                   )}
                                   
@@ -673,11 +673,11 @@ const DashboardAdmin = () => {
                                       <svg className="w-4 h-4 text-[#1E40AF]" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                                       </svg>
-                                      <div>
+                              <div>
                                         <p className="text-xs font-semibold text-[#1E40AF] uppercase tracking-wide">Durée</p>
                                         <p className="text-sm font-medium text-gray-700">{profil.duree}</p>
-                                      </div>
-                                    </div>
+                              </div>
+                            </div>
                                   )}
                                   
                                   {/* Salaire */}
@@ -690,8 +690,8 @@ const DashboardAdmin = () => {
                                       <div>
                                         <p className="text-xs font-semibold text-[#1E40AF] uppercase tracking-wide">Salaire</p>
                                         <p className="text-sm font-medium text-gray-700">{profil.salaire}</p>
-                                      </div>
-                                    </div>
+                          </div>
+                        </div>
                                   )}
                                   
                                   {/* Nombre de postes */}
@@ -700,7 +700,7 @@ const DashboardAdmin = () => {
                                       <svg className="w-4 h-4 text-[#1E40AF]" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                       </svg>
-                                      <div>
+                          <div>
                                         <p className="text-xs font-semibold text-[#1E40AF] uppercase tracking-wide">Nombre de postes</p>
                                         <p className="text-sm font-medium text-gray-700">{profil.nombre_poste}</p>
                                       </div>
@@ -767,7 +767,7 @@ const DashboardAdmin = () => {
                                       return null;
                                     }
                                     
-                                    return (
+                              return (
                                       <div key={key} className="flex items-center gap-2">
                                         <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -775,15 +775,15 @@ const DashboardAdmin = () => {
                                         <div>
                                           <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{key.replace(/_/g, ' ')}</p>
                                           <p className="text-sm font-medium text-gray-700">{String(value)}</p>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                                  </div>
+                                </div>
+                              );
+                            })}
                                 </div>
                               </div>
                             ))}
+                            </div>
                           </div>
-                        </div>
 
                       </div>
 
@@ -794,17 +794,17 @@ const DashboardAdmin = () => {
                             <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
                             </svg>
-                            Commentaires
-                          </h4>
-                          
-                          {/* Liste des commentaires */}
+                              Commentaires
+                            </h4>
+                            
+                            {/* Liste des commentaires */}
                           <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
-                            {loadingCommentaires ? (
-                              <div className="text-center py-4">
+                              {loadingCommentaires ? (
+                                <div className="text-center py-4">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto"></div>
-                                <p className="text-sm text-gray-500 mt-2">Chargement des commentaires...</p>
-                              </div>
-                            ) : commentaires.length === 0 ? (
+                                  <p className="text-sm text-gray-500 mt-2">Chargement des commentaires...</p>
+                                </div>
+                              ) : commentaires.length === 0 ? (
                               <p className="text-gray-500 text-sm text-center py-4">Aucun commentaire pour le moment</p>
                             ) : (
                               commentaires.map((commentaire) => (
@@ -814,13 +814,13 @@ const DashboardAdmin = () => {
                                       <div className="flex items-center gap-2 mb-2">
                                         <span className="text-sm font-semibold text-gray-700">{commentaire.auteur}</span>
                                         <span className="text-xs text-gray-500">
-                                          {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
+                                        {new Date(commentaire.created_at).toLocaleDateString('fr-FR', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
                                         </span>
                                       </div>
                                       <p className="text-sm text-gray-600">{commentaire.contenu}</p>
@@ -837,38 +837,38 @@ const DashboardAdmin = () => {
                                       </button>
                                     )}
                                   </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                          
-                          {/* Formulaire d'ajout de commentaire */}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            {/* Formulaire d'ajout de commentaire */}
                           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div className="flex items-end gap-3">
-                              <div className="flex-1">
-                                <textarea
-                                  value={nouveauCommentaire}
-                                  onChange={(e) => setNouveauCommentaire(e.target.value)}
-                                  placeholder="Ajouter un commentaire..."
+                                <div className="flex-1">
+                                  <textarea
+                                    value={nouveauCommentaire}
+                                    onChange={(e) => setNouveauCommentaire(e.target.value)}
+                                    placeholder="Ajouter un commentaire..."
                                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-                                  rows={3}
-                                />
-                              </div>
-                              <button
-                                onClick={() => ajouterCommentaire(demande.id)}
-                                disabled={!nouveauCommentaire.trim()}
+                                    rows={3}
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => ajouterCommentaire(demande.id)}
+                                  disabled={!nouveauCommentaire.trim()}
                                 className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 font-semibold"
-                              >
+                                >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                                 </svg>
                                 Publier
-                              </button>
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      )}
-
+                                  </div>
+                                )}
+                                
                       {/* Actions */}
                       <div className="mt-8 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <h4 className="text-lg font-semibold text-gray-800 mb-4">Actions</h4>
@@ -887,19 +887,19 @@ const DashboardAdmin = () => {
                                   </option>
                                 ))}
                               </select>
-                            </div>
+                                </div>
                           ) : (
                             <div className="flex-1 min-w-[200px]">
                               <label className="block text-sm font-medium text-gray-700 mb-2">Statut actuel</label>
                               <div className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg border">
                                 <span className="font-semibold">{currentStatut?.label || 'En attente'}</span>
-                              </div>
-                            </div>
-                          )}
-                          
+                                        </div>
+                                      </div>
+                                    )}
+                                    
                           <div className="flex gap-3">
                             {!isDirecteur && (
-                              <button
+                                      <button
                                 onClick={() => handleDownloadPDF(demande)}
                                 className="px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
                                 title="Télécharger PDF"
@@ -908,22 +908,22 @@ const DashboardAdmin = () => {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                                 PDF
-                              </button>
+                                        </button>
                             )}
                             
-                            <button
+                                      <button
                               onClick={() => handlePrint(demande)}
                               className="px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
                               title="Imprimer"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                              </svg>
+                                            </svg>
                               Imprimer
-                            </button>
+                                      </button>
                           </div>
                         </div>
-                        
+
                         {/* Section Suivi du dossier - Masquée pour le directeur */}
                         {!isDirecteur && (
                           <div className="mt-6 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
@@ -938,45 +938,45 @@ const DashboardAdmin = () => {
                                   <span className="text-gray-800 font-semibold">
                                     {assignedProfile ? `${assignedProfile.prenom} ${assignedProfile.nom}` : <span className="text-gray-400">Non suivi</span>}
                                   </span>
-                                </div>
                               </div>
+                                </div>
                             ) : (
-                              <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4">
                                 <span className="font-medium text-gray-700">Assigner à :</span>
-                                <select
-                                  value={demande.traite_par || ""}
-                                  onChange={(e) => handleAssign(demande.id, e.target.value)}
-                                  disabled={assigning === demande.id}
+                              <select
+                                value={demande.traite_par || ""}
+                                onChange={(e) => handleAssign(demande.id, e.target.value)}
+                                disabled={assigning === demande.id}
                                   className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent bg-white shadow-sm transition-all duration-200"
-                                >
-                                  <option value="">Non suivi</option>
-                                  {profiles.map((profile) => (
-                                    <option key={profile.id} value={profile.id}>
-                                      {profile.prenom} {profile.nom} ({profile.role})
-                                    </option>
-                                  ))}
-                                </select>
-                                {assigning === demande.id && (
+                              >
+                                <option value="">Non suivi</option>
+                                {profiles.map((profile) => (
+                                  <option key={profile.id} value={profile.id}>
+                                    {profile.prenom} {profile.nom} ({profile.role})
+                                  </option>
+                                ))}
+                              </select>
+                              {assigning === demande.id && (
                                   <div className="flex items-center gap-2 text-sm text-gray-500">
                                     <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-500 rounded-full animate-spin"></div>
                                     Mise à jour...
                                   </div>
-                                )}
-                              </div>
+                              )}
+                            </div>
                             )}
                           </div>
                         )}
+                            </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              );
+                    )}
+                  </div>
+                );
             })}
-        </div>
-      )}
+          </div>
+        )}
       </div>
-    </div>
-  );
+      </div>
+    );
 };
 
 export default DashboardAdmin;

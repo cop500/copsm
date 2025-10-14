@@ -998,7 +998,7 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            {!isDirecteur && (
+            {!isDirecteur && activeTab !== 'enquete' && (
               <button
                 onClick={() => {
                   if (activeTab === 'evenements') {
@@ -1085,8 +1085,8 @@ export const ModernEvenementsModule = () => {
         </div>
       </div>
 
-      {/* Statistiques */}
-      {activeTab === 'evenements' ? (
+      {/* Statistiques - Événements et Ateliers uniquement */}
+      {activeTab !== 'enquete' && activeTab === 'evenements' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
@@ -1137,7 +1137,7 @@ export const ModernEvenementsModule = () => {
           </div>
         </div>
       ) : (
-        !isDirecteur && (
+        activeTab === 'ateliers' && !isDirecteur && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
@@ -1190,7 +1190,8 @@ export const ModernEvenementsModule = () => {
         )
       )}
 
-      {/* Filtres et recherche */}
+      {/* Filtres et recherche - Masquer pour l'onglet Enquête */}
+      {activeTab !== 'enquete' && (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Recherche */}
@@ -1294,16 +1295,17 @@ export const ModernEvenementsModule = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Liste des éléments selon l'onglet actif */}
-      {loading ? (
+      {activeTab !== 'enquete' && loading ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Chargement des données...</p>
           </div>
         </div>
-      ) : displayItems.length === 0 ? (
+      ) : activeTab !== 'enquete' && displayItems.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             {activeTab === 'evenements' ? (
@@ -1330,7 +1332,7 @@ export const ModernEvenementsModule = () => {
             )}
           </div>
         </div>
-      ) : (
+      ) : activeTab !== 'enquete' ? (
         <div className={`grid gap-6 ${
           viewMode === 'grid' 
             ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
@@ -2075,7 +2077,7 @@ export const ModernEvenementsModule = () => {
             title="Enquête d'Insertion"
           />
         </div>
-      )}
+      ) : null}
     </div>
   )
 } 
