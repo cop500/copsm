@@ -136,10 +136,7 @@ export default function EnqueteInsertionPublic() {
       if (insertError) throw insertError
 
       setSuccess(true)
-
-      setTimeout(() => {
-        router.push('/enquete-insertion/merci')
-      }, 3000)
+      // Ne pas rediriger automatiquement, rester sur la page de remerciement
     } catch (err: any) {
       console.error('Erreur soumission:', err)
       setError(err.message || 'Erreur lors de la soumission')
@@ -155,7 +152,7 @@ export default function EnqueteInsertionPublic() {
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Merci !</h1>
           <p className="text-gray-600 mb-4">Votre réponse a été enregistrée avec succès.</p>
-          <p className="text-sm text-gray-500">Redirection en cours...</p>
+          <p className="text-sm text-gray-500">Nous vous remercions de votre participation.</p>
         </div>
       </div>
     )

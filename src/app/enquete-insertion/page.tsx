@@ -24,6 +24,7 @@ import {
   Download,
   RefreshCw,
   Copy,
+  Trash2,
 } from 'lucide-react'
 
 export default function EnqueteInsertionDashboard() {
@@ -164,6 +165,28 @@ export default function EnqueteInsertionDashboard() {
       tauxInsertion,
       tauxInsertionPourcent: total > 0 ? Math.round((tauxInsertion / total) * 100) : 0,
     })
+  }
+
+  const deleteReponse = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette réponse ?')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('enquete_reponses')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      // Recharger les données
+      await loadData()
+      alert('Réponse supprimée avec succès')
+    } catch (err) {
+      console.error('Erreur suppression:', err)
+      alert('Erreur lors de la suppression')
+    }
   }
 
   const exportCSV = () => {
@@ -483,6 +506,7 @@ export default function EnqueteInsertionDashboard() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Études</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activité</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -524,6 +548,15 @@ export default function EnqueteInsertionDashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(reponse.date_soumission).toLocaleDateString('fr-FR')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => deleteReponse(reponse.id)}
+                        className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
