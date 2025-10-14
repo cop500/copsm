@@ -8,7 +8,7 @@ import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 export default function EnqueteInsertionPublic() {
   const router = useRouter()
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -42,6 +42,7 @@ export default function EnqueteInsertionPublic() {
 
   const loadPolesFilieres = async () => {
     try {
+      setLoading(true)
       const [polesRes, filieresRes] = await Promise.all([
         supabase.from('poles').select('*').order('nom'),
         supabase.from('filieres').select('*').order('nom'),
@@ -51,6 +52,8 @@ export default function EnqueteInsertionPublic() {
       if (filieresRes.data) setFilieres(filieresRes.data)
     } catch (err) {
       console.error('Erreur chargement pôles/filières:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -69,12 +72,14 @@ export default function EnqueteInsertionPublic() {
         throw new Error('Veuillez sélectionner un pôle et une filière')
       }
 
+      // Validation poursuite d'études
       if (formData.poursuite_etudes) {
         if (!formData.type_formation || !formData.option_specialite || !formData.ville_formation || !formData.etablissement) {
           throw new Error('Veuillez remplir tous les champs de poursuite d\'études')
         }
       }
 
+      // Validation activité professionnelle
       if (formData.en_activite) {
         if (!formData.type_activite) {
           throw new Error('Veuillez sélectionner un type d\'activité')
@@ -94,6 +99,9 @@ export default function EnqueteInsertionPublic() {
           }
         }
       }
+
+      // Note: Un stagiaire peut à la fois poursuivre ses études ET travailler
+      // Les deux sections peuvent être remplies simultanément
 
       const pole = poles.find(p => p.id === formData.pole_id)
       const filiere = filieres.find(f => f.id === formData.filiere_id)
@@ -148,6 +156,17 @@ export default function EnqueteInsertionPublic() {
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Merci !</h1>
           <p className="text-gray-600 mb-4">Votre réponse a été enregistrée avec succès.</p>
           <p className="text-sm text-gray-500">Redirection en cours...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement du formulaire...</p>
         </div>
       </div>
     )
