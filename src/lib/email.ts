@@ -1,16 +1,8 @@
 import { Resend } from 'resend'
+import { getEmailConfig } from './email-config'
 
 // Initialiser Resend avec la clé API
 const resend = new Resend(process.env.RESEND_API_KEY)
-
-// Liste des emails destinataires
-const RECIPIENT_EMAILS = [
-  'omar.oumouzoune@ofppt.ma',
-  'ABDELHAMID.INAJJAREN@ofppt.ma',
-  'SIHAME.ELOMARI@ofppt.ma',
-  'IMANE.IDRISSI@ofppt.ma',
-  'BADR.IJJAALI@ofppt.ma'
-]
 
 interface DemandeEntreprise {
   id: string
@@ -22,34 +14,40 @@ interface DemandeEntreprise {
   message?: string
 }
 
+interface EmailConfig {
+  enabled: boolean
+  subject: string
+  message: string
+  recipient_emails: string[]
+}
+
 export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
   try {
+    // Récupérer la configuration
+    const config = await getEmailConfig()
+    
+    if (!config || !config.enabled) {
+      console.log('⚠️ Notifications email désactivées')
+      return { success: false, reason: 'notifications_disabled' }
+    }
+
     // Construire le lien vers la demande
     const demandeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/entreprises-gestion?demande=${demande.id}`
 
-    // Contenu de l'email
-    const emailContent = `
-Bonjour,
-
-Une nouvelle demande d'entreprise a été enregistrée dans le système COP.
-
-Entreprise : ${demande.nom_entreprise}
-${demande.nom_contact ? `Contact : ${demande.nom_contact}` : ''}
-${demande.email ? `Email : ${demande.email}` : ''}
-${demande.telephone ? `Téléphone : ${demande.telephone}` : ''}
-${demande.type_demande ? `Type de demande : ${demande.type_demande}` : ''}
-
-Lien : ${demandeUrl}
-
-Cordialement,
-Notification automatique - Système COP
-    `.trim()
+    // Remplacer les variables dans le message
+    let emailContent = config.message
+      .replace('{nom_entreprise}', demande.nom_entreprise)
+      .replace('{nom_contact}', demande.nom_contact || 'Non renseigné')
+      .replace('{email}', demande.email || 'Non renseigné')
+      .replace('{telephone}', demande.telephone || 'Non renseigné')
+      .replace('{type_demande}', demande.type_demande || 'Non renseigné')
+      .replace('{lien}', demandeUrl)
 
     // Envoyer l'email à tous les destinataires
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'COP System <onboarding@resend.dev>',
-      to: RECIPIENT_EMAILS,
-      subject: 'Nouvelle demande entreprise à traiter',
+      to: config.recipient_emails,
+      subject: config.subject,
       text: emailContent,
     })
 
@@ -62,6 +60,43 @@ Notification automatique - Système COP
     return { success: true, data }
   } catch (error) {
     console.error('❌ Erreur notification email:', error)
+    throw error
+  }
+}
+
+export async function sendTestEmail(demande: DemandeEntreprise & { config: EmailConfig }) {
+  try {
+    const { config } = demande
+    
+    // Construire le lien vers la demande
+    const demandeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/entreprises-gestion`
+
+    // Remplacer les variables dans le message
+    let emailContent = config.message
+      .replace('{nom_entreprise}', demande.nom_entreprise)
+      .replace('{nom_contact}', demande.nom_contact || 'Non renseigné')
+      .replace('{email}', demande.email || 'Non renseigné')
+      .replace('{telephone}', demande.telephone || 'Non renseigné')
+      .replace('{type_demande}', demande.type_demande || 'Non renseigné')
+      .replace('{lien}', demandeUrl)
+
+    // Envoyer l'email de test
+    const { data, error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'COP System <onboarding@resend.dev>',
+      to: config.recipient_emails,
+      subject: `[TEST] ${config.subject}`,
+      text: emailContent,
+    })
+
+    if (error) {
+      console.error('❌ Erreur envoi email test:', error)
+      throw error
+    }
+
+    console.log('✅ Email de test envoyé avec succès:', data)
+    return { success: true, data }
+  } catch (error) {
+    console.error('❌ Erreur email test:', error)
     throw error
   }
 }
