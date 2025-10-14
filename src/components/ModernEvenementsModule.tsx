@@ -48,7 +48,7 @@ export const ModernEvenementsModule = () => {
   const [showEventDetail, setShowEventDetail] = useState(false)
   const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
-  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers'>('evenements')
+  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'enquete'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsManager, setShowInscriptionsManager] = useState(false)
@@ -908,11 +908,12 @@ export const ModernEvenementsModule = () => {
       return filteredEvenements.sort((a, b) => 
         new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
       )
-    } else {
+    } else if (activeTab === 'ateliers') {
       return filteredAteliers.sort((a, b) => 
         new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
       )
     }
+    return []
   }, [activeTab, filteredEvenements, filteredAteliers])
 
   // Charger au démarrage
@@ -1085,7 +1086,7 @@ export const ModernEvenementsModule = () => {
         </div>
       </div>
 
-      {/* Statistiques - Événements et Ateliers uniquement */}
+      {/* Statistiques */}
       {activeTab !== 'enquete' && activeTab === 'evenements' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -1190,7 +1191,7 @@ export const ModernEvenementsModule = () => {
         )
       )}
 
-      {/* Filtres et recherche - Masquer pour l'onglet Enquête */}
+      {/* Filtres et recherche */}
       {activeTab !== 'enquete' && (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -1437,7 +1438,7 @@ export const ModernEvenementsModule = () => {
             ))
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Formulaire modal */}
       {showForm && (
@@ -2077,7 +2078,7 @@ export const ModernEvenementsModule = () => {
             title="Enquête d'Insertion"
           />
         </div>
-      ) : null}
+      )}
     </div>
   )
 } 
