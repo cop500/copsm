@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/lib/supabase';
+import { sendNewDemandeNotification } from '@/lib/email';
 
 const BLEU_FONCE = "#004080";
 const dureesContrat = ["1 mois", "3 mois", "6 mois", "12 mois", "Autre"];
@@ -176,7 +177,7 @@ export default function DemandeEntreprisePage() {
         fichier_url = publicUrlData.publicUrl;
       }
       // 2. Insertion dans la table demandes_entreprises
-      const { error: insertError } = await supabase.from('demandes_entreprises').insert([
+      const { data: insertedData, error: insertError } = await supabase.from('demandes_entreprises').insert([
         {
           secteur: form.secteur === "Autre" ? form.secteur_autre : form.secteur,
           entreprise_nom: form.entreprise_nom,
@@ -192,11 +193,32 @@ export default function DemandeEntreprisePage() {
           fichier_url,
           type_demande: form.evenement_type === 'jobday' ? 'evenement' : 'cv',
         }
-      ]);
+      ]).select();
+      
       if (insertError) {
         console.error('Erreur Supabase:', JSON.stringify(insertError, null, 2));
         throw new Error("Erreur lors de l'enregistrement de la demande");
       }
+
+      // 3. Envoyer la notification par email
+      if (insertedData && insertedData[0]) {
+        try {
+          await sendNewDemandeNotification({
+            id: insertedData[0].id,
+            nom_entreprise: form.entreprise_nom,
+            nom_contact: form.contact_nom,
+            email: form.contact_email,
+            telephone: form.contact_tel,
+            type_demande: form.evenement_type === 'jobday' ? 'Événement' : 'CV',
+            message: `Demande de ${form.evenement_type === 'jobday' ? 'Job Day' : 'CV'}`
+          });
+          console.log('✅ Email de notification envoyé avec succès');
+        } catch (emailError) {
+          console.error('⚠️ Erreur envoi email (non bloquant):', emailError);
+          // On continue même si l'email échoue
+        }
+      }
+
       setSuccess("Votre demande a bien été envoyée !");
       handleReset();
     } catch (err: unknown) {
