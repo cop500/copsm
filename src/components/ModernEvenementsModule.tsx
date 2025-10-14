@@ -1068,6 +1068,19 @@ export const ModernEvenementsModule = () => {
                 Ateliers
               </button>
             )}
+            {(isAdmin || currentUser?.email === 'siham.elomari@example.com') && (
+              <button
+                onClick={() => setActiveTab('enquete')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'enquete'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                Enquête d'Insertion
+              </button>
+            )}
           </nav>
         </div>
       </div>
@@ -2049,6 +2062,18 @@ export const ModernEvenementsModule = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Onglet Enquête d'Insertion */}
+      {activeTab === 'enquete' && (
+        <div className="min-h-screen bg-gray-50">
+          <iframe 
+            src="/enquete-insertion"
+            className="w-full border-0"
+            style={{ height: 'calc(100vh - 200px)' }}
+            title="Enquête d'Insertion"
+          />
         </div>
       )}
     </div>
