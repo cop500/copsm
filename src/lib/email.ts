@@ -81,12 +81,15 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
 
       console.log('📧 Paramètres EmailJS:', templateParams)
 
-      return emailjs.send(
+      const result = await emailjs.send(
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         templateParams,
         EMAILJS_PUBLIC_KEY
       )
+      
+      console.log('📧 Résultat EmailJS pour', recipientEmail, ':', result)
+      return result
     })
 
     const results = await Promise.all(emailPromises)
