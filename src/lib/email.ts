@@ -1,6 +1,9 @@
 import { getEmailConfig } from './email-config'
 import emailjs from '@emailjs/browser'
 
+// Initialiser EmailJS
+emailjs.init('bnj9zb9qdXb4RjnvB')
+
 interface DemandeEntreprise {
   id: string
   nom_entreprise: string
@@ -25,12 +28,25 @@ const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB'
 
 export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
   try {
+    console.log('📧 Début envoi notification email...')
+    
     // Récupérer la configuration
     const config = await getEmailConfig()
+    console.log('📋 Configuration récupérée:', config)
     
-    if (!config || !config.enabled) {
+    if (!config) {
+      console.error('❌ Configuration email non trouvée')
+      return { success: false, reason: 'config_not_found' }
+    }
+    
+    if (!config.enabled) {
       console.log('⚠️ Notifications email désactivées')
       return { success: false, reason: 'notifications_disabled' }
+    }
+    
+    if (!config.recipient_emails || config.recipient_emails.length === 0) {
+      console.error('❌ Aucun destinataire configuré')
+      return { success: false, reason: 'no_recipients' }
     }
 
     // Construire le lien vers la demande
