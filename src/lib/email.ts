@@ -20,7 +20,7 @@ interface EmailConfig {
 
 // Configuration EmailJS
 const EMAILJS_SERVICE_ID = 'service_exp84pb'
-const EMAILJS_TEMPLATE_ID = 'template_demande' // À configurer dans EmailJS
+const EMAILJS_TEMPLATE_ID = 'template_rjxiwdp'
 const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB'
 
 export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
