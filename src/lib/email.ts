@@ -62,7 +62,11 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
       .replace('{lien}', demandeUrl)
 
     // Envoyer l'email via EmailJS
+    console.log('📧 Destinataires configurés:', config.recipient_emails)
+    
     const emailPromises = config.recipient_emails.map(async (recipientEmail) => {
+      console.log('📧 Envoi vers:', recipientEmail)
+      
       const templateParams = {
         to_email: recipientEmail,
         subject: config.subject,
@@ -74,6 +78,8 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
         type_demande: demande.type_demande || 'Non renseigné',
         lien: demandeUrl,
       }
+
+      console.log('📧 Paramètres EmailJS:', templateParams)
 
       return emailjs.send(
         EMAILJS_SERVICE_ID,
