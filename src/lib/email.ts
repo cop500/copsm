@@ -68,12 +68,12 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
       console.log('📧 Envoi vers:', recipientEmail)
       
       const templateParams = {
-        to_email: recipientEmail,
+        email: recipientEmail, // Utiliser 'email' au lieu de 'to_email'
         subject: config.subject,
         message: emailContent,
         nom_entreprise: demande.nom_entreprise,
         nom_contact: demande.nom_contact || 'Non renseigné',
-        email: demande.email || 'Non renseigné',
+        email_contact: demande.email || 'Non renseigné', // Renommer pour éviter le conflit
         telephone: demande.telephone || 'Non renseigné',
         type_demande: demande.type_demande || 'Non renseigné',
         lien: demandeUrl,
@@ -120,12 +120,12 @@ export async function sendTestEmail(demande: DemandeEntreprise & { config: Email
     // Envoyer l'email de test via EmailJS
     const emailPromises = config.recipient_emails.map(async (recipientEmail) => {
       const templateParams = {
-        to_email: recipientEmail,
+        email: recipientEmail, // Utiliser 'email' au lieu de 'to_email'
         subject: `[TEST] ${config.subject}`,
         message: emailContent,
         nom_entreprise: demande.nom_entreprise,
         nom_contact: demande.nom_contact || 'Non renseigné',
-        email: demande.email || 'Non renseigné',
+        email_contact: demande.email || 'Non renseigné', // Renommer pour éviter le conflit
         telephone: demande.telephone || 'Non renseigné',
         type_demande: demande.type_demande || 'Non renseigné',
         lien: demandeUrl,
