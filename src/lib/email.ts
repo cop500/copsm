@@ -1,8 +1,4 @@
-import { Resend } from 'resend'
 import { getEmailConfig } from './email-config'
-
-// Initialiser Resend avec la clé API (seulement si disponible)
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 interface DemandeEntreprise {
   id: string
@@ -23,12 +19,6 @@ interface EmailConfig {
 
 export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
   try {
-    // Vérifier si Resend est configuré
-    if (!resend) {
-      console.log('⚠️ Resend non configuré - notifications email désactivées')
-      return { success: false, reason: 'resend_not_configured' }
-    }
-
     // Récupérer la configuration
     const config = await getEmailConfig()
     
@@ -49,19 +39,26 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
       .replace('{type_demande}', demande.type_demande || 'Non renseigné')
       .replace('{lien}', demandeUrl)
 
-    // Envoyer l'email à tous les destinataires
-    const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'COP System <onboarding@resend.dev>',
-      to: config.recipient_emails,
-      subject: config.subject,
-      text: emailContent,
+    // Envoyer l'email via l'API route
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: config.recipient_emails,
+        subject: config.subject,
+        text: emailContent,
+        from: process.env.RESEND_FROM_EMAIL || 'COP System <onboarding@resend.dev>',
+      }),
     })
 
-    if (error) {
-      console.error('❌ Erreur envoi email:', error)
-      throw error
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Erreur lors de l\'envoi de l\'email')
     }
 
+    const data = await response.json()
     console.log('✅ Email envoyé avec succès:', data)
     return { success: true, data }
   } catch (error) {
@@ -72,12 +69,6 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
 
 export async function sendTestEmail(demande: DemandeEntreprise & { config: EmailConfig }) {
   try {
-    // Vérifier si Resend est configuré
-    if (!resend) {
-      console.log('⚠️ Resend non configuré - impossible d\'envoyer l\'email de test')
-      throw new Error('Resend non configuré')
-    }
-
     const { config } = demande
     
     // Construire le lien vers la demande
@@ -92,19 +83,26 @@ export async function sendTestEmail(demande: DemandeEntreprise & { config: Email
       .replace('{type_demande}', demande.type_demande || 'Non renseigné')
       .replace('{lien}', demandeUrl)
 
-    // Envoyer l'email de test
-    const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'COP System <onboarding@resend.dev>',
-      to: config.recipient_emails,
-      subject: `[TEST] ${config.subject}`,
-      text: emailContent,
+    // Envoyer l'email de test via l'API route
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: config.recipient_emails,
+        subject: `[TEST] ${config.subject}`,
+        text: emailContent,
+        from: process.env.RESEND_FROM_EMAIL || 'COP System <onboarding@resend.dev>',
+      }),
     })
 
-    if (error) {
-      console.error('❌ Erreur envoi email test:', error)
-      throw error
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Erreur lors de l\'envoi de l\'email de test')
     }
 
+    const data = await response.json()
     console.log('✅ Email de test envoyé avec succès:', data)
     return { success: true, data }
   } catch (error) {
@@ -112,4 +110,3 @@ export async function sendTestEmail(demande: DemandeEntreprise & { config: Email
     throw error
   }
 }
-
