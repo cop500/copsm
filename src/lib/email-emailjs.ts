@@ -1,5 +1,5 @@
-import { getEmailConfig } from './email-config'
 import emailjs from '@emailjs/browser'
+import { getEmailConfig } from './email-config'
 
 interface DemandeEntreprise {
   id: string
@@ -18,8 +18,8 @@ interface EmailConfig {
   recipient_emails: string[]
 }
 
-// Configuration EmailJS
-const EMAILJS_SERVICE_ID = 'service_exp84pb'
+// Initialiser EmailJS
+const EMAILJS_SERVICE_ID = 'service_cop' // À configurer dans EmailJS
 const EMAILJS_TEMPLATE_ID = 'template_demande' // À configurer dans EmailJS
 const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB'
 
@@ -45,7 +45,7 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
       .replace('{type_demande}', demande.type_demande || 'Non renseigné')
       .replace('{lien}', demandeUrl)
 
-    // Envoyer l'email via EmailJS
+    // Envoyer l'email à tous les destinataires
     const emailPromises = config.recipient_emails.map(async (recipientEmail) => {
       const templateParams = {
         to_email: recipientEmail,
@@ -92,7 +92,7 @@ export async function sendTestEmail(demande: DemandeEntreprise & { config: Email
       .replace('{type_demande}', demande.type_demande || 'Non renseigné')
       .replace('{lien}', demandeUrl)
 
-    // Envoyer l'email de test via EmailJS
+    // Envoyer l'email de test à tous les destinataires
     const emailPromises = config.recipient_emails.map(async (recipientEmail) => {
       const templateParams = {
         to_email: recipientEmail,
