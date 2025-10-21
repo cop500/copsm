@@ -17,7 +17,11 @@ export function useCVConnect() {
     try {
       const { data, error } = await supabase
         .from('cv_connect_permissions')
-        .select('*')
+        .select(`
+          *,
+          user:profiles!cv_connect_permissions_user_id_fkey(email, nom, prenom),
+          granted_by_user:profiles!cv_connect_permissions_granted_by_fkey(email, nom, prenom)
+        `)
         .order('granted_at', { ascending: false })
 
       if (error) throw error
@@ -76,12 +80,37 @@ export function useCVConnect() {
 
   // Accorder une permission
   const grantPermission = async (
-    userId: string, 
+    userEmail: string, 
     role: CVConnectRole, 
     grantedBy: string,
     expiresAt?: string
   ) => {
     try {
+      // D'abord, récupérer l'UUID de l'utilisateur à partir de son email
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', userEmail)
+        .single()
+
+      if (userError || !userData) {
+        throw new Error(`Utilisateur avec l'email ${userEmail} non trouvé`)
+      }
+
+      const userId = userData.id
+
+      // Vérifier si l'utilisateur a déjà une permission
+      const { data: existingPermission } = await supabase
+        .from('cv_connect_permissions')
+        .select('id')
+        .eq('user_id', userId)
+        .single()
+
+      if (existingPermission) {
+        throw new Error('Cet utilisateur a déjà une permission CV Connect')
+      }
+
+      // Insérer la nouvelle permission
       const { error } = await supabase
         .from('cv_connect_permissions')
         .insert([{
