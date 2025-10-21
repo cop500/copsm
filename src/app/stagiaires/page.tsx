@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useCandidatures } from '@/hooks/useCandidatures'
 import { useSettings } from '@/hooks/useSettings'
 import { useRole } from '@/hooks/useRole'
+import { useAuth } from '@/hooks/useAuth'
 import { 
   X, Save, Trash2, Eye, Clock, CheckCircle, AlertTriangle,
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
@@ -40,9 +41,20 @@ export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
   const { poles, filieres, loading: settingsLoading } = useSettings()
   const { isDirecteur } = useRole()
+  const { profile } = useAuth()
+  
+  // Vérifier si l'utilisateur est business_developer (admin)
+  const isAdmin = profile?.role === 'business_developer'
   
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState('candidatures')
+  
+  // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect, rediriger vers candidatures
+  React.useEffect(() => {
+    if (!isAdmin && activeTab === 'cv-connect') {
+      setActiveTab('candidatures')
+    }
+  }, [isAdmin, activeTab])
   
   // États pour les filtres et actions
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
@@ -352,7 +364,7 @@ export default function StagiairesPage() {
                 </div>
               </button>
               
-              {isDirecteur && (
+              {isAdmin && (
                 <button
                   onClick={() => setActiveTab('cv-connect')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -1147,8 +1159,8 @@ export default function StagiairesPage() {
           </div>
         )}
 
-        {/* CV Connect Tab - Visible seulement pour les directeurs */}
-        {activeTab === 'cv-connect' && isDirecteur && (
+        {/* CV Connect Tab - Visible seulement pour les business_developer (admin) */}
+        {activeTab === 'cv-connect' && isAdmin && (
           <div className="space-y-6">
             {/* CV Connect Header */}
             <div className="bg-white rounded-lg shadow p-6">
