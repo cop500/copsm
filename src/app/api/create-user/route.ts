@@ -24,30 +24,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Créer l'utilisateur dans auth.users via l'API admin
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: email,
-      password: 'temp_password_123!',
-      email_confirm: true,
-      user_metadata: {
-        nom: email.split('@')[0].split('.')[0] || 'Utilisateur',
-        prenom: email.split('@')[0].split('.')[1] || 'CV Connect'
-      }
-    })
+    // Générer un UUID pour l'utilisateur
+    const userId = crypto.randomUUID()
 
-    if (authError || !authUser.user) {
-      return NextResponse.json({ 
-        error: `Erreur création auth: ${authError?.message}` 
-      }, { status: 500 })
-    }
-
-    const authUserId = authUser.user.id
-
-    // Créer le profil
+    // Créer directement le profil (sans auth.users pour CV Connect)
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .insert([{
-        id: authUserId,
+        id: userId,
         email: email,
         nom: email.split('@')[0].split('.')[0] || 'Utilisateur',
         prenom: email.split('@')[0].split('.')[1] || 'CV Connect',
