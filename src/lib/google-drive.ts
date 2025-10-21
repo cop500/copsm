@@ -7,7 +7,11 @@ import { google } from 'googleapis'
 // Configuration Google Drive
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || 'CV_Connect_Folder_ID'
 const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
+  ?.replace(/\\n/g, '\n')
+  ?.replace(/^"/, '')
+  ?.replace(/"$/, '')
+  ?.trim()
 
 // Initialiser l'authentification Google Drive
 const getGoogleDriveAuth = () => {
