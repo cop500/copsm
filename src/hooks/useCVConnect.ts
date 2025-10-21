@@ -151,28 +151,23 @@ export function useCVConnect() {
       if (userError || !userData) {
         console.log(`Création automatique du profil pour ${userEmail}`)
         
-        // Générer un UUID temporaire
-        const tempId = crypto.randomUUID()
-        
-        const { data: newUserData, error: createError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: tempId,
-            email: userEmail,
-            nom: userEmail.split('@')[0].split('.')[0] || 'Utilisateur',
-            prenom: userEmail.split('@')[0].split('.')[1] || 'CV Connect',
-            role: 'conseillere_carriere', // Rôle par défaut
-            actif: true
-          }])
-          .select('id')
-          .single()
+        // Utiliser l'API pour créer l'utilisateur
+        const response = await fetch('/api/create-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: userEmail })
+        })
 
-        if (createError || !newUserData) {
-          throw new Error(`Impossible de créer le profil pour ${userEmail}: ${createError?.message}`)
+        const result = await response.json()
+
+        if (!response.ok || !result.success) {
+          throw new Error(`Impossible de créer l'utilisateur pour ${userEmail}: ${result.error}`)
         }
 
-        userId = newUserData.id
-        console.log(`Profil créé avec l'ID: ${userId}`)
+        userId = result.userId
+        console.log(`Utilisateur créé avec l'ID: ${userId}`)
       }
 
       // Vérifier si l'utilisateur a déjà une permission
