@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSettings } from '@/hooks/useSettings'
+import { useAuth } from '@/hooks/useAuth'
 import { Upload, Send, CheckCircle, FileText, Users, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
@@ -62,6 +63,7 @@ interface Candidature {
 }
 
 export default function CandidaturePage() {
+  const { user, profile } = useAuth()
   const [activeTab, setActiveTab] = useState('candidatures')
   const [demandes, setDemandes] = useState<DemandeEntreprise[]>([])
   const [candidatures, setCandidatures] = useState<Candidature[]>([])
@@ -85,10 +87,20 @@ export default function CandidaturePage() {
 
   const { poles, filieres } = useSettings()
 
+  // Vérifier si l'utilisateur est admin
+  const isAdmin = profile?.role === 'business_developer' || profile?.role === 'manager_cop'
+
   useEffect(() => {
     loadDemandes()
     loadCandidatures()
   }, [])
+
+  // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect, rediriger vers candidatures
+  useEffect(() => {
+    if (!isAdmin && activeTab === 'cv-connect') {
+      setActiveTab('candidatures')
+    }
+  }, [isAdmin, activeTab])
 
   const loadDemandes = async () => {
     try {
@@ -290,22 +302,24 @@ export default function CandidaturePage() {
               </div>
             </button>
             
-            <button
-              onClick={() => setActiveTab('cv-connect')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'cv-connect'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <FileText className="w-5 h-5" />
-                <span>CV Connect</span>
-                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                  Nouveau
-                </span>
-              </div>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('cv-connect')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'cv-connect'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <FileText className="w-5 h-5" />
+                  <span>CV Connect</span>
+                  <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                    Nouveau
+                  </span>
+                </div>
+              </button>
+            )}
           </nav>
         </div>
 
@@ -536,8 +550,8 @@ export default function CandidaturePage() {
           </div>
         )}
 
-        {/* CV Connect Tab */}
-        {activeTab === 'cv-connect' && (
+        {/* CV Connect Tab - Visible seulement pour les admins */}
+        {activeTab === 'cv-connect' && isAdmin && (
           <div className="space-y-6">
             {/* CV Connect Header */}
             <div className="bg-white rounded-lg shadow p-6">
