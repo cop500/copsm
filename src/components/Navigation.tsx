@@ -30,11 +30,6 @@ const navigation = [
     icon: GraduationCap,
   },
   {
-    name: 'Candidature',
-    href: '/candidature',
-    icon: Send,
-  },
-  {
     name: 'Demandes entreprises',
     href: '/dashboard-admin',
     icon: Users,

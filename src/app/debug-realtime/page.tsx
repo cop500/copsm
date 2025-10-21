@@ -151,7 +151,7 @@ export default function DebugRealtimePage() {
           <div className="text-gray-500">
             Aucun événement Realtime reçu. 
             <br />
-            <strong>Test:</strong> Soumettez une candidature via <code>copsm.space/candidature</code> pour voir les événements.
+            <strong>Test:</strong> Soumettez une candidature via <code>copsm.space/stagiaires</code> pour voir les événements.
           </div>
         )}
       </div>
