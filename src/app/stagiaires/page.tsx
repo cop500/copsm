@@ -12,8 +12,10 @@ import {
   Send, Printer, CalendarDays, PhoneCall, Mail as MailIcon, Star as StarIcon,
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
-  ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon
+  ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
+  Upload
 } from 'lucide-react'
+import Link from 'next/link'
 
 // Types pour les nouveaux statuts
 type CandidatureStatus = 
@@ -38,6 +40,9 @@ export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
   const { poles, filieres, loading: settingsLoading } = useSettings()
   const { isDirecteur } = useRole()
+  
+  // État pour l'onglet actif
+  const [activeTab, setActiveTab] = useState('candidatures')
   
   // États pour les filtres et actions
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
@@ -330,8 +335,49 @@ export default function StagiairesPage() {
             </div>
           </div>
 
-      {/* Statistiques des candidatures */}
-      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+          {/* Navigation Tabs */}
+          <div className="border-b border-gray-200 mb-6">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('candidatures')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'candidatures'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Send className="w-5 h-5" />
+                  <span>Candidatures reçues</span>
+                </div>
+              </button>
+              
+              {isDirecteur && (
+                <button
+                  onClick={() => setActiveTab('cv-connect')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'cv-connect'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-5 h-5" />
+                    <span>CV Connect</span>
+                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                      Nouveau
+                    </span>
+                  </div>
+                </button>
+              )}
+            </nav>
+          </div>
+
+        {/* Tab Content */}
+        {activeTab === 'candidatures' && (
+          <div>
+            {/* Statistiques des candidatures */}
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
         {Object.entries(statusConfig).map(([status, config]) => {
           const Icon = config.icon
           return (
@@ -1097,6 +1143,75 @@ export default function StagiairesPage() {
          </div>
        </div>
      )}
+
+          </div>
+        )}
+
+        {/* CV Connect Tab - Visible seulement pour les directeurs */}
+        {activeTab === 'cv-connect' && isDirecteur && (
+          <div className="space-y-6">
+            {/* CV Connect Header */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <FileText className="w-8 h-8 text-blue-600" />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">CV Connect</h2>
+                  <p className="text-gray-600">Gestion automatisée des CV des stagiaires</p>
+                </div>
+              </div>
+            </div>
+
+            {/* CV Connect Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Gestion des permissions */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center mb-4">
+                  <Users className="w-6 h-6 text-blue-600 mr-3" />
+                  <h3 className="text-lg font-medium text-gray-900">Gestion des permissions</h3>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  Accordez des permissions aux utilisateurs pour qu'ils puissent consulter les CV des stagiaires.
+                </p>
+                <Link
+                  href="/cv-connect/admin"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Accéder à l'administration
+                </Link>
+              </div>
+
+              {/* Formulaire public */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center mb-4">
+                  <Upload className="w-6 h-6 text-green-600 mr-3" />
+                  <h3 className="text-lg font-medium text-gray-900">Formulaire public</h3>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  Lien public pour que les stagiaires puissent déposer leur CV.
+                </p>
+                <Link
+                  href="/cv-connect/public"
+                  target="_blank"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Voir le formulaire
+                </Link>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-blue-900 mb-2">Comment utiliser CV Connect ?</h3>
+              <div className="space-y-2 text-blue-800">
+                <p>1. <strong>Administration :</strong> Gérez les permissions des utilisateurs qui peuvent consulter les CV</p>
+                <p>2. <strong>Formulaire public :</strong> Partagez le lien avec les stagiaires pour qu'ils déposent leur CV</p>
+                <p>3. <strong>Automatisation :</strong> Les CV sont automatiquement organisés par pôle et filière sur Google Drive</p>
+              </div>
+            </div>
+          </div>
+        )}
 
    </div>
  )
