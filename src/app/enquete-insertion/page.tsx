@@ -70,8 +70,8 @@ export default function EnqueteInsertionDashboard() {
       .eq('id', currentUser.id)
       .single()
 
-    // Autoriser admin et Siham El Omari
-    const isAuthorized = profile?.role === 'business_developer' || currentUser.email === 'siham.elomari@example.com'
+    // Autoriser admin et conseillères carrière
+    const isAuthorized = profile?.role === 'business_developer' || profile?.role === 'conseillere_carriere'
 
     if (!isAuthorized) {
       router.push('/dashboard')

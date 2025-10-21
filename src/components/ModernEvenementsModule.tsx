@@ -1069,7 +1069,7 @@ export const ModernEvenementsModule = () => {
                 Ateliers
               </button>
             )}
-            {(isAdmin || currentUser?.email === 'siham.elomari@example.com') && (
+            {(isAdmin || currentUser?.role === 'conseillere_carriere') && (
               <button
                 onClick={() => setActiveTab('enquete')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
