@@ -113,20 +113,31 @@ export const uploadFile = async (
       parents: [parentFolderId],
     }
 
-    const media = {
-      mimeType,
-      body: fileBuffer,
-    }
+    // Créer un fichier temporaire et utiliser fs.createReadStream
+    const fs = require('fs')
+    const path = require('path')
+    const os = require('os')
+    
+    const tempFilePath = path.join(os.tmpdir(), `temp_${Date.now()}_${fileName}`)
+    fs.writeFileSync(tempFilePath, fileBuffer)
+    
+    try {
+      // Utiliser la méthode create avec des paramètres simplifiés
+      const response = await drive.files.create({
+        requestBody: fileMetadata,
+        media: fs.createReadStream(tempFilePath),
+        fields: 'id, webViewLink',
+      })
 
-    const response = await drive.files.create({
-      requestBody: fileMetadata,
-      media,
-      fields: 'id, webViewLink',
-    })
-
-    return {
-      fileId: response.data.id || '',
-      webViewLink: response.data.webViewLink || '',
+      return {
+        fileId: response.data.id || '',
+        webViewLink: response.data.webViewLink || '',
+      }
+    } finally {
+      // Supprimer le fichier temporaire
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath)
+      }
     }
   } catch (error) {
     console.error('Erreur upload fichier Google Drive:', error)
