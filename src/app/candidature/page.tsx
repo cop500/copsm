@@ -11,7 +11,7 @@ import {
 export default function CandidaturePage() {
   const [activeTab, setActiveTab] = useState('demandes')
 
-  return (
+    return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
@@ -22,9 +22,9 @@ export default function CandidaturePage() {
               Gestion des demandes d'emploi et des CV des stagiaires
             </p>
           </div>
-        </div>
       </div>
-
+        </div>
+        
       {/* Navigation Tabs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="border-b border-gray-200">
@@ -43,7 +43,7 @@ export default function CandidaturePage() {
               </div>
             </button>
             
-            <button
+              <button 
               onClick={() => setActiveTab('cv-connect')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'cv-connect'
@@ -55,7 +55,7 @@ export default function CandidaturePage() {
                 <FileText className="w-5 h-5" />
                 <span>CV Connect</span>
               </div>
-            </button>
+              </button>
           </nav>
         </div>
 
@@ -69,13 +69,13 @@ export default function CandidaturePage() {
                   <div className="flex items-center">
                     <div className="p-2 bg-blue-100 rounded-lg">
                       <Send className="w-6 h-6 text-blue-600" />
-                    </div>
+            </div>
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Total demandes</p>
                       <p className="text-2xl font-bold text-gray-900">0</p>
-                    </div>
-                  </div>
-                </div>
+          </div>
+        </div>
+      </div>
                 
                 <div className="bg-white p-6 rounded-lg shadow">
                   <div className="flex items-center">
@@ -87,8 +87,8 @@ export default function CandidaturePage() {
                       <p className="text-2xl font-bold text-gray-900">0</p>
                     </div>
                   </div>
-                </div>
-                
+      </div>
+      
                 <div className="bg-white p-6 rounded-lg shadow">
                   <div className="flex items-center">
                     <div className="p-2 bg-yellow-100 rounded-lg">
@@ -109,10 +109,10 @@ export default function CandidaturePage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Urgentes</p>
                       <p className="text-2xl font-bold text-gray-900">0</p>
-                    </div>
-                  </div>
                 </div>
               </div>
+            </div>
+          </div>
 
               {/* Actions */}
               <div className="bg-white p-6 rounded-lg shadow">
@@ -131,9 +131,9 @@ export default function CandidaturePage() {
                       <Plus className="w-4 h-4 mr-2" />
                       Nouvelle demande
                     </button>
-                  </div>
-                </div>
-                
+              </div>
+            </div>
+
                 <div className="mt-6 text-center py-12">
                   <Send className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune demande d'emploi</h3>
@@ -142,10 +142,10 @@ export default function CandidaturePage() {
                     <Plus className="w-4 h-4 mr-2" />
                     Créer une demande
                   </button>
-                </div>
-              </div>
-            </div>
-          )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
           {activeTab === 'cv-connect' && (
             <div className="space-y-6">
@@ -159,10 +159,10 @@ export default function CandidaturePage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Permissions actives</p>
                       <p className="text-2xl font-bold text-gray-900">0</p>
-                    </div>
+                  </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white p-6 rounded-lg shadow">
                   <div className="flex items-center">
                     <div className="p-2 bg-green-100 rounded-lg">
@@ -171,10 +171,10 @@ export default function CandidaturePage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Total soumissions</p>
                       <p className="text-2xl font-bold text-gray-900">0</p>
-                    </div>
+                  </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white p-6 rounded-lg shadow">
                   <div className="flex items-center">
                     <div className="p-2 bg-yellow-100 rounded-lg">
@@ -183,10 +183,10 @@ export default function CandidaturePage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Nouvelles soumissions</p>
                       <p className="text-2xl font-bold text-gray-900">0</p>
-                    </div>
+                  </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white p-6 rounded-lg shadow">
                   <div className="flex items-center">
                     <div className="p-2 bg-purple-100 rounded-lg">
@@ -196,9 +196,9 @@ export default function CandidaturePage() {
                       <p className="text-sm font-medium text-gray-600">Traitées</p>
                       <p className="text-2xl font-bold text-gray-900">0</p>
                     </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* CV Connect Actions */}
               <div className="bg-white p-6 rounded-lg shadow">
@@ -222,7 +222,7 @@ export default function CandidaturePage() {
                     </Link>
                   </div>
                 </div>
-                
+
                 <div className="mt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Gestion des permissions */}
@@ -258,9 +258,9 @@ export default function CandidaturePage() {
                       >
                         Voir le formulaire
                       </Link>
-                    </div>
-                  </div>
-                </div>
+              </div>
+            </div>
+          </div>
               </div>
             </div>
           )}
