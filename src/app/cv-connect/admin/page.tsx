@@ -597,7 +597,7 @@ export default function CVConnectAdminPage() {
             </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
