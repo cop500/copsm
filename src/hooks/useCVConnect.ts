@@ -17,15 +17,37 @@ export function useCVConnect() {
     try {
       const { data, error } = await supabase
         .from('cv_connect_permissions')
-        .select(`
-          *,
-          user:profiles!cv_connect_permissions_user_id_fkey(email, nom, prenom),
-          granted_by_user:profiles!cv_connect_permissions_granted_by_fkey(email, nom, prenom)
-        `)
+        .select('*')
         .order('granted_at', { ascending: false })
 
       if (error) throw error
-      setPermissions(data || [])
+      
+      // Récupérer les informations des utilisateurs séparément
+      const permissionsWithUsers = await Promise.all(
+        (data || []).map(async (permission) => {
+          // Récupérer l'utilisateur
+          const { data: userData } = await supabase
+            .from('profiles')
+            .select('email, nom, prenom')
+            .eq('id', permission.user_id)
+            .single()
+
+          // Récupérer l'utilisateur qui a accordé la permission
+          const { data: grantedByData } = await supabase
+            .from('profiles')
+            .select('email, nom, prenom')
+            .eq('id', permission.granted_by)
+            .single()
+
+          return {
+            ...permission,
+            user: userData,
+            granted_by_user: grantedByData
+          }
+        })
+      )
+
+      setPermissions(permissionsWithUsers)
     } catch (err: any) {
       setError(err.message)
       console.error('Erreur chargement permissions CV Connect:', err)
@@ -37,15 +59,45 @@ export function useCVConnect() {
     try {
       const { data, error } = await supabase
         .from('cv_connect_submissions')
-        .select(`
-          *,
-          pole:poles(*),
-          filiere:filieres(*)
-        `)
+        .select('*')
         .order('submitted_at', { ascending: false })
 
       if (error) throw error
-      setSubmissions(data || [])
+      
+      // Récupérer les informations des pôles et filières séparément
+      const submissionsWithDetails = await Promise.all(
+        (data || []).map(async (submission) => {
+          // Récupérer le pôle
+          let poleData = null
+          if (submission.pole_id) {
+            const { data: pole } = await supabase
+              .from('poles')
+              .select('*')
+              .eq('id', submission.pole_id)
+              .single()
+            poleData = pole
+          }
+
+          // Récupérer la filière
+          let filiereData = null
+          if (submission.filiere_id) {
+            const { data: filiere } = await supabase
+              .from('filieres')
+              .select('*')
+              .eq('id', submission.filiere_id)
+              .single()
+            filiereData = filiere
+          }
+
+          return {
+            ...submission,
+            pole: poleData,
+            filiere: filiereData
+          }
+        })
+      )
+
+      setSubmissions(submissionsWithDetails)
     } catch (err: any) {
       setError(err.message)
       console.error('Erreur chargement soumissions CV Connect:', err)
