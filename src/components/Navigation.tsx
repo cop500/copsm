@@ -40,11 +40,6 @@ const navigation = [
     icon: Users,
   },
   {
-    name: 'CV Connect',
-    href: '/cv-connect/admin',
-    icon: FileText,
-  },
-  {
     name: 'Paramètres',
     href: '/parametres',
     icon: Settings,
