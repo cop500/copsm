@@ -139,17 +139,41 @@ export function useCVConnect() {
   ) => {
     try {
       // D'abord, récupérer l'UUID de l'utilisateur à partir de son email
-      const { data: userData, error: userError } = await supabase
+      let { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', userEmail)
         .single()
 
-      if (userError || !userData) {
-        throw new Error(`Utilisateur avec l'email ${userEmail} non trouvé`)
-      }
+      let userId = userData?.id
 
-      const userId = userData.id
+      // Si l'utilisateur n'existe pas, le créer automatiquement
+      if (userError || !userData) {
+        console.log(`Création automatique du profil pour ${userEmail}`)
+        
+        // Générer un UUID temporaire
+        const tempId = crypto.randomUUID()
+        
+        const { data: newUserData, error: createError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: tempId,
+            email: userEmail,
+            nom: userEmail.split('@')[0].split('.')[0] || 'Utilisateur',
+            prenom: userEmail.split('@')[0].split('.')[1] || 'CV Connect',
+            role: 'conseillere_carriere', // Rôle par défaut
+            actif: true
+          }])
+          .select('id')
+          .single()
+
+        if (createError || !newUserData) {
+          throw new Error(`Impossible de créer le profil pour ${userEmail}: ${createError?.message}`)
+        }
+
+        userId = newUserData.id
+        console.log(`Profil créé avec l'ID: ${userId}`)
+      }
 
       // Vérifier si l'utilisateur a déjà une permission
       const { data: existingPermission } = await supabase
