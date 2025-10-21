@@ -35,6 +35,7 @@ export default function CVConnectAdminPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [activeTab, setActiveTab] = useState<'permissions' | 'submissions'>('permissions')
 
   // Vérifier si l'utilisateur actuel est admin (temporairement désactivé pour les tests)
   const isAdmin = true // Temporairement true pour les tests
@@ -235,10 +236,24 @@ export default function CVConnectAdminPage() {
         <div className="bg-white rounded-lg shadow-sm border mb-6">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
-              <button className="py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+              <button 
+                onClick={() => setActiveTab('permissions')}
+                className={`py-4 px-1 border-b-2 font-medium ${
+                  activeTab === 'permissions' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
                 Gestion des permissions
               </button>
-              <button className="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+              <button 
+                onClick={() => setActiveTab('submissions')}
+                className={`py-4 px-1 border-b-2 font-medium ${
+                  activeTab === 'submissions' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
                 Soumissions de CV
               </button>
             </nav>
@@ -246,6 +261,7 @@ export default function CVConnectAdminPage() {
 
           <div className="p-6">
             {/* Section Permissions */}
+            {activeTab === 'permissions' && (
             <div className="mb-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
@@ -416,6 +432,170 @@ export default function CVConnectAdminPage() {
                 </div>
               </div>
             </div>
+            )}
+
+            {/* Section Soumissions de CV */}
+            {activeTab === 'submissions' && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-green-600" />
+                  Soumissions de CV
+                </h2>
+                <button
+                  onClick={loadSubmissions}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Actualiser
+                </button>
+              </div>
+
+              {/* Filtres pour les soumissions */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Nom, prénom, email, pôle, filière..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Tous les statuts</option>
+                    <option value="nouveau">Nouveau</option>
+                    <option value="traite">Traité</option>
+                    <option value="archive">Archivé</option>
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    onClick={() => {
+                      setSearchTerm('')
+                      setFilterStatus('')
+                    }}
+                    className="w-full px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
+              </div>
+
+              {/* Liste des soumissions */}
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                {submissions.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune soumission</h3>
+                    <p className="text-gray-500">Les stagiaires n'ont pas encore déposé de CV.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Stagiaire
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Contact
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Pôle / Filière
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            CV
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Statut
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {submissions
+                          .filter(submission => {
+                            const matchesSearch = searchTerm === '' || 
+                              submission.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              submission.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              submission.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              submission.pole?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              submission.filiere?.nom?.toLowerCase().includes(searchTerm.toLowerCase())
+                            const matchesStatus = filterStatus === '' || submission.statut === filterStatus
+                            return matchesSearch && matchesStatus
+                          })
+                          .map((submission) => (
+                          <tr key={submission.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">
+                                {submission.nom} {submission.prenom}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{submission.email}</div>
+                              {submission.telephone && (
+                                <div className="text-sm text-gray-500">{submission.telephone}</div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{submission.pole?.nom}</div>
+                              <div className="text-sm text-gray-500">{submission.filiere?.nom}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <a
+                                href={submission.cv_google_drive_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm"
+                              >
+                                <Download className="w-4 h-4" />
+                                {submission.cv_filename}
+                              </a>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <select
+                                value={submission.statut}
+                                onChange={(e) => updateSubmissionStatus(submission.id, e.target.value as any)}
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  submission.statut === 'nouveau' 
+                                    ? 'bg-yellow-100 text-yellow-800' 
+                                    : submission.statut === 'traite'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                <option value="nouveau">Nouveau</option>
+                                <option value="traite">Traité</option>
+                                <option value="archive">Archivé</option>
+                              </select>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(submission.submitted_at).toLocaleDateString('fr-FR')}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+            )}
           </div>
         )}
       </div>
