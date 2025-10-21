@@ -437,7 +437,7 @@ export default function CVConnectPage() {
                        {/* Education */}
                        <div className="space-y-6">
                          <div className="flex items-center justify-center gap-3 mb-6">
-                           <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                              <Award className="w-4 h-4 text-white" />
                            </div>
                            <h2 className="text-xl font-semibold text-black">
@@ -515,7 +515,7 @@ export default function CVConnectPage() {
                        {/* CV Upload */}
                        <div className="space-y-6">
                          <div className="flex items-center justify-center gap-3 mb-6">
-                           <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                              <Rocket className="w-4 h-4 text-white" />
                            </div>
                            <h2 className="text-xl font-semibold text-black">
@@ -527,8 +527,6 @@ export default function CVConnectPage() {
                     className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-all duration-200 ${
                       dragActive 
                         ? 'border-blue-500 bg-blue-50' 
-                        : validationErrors.cv_file
-                        ? 'border-red-300 bg-red-50'
                         : 'border-gray-300 hover:border-gray-400 bg-gray-50 hover:bg-gray-100'
                     }`}
                     onDragEnter={handleDrag}
@@ -630,7 +628,7 @@ export default function CVConnectPage() {
                   <button
                     type="submit"
                     disabled={submitting || !isFormValid}
-                    className="inline-flex items-center justify-center px-8 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center justify-center px-8 py-3 text-lg font-semibold text-white bg-blue-600 border-2 border-black rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
                       <>
