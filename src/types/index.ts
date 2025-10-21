@@ -126,3 +126,40 @@ export interface UserPermissions {
   canAccessSettings: boolean
   canExport: boolean
 }
+
+// Types pour CV Connect
+export type CVConnectRole = 'super_admin' | 'gestionnaire' | 'lecteur'
+
+export interface CVConnectPermission {
+  id: string
+  user_id: string
+  role: CVConnectRole
+  granted_by: string
+  granted_at: string
+  expires_at?: string
+  created_at: string
+  updated_at: string
+  user?: Profile
+  granted_by_user?: Profile
+}
+
+export interface CVConnectSubmission {
+  id: string
+  nom: string
+  prenom: string
+  email: string
+  telephone?: string
+  pole_id?: string
+  filiere_id?: string
+  cv_filename: string
+  cv_google_drive_id: string
+  cv_google_drive_url: string
+  statut: 'nouveau' | 'traite' | 'archive'
+  notes?: string
+  submitted_at: string
+  processed_at?: string
+  processed_by?: string
+  pole?: Pole
+  filiere?: Filiere
+  processed_by_user?: Profile
+}

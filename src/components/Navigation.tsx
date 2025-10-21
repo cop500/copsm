@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   Home, Users, Calendar, Settings, GraduationCap, Menu, X,
-  LogOut, Send
+  LogOut, Send, FileText
 } from 'lucide-react'
 import { useState } from 'react'
 import { useUser } from '@/contexts/UserContext'
@@ -39,7 +39,11 @@ const navigation = [
     href: '/dashboard-admin',
     icon: Users,
   },
-
+  {
+    name: 'CV Connect',
+    href: '/cv-connect/admin',
+    icon: FileText,
+  },
   {
     name: 'Paramètres',
     href: '/parametres',
