@@ -61,28 +61,31 @@ export default function CandidaturePage() {
     cv_file: null
   })
 
-  // Charger les demandes d'entreprises en statut "en attente"
+  // Charger les demandes d'entreprises en statut "en attente" ou "en cours"
   const loadDemandes = useCallback(async () => {
     try {
       setLoading(true)
       
-      // Essayer d'abord demandes_entreprises avec filtre de statut
+      // Charger les demandes_entreprises avec filtre de statut plus permissif
       const { data: dataEntreprises, error: errorEntreprises } = await supabase
         .from('demandes_entreprises')
         .select('*')
-        .eq('type_demande', 'cv')
-        .or('statut.in.(en_cours,en_attente),statut.is.null')
+        .in('type_demande', ['cv', 'evenement']) // Inclure les demandes CV et événements
+        .in('statut', ['en_cours', 'en_attente'])
         .order('created_at', { ascending: false })
       
-      // Essayer aussi demandes_cv avec filtre de statut
+      // Charger aussi les demandes_cv
       const { data: dataCV, error: errorCV } = await supabase
         .from('demandes_cv')
         .select('*')
-        .or('statut.in.(en_cours,en_attente),statut.is.null')
+        .in('statut', ['en_cours', 'en_attente', 'nouvelle'])
         .order('created_at', { ascending: false })
 
-      if (errorEntreprises && errorCV) {
-        throw new Error('Erreur lors du chargement des demandes')
+      if (errorEntreprises) {
+        console.error('Erreur demandes_entreprises:', errorEntreprises)
+      }
+      if (errorCV) {
+        console.error('Erreur demandes_cv:', errorCV)
       }
 
       // Combiner les deux sources de données
@@ -94,7 +97,9 @@ export default function CandidaturePage() {
       console.log('Demandes trouvées:', {
         entreprises: dataEntreprises?.length || 0,
         cv: dataCV?.length || 0,
-        total: allDemandes.length
+        total: allDemandes.length,
+        statuts_entreprises: dataEntreprises?.map(d => d.statut) || [],
+        statuts_cv: dataCV?.map(d => d.statut) || []
       })
       
       setDemandes(allDemandes)
@@ -256,7 +261,14 @@ export default function CandidaturePage() {
 
   useEffect(() => {
     loadDemandes()
-  }, [])
+    
+    // Rafraîchissement automatique toutes les 30 secondes
+    const interval = setInterval(() => {
+      loadDemandes()
+    }, 30000)
+    
+    return () => clearInterval(interval)
+  }, [loadDemandes])
 
   if (success) {
     return (
@@ -306,13 +318,31 @@ export default function CandidaturePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* En-tête */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Candidature aux offres d'emploi
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1"></div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Candidature aux offres d'emploi
+            </h1>
+            <div className="flex-1 flex justify-end">
+              <button
+                onClick={loadDemandes}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                title="Actualiser les offres"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Actualiser
+              </button>
+            </div>
+          </div>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Découvrez les offres d'emploi et de stage disponibles et déposez votre candidature.
           </p>
-      </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Les offres se mettent à jour automatiquement toutes les 30 secondes
+          </p>
+        </div>
       
         {/* Liste des offres */}
         <div className="space-y-6">
@@ -339,10 +369,20 @@ export default function CandidaturePage() {
                       <div key={index} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                              <Building2 className="w-5 h-5 text-blue-600" />
-                              {demande.entreprise_nom}
-                            </h3>
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                <Building2 className="w-5 h-5 text-blue-600" />
+                                {demande.entreprise_nom}
+                              </h3>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                demande.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+                                demande.statut === 'en_cours' ? 'bg-blue-100 text-blue-800' :
+                                demande.statut === 'terminee' ? 'bg-green-100 text-green-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {demande.statut || 'Sans statut'}
+                              </span>
+                            </div>
                             <h4 className="font-medium text-gray-800 mt-1">{profil.poste_intitule}</h4>
                             <p className="text-sm text-gray-600 mt-1">
                               <strong>Pôle:</strong> {getPoleName(profil.pole_id)} • <strong>Filière:</strong> {getFiliereName(profil.filiere_id)}
@@ -362,10 +402,21 @@ export default function CandidaturePage() {
                     <div className="border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <Building2 className="w-5 h-5 text-blue-600" />
-                            {demande.nom_entreprise || demande.entreprise_nom}
-                          </h3>
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                              <Building2 className="w-5 h-5 text-blue-600" />
+                              {demande.nom_entreprise || demande.entreprise_nom}
+                            </h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              demande.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+                              demande.statut === 'en_cours' ? 'bg-blue-100 text-blue-800' :
+                              demande.statut === 'nouvelle' ? 'bg-green-100 text-green-800' :
+                              demande.statut === 'terminee' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {demande.statut || 'Sans statut'}
+                            </span>
+                          </div>
                           <h4 className="font-medium text-gray-800 mt-1">{demande.poste_recherche || 'Poste à définir'}</h4>
                           <p className="text-sm text-gray-600 mt-1">
                             <strong>Contact:</strong> {demande.contact_nom} • <strong>Email:</strong> {demande.contact_email}

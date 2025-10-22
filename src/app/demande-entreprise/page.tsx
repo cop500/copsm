@@ -277,6 +277,7 @@ export default function DemandeEntreprisePage() {
           evenement_date: form.evenement_type === 'jobday' ? form.evenement_date : null,
           fichier_url,
           type_demande: form.evenement_type === 'jobday' ? 'evenement' : 'cv',
+          statut: 'en_attente', // Statut par défaut pour les nouvelles demandes
         }
       ]).select();
       
