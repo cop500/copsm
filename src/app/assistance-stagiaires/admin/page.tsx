@@ -18,7 +18,8 @@ import {
   X,
   BarChart3,
   Users,
-  TrendingUp
+  TrendingUp,
+  Trash2
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -98,6 +99,33 @@ export default function InterfaceAdmin() {
   useEffect(() => {
     loadDemandes()
   }, [])
+
+  // Fonction pour supprimer une demande (admin uniquement)
+  const handleDeleteDemande = async (demandeId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette demande ? Cette action est irréversible.')) {
+      return
+    }
+
+    try {
+      setActionLoading(true)
+      const response = await fetch(`/api/assistance-stagiaires/${demandeId}`, {
+        method: 'DELETE'
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        await loadDemandes() // Recharger les demandes
+        setError('')
+      } else {
+        setError(result.error || 'Erreur lors de la suppression')
+      }
+    } catch (err) {
+      setError('Erreur de connexion')
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   // Filtrer les demandes
   const filteredDemandes = demandes.filter(demande => {
@@ -444,16 +472,27 @@ export default function InterfaceAdmin() {
                         {formatDate(demande.created_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => {
-                            setSelectedDemande(demande)
-                            setShowModal(true)
-                          }}
-                          className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Voir
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              setSelectedDemande(demande)
+                              setShowModal(true)
+                            }}
+                            className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Voir
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDemande(demande.id)}
+                            disabled={actionLoading}
+                            className="text-red-600 hover:text-red-900 flex items-center gap-1 disabled:opacity-50"
+                            title="Supprimer cette demande (Admin uniquement)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Supprimer
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -46,12 +46,19 @@ export default function StagiairesPage() {
   // Vérifier si l'utilisateur est business_developer (admin)
   const isAdmin = profile?.role === 'business_developer'
   
+  // Debug pour vérifier le rôle
+  console.log('Profile:', profile)
+  console.log('Role:', profile?.role)
+  console.log('isAdmin:', isAdmin)
+  
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState('candidatures')
   
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   React.useEffect(() => {
+    console.log('useEffect - isAdmin:', isAdmin, 'activeTab:', activeTab)
     if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin')) {
+      console.log('Redirection vers candidatures car utilisateur non admin')
       setActiveTab('candidatures')
     }
   }, [isAdmin, activeTab])
