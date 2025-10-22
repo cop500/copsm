@@ -5,8 +5,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    // Validation des données requises
-    const requiredFields = ['nom', 'prenom', 'email', 'pole_id', 'filiere_id', 'demande_cv_id', 'cv_url']
+    // Validation des données requises (sans filiere_id qui n'existe pas)
+    const requiredFields = ['nom', 'prenom', 'email', 'demande_cv_id', 'cv_url']
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Préparer les données pour l'insertion
+    // Préparer les données pour l'insertion (sans les colonnes qui n'existent pas)
     const candidatureData = {
       demande_cv_id: body.demande_cv_id,
       date_candidature: new Date().toISOString().split('T')[0],
@@ -38,13 +38,10 @@ export async function POST(request: NextRequest) {
       prenom: body.prenom,
       email: body.email,
       telephone: body.telephone || null,
-      pole_id: body.pole_id,
-      filiere_id: body.filiere_id,
       entreprise_nom: body.entreprise_nom || 'À définir',
       poste: body.poste || 'À définir',
-      type_contrat: body.type_contrat || 'À définir',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      type_contrat: body.type_contrat || 'À définir'
+      // Supprimé: pole_id, filiere_id, created_at, updated_at (colonnes inexistantes)
     }
 
     // Insérer la candidature

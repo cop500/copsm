@@ -179,7 +179,7 @@ export default function CandidaturePage() {
         throw new Error('Demande introuvable')
       }
 
-      // 3. Préparer les données selon le type de demande
+      // 3. Préparer les données selon le type de demande (sans les colonnes inexistantes)
       let candidatureData: any = {
         demande_cv_id: demandeId,
         date_candidature: new Date().toISOString().split('T')[0],
@@ -189,11 +189,8 @@ export default function CandidaturePage() {
         nom: formData.nom,
         prenom: formData.prenom,
         email: formData.email,
-        telephone: formData.telephone,
-        pole_id: formData.pole_id,
-        filiere_id: formData.filiere_id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        telephone: formData.telephone
+        // Supprimé: pole_id, filiere_id, created_at, updated_at (colonnes inexistantes)
       }
 
       if (demande.source === 'entreprises' && demande.profils) {
