@@ -6,7 +6,7 @@ import { useSettings } from '@/hooks/useSettings'
 import { 
   User, Mail, Phone, MapPin, FileText, Upload, 
   Building2, Briefcase, Calendar, Send, CheckCircle,
-  AlertCircle, Loader2
+  AlertCircle, Loader2, Target, GraduationCap
 } from 'lucide-react'
 
 interface DemandeEntreprise {
@@ -260,27 +260,41 @@ export default function CandidaturePage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md border border-gray-200">
-          <CheckCircle className="w-20 h-20 text-green-600 mx-auto mb-6" />
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Candidature envoyée !</h2>
-          <p className="text-gray-600 mb-6 text-lg">
-            Votre candidature a été transmise avec succès à l'entreprise. 
-            Vous recevrez une réponse dans les plus brefs délais.
-          </p>
-          <div className="space-y-3">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-lg w-full border border-gray-200 relative overflow-hidden">
+          {/* Background avec motifs professionnels cohérents */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-stone-50 to-amber-50 opacity-90"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(59,130,246,0.1),transparent_50%)]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.1),transparent_50%)]"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,0.02)_25%,rgba(0,0,0,0.02)_50%,transparent_50%,transparent_75%,rgba(0,0,0,0.02)_75%)] bg-[length:20px_20px]"></div>
+          
+          <div className="relative z-10">
+            <CheckCircle className="w-20 h-20 text-green-600 mx-auto mb-6" />
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Candidature transmise au COP !</h2>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-blue-800 font-medium mb-2 text-lg">
+                ✅ Votre candidature a été transmise au Centre d'Orientation Professionnelle
+              </p>
+              <p className="text-blue-700 text-sm">
+                Notre équipe COP examinera votre profil et vous contactera dans les plus brefs délais pour la suite du processus.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
               <button 
                 onClick={() => setSuccess(false)}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-            >
-              Déposer une autre candidature
-            </button>
-            <button
-              onClick={() => window.location.href = '/'}
-              className="w-full px-6 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Retour à l'accueil
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              >
+                Déposer une autre candidature
               </button>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="w-full px-6 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Retour à l'accueil
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -375,111 +389,185 @@ export default function CandidaturePage() {
           )}
             </div>
 
-            {/* Formulaire de candidature */}
+            {/* Formulaire de candidature amélioré */}
         {formData.demande_id && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white relative overflow-hidden">
+            <div className="relative top-10 mx-auto p-6 border w-full max-w-3xl shadow-2xl rounded-xl bg-white relative overflow-hidden">
               {/* Background avec motifs professionnels */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-stone-50 to-amber-50 opacity-90"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-stone-50 to-amber-50 opacity-95"></div>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(59,130,246,0.1),transparent_50%)]"></div>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.1),transparent_50%)]"></div>
               <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,0.02)_25%,rgba(0,0,0,0.02)_50%,transparent_50%,transparent_75%,rgba(0,0,0,0.02)_75%)] bg-[length:20px_20px]"></div>
-              <div className="relative z-10 mt-3">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">Déposer votre candidature</h3>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                      <input
-                        type="text"
-                        value={formData.nom}
-                        onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+              
+              <div className="relative z-10">
+                {/* En-tête amélioré */}
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Déposer votre candidature</h3>
+                  <p className="text-gray-600 text-base">Remplissez le formulaire ci-dessous pour postuler à cette offre</p>
                 </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-                      <input
-                        type="text"
-                        value={formData.prenom}
-                        onChange={(e) => setFormData(prev => ({ ...prev, prenom: e.target.value }))}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Informations personnelles */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <User className="w-5 h-5 text-blue-600" />
+                      Informations personnelles
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Nom <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={formData.nom}
+                            onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
+                            required
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
+                            placeholder="Votre nom de famille"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Prénom <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={formData.prenom}
+                            onChange={(e) => setFormData(prev => ({ ...prev, prenom: e.target.value }))}
+                            required
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
+                            placeholder="Votre prénom"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                    <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                  {/* Contact */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Mail className="w-5 h-5 text-blue-600" />
+                      Informations de contact
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Email <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                            required
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
+                            placeholder="nom@exemple.com"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Ex. nom@exemple.com</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Téléphone
+                        </label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="tel"
+                            value={formData.telephone}
+                            onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
+                            placeholder="06 12 34 56 78"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Format: 06 12 34 56 78</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                    <input
-                        type="tel"
-                        value={formData.telephone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Pôle *</label>
-                    <select
-                        value={formData.pole_id}
-                        onChange={(e) => handlePoleChange(e.target.value)}
-                      required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                        <option value="">Sélectionner un pôle</option>
-                      {poles.map((pole) => (
-                        <option key={pole.id} value={pole.id}>
-                          {pole.nom}
-                        </option>
-                      ))}
-                    </select>
+                  {/* Sélection Pôle/Filière */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-blue-600" />
+                      Formation
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Pôle <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <select
+                            value={formData.pole_id}
+                            onChange={(e) => handlePoleChange(e.target.value)}
+                            required
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white"
+                          >
+                            <option value="">Sélectionner un pôle</option>
+                            {poles.map((pole) => (
+                              <option key={pole.id} value={pole.id}>
+                                {pole.nom}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Filière <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <select
+                            value={formData.filiere_id}
+                            onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
+                            required
+                            disabled={!formData.pole_id}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          >
+                            <option value="">
+                              {formData.pole_id ? "Sélectionner une filière" : "Sélectionnez d'abord un pôle"}
+                            </option>
+                            {filteredFilieres.map((filiere) => (
+                              <option key={filiere.id} value={filiere.id}>
+                                {filiere.nom}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Filière *</label>
-                    <select
-                        value={formData.filiere_id}
-                        onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
-                      required
-                      disabled={!formData.pole_id}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                        <option value="">
-                          {formData.pole_id ? "Sélectionner une filière" : "Sélectionnez d'abord un pôle"}
-                        </option>
-                      {filteredFilieres.map((filiere) => (
-                        <option key={filiere.id} value={filiere.id}>
-                          {filiere.nom}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CV (PDF) *</label>
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={handleFileChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                  {/* Upload CV */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      Document de candidature
+                    </h4>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-800 mb-2">
+                        CV (PDF) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          onChange={handleFileChange}
+                          required
+                          className="w-full px-3 py-3 border-2 border-dashed border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Formats acceptés: PDF uniquement (max 10MB)</p>
+                    </div>
                   </div>
 
                   {error && (
@@ -489,33 +577,37 @@ export default function CandidaturePage() {
                   </div>
                   )}
 
-                  <div className="flex flex-col gap-3 pt-6 border-t border-gray-200">
-                    <div className="flex gap-3">
+                  {/* Boutons d'action améliorés */}
+                  <div className="flex flex-col gap-4 pt-6 border-t border-gray-200">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <button
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, demande_id: '', profil_selectionne: '' }))}
-                        className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                        className="flex-1 px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-200 font-semibold text-base border border-gray-300 hover:shadow-md"
                       >
                         Annuler
                       </button>
-                <button
-                  type="submit"
+                      <button
+                        type="submit"
                         disabled={submitting}
-                        className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
-                >
+                        className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
                         {submitting ? (
-                    <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
                             Envoi en cours...
-                    </>
-                  ) : (
-                    <>
-                            <Send className="w-4 h-4" />
-                      Envoyer ma candidature
-                    </>
-                  )}
-                </button>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-5 h-5" />
+                            Envoyer ma candidature
+                          </>
+                        )}
+                      </button>
                     </div>
+                    <p className="text-xs text-gray-500 text-center">
+                      En cliquant sur "Envoyer ma candidature", vous confirmez que les informations fournies sont exactes.
+                    </p>
                   </div>
               </form>
               </div>
