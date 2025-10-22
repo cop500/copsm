@@ -291,8 +291,8 @@ export default function CandidaturePage() {
               <p className="text-blue-700 text-sm">
                 Notre équipe COP examinera votre profil et vous contactera dans les plus brefs délais pour la suite du processus.
               </p>
-            </div>
-            
+        </div>
+        
             <div className="space-y-3">
               <button 
                 onClick={() => setSuccess(false)}
@@ -342,7 +342,7 @@ export default function CandidaturePage() {
           <p className="text-sm text-gray-500 mt-2">
             Les offres se mettent à jour automatiquement toutes les 30 secondes
           </p>
-        </div>
+      </div>
       
         {/* Liste des offres */}
         <div className="space-y-6">
@@ -381,21 +381,21 @@ export default function CandidaturePage() {
                                 'bg-gray-100 text-gray-800'
                               }`}>
                                 {demande.statut || 'Sans statut'}
-                              </span>
-                            </div>
+                  </span>
+                </div>
                             <h4 className="font-medium text-gray-800 mt-1">{profil.poste_intitule}</h4>
                             <p className="text-sm text-gray-600 mt-1">
                               <strong>Pôle:</strong> {getPoleName(profil.pole_id)} • <strong>Filière:</strong> {getFiliereName(profil.filiere_id)}
                             </p>
-              </div>
+                </div>
                           <button
                             onClick={() => handleSelectDemande(demande, index)}
                             className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                           >
                             Postuler
                           </button>
+              </div>
             </div>
-          </div>
                     ))
                   ) : (
                     // Demandes CV simples
@@ -416,7 +416,7 @@ export default function CandidaturePage() {
                             }`}>
                               {demande.statut || 'Sans statut'}
                             </span>
-                          </div>
+          </div>
                           <h4 className="font-medium text-gray-800 mt-1">{demande.poste_recherche || 'Poste à définir'}</h4>
                           <p className="text-sm text-gray-600 mt-1">
                             <strong>Contact:</strong> {demande.contact_nom} • <strong>Email:</strong> {demande.contact_email}
@@ -456,45 +456,45 @@ export default function CandidaturePage() {
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">Déposer votre candidature</h3>
                   <p className="text-gray-600 text-base">Remplissez le formulaire ci-dessous pour postuler à cette offre</p>
                 </div>
-                
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Informations personnelles */}
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Informations personnelles */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <User className="w-5 h-5 text-blue-600" />
                       Informations personnelles
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
+                  <div>
                         <label className="block text-sm font-semibold text-gray-800 mb-2">
                           Nom <span className="text-red-500">*</span>
-                        </label>
+                    </label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <input
-                            type="text"
+                    <input
+                      type="text"
                             value={formData.nom}
                             onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
-                            required
+                      required
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
                             placeholder="Votre nom de famille"
-                          />
-                        </div>
+                    />
+                  </div>
                       </div>
-                      <div>
+                  <div>
                         <label className="block text-sm font-semibold text-gray-800 mb-2">
                           Prénom <span className="text-red-500">*</span>
-                        </label>
+                    </label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <input
-                            type="text"
+                    <input
+                      type="text"
                             value={formData.prenom}
                             onChange={(e) => setFormData(prev => ({ ...prev, prenom: e.target.value }))}
-                            required
+                      required
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base"
-                            placeholder="Votre prénom"
-                          />
+                      placeholder="Votre prénom"
+                    />
                         </div>
                       </div>
                     </div>
@@ -540,8 +540,8 @@ export default function CandidaturePage() {
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Format: 06 12 34 56 78</p>
                       </div>
-                    </div>
                   </div>
+                </div>
 
                   {/* Sélection Pôle/Filière */}
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -550,76 +550,76 @@ export default function CandidaturePage() {
                       Formation
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
+                  <div>
                         <label className="block text-sm font-semibold text-gray-800 mb-2">
                           Pôle <span className="text-red-500">*</span>
-                        </label>
+                    </label>
                         <div className="relative">
                           <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <select
+                    <select
                             value={formData.pole_id}
                             onChange={(e) => handlePoleChange(e.target.value)}
-                            required
+                      required
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white"
-                          >
+                    >
                             <option value="">Sélectionner un pôle</option>
-                            {poles.map((pole) => (
-                              <option key={pole.id} value={pole.id}>
-                                {pole.nom}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                      {poles.map((pole) => (
+                        <option key={pole.id} value={pole.id}>
+                          {pole.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                       </div>
-                      <div>
+                  <div>
                         <label className="block text-sm font-semibold text-gray-800 mb-2">
                           Filière <span className="text-red-500">*</span>
-                        </label>
+                    </label>
                         <div className="relative">
                           <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <select
+                    <select
                             value={formData.filiere_id}
                             onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
-                            required
-                            disabled={!formData.pole_id}
+                      required
+                      disabled={!formData.pole_id}
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                          >
+                    >
                             <option value="">
                               {formData.pole_id ? "Sélectionner une filière" : "Sélectionnez d'abord un pôle"}
                             </option>
-                            {filteredFilieres.map((filiere) => (
-                              <option key={filiere.id} value={filiere.id}>
-                                {filiere.nom}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
+                      {filteredFilieres.map((filiere) => (
+                        <option key={filiere.id} value={filiere.id}>
+                          {filiere.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Upload CV */}
+                {/* Upload CV */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <FileText className="w-5 h-5 text-blue-600" />
                       Document de candidature
                     </h4>
-                    <div>
+                <div>
                       <label className="block text-sm font-semibold text-gray-800 mb-2">
                         CV (PDF) <span className="text-red-500">*</span>
-                      </label>
+                  </label>
                       <div className="relative">
-                        <input
-                          type="file"
-                          accept=".pdf"
+                    <input
+                      type="file"
+                      accept=".pdf"
                           onChange={handleFileChange}
-                          required
+                      required
                           className="w-full px-3 py-3 border-2 border-dashed border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                        />
+                    />
                       </div>
                       <p className="text-xs text-gray-500 mt-2">Formats acceptés: PDF uniquement (max 10MB)</p>
-                    </div>
                   </div>
+                </div>
 
                   {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
@@ -638,23 +638,23 @@ export default function CandidaturePage() {
                       >
                         Annuler
                       </button>
-                      <button
-                        type="submit"
+                <button
+                  type="submit"
                         disabled={submitting}
                         className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                      >
+                >
                         {submitting ? (
-                          <>
+                    <>
                             <Loader2 className="w-5 h-5 animate-spin" />
                             Envoi en cours...
-                          </>
-                        ) : (
-                          <>
+                    </>
+                  ) : (
+                    <>
                             <Send className="w-5 h-5" />
-                            Envoyer ma candidature
-                          </>
-                        )}
-                      </button>
+                      Envoyer ma candidature
+                    </>
+                  )}
+                </button>
                     </div>
                     <p className="text-xs text-gray-500 text-center">
                       En cliquant sur "Envoyer ma candidature", vous confirmez que les informations fournies sont exactes.
@@ -669,3 +669,4 @@ export default function CandidaturePage() {
     </div>
   )
 }
+
