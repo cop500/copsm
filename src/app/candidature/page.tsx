@@ -147,13 +147,13 @@ export default function CandidaturePage() {
       // 1. Upload du CV
       const filePath = `candidatures/${Date.now()}_${formData.cv_file.name}`
       const { error: uploadError } = await supabase.storage
-        .from('fichiers')
+        .from('avatars')
         .upload(filePath, formData.cv_file)
 
       if (uploadError) throw uploadError
 
       const { data: publicUrlData } = supabase.storage
-        .from('fichiers')
+        .from('avatars')
         .getPublicUrl(filePath)
 
       // 2. Récupérer les détails de la demande et du profil
