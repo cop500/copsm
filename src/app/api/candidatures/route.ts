@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +15,17 @@ export async function POST(request: NextRequest) {
         )
       }
     }
+
+    // Créer un client Supabase avec service role si disponible, sinon utiliser anon
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
 
     // Préparer les données pour l'insertion
     const candidatureData = {
@@ -36,7 +47,7 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString()
     }
 
-    // Insérer la candidature en utilisant le service role (contourne RLS)
+    // Insérer la candidature
     const { data, error } = await supabase
       .from('candidatures_stagiaires')
       .insert([candidatureData])
@@ -45,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Erreur insertion candidature:', error)
       return NextResponse.json(
-        { error: 'Erreur lors de l\'enregistrement de la candidature' },
+        { error: 'Erreur lors de l\'enregistrement de la candidature: ' + error.message },
         { status: 500 }
       )
     }
@@ -62,7 +73,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Erreur API candidatures:', error)
     return NextResponse.json(
-      { error: 'Erreur interne du serveur' },
+      { error: 'Erreur interne du serveur: ' + (error as Error).message },
       { status: 500 }
     )
   }
