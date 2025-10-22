@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSettings } from '@/hooks/useSettings'
 import { 
@@ -34,11 +34,11 @@ interface FormData {
   prenom: string
   email: string
   telephone: string
-  ville: string
+  pole_id: string
+  filiere_id: string
   demande_id: string
   profil_selectionne: string
   cv_file: File | null
-  lettre_motivation: string
 }
 
 export default function CandidaturePage() {
@@ -54,15 +54,15 @@ export default function CandidaturePage() {
     prenom: '',
     email: '',
     telephone: '',
-    ville: '',
+    pole_id: '',
+    filiere_id: '',
     demande_id: '',
     profil_selectionne: '',
-    cv_file: null,
-    lettre_motivation: ''
+    cv_file: null
   })
 
   // Charger les demandes d'entreprises en statut "en attente"
-  const loadDemandes = async () => {
+  const loadDemandes = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -104,17 +104,17 @@ export default function CandidaturePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  // Obtenir le nom d'un pôle
-  const getPoleName = (poleId: string) => {
+  // Obtenir le nom d'un pôle (mémorisé)
+  const getPoleName = useCallback((poleId: string) => {
     return poles.find(p => p.id === poleId)?.nom || 'Pôle inconnu'
-  }
+  }, [poles])
 
-  // Obtenir le nom d'une filière
-  const getFiliereName = (filiereId: string) => {
+  // Obtenir le nom d'une filière (mémorisé)
+  const getFiliereName = useCallback((filiereId: string) => {
     return filieres.find(f => f.id === filiereId)?.nom || 'Filière inconnue'
-  }
+  }, [filieres])
 
   // Gérer la sélection d'une demande
   const handleSelectDemande = (demande: DemandeEntreprise, profilIndex: number) => {
@@ -175,7 +175,8 @@ export default function CandidaturePage() {
         prenom: formData.prenom,
         email: formData.email,
         telephone: formData.telephone,
-        feedback_entreprise: formData.lettre_motivation
+        pole_id: formData.pole_id,
+        filiere_id: formData.filiere_id
       }
 
       if (demande.source === 'entreprises' && demande.profils) {
@@ -213,11 +214,11 @@ export default function CandidaturePage() {
         prenom: '',
         email: '',
         telephone: '',
-        ville: '',
+        pole_id: '',
+        filiere_id: '',
         demande_id: '',
         profil_selectionne: '',
-        cv_file: null,
-        lettre_motivation: ''
+        cv_file: null
       })
 
     } catch (err: any) {
@@ -234,27 +235,35 @@ export default function CandidaturePage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md">
-          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Candidature envoyée !</h2>
-          <p className="text-gray-600 mb-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md border border-gray-200">
+          <CheckCircle className="w-20 h-20 text-green-600 mx-auto mb-6" />
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Candidature envoyée !</h2>
+          <p className="text-gray-600 mb-6 text-lg">
             Votre candidature a été transmise avec succès à l'entreprise. 
             Vous recevrez une réponse dans les plus brefs délais.
           </p>
-          <button
-            onClick={() => setSuccess(false)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Déposer une autre candidature
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() => setSuccess(false)}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            >
+              Déposer une autre candidature
+            </button>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="w-full px-6 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Retour à l'accueil
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* En-tête */}
         <div className="text-center mb-8">
@@ -344,9 +353,9 @@ export default function CandidaturePage() {
         {/* Formulaire de candidature */}
         {formData.demande_id && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white bg-gradient-to-br from-blue-50 to-indigo-100">
               <div className="mt-3">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Déposer votre candidature</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">Déposer votre candidature</h3>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -394,14 +403,39 @@ export default function CandidaturePage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
-                    <input
-                      type="text"
-                      value={formData.ville}
-                      onChange={(e) => setFormData(prev => ({ ...prev, ville: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Pôle *</label>
+                      <select
+                        value={formData.pole_id}
+                        onChange={(e) => setFormData(prev => ({ ...prev, pole_id: e.target.value }))}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Sélectionner un pôle</option>
+                        {poles.map((pole) => (
+                          <option key={pole.id} value={pole.id}>
+                            {pole.nom}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Filière *</label>
+                      <select
+                        value={formData.filiere_id}
+                        onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Sélectionner une filière</option>
+                        {filieres.map((filiere) => (
+                          <option key={filiere.id} value={filiere.id}>
+                            {filiere.nom}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div>
@@ -415,17 +449,6 @@ export default function CandidaturePage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Lettre de motivation</label>
-                    <textarea
-                      value={formData.lettre_motivation}
-                      onChange={(e) => setFormData(prev => ({ ...prev, lettre_motivation: e.target.value }))}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Décrivez votre motivation pour ce poste..."
-                    />
-                  </div>
-
                   {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
                       <AlertCircle className="w-4 h-4 inline mr-2" />
@@ -433,31 +456,33 @@ export default function CandidaturePage() {
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, demande_id: '', profil_selectionne: '' }))}
-                      className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Envoi en cours...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          Envoyer la candidature
-                        </>
-                      )}
-                    </button>
+                  <div className="flex flex-col gap-3 pt-6 border-t border-gray-200">
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, demande_id: '', profil_selectionne: '' }))}
+                        className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Envoi en cours...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            Envoyer ma candidature
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
