@@ -38,6 +38,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Vérifier si l'utilisateur a déjà déposé un CV
+    const { data: existingSubmission } = await supabase
+      .from('cv_connect_submissions')
+      .select('id, nom, prenom, submitted_at')
+      .eq('email', email)
+      .single()
+
+    if (existingSubmission) {
+      return NextResponse.json(
+        { error: `Vous avez déjà déposé un CV le ${new Date(existingSubmission.submitted_at).toLocaleDateString('fr-FR')}. Un seul CV par personne est autorisé.` },
+        { status: 400 }
+      )
+    }
+
     // Récupérer les informations du pôle et de la filière
     const { data: pole } = await supabase
       .from('poles')
