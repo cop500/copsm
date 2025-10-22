@@ -75,12 +75,41 @@ export default function InterfaceConseiller() {
   const [conseillerConnecte, setConseillerConnecte] = useState<string>('')
   const [showConseillerSelect, setShowConseillerSelect] = useState(true)
 
-  // Liste des conseillers disponibles
-  const conseillers = [
-    { id: 'abdelhamid', nom: 'ABDELHAMID INAJJAREN', role: 'Conseiller d\'orientation' },
-    { id: 'siham', nom: 'SIHAM EL OMARI', role: 'Conseillère Carrière' },
-    { id: 'imane', nom: 'IMANE IDRISSI', role: 'Conseillère Carrière' }
-  ]
+  // Liste des conseillers disponibles avec leurs vrais IDs de la base de données
+  const [conseillers, setConseillers] = useState([
+    { id: '', nom: 'ABDELHAMID INAJJAREN', role: 'Conseiller d\'orientation' },
+    { id: '', nom: 'SIHAM EL OMARI', role: 'Conseillère Carrière' },
+    { id: '', nom: 'IMANE IDRISSI', role: 'Conseillère Carrière' }
+  ])
+
+  // Charger les IDs des conseillers depuis la base de données
+  const loadConseillers = async () => {
+    try {
+      const response = await fetch('/api/assistance-stagiaires')
+      const result = await response.json()
+      
+      if (result.success && result.conseillers) {
+        const conseillersAutorises = ['ABDELHAMID INAJJAREN', 'SIHAM EL OMARI', 'IMANE IDRISSI']
+        const conseillersFiltres = result.conseillers.filter((conseiller: any) => {
+          const nomComplet = `${conseiller.prenom} ${conseiller.nom}`.toUpperCase()
+          return conseillersAutorises.some(autorise => 
+            nomComplet.includes(autorise.toUpperCase()) || 
+            autorise.toUpperCase().includes(nomComplet)
+          )
+        })
+        
+        const conseillersAvecIds = conseillersFiltres.map((conseiller: any) => ({
+          id: conseiller.id,
+          nom: `${conseiller.prenom} ${conseiller.nom}`.toUpperCase(),
+          role: conseiller.role === 'conseiller_cop' ? 'Conseiller d\'orientation' : 'Conseillère Carrière'
+        }))
+        
+        setConseillers(conseillersAvecIds)
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des conseillers:', err)
+    }
+  }
 
   // Charger les demandes
   const loadDemandes = async () => {
@@ -94,11 +123,8 @@ export default function InterfaceConseiller() {
       if (result.success) {
         // Filtrer les demandes pour ce conseiller spécifique
         const demandesFiltrees = (result.data || []).filter((demande: DemandeAssistance) => {
-          // Pour l'instant, on simule le filtrage par nom du conseiller
-          // Dans un vrai système, on utiliserait l'ID du conseiller
-          const conseillerNom = demande.profiles?.prenom + ' ' + demande.profiles?.nom
-          const conseillerActuel = conseillers.find(c => c.id === conseillerConnecte)
-          return conseillerNom === conseillerActuel?.nom || demande.conseiller_id === conseillerConnecte
+          // Utiliser l'ID du conseiller pour filtrer
+          return demande.conseiller_id === conseillerConnecte
         })
         setDemandes(demandesFiltrees)
       } else {
@@ -110,6 +136,11 @@ export default function InterfaceConseiller() {
       setLoading(false)
     }
   }
+
+  // Charger les conseillers au démarrage
+  useEffect(() => {
+    loadConseillers()
+  }, [])
 
   useEffect(() => {
     if (conseillerConnecte) {

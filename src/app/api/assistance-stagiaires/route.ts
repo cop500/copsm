@@ -162,9 +162,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Récupérer aussi les conseillers disponibles
+    const { data: conseillersData, error: conseillersError } = await supabase
+      .from('profiles')
+      .select('id, nom, prenom, email, role, telephone, poste')
+      .in('role', ['conseiller_cop', 'conseillere_carriere'])
+      .eq('actif', true)
+      .order('nom')
+
+    if (conseillersError) {
+      console.error('Erreur récupération conseillers:', conseillersError)
+    }
+
     return NextResponse.json({
       success: true,
       data: data || [],
+      conseillers: conseillersData || [],
       count: data?.length || 0
     }, { status: 200 })
 

@@ -49,9 +49,9 @@ export default function StagiairesPage() {
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState('candidatures')
   
-  // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect, rediriger vers candidatures
+  // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   React.useEffect(() => {
-    if (!isAdmin && activeTab === 'cv-connect') {
+    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin')) {
       setActiveTab('candidatures')
     }
   }, [isAdmin, activeTab])
