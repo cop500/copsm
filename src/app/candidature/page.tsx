@@ -66,19 +66,17 @@ export default function CandidaturePage() {
     try {
       setLoading(true)
       
-      // Essayer d'abord demandes_entreprises
+      // Essayer d'abord demandes_entreprises (toutes les demandes CV, peu importe le statut)
       const { data: dataEntreprises, error: errorEntreprises } = await supabase
         .from('demandes_entreprises')
         .select('*')
         .eq('type_demande', 'cv')
-        .in('statut', ['en_cours', 'en_attente'])
         .order('created_at', { ascending: false })
 
-      // Essayer aussi demandes_cv
+      // Essayer aussi demandes_cv (toutes les demandes, peu importe le statut)
       const { data: dataCV, error: errorCV } = await supabase
         .from('demandes_cv')
         .select('*')
-        .in('statut', ['en_cours', 'en_attente'])
         .order('created_at', { ascending: false })
 
       if (errorEntreprises && errorCV) {
@@ -90,6 +88,12 @@ export default function CandidaturePage() {
         ...(dataEntreprises || []).map(d => ({ ...d, source: 'entreprises' })),
         ...(dataCV || []).map(d => ({ ...d, source: 'cv' }))
       ]
+      
+      console.log('Demandes trouvées:', {
+        entreprises: dataEntreprises?.length || 0,
+        cv: dataCV?.length || 0,
+        total: allDemandes.length
+      })
       
       setDemandes(allDemandes)
     } catch (err: any) {
