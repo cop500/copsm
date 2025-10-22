@@ -76,6 +76,7 @@ export default function InterfaceAdmin() {
   })
   const [selectedDemande, setSelectedDemande] = useState<DemandeAssistance | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
   // Charger toutes les demandes (vue admin)
   const loadDemandes = async () => {
