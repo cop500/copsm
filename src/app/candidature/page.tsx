@@ -6,7 +6,7 @@ import { useSettings } from '@/hooks/useSettings'
 import { 
   User, Mail, Phone, MapPin, FileText, Upload, 
   Building2, Briefcase, Calendar, Send, CheckCircle,
-  AlertCircle, Loader2, Search, Filter
+  AlertCircle, Loader2
 } from 'lucide-react'
 
 interface DemandeEntreprise {
@@ -48,9 +48,6 @@ export default function CandidaturePage() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedPole, setSelectedPole] = useState('')
-  const [selectedFiliere, setSelectedFiliere] = useState('')
 
   const [formData, setFormData] = useState<FormData>({
     nom: '',
@@ -64,7 +61,7 @@ export default function CandidaturePage() {
     lettre_motivation: ''
   })
 
-  // Charger les demandes d'entreprises
+  // Charger les demandes d'entreprises en statut "en attente"
   const loadDemandes = async () => {
     try {
       setLoading(true)
@@ -72,6 +69,7 @@ export default function CandidaturePage() {
         .from('demandes_entreprises')
         .select('*')
         .eq('type_demande', 'cv')
+        .eq('statut', 'en_attente') // Seulement les demandes en attente
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -82,30 +80,6 @@ export default function CandidaturePage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Filtrer les demandes
-  const filteredDemandes = demandes.filter(demande => {
-    const matchesSearch = !searchTerm || 
-      demande.entreprise_nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      demande.secteur.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      demande.ville.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      demande.profils.some(profil => 
-        profil.poste_intitule.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-
-    const matchesPole = !selectedPole || 
-      demande.profils.some(profil => profil.pole_id === selectedPole)
-
-    const matchesFiliere = !selectedFiliere || 
-      demande.profils.some(profil => profil.filiere_id === selectedFiliere)
-
-    return matchesSearch && matchesPole && matchesFiliere
-  })
-
-  // Obtenir les filières pour un pôle
-  const getFilieresForPole = (poleId: string) => {
-    return filieres.filter(f => f.pole_id === poleId)
   }
 
   // Obtenir le nom d'un pôle
@@ -243,74 +217,8 @@ export default function CandidaturePage() {
             Candidature aux offres d'emploi
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Découvrez les offres d'emploi et de stage proposées par nos entreprises partenaires 
-            et déposez votre candidature en quelques clics.
+            Découvrez les offres d'emploi et de stage disponibles et déposez votre candidature.
           </p>
-        </div>
-
-        {/* Filtres */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Filtrer les offres</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Entreprise, poste, secteur..."
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pôle</label>
-              <select
-                value={selectedPole}
-                onChange={(e) => {
-                  setSelectedPole(e.target.value)
-                  setSelectedFiliere('')
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Tous les pôles</option>
-                {poles.map(pole => (
-                  <option key={pole.id} value={pole.id}>{pole.nom}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filière</label>
-              <select
-                value={selectedFiliere}
-                onChange={(e) => setSelectedFiliere(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={!selectedPole}
-              >
-                <option value="">Toutes les filières</option>
-                {getFilieresForPole(selectedPole).map(filiere => (
-                  <option key={filiere.id} value={filiere.id}>{filiere.nom}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setSearchTerm('')
-                  setSelectedPole('')
-                  setSelectedFiliere('')
-                }}
-                className="w-full px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                Réinitialiser
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Liste des offres */}
@@ -320,71 +228,34 @@ export default function CandidaturePage() {
               <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
               <p className="text-gray-600">Chargement des offres...</p>
             </div>
-          ) : filteredDemandes.length === 0 ? (
+          ) : demandes.length === 0 ? (
             <div className="text-center py-12">
               <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune offre disponible</h3>
               <p className="text-gray-500">
-                {searchTerm || selectedPole || selectedFiliere 
-                  ? 'Aucune offre ne correspond à vos critères de recherche.'
-                  : 'Aucune offre d\'emploi n\'est actuellement disponible.'
-                }
+                Aucune offre d'emploi n'est actuellement disponible.
               </p>
             </div>
           ) : (
-            filteredDemandes.map((demande) => (
+            demandes.map((demande) => (
               <div key={demande.id} className="bg-white rounded-lg shadow-sm border p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-blue-600" />
-                      {demande.entreprise_nom}
-                    </h3>
-                    <p className="text-gray-600">{demande.secteur} • {demande.ville}</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Contact: {demande.contact_nom} • {demande.contact_email}
-                    </p>
-                  </div>
-                  <span className="text-sm text-gray-500">
-                    Publié le {new Date(demande.created_at).toLocaleDateString('fr-FR')}
-                  </span>
-                </div>
-
                 <div className="space-y-4">
                   {demande.profils.map((profil, index) => (
                     <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 mb-2">{profil.poste_intitule}</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                            <div>
-                              <p><strong>Pôle:</strong> {getPoleName(profil.pole_id)}</p>
-                              <p><strong>Filière:</strong> {getFiliereName(profil.filiere_id)}</p>
-                              <p><strong>Type de contrat:</strong> {profil.type_contrat}</p>
-                            </div>
-                            <div>
-                              <p><strong>Durée:</strong> {profil.duree}</p>
-                              {profil.salaire && <p><strong>Salaire:</strong> {profil.salaire}</p>}
-                            </div>
-                          </div>
-                          {profil.poste_description && (
-                            <div className="mt-3">
-                              <p className="text-sm text-gray-700">
-                                <strong>Description:</strong> {profil.poste_description}
-                              </p>
-                            </div>
-                          )}
-                          {profil.competences && (
-                            <div className="mt-3">
-                              <p className="text-sm text-gray-700">
-                                <strong>Compétences requises:</strong> {profil.competences}
-                              </p>
-                            </div>
-                          )}
+                          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <Building2 className="w-5 h-5 text-blue-600" />
+                            {demande.entreprise_nom}
+                          </h3>
+                          <h4 className="font-medium text-gray-800 mt-1">{profil.poste_intitule}</h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            <strong>Pôle:</strong> {getPoleName(profil.pole_id)} • <strong>Filière:</strong> {getFiliereName(profil.filiere_id)}
+                          </p>
                         </div>
                         <button
                           onClick={() => handleSelectDemande(demande, index)}
-                          className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           Postuler
                         </button>
