@@ -218,12 +218,21 @@ export default function CandidaturePage() {
         }
       }
 
-      // 4. Insérer la candidature
-      const { error: insertError } = await supabase
-        .from('candidatures_stagiaires')
-        .insert([candidatureData])
+      // 4. Insérer la candidature via API route (contourne RLS)
+      const response = await fetch('/api/candidatures', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(candidatureData)
+      })
 
-      if (insertError) throw insertError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erreur lors de l\'enregistrement')
+      }
+
+      const result = await response.json()
 
       setSuccess(true)
       setFormData({
