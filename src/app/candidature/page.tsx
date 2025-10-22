@@ -66,17 +66,19 @@ export default function CandidaturePage() {
     try {
       setLoading(true)
       
-      // Essayer d'abord demandes_entreprises (toutes les demandes CV, peu importe le statut)
+      // Essayer d'abord demandes_entreprises avec filtre de statut
       const { data: dataEntreprises, error: errorEntreprises } = await supabase
         .from('demandes_entreprises')
         .select('*')
         .eq('type_demande', 'cv')
+        .or('statut.in.(en_cours,en_attente),statut.is.null')
         .order('created_at', { ascending: false })
 
-      // Essayer aussi demandes_cv (toutes les demandes, peu importe le statut)
+      // Essayer aussi demandes_cv avec filtre de statut
       const { data: dataCV, error: errorCV } = await supabase
         .from('demandes_cv')
         .select('*')
+        .or('statut.in.(en_cours,en_attente),statut.is.null')
         .order('created_at', { ascending: false })
 
       if (errorEntreprises && errorCV) {
