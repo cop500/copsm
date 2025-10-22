@@ -16,8 +16,8 @@ VALUES (
     ARRAY['application/pdf']
 ) ON CONFLICT (id) DO NOTHING;
 
--- 3. Vérifier les politiques du bucket
-SELECT * FROM storage.policies WHERE bucket_id = 'cv-stagiaires';
+-- 3. Vérifier les politiques du bucket (table peut ne pas exister)
+-- SELECT * FROM storage.policies WHERE bucket_id = 'cv-stagiaires';
 
 -- 4. Créer une politique pour permettre l'upload anonyme
 CREATE POLICY "Allow anonymous uploads" ON storage.objects
@@ -31,5 +31,5 @@ FOR SELECT
 TO anon, authenticated
 USING (bucket_id = 'cv-stagiaires');
 
--- 6. Vérifier les politiques créées
-SELECT * FROM storage.policies WHERE bucket_id = 'cv-stagiaires';
+-- 6. Vérifier les politiques créées (table peut ne pas exister)
+-- SELECT * FROM storage.policies WHERE bucket_id = 'cv-stagiaires';
