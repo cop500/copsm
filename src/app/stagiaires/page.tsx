@@ -14,7 +14,7 @@ import {
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
   ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
-  Upload
+  Upload, HelpCircle, Settings
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -379,6 +379,38 @@ export default function StagiairesPage() {
                     <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                       Nouveau
                     </span>
+                  </div>
+                </button>
+              )}
+
+              {/* Onglet Assistance Conseiller */}
+              <button
+                onClick={() => setActiveTab('assistance-conseiller')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'assistance-conseiller'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <HelpCircle className="w-5 h-5" />
+                  <span>Assistance Conseiller</span>
+                </div>
+              </button>
+
+              {/* Onglet Assistance Admin - Visible seulement pour les admins */}
+              {isAdmin && (
+                <button
+                  onClick={() => setActiveTab('assistance-admin')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'assistance-admin'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Settings className="w-5 h-5" />
+                    <span>Assistance Admin</span>
                   </div>
                 </button>
               )}
@@ -1220,6 +1252,94 @@ export default function StagiairesPage() {
                 <p>1. <strong>Administration :</strong> Gérez les permissions des utilisateurs qui peuvent consulter les CV</p>
                 <p>2. <strong>Formulaire public :</strong> Partagez le lien avec les stagiaires pour qu'ils déposent leur CV</p>
                 <p>3. <strong>Automatisation :</strong> Les CV sont automatiquement organisés par pôle et filière sur Google Drive</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assistance Conseiller Tab */}
+        {activeTab === 'assistance-conseiller' && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <HelpCircle className="w-8 h-8 text-blue-600" />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Interface Conseiller</h2>
+                  <p className="text-gray-600">Gérez les demandes d'assistance qui vous sont assignées</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Interface Conseiller */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center mb-4">
+                <Users className="w-6 h-6 text-blue-600 mr-3" />
+                <h3 className="text-lg font-medium text-gray-900">Gestion des demandes d'assistance</h3>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Accédez à votre interface personnalisée pour consulter et traiter les demandes d'assistance des stagiaires.
+              </p>
+              <Link
+                href="/assistance-stagiaires/conseiller"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Accéder à mon interface
+              </Link>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-blue-900 mb-2">Comment utiliser l'interface conseiller ?</h3>
+              <div className="space-y-2 text-blue-800">
+                <p>1. <strong>Sélectionnez votre profil :</strong> Choisissez votre nom dans la liste des conseillers</p>
+                <p>2. <strong>Consultez vos demandes :</strong> Visualisez toutes les demandes qui vous sont assignées</p>
+                <p>3. <strong>Traitez les demandes :</strong> Prenez en charge, ajoutez des commentaires et marquez comme terminées</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assistance Admin Tab - Visible seulement pour les admins */}
+        {activeTab === 'assistance-admin' && isAdmin && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Settings className="w-8 h-8 text-blue-600" />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Tableau de bord Administrateur</h2>
+                  <p className="text-gray-600">Supervisez l'ensemble du système d'assistance aux stagiaires</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Interface Admin */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center mb-4">
+                <TrendingUp className="w-6 h-6 text-blue-600 mr-3" />
+                <h3 className="text-lg font-medium text-gray-900">Statistiques et supervision</h3>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Accédez au tableau de bord administrateur pour consulter les statistiques globales et superviser toutes les demandes d'assistance.
+              </p>
+              <Link
+                href="/assistance-stagiaires/admin"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Accéder au tableau de bord
+              </Link>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-blue-900 mb-2">Fonctionnalités administrateur</h3>
+              <div className="space-y-2 text-blue-800">
+                <p>1. <strong>Statistiques globales :</strong> Consultez les indicateurs de performance du système</p>
+                <p>2. <strong>Supervision :</strong> Visualisez toutes les demandes et leur statut</p>
+                <p>3. <strong>Analyse :</strong> Suivez l'évolution des demandes par type et conseiller</p>
               </div>
             </div>
           </div>
