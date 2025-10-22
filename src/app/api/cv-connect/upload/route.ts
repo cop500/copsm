@@ -65,13 +65,44 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const fileName = `${nom}_${prenom}_${timestamp}.pdf`
 
-    // Uploader sur Google Drive
-    const uploadResult = await uploadCV(
-      fileBuffer,
-      fileName,
-      pole.nom,
-      filiere.nom
-    )
+    // Uploader sur Google Drive (avec fallback)
+    let uploadResult
+    try {
+      uploadResult = await uploadCV(
+        fileBuffer,
+        fileName,
+        pole.nom,
+        filiere.nom
+      )
+    } catch (googleDriveError) {
+      console.error('Erreur Google Drive, utilisation du mode fallback:', googleDriveError)
+      
+      // Mode fallback : stocker le fichier localement
+      try {
+        const fs = require('fs')
+        const path = require('path')
+        const os = require('os')
+        
+        // Créer un dossier de fallback
+        const fallbackDir = path.join(os.tmpdir(), 'cv-connect-fallback')
+        if (!fs.existsSync(fallbackDir)) {
+          fs.mkdirSync(fallbackDir, { recursive: true })
+        }
+        
+        // Sauvegarder le fichier
+        const fallbackFilePath = path.join(fallbackDir, fileName)
+        fs.writeFileSync(fallbackFilePath, fileBuffer)
+        
+        uploadResult = {
+          fileId: `fallback_${Date.now()}`,
+          webViewLink: `Fichier stocké localement: ${fallbackFilePath}`,
+          folderPath: `${pole.nom}/${filiere.nom}`
+        }
+      } catch (fallbackError) {
+        console.error('Erreur mode fallback:', fallbackError)
+        throw new Error('Impossible de sauvegarder le CV')
+      }
+    }
 
     // Sauvegarder en base de données
     const { data: submission, error: insertError } = await supabase
