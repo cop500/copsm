@@ -65,15 +65,33 @@ export default function CandidaturePage() {
   const loadDemandes = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      
+      // Essayer d'abord demandes_entreprises
+      const { data: dataEntreprises, error: errorEntreprises } = await supabase
         .from('demandes_entreprises')
         .select('*')
         .eq('type_demande', 'cv')
-        .in('statut', ['en_cours', 'en_attente']) // Demandes en cours et en attente
+        .in('statut', ['en_cours', 'en_attente'])
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setDemandes(data || [])
+      // Essayer aussi demandes_cv
+      const { data: dataCV, error: errorCV } = await supabase
+        .from('demandes_cv')
+        .select('*')
+        .in('statut', ['en_cours', 'en_attente'])
+        .order('created_at', { ascending: false })
+
+      if (errorEntreprises && errorCV) {
+        throw new Error('Erreur lors du chargement des demandes')
+      }
+
+      // Combiner les deux sources de données
+      const allDemandes = [
+        ...(dataEntreprises || []).map(d => ({ ...d, source: 'entreprises' })),
+        ...(dataCV || []).map(d => ({ ...d, source: 'cv' }))
+      ]
+      
+      setDemandes(allDemandes)
     } catch (err: any) {
       console.error('Erreur chargement demandes:', err)
       setError('Erreur lors du chargement des offres')
@@ -135,30 +153,51 @@ export default function CandidaturePage() {
       // 2. Récupérer les détails de la demande et du profil
       const [demandeId, profilIndex] = formData.profil_selectionne.split('_')
       const demande = demandes.find(d => d.id === demandeId)
-      const profil = demande?.profils[parseInt(profilIndex)]
-
-      if (!demande || !profil) {
-        throw new Error('Demande ou profil introuvable')
+      
+      if (!demande) {
+        throw new Error('Demande introuvable')
       }
 
-      // 3. Insérer la candidature
-      const { error: insertError } = await supabase
-        .from('candidatures_stagiaires')
-        .insert([{
-          demande_cv_id: demandeId,
+      // 3. Préparer les données selon le type de demande
+      let candidatureData: any = {
+        demande_cv_id: demandeId,
+        date_candidature: new Date().toISOString().split('T')[0],
+        source_offre: 'Site web',
+        statut_candidature: 'envoye',
+        cv_url: publicUrlData.publicUrl,
+        nom: formData.nom,
+        prenom: formData.prenom,
+        email: formData.email,
+        telephone: formData.telephone,
+        feedback_entreprise: formData.lettre_motivation
+      }
+
+      if (demande.source === 'entreprises' && demande.profils) {
+        // Demande avec profils détaillés
+        const profil = demande.profils[parseInt(profilIndex)]
+        if (!profil) {
+          throw new Error('Profil introuvable')
+        }
+        candidatureData = {
+          ...candidatureData,
           entreprise_nom: demande.entreprise_nom,
           poste: profil.poste_intitule,
-          type_contrat: profil.type_contrat,
-          date_candidature: new Date().toISOString().split('T')[0],
-          source_offre: 'Site web',
-          statut_candidature: 'envoye',
-          cv_url: publicUrlData.publicUrl,
-          nom: formData.nom,
-          prenom: formData.prenom,
-          email: formData.email,
-          telephone: formData.telephone,
-          feedback_entreprise: formData.lettre_motivation
-        }])
+          type_contrat: profil.type_contrat
+        }
+      } else {
+        // Demande CV simple
+        candidatureData = {
+          ...candidatureData,
+          entreprise_nom: demande.nom_entreprise || demande.entreprise_nom,
+          poste: demande.poste_recherche || 'Poste à définir',
+          type_contrat: 'À définir'
+        }
+      }
+
+      // 4. Insérer la candidature
+      const { error: insertError } = await supabase
+        .from('candidatures_stagiaires')
+        .insert([candidatureData])
 
       if (insertError) throw insertError
 
@@ -240,28 +279,56 @@ export default function CandidaturePage() {
             demandes.map((demande) => (
               <div key={demande.id} className="bg-white rounded-lg shadow-sm border p-6">
                 <div className="space-y-4">
-                  {demande.profils.map((profil, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  {demande.source === 'entreprises' && demande.profils ? (
+                    // Demandes avec profils détaillés
+                    demande.profils.map((profil, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                              <Building2 className="w-5 h-5 text-blue-600" />
+                              {demande.entreprise_nom}
+                            </h3>
+                            <h4 className="font-medium text-gray-800 mt-1">{profil.poste_intitule}</h4>
+                            <p className="text-sm text-gray-600 mt-1">
+                              <strong>Pôle:</strong> {getPoleName(profil.pole_id)} • <strong>Filière:</strong> {getFiliereName(profil.filiere_id)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleSelectDemande(demande, index)}
+                            className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            Postuler
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    // Demandes CV simples
+                    <div className="border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                             <Building2 className="w-5 h-5 text-blue-600" />
-                            {demande.entreprise_nom}
+                            {demande.nom_entreprise || demande.entreprise_nom}
                           </h3>
-                          <h4 className="font-medium text-gray-800 mt-1">{profil.poste_intitule}</h4>
+                          <h4 className="font-medium text-gray-800 mt-1">{demande.poste_recherche || 'Poste à définir'}</h4>
                           <p className="text-sm text-gray-600 mt-1">
-                            <strong>Pôle:</strong> {getPoleName(profil.pole_id)} • <strong>Filière:</strong> {getFiliereName(profil.filiere_id)}
+                            <strong>Contact:</strong> {demande.contact_nom} • <strong>Email:</strong> {demande.contact_email}
                           </p>
+                          {demande.description && (
+                            <p className="text-sm text-gray-500 mt-2">{demande.description}</p>
+                          )}
                         </div>
                         <button
-                          onClick={() => handleSelectDemande(demande, index)}
+                          onClick={() => handleSelectDemande(demande, 0)}
                           className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           Postuler
                         </button>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             ))
