@@ -69,7 +69,7 @@ export default function CandidaturePage() {
         .from('demandes_entreprises')
         .select('*')
         .eq('type_demande', 'cv')
-        .eq('statut', 'en_attente') // Seulement les demandes en attente
+        .in('statut', ['en_cours', 'en_attente']) // Demandes en cours et en attente
         .order('created_at', { ascending: false })
 
       if (error) throw error
