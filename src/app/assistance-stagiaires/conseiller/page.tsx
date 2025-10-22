@@ -76,15 +76,13 @@ export default function InterfaceConseiller() {
   const [showConseillerSelect, setShowConseillerSelect] = useState(true)
 
   // Liste des conseillers disponibles avec leurs vrais IDs de la base de données
-  const [conseillers, setConseillers] = useState([
-    { id: '', nom: 'ABDELHAMID INAJJAREN', role: 'Conseiller d\'orientation' },
-    { id: '', nom: 'SIHAM EL OMARI', role: 'Conseillère Carrière' },
-    { id: '', nom: 'IMANE IDRISSI', role: 'Conseillère Carrière' }
-  ])
+  const [conseillers, setConseillers] = useState<Array<{id: string, nom: string, role: string}>>([])
+  const [conseillersLoading, setConseillersLoading] = useState(true)
 
   // Charger les IDs des conseillers depuis la base de données
   const loadConseillers = async () => {
     try {
+      setConseillersLoading(true)
       const response = await fetch('/api/assistance-stagiaires')
       const result = await response.json()
       
@@ -108,6 +106,8 @@ export default function InterfaceConseiller() {
       }
     } catch (err) {
       console.error('Erreur lors du chargement des conseillers:', err)
+    } finally {
+      setConseillersLoading(false)
     }
   }
 
@@ -251,25 +251,32 @@ export default function InterfaceConseiller() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {conseillers.map((conseiller) => (
-                <button
-                  key={conseiller.id}
-                  onClick={() => handleConseillerLogin(conseiller.id)}
-                  className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                      <User className="w-6 h-6 text-blue-600" />
+              {conseillersLoading ? (
+                <div className="col-span-full flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">Chargement des conseillers...</span>
+                </div>
+              ) : (
+                conseillers.map((conseiller) => (
+                  <button
+                    key={conseiller.id}
+                    onClick={() => handleConseillerLogin(conseiller.id)}
+                    className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
+                        <User className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {conseiller.nom}
+                        </h3>
+                        <p className="text-gray-600">{conseiller.role}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {conseiller.nom}
-                      </h3>
-                      <p className="text-gray-600">{conseiller.role}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))
+              )}
             </div>
 
             <div className="mt-8 text-center">
