@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Validation des données requises (sans filiere_id qui n'existe pas)
-    const requiredFields = ['nom', 'prenom', 'email', 'demande_cv_id', 'cv_url']
+    const requiredFields = ['nom', 'prenom', 'email', 'cv_url']
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -27,9 +27,10 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Préparer les données pour l'insertion (sans les colonnes qui n'existent pas)
+    // Préparer les données pour l'insertion (structure conforme à la table)
     const candidatureData = {
-      demande_cv_id: body.demande_cv_id,
+      // demande_cv_id sera null car nous n'avons pas d'UUID valide
+      demande_cv_id: body.demande_cv_id || null,
       date_candidature: new Date().toISOString().split('T')[0],
       source_offre: 'Site web',
       statut_candidature: 'envoye',
@@ -40,8 +41,8 @@ export async function POST(request: NextRequest) {
       telephone: body.telephone || null,
       entreprise_nom: body.entreprise_nom || 'À définir',
       poste: body.poste || 'À définir',
-      type_contrat: body.type_contrat || 'À définir'
-      // Supprimé: pole_id, filiere_id, created_at, updated_at (colonnes inexistantes)
+      type_contrat: body.type_contrat || 'cv'
+      // created_at et updated_at sont gérés automatiquement par Supabase
     }
 
     // Insérer la candidature

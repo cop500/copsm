@@ -179,9 +179,10 @@ export default function CandidaturePage() {
         throw new Error('Demande introuvable')
       }
 
-      // 3. Préparer les données selon le type de demande (sans les colonnes inexistantes)
+      // 3. Préparer les données selon le type de demande (structure conforme à la table)
       let candidatureData: any = {
-        demande_cv_id: demandeId,
+        // demande_cv_id sera null car nous n'avons pas d'UUID valide
+        demande_cv_id: null,
         date_candidature: new Date().toISOString().split('T')[0],
         source_offre: 'Site web',
         statut_candidature: 'envoye',
@@ -189,8 +190,9 @@ export default function CandidaturePage() {
         nom: formData.nom,
         prenom: formData.prenom,
         email: formData.email,
-        telephone: formData.telephone
-        // Supprimé: pole_id, filiere_id, created_at, updated_at (colonnes inexistantes)
+        telephone: formData.telephone,
+        type_contrat: 'cv'
+        // created_at et updated_at sont gérés automatiquement par Supabase
       }
 
       if (demande.source === 'entreprises' && demande.profils) {
