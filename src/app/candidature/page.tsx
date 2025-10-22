@@ -116,6 +116,21 @@ export default function CandidaturePage() {
     return filieres.find(f => f.id === filiereId)?.nom || 'Filière inconnue'
   }, [filieres])
 
+  // Filtrer les filières par pôle sélectionné
+  const filteredFilieres = useMemo(() => {
+    if (!formData.pole_id) return filieres
+    return filieres.filter(f => f.pole_id === formData.pole_id)
+  }, [filieres, formData.pole_id])
+
+  // Réinitialiser la filière quand le pôle change
+  const handlePoleChange = (poleId: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      pole_id: poleId,
+      filiere_id: '' // Réinitialiser la filière
+    }))
+  }
+
   // Gérer la sélection d'une demande
   const handleSelectDemande = (demande: DemandeEntreprise, profilIndex: number) => {
     setFormData(prev => ({
@@ -176,7 +191,9 @@ export default function CandidaturePage() {
         email: formData.email,
         telephone: formData.telephone,
         pole_id: formData.pole_id,
-        filiere_id: formData.filiere_id
+        filiere_id: formData.filiere_id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }
 
       if (demande.source === 'entreprises' && demande.profils) {
@@ -353,8 +370,13 @@ export default function CandidaturePage() {
         {/* Formulaire de candidature */}
         {formData.demande_id && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white bg-gradient-to-br from-blue-50 to-indigo-100">
-              <div className="mt-3">
+            <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white relative overflow-hidden">
+              {/* Background avec motifs professionnels */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-stone-50 to-amber-50 opacity-90"></div>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(59,130,246,0.1),transparent_50%)]"></div>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.1),transparent_50%)]"></div>
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,0.02)_25%,rgba(0,0,0,0.02)_50%,transparent_50%,transparent_75%,rgba(0,0,0,0.02)_75%)] bg-[length:20px_20px]"></div>
+              <div className="relative z-10 mt-3">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">Déposer votre candidature</h3>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -408,7 +430,7 @@ export default function CandidaturePage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Pôle *</label>
                       <select
                         value={formData.pole_id}
-                        onChange={(e) => setFormData(prev => ({ ...prev, pole_id: e.target.value }))}
+                        onChange={(e) => handlePoleChange(e.target.value)}
                         required
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
@@ -426,10 +448,13 @@ export default function CandidaturePage() {
                         value={formData.filiere_id}
                         onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        disabled={!formData.pole_id}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
-                        <option value="">Sélectionner une filière</option>
-                        {filieres.map((filiere) => (
+                        <option value="">
+                          {formData.pole_id ? "Sélectionner une filière" : "Sélectionnez d'abord un pôle"}
+                        </option>
+                        {filteredFilieres.map((filiere) => (
                           <option key={filiere.id} value={filiere.id}>
                             {filiere.nom}
                           </option>
