@@ -1,20 +1,64 @@
-// Test de la configuration Google Drive
-require('dotenv').config({ path: '.env.local' })
+// Test de la configuration Google Drive après déploiement
+const https = require('https')
 
-console.log('=== Test Configuration Google Drive ===')
-console.log('GOOGLE_DRIVE_FOLDER_ID:', process.env.GOOGLE_DRIVE_FOLDER_ID ? 'Défini' : 'Non défini')
-console.log('GOOGLE_SERVICE_ACCOUNT_EMAIL:', process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ? 'Défini' : 'Non défini')
-console.log('GOOGLE_PRIVATE_KEY:', process.env.GOOGLE_PRIVATE_KEY ? 'Défini' : 'Non défini')
+function testGoogleDriveConfig() {
+  console.log('=== Test Configuration Google Drive ===')
+  
+  const options = {
+    hostname: 'copsm.space',
+    port: 443,
+    path: '/api/test-env/',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+  }
 
-if (process.env.GOOGLE_DRIVE_FOLDER_ID) {
-  console.log('GOOGLE_DRIVE_FOLDER_ID value:', process.env.GOOGLE_DRIVE_FOLDER_ID)
+  const req = https.request(options, (res) => {
+    console.log('Status:', res.statusCode)
+    
+    let data = ''
+    res.on('data', (chunk) => {
+      data += chunk
+    })
+    
+    res.on('end', () => {
+      try {
+        const jsonData = JSON.parse(data)
+        console.log('\n=== Variables d\'environnement ===')
+        Object.entries(jsonData).forEach(([key, value]) => {
+          console.log(`${key}: ${value}`)
+        })
+        
+        // Vérifier si Google Drive est configuré
+        const isGoogleDriveConfigured = 
+          jsonData.google_drive_folder_id === 'Défini' &&
+          jsonData.google_service_account_email === 'Défini' &&
+          jsonData.google_private_key === 'Défini'
+        
+        console.log('\n=== Résultat ===')
+        if (isGoogleDriveConfigured) {
+          console.log('✅ Google Drive est correctement configuré !')
+          console.log('🚀 Vous pouvez maintenant tester l\'upload CV')
+        } else {
+          console.log('❌ Google Drive n\'est pas encore configuré')
+          console.log('⏳ Attendez que le déploiement Netlify soit terminé')
+        }
+        
+      } catch (e) {
+        console.log('Réponse non-JSON:', data)
+        console.log('⏳ Le déploiement est peut-être encore en cours...')
+      }
+    })
+  })
+
+  req.on('error', (error) => {
+    console.log('Erreur:', error.message)
+  })
+
+  req.end()
 }
 
-if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
-  console.log('GOOGLE_SERVICE_ACCOUNT_EMAIL value:', process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL)
-}
-
-if (process.env.GOOGLE_PRIVATE_KEY) {
-  console.log('GOOGLE_PRIVATE_KEY length:', process.env.GOOGLE_PRIVATE_KEY.length)
-  console.log('GOOGLE_PRIVATE_KEY starts with:', process.env.GOOGLE_PRIVATE_KEY.substring(0, 50) + '...')
-}
+// Attendre 30 secondes avant de tester
+console.log('Attente de 30 secondes pour laisser le temps au déploiement...')
+setTimeout(testGoogleDriveConfig, 30000)
