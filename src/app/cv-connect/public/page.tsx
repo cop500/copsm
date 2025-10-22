@@ -114,8 +114,8 @@ export default function CVConnectPage() {
     }
 
     // Validation téléphone (optionnel mais si rempli, doit être valide)
-    if (formData.telephone && !/^(\+212|0)[5-7][0-9]{8}$/.test(formData.telephone.replace(/\s/g, ''))) {
-      errors.telephone = 'Veuillez entrer un numéro de téléphone marocain valide'
+    if (formData.telephone && !/^0[5-7][0-9]{8}$/.test(formData.telephone.replace(/\s/g, ''))) {
+      errors.telephone = 'Veuillez entrer un numéro de téléphone marocain valide (ex: 06 12 34 56 78)'
     }
 
     // Validation pôle
@@ -233,10 +233,11 @@ export default function CVConnectPage() {
         setTimeout(() => setShowConfetti(false), 3000)
       } else {
         const errorData = await response.json()
-        setError(errorData.error || 'Une erreur est survenue lors de l\'envoi')
+        // Utiliser le message d'erreur convivial de l'API ou un message par défaut
+        setError(errorData.error || 'Une erreur est survenue lors de l\'envoi de votre CV. Veuillez réessayer.')
       }
     } catch (err: any) {
-      setError('Une erreur est survenue. Veuillez réessayer ou contacter le support.')
+      setError('Une erreur de connexion est survenue. Veuillez vérifier votre connexion internet et réessayer.')
     } finally {
       setSubmitting(false)
     }
@@ -418,7 +419,7 @@ export default function CVConnectPage() {
                               ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-200' 
                               : 'border-slate-200 bg-white focus:border-blue-500 focus:ring-blue-200'
                           }`}
-                          placeholder="+212 6XX XXX XXX"
+                          placeholder="06 12 34 56 78"
                         />
                       </div>
                       {validationErrors.telephone && (

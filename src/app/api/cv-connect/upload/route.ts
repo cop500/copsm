@@ -112,30 +112,23 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Erreur upload CV:', error)
     
-    // Gérer les erreurs spécifiques
+    // Gérer les erreurs spécifiques avec des messages conviviaux
     if (error.message.includes('Configuration Google Drive manquante')) {
       return NextResponse.json(
-        { error: 'Service Google Drive non configuré' },
+        { error: 'Service temporairement indisponible. Veuillez réessayer plus tard.' },
         { status: 503 }
       )
     }
     
-    if (error.message.includes('Impossible de créer le dossier')) {
+    if (error.message.includes('Impossible de créer le dossier') || error.message.includes('Impossible d\'uploader le fichier')) {
       return NextResponse.json(
-        { error: 'Erreur création dossier Google Drive' },
-        { status: 500 }
-      )
-    }
-    
-    if (error.message.includes('Impossible d\'uploader le fichier')) {
-      return NextResponse.json(
-        { error: 'Erreur upload fichier Google Drive' },
+        { error: 'Une erreur est survenue lors de l\'enregistrement de votre CV. Veuillez réessayer ou contacter notre équipe.' },
         { status: 500 }
       )
     }
 
     return NextResponse.json(
-      { error: 'Erreur interne du serveur' },
+      { error: 'Une erreur inattendue est survenue. Veuillez réessayer ou contacter notre équipe si le problème persiste.' },
       { status: 500 }
     )
   }
