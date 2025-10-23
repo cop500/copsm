@@ -66,6 +66,8 @@ export default function InterfaceConseiller() {
   const [filters, setFilters] = useState({
     statut: '',
     type_assistance: '',
+    pole: '',
+    filiere: '',
     date_debut: '',
     date_fin: ''
   })
@@ -78,6 +80,26 @@ export default function InterfaceConseiller() {
   // Liste des conseillers disponibles avec leurs vrais IDs de la base de données
   const [conseillers, setConseillers] = useState<Array<{id: string, nom: string, role: string}>>([])
   const [conseillersLoading, setConseillersLoading] = useState(true)
+  const [poles, setPoles] = useState<any[]>([])
+  const [filieres, setFilieres] = useState<any[]>([])
+
+  // Charger les pôles et filières
+  const loadPolesFilieres = async () => {
+    try {
+      const [polesRes, filieresRes] = await Promise.all([
+        fetch('/api/settings?type=poles'),
+        fetch('/api/settings?type=filieres')
+      ])
+      
+      const polesData = await polesRes.json()
+      const filieresData = await filieresRes.json()
+      
+      if (polesData.success) setPoles(polesData.data || [])
+      if (filieresData.success) setFilieres(filieresData.data || [])
+    } catch (err) {
+      console.error('Erreur chargement pôles/filières:', err)
+    }
+  }
 
   // Charger les IDs des conseillers depuis la base de données
   const loadConseillers = async () => {
@@ -140,6 +162,7 @@ export default function InterfaceConseiller() {
   // Charger les conseillers au démarrage
   useEffect(() => {
     loadConseillers()
+    loadPolesFilieres()
   }, [])
 
   useEffect(() => {
@@ -173,6 +196,8 @@ export default function InterfaceConseiller() {
     
     const matchesStatut = filters.statut === '' || demande.statut === filters.statut
     const matchesType = filters.type_assistance === '' || demande.type_assistance === filters.type_assistance
+    const matchesPole = filters.pole === '' || demande.pole_id === filters.pole
+    const matchesFiliere = filters.filiere === '' || demande.filiere_id === filters.filiere
     
     const matchesDate = () => {
       if (!filters.date_debut && !filters.date_fin) return true
@@ -185,7 +210,7 @@ export default function InterfaceConseiller() {
       return true
     }
     
-    return matchesSearch && matchesStatut && matchesType && matchesDate()
+    return matchesSearch && matchesStatut && matchesType && matchesPole && matchesFiliere && matchesDate()
   })
 
   // Actions sur les demandes
@@ -334,7 +359,7 @@ export default function InterfaceConseiller() {
 
         {/* Filtres et recherche */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             {/* Recherche */}
             <div className="lg:col-span-2">
               <div className="relative">
@@ -375,6 +400,34 @@ export default function InterfaceConseiller() {
                 <option value="strategie">Stratégie emploi</option>
                 <option value="entretiens">Préparation entretiens</option>
                 <option value="developpement">Développement personnel</option>
+              </select>
+            </div>
+
+            {/* Filtre pôle */}
+            <div>
+              <select
+                value={filters.pole}
+                onChange={(e) => setFilters(prev => ({ ...prev, pole: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Tous les pôles</option>
+                {poles.map(pole => (
+                  <option key={pole.id} value={pole.id}>{pole.nom}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filtre filière */}
+            <div>
+              <select
+                value={filters.filiere}
+                onChange={(e) => setFilters(prev => ({ ...prev, filiere: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Toutes les filières</option>
+                {filieres.map(filiere => (
+                  <option key={filiere.id} value={filiere.id}>{filiere.nom}</option>
+                ))}
               </select>
             </div>
 
@@ -486,6 +539,9 @@ export default function InterfaceConseiller() {
                       Stagiaire
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pôle / Filière
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Type d'assistance
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -510,6 +566,16 @@ export default function InterfaceConseiller() {
                           <div className="text-sm text-gray-500 flex items-center gap-1">
                             <Phone className="w-3 h-3" />
                             {demande.telephone}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {demande.poles?.nom || 'N/A'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {demande.filieres?.nom || 'N/A'}
                           </div>
                         </div>
                       </td>
@@ -606,6 +672,17 @@ export default function InterfaceConseiller() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Téléphone</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedDemande.telephone}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Pôle</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedDemande.poles?.nom || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Filière</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedDemande.filieres?.nom || 'N/A'}</p>
+                    </div>
                   </div>
 
                   <div>
