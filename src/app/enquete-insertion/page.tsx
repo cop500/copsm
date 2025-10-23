@@ -70,8 +70,8 @@ export default function EnqueteInsertionDashboard() {
       .eq('id', currentUser.id)
       .single()
 
-    // Autoriser admin et conseillères carrière
-    const isAuthorized = profile?.role === 'business_developer' || profile?.role === 'conseillere_carriere'
+    // Autoriser admin, manager COP et conseillères carrière
+    const isAuthorized = profile?.role === 'business_developer' || profile?.role === 'manager_cop' || profile?.role === 'conseillere_carriere'
 
     if (!isAuthorized) {
       router.push('/dashboard')

@@ -91,7 +91,7 @@ export const EmployabilityDashboard: React.FC = () => {
   };
   const { poles, filieres } = useSettings();
   const { user: currentUser } = useAuth();
-  const { isAdmin, isDirecteur, isManager } = useRole();
+  const { isAdmin, isDirecteur, isManager, isConseiller } = useRole();
 
     // Calculer les métriques des événements
   useEffect(() => {
@@ -727,7 +727,7 @@ export const EmployabilityDashboard: React.FC = () => {
               Actualiser
             </button>
             
-                         {(isAdmin || isManager || isDirecteur) && (
+                         {(isAdmin || isManager || isDirecteur || isConseiller) && (
                <>
                  <button 
                    onClick={handleExport}
