@@ -24,7 +24,7 @@ export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
   const { saveEvenement, ensureDataFresh } = useEvenements()
   const { currentUser } = useUser()
-  const { isAdmin, isDirecteur } = useRole()
+  const { isAdmin, isDirecteur, isManager } = useRole()
   
   // Debug logs
   console.log('🔍 === DEBUG MODERN EVENEMENTS ===')
@@ -1069,7 +1069,7 @@ export const ModernEvenementsModule = () => {
                 Ateliers
               </button>
             )}
-            {(isAdmin || currentUser?.role === 'conseillere_carriere') && (
+            {(isAdmin || isManager || currentUser?.role === 'conseillere_carriere') && (
               <button
                 onClick={() => setActiveTab('enquete')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
