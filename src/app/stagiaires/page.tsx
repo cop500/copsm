@@ -50,11 +50,15 @@ export default function StagiairesPage() {
   const [activeTab, setActiveTab] = useState('candidatures')
   
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
+  // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
   React.useEffect(() => {
     if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin')) {
       setActiveTab('candidatures')
     }
-  }, [isAdmin, activeTab])
+    if (isDirecteur && activeTab === 'assistance-conseiller') {
+      setActiveTab('candidatures')
+    }
+  }, [isAdmin, isDirecteur, activeTab])
   
   // États pour les filtres et actions
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
@@ -383,20 +387,22 @@ export default function StagiairesPage() {
                 </button>
               )}
 
-              {/* Onglet Assistance Conseiller */}
-              <button
-                onClick={() => setActiveTab('assistance-conseiller')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'assistance-conseiller'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center space-x-2">
-                  <HelpCircle className="w-5 h-5" />
-                  <span>Assistance Conseiller</span>
-                </div>
-              </button>
+              {/* Onglet Assistance Conseiller - Masqué pour le directeur */}
+              {!isDirecteur && (
+                <button
+                  onClick={() => setActiveTab('assistance-conseiller')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'assistance-conseiller'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <HelpCircle className="w-5 h-5" />
+                    <span>Assistance Conseiller</span>
+                  </div>
+                </button>
+              )}
 
               {/* Onglet Assistance Admin - Visible seulement pour les admins */}
               {isAdmin && (
@@ -1257,8 +1263,8 @@ export default function StagiairesPage() {
           </div>
         )}
 
-        {/* Assistance Conseiller Tab */}
-        {activeTab === 'assistance-conseiller' && (
+        {/* Assistance Conseiller Tab - Masqué pour le directeur */}
+        {activeTab === 'assistance-conseiller' && !isDirecteur && (
           <div className="space-y-6">
             {/* Header */}
             <div className="bg-white rounded-lg shadow p-6">

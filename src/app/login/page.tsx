@@ -49,7 +49,7 @@ export default function LoginPage() {
       
       // Rediriger selon le rôle
       if (email.toLowerCase() === 'directeurcmc@cop.com') {
-        router.push('/dashboard-directeur')
+        router.push('/dashboard-full')
       } else {
         router.push('/dashboard-full')
       }
