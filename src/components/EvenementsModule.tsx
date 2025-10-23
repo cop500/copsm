@@ -7,6 +7,7 @@ import { Calendar, Plus, X, Save, Edit3, Trash2, Eye, MapPin, Clock, Upload, Fil
 import * as XLSX from 'xlsx'
 import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole'
+import { AtelierForm } from './AtelierForm'
 
 export const EvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -32,7 +33,8 @@ export const EvenementsModule = () => {
         .from('evenements')
         .select(`
           *,
-          event_types(nom, couleur)
+          event_types(nom, couleur),
+          animateur:profiles!animateur_id(nom, prenom, role)
         `)
         .order('date_debut', { ascending: false })
 
@@ -59,10 +61,14 @@ export const EvenementsModule = () => {
         titre: formData.titre,
         type_evenement_id: formData.type_evenement_id,
         date_debut: formData.date_debut,
+        date_fin: formData.date_fin,
         lieu: formData.lieu,
         description: formData.description,
         statut: formData.statut || 'planifie',
         responsable_cop: formData.responsable_cop,
+        animateur_id: formData.animateur_id,
+        animateur_nom: formData.animateur_nom,
+        animateur_role: formData.animateur_role,
         actif: true
       }
 
@@ -383,6 +389,11 @@ export const EvenementsModule = () => {
                             <span>Responsable: {evenement.responsable_cop}</span>
                           </div>
                         )}
+                        {evenement.animateur_nom && (
+                          <div className="flex items-center">
+                            <span>Animateur: {evenement.animateur_nom}</span>
+                          </div>
+                        )}
                       </div>
                       
                       {evenement.description && (
@@ -414,114 +425,18 @@ export const EvenementsModule = () => {
         </div>
       </div>
 
-      {/* Formulaire modal */}
+      {/* Formulaire optimisé */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">
-              {formData.id ? 'Modifier l\'événement' : 'Nouvel événement'}
-            </h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Titre *</label>
-                <input
-                  type="text"
-                  value={formData.titre || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, titre: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  placeholder="Titre de l'événement"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Type d'événement</label>
-                <select
-                  value={formData.type_evenement_id || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, type_evenement_id: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Sélectionner un type</option>
-                  {eventTypes.filter(t => t.actif).map(type => (
-                    <option key={type.id} value={type.id}>{type.nom}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Date de début</label>
-                <input
-                  type="datetime-local"
-                  value={formData.date_debut || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date_debut: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Lieu</label>
-                <input
-                  type="text"
-                  value={formData.lieu || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lieu: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  placeholder="Lieu de l'événement"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Description</label>
-                <textarea
-                  value={formData.description || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Responsable COP</label>
-                <input
-                  type="text"
-                  value={formData.responsable_cop || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, responsable_cop: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nom du responsable"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Statut</label>
-                <select
-                  value={formData.statut || 'planifie'}
-                  onChange={(e) => setFormData(prev => ({ ...prev, statut: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="planifie">Planifié</option>
-                  <option value="en_cours">En cours</option>
-                  <option value="termine">Terminé</option>
-                  <option value="annule">Annulé</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
-              <button
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {formData.id ? 'Modifier' : 'Créer'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <AtelierForm
+          formData={formData}
+          setFormData={setFormData}
+          onSave={handleSave}
+          onCancel={() => {
+            setShowForm(false)
+            setFormData({})
+          }}
+          isEditing={!!formData.id}
+        />
       )}
 
       {/* Modal d'import Excel */}

@@ -1,472 +1,615 @@
-import React, { useState, useEffect } from 'react'
-import { useSettings } from '@/hooks/useSettings'
+'use client'
+
+import React, { useState, useEffect, useCallback } from 'react'
+// import { useSettings } from '@/hooks/useSettings'
 import { supabase } from '@/lib/supabase'
 import { 
-  Calendar, Clock, Users, MapPin, BookOpen, 
-  Save, X, Edit3, Trash2, Loader2 
+  Save, 
+  X, 
+  User, 
+  Calendar, 
+  MapPin, 
+  FileText, 
+  Users,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Building
 } from 'lucide-react'
 
-interface AtelierFormData {
-  id?: string
-  titre: string
-  description: string
-  date_debut: string
-  heure_debut: string
-  date_fin: string
-  heure_fin: string
-  capacite_max: number
-  pole: string
-  filliere: string
-  lieu: string
-  statut: 'planifie' | 'en_cours' | 'termine' | 'annule'
-  actif: boolean
-  pour_tous: boolean
+// Palette de couleurs
+const COLORS = {
+  primary: '#2563eb',      // Bleu
+  primaryLight: '#3b82f6', // Bleu clair
+  secondary: '#6b7280',    // Gris
+  secondaryLight: '#f3f4f6', // Gris clair
+  accent: '#f59e0b',       // Jaune
+  accentLight: '#fef3c7',  // Jaune clair
+  success: '#10b981',      // Vert
+  error: '#ef4444',        // Rouge
+  white: '#ffffff',
+  gray50: '#f9fafb',
+  gray100: '#f3f4f6',
+  gray200: '#e5e7eb',
+  gray300: '#d1d5db',
+  gray600: '#4b5563',
+  gray700: '#374151',
+  gray800: '#1f2937',
+  gray900: '#111827'
 }
 
 interface AtelierFormProps {
   atelier?: any
-  onSave: (atelier: any) => void
+  onSave: (data: any) => void
   onCancel: () => void
   isAdmin?: boolean
 }
 
-export default function AtelierForm({ atelier, onSave, onCancel, isAdmin = false }: AtelierFormProps) {
-  const { poles, filieres } = useSettings()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+interface User {
+  id: string
+  nom: string
+  prenom: string
+  email: string
+  role: string
+  avatar?: string
+}
+
+export const AtelierForm: React.FC<AtelierFormProps> = ({
+  atelier,
+  onSave,
+  onCancel,
+  isAdmin = false
+}) => {
+  // Plus besoin d'eventTypes car on a supprimé le champ type d'événement
+  const [users, setUsers] = useState<User[]>([])
+  const [animateurSearch, setAnimateurSearch] = useState('')
+  const [showAnimateurDropdown, setShowAnimateurDropdown] = useState(false)
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [errors, setErrors] = useState<Record<string, string>>({})
   
-  const [formData, setFormData] = useState<AtelierFormData>({
-    titre: '',
-    description: '',
-    date_debut: '',
-    heure_debut: '',
-    date_fin: '',
-    heure_fin: '',
-    capacite_max: 20,
-    pole: '',
-    filliere: '',
-    lieu: '',
-    statut: 'planifie',
-    actif: true,
-    pour_tous: false
+  // État local pour les données du formulaire
+  const [formData, setFormData] = useState({
+    titre: atelier?.titre || '',
+    description: atelier?.description || '',
+    date_debut: atelier?.date_debut || '',
+    date_fin: atelier?.date_fin || '',
+    lieu: atelier?.lieu || '',
+    capacite_max: atelier?.capacite_max || 20,
+    statut: atelier?.statut || 'planifie',
+    animateur_id: atelier?.animateur_id || '',
+    animateur_nom: atelier?.animateur_nom || '',
+    animateur_role: atelier?.animateur_role || '',
   })
 
-  // Debug: afficher les données après initialisation
-  console.log('🔍 AtelierForm - Poles:', poles)
-  console.log('🔍 AtelierForm - Filieres:', filieres)
-  console.log('🔍 AtelierForm - FormData:', formData)
-  
-  // Vérifier si les données sont chargées
-  if (poles.length === 0) {
-    console.warn('⚠️ Aucun pôle chargé - vérifiez useSettings')
-  }
-  if (filieres.length === 0) {
-    console.warn('⚠️ Aucune filière chargée - vérifiez useSettings')
-  }
+  // Charger les utilisateurs pour le champ animateur
+  const loadUsers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, nom, prenom, email, role')
+        .eq('actif', true)
+        .order('nom')
 
-  // Initialiser le formulaire avec les données de l'atelier existant
-  useEffect(() => {
-    if (atelier) {
-      const dateDebut = new Date(atelier.date_debut)
-      const dateFin = new Date(atelier.date_fin)
+      if (error) throw error
+      setUsers(data || [])
+    } catch (err) {
+      console.error('Erreur chargement utilisateurs:', err)
+    }
+  }, [])
+
+  // Autosave avec debounce - Sauvegarde réelle en brouillon
+  const autosave = useCallback(async () => {
+    if (!formData.titre || formData.titre.trim().length < 3) return // Pas d'autosave si pas de titre valide
+
+    setAutosaveStatus('saving')
+    try {
+      // Sauvegarder en localStorage comme brouillon
+      const draftData = {
+        ...formData,
+        isDraft: true,
+        lastSaved: new Date().toISOString()
+      }
       
-      setFormData({
-        id: atelier.id,
-        titre: atelier.titre || '',
-        description: atelier.description || '',
-        date_debut: dateDebut.toISOString().split('T')[0],
-        heure_debut: dateDebut.toTimeString().slice(0, 5),
-        date_fin: dateFin.toISOString().split('T')[0],
-        heure_fin: dateFin.toTimeString().slice(0, 5),
-        capacite_max: atelier.capacite_max || 20,
-        pole: atelier.pole || '',
-        filliere: atelier.filliere || '',
-        lieu: atelier.lieu || '',
-        statut: atelier.statut || 'planifie',
-        actif: atelier.actif !== false, // true par défaut
-        pour_tous: !atelier.pole && !atelier.filliere
-      })
+      localStorage.setItem('atelier_draft', JSON.stringify(draftData))
+      
+      // Optionnel : sauvegarder aussi en base de données (brouillon)
+      // await supabase.from('ateliers_drafts').upsert(draftData)
+      
+      setAutosaveStatus('saved')
+      setTimeout(() => setAutosaveStatus('idle'), 2000)
+    } catch (err) {
+      console.error('Erreur autosave:', err)
+      setAutosaveStatus('error')
+      setTimeout(() => setAutosaveStatus('idle'), 3000)
+    }
+  }, [formData])
+
+  // Debounced autosave
+  useEffect(() => {
+    const timer = setTimeout(autosave, 2000) // Autosave après 2s d'inactivité
+    return () => clearTimeout(timer)
+  }, [formData, autosave])
+
+  // Filtrer les utilisateurs pour l'animateur
+  useEffect(() => {
+    if (animateurSearch.length > 0) {
+      const filtered = users.filter(user => 
+        `${user.prenom} ${user.nom}`.toLowerCase().includes(animateurSearch.toLowerCase()) ||
+        user.email.toLowerCase().includes(animateurSearch.toLowerCase()) ||
+        user.role.toLowerCase().includes(animateurSearch.toLowerCase())
+      )
+      setFilteredUsers(filtered)
+      setShowAnimateurDropdown(true)
+    } else {
+      setFilteredUsers([])
+      setShowAnimateurDropdown(false)
+    }
+  }, [animateurSearch, users])
+
+  // Charger les utilisateurs au montage
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
+
+  // Initialiser le champ animateur si on est en mode édition
+  useEffect(() => {
+    if (atelier?.animateur_nom) {
+      setAnimateurSearch(atelier.animateur_nom)
     }
   }, [atelier])
 
-  // Filtrer les filières selon le pôle sélectionné
-  const filieresFiltered = formData.pole 
-    ? filieres.filter(f => {
-        // Trouver le pôle correspondant
-        const pole = poles.find(p => p.nom === formData.pole)
-        console.log('🔍 Filtrage - Pole sélectionné:', formData.pole)
-        console.log('🔍 Filtrage - Pole trouvé:', pole)
-        console.log('🔍 Filtrage - Filiere:', f.nom, 'pole_id:', f.pole_id)
-        return pole && f.pole_id === pole.id
-      })
-    : []
-  
-  console.log('🔍 Filieres filtrées:', filieresFiltered)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Valider les données
-      if (!formData.titre || !formData.date_debut || !formData.heure_debut || 
-          !formData.date_fin || !formData.heure_fin || !formData.lieu) {
-        throw new Error('Veuillez remplir tous les champs obligatoires')
+  // Charger le brouillon au démarrage (seulement pour la création)
+  useEffect(() => {
+    if (!atelier) { // Seulement pour la création, pas pour l'édition
+      try {
+        const savedDraft = localStorage.getItem('atelier_draft')
+        if (savedDraft) {
+          const draftData = JSON.parse(savedDraft)
+          // Vérifier si le brouillon est récent (moins de 24h)
+          const lastSaved = new Date(draftData.lastSaved)
+          const now = new Date()
+          const hoursDiff = (now.getTime() - lastSaved.getTime()) / (1000 * 60 * 60)
+          
+          if (hoursDiff < 24) { // Brouillon valide pendant 24h
+            setFormData(prev => ({ ...prev, ...draftData }))
+            if (draftData.animateur_nom) {
+              setAnimateurSearch(draftData.animateur_nom)
+            }
+            console.log('📄 Brouillon chargé automatiquement')
+          } else {
+            // Supprimer le brouillon expiré
+            localStorage.removeItem('atelier_draft')
+          }
+        }
+      } catch (err) {
+        console.error('Erreur chargement brouillon:', err)
+        localStorage.removeItem('atelier_draft')
       }
+    }
+  }, [atelier])
 
-      // Valider pôle/filière si pas "pour tous"
-      if (!formData.pour_tous && (!formData.pole || !formData.filliere)) {
-        throw new Error('Veuillez sélectionner un pôle et une filière, ou cocher "Pour tous"')
-      }
+  // Validation des champs
+  const validateField = (field: string, value: any) => {
+    const newErrors = { ...errors }
+    
+    switch (field) {
+      case 'titre':
+        if (!value || value.trim().length < 3) {
+          newErrors.titre = 'Le titre doit contenir au moins 3 caractères'
+        } else {
+          delete newErrors.titre
+        }
+        break
+      case 'date_debut':
+        if (!value) {
+          newErrors.date_debut = 'La date de début est obligatoire'
+        } else if (new Date(value) < new Date()) {
+          newErrors.date_debut = 'La date ne peut pas être dans le passé'
+        } else {
+          delete newErrors.date_debut
+        }
+        break
+      case 'lieu':
+        if (!value || value.trim().length < 2) {
+          newErrors.lieu = 'Le lieu doit contenir au moins 2 caractères'
+        } else {
+          delete newErrors.lieu
+        }
+        break
+    }
+    
+    setErrors(newErrors)
+  }
 
-      // Créer les dates complètes
-      const dateDebut = new Date(`${formData.date_debut}T${formData.heure_debut}`)
-      const dateFin = new Date(`${formData.date_fin}T${formData.heure_fin}`)
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    validateField(field, value)
+  }
 
-      if (dateDebut >= dateFin) {
-        throw new Error('La date de fin doit être postérieure à la date de début')
-      }
+  const selectAnimateur = (user: User) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      animateur_id: user.id,
+      animateur_nom: `${user.prenom} ${user.nom}`,
+      animateur_role: user.role
+    }))
+    setAnimateurSearch(`${user.prenom} ${user.nom}`)
+    setShowAnimateurDropdown(false)
+  }
 
-      const atelierData = {
-        titre: formData.titre,
-        description: formData.description,
-        date_debut: dateDebut.toISOString(),
-        date_fin: dateFin.toISOString(),
-        capacite_max: formData.capacite_max,
-        pole: formData.pour_tous ? null : formData.pole,
-        filliere: formData.pour_tous ? null : formData.filliere,
-        lieu: formData.lieu,
-        statut: formData.statut,
-        actif: formData.actif,
-        capacite_actuelle: atelier?.capacite_actuelle || 0
-      }
-
-      let result
-      if (atelier?.id) {
-        // Modification
-        const { data, error } = await supabase
-          .from('ateliers')
-          .update(atelierData)
-          .eq('id', atelier.id)
-          .select()
-        
-        if (error) throw error
-        result = data[0]
-      } else {
-        // Création
-        const { data, error } = await supabase
-          .from('ateliers')
-          .insert([atelierData])
-          .select()
-        
-        if (error) throw error
-        result = data[0]
-      }
-
-      onSave(result)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'business_developer': return 'bg-blue-100 text-blue-800'
+      case 'manager_cop': return 'bg-purple-100 text-purple-800'
+      case 'conseiller_cop': return 'bg-green-100 text-green-800'
+      case 'conseillere_carriere': return 'bg-pink-100 text-pink-800'
+      case 'directeur': return 'bg-yellow-100 text-yellow-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const handleDelete = async () => {
-    if (!atelier?.id || !isAdmin) return
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'business_developer': return 'Admin'
+      case 'manager_cop': return 'Manager COP'
+      case 'conseiller_cop': return 'Conseiller COP'
+      case 'conseillere_carriere': return 'Conseillère Carrière'
+      case 'directeur': return 'Directeur'
+      default: return role
+    }
+  }
+
+  // Fonction pour gérer la sauvegarde finale
+  const handleFinalSave = async () => {
+    // Validation finale
+    const requiredFields = ['titre', 'date_debut', 'lieu']
+    const newErrors: Record<string, string> = {}
     
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet atelier ?')) return
+    requiredFields.forEach(field => {
+      if (!formData[field as keyof typeof formData]) {
+        newErrors[field] = 'Ce champ est obligatoire'
+      }
+    })
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
 
     setLoading(true)
     try {
-      const { error } = await supabase
-        .from('ateliers')
-        .delete()
-        .eq('id', atelier.id)
-      
-      if (error) throw error
-      
-      onSave(null) // Indiquer la suppression
-    } catch (err: any) {
-      setError(err.message)
+      await onSave(formData)
+      // Nettoyer le brouillon après sauvegarde réussie
+      localStorage.removeItem('atelier_draft')
+      console.log('✅ Brouillon nettoyé après sauvegarde')
+    } catch (err) {
+      console.error('Erreur sauvegarde:', err)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-blue-600" />
-          {atelier ? 'Modifier l\'atelier' : 'Créer un nouvel atelier'}
+    <div className="fixed inset-0 bg-gray-100 bg-opacity-95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+        style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {atelier ? 'Modifier l\'atelier' : 'Nouvel atelier'}
         </h2>
+              <p className="text-gray-600 mt-1">
+                Créez un nouvel atelier d'insertion professionnelle
+                {localStorage.getItem('atelier_draft') && (
+                  <span className="ml-2 text-blue-600 text-sm font-medium">
+                    📄 Brouillon restauré
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Autosave status */}
+              <div className="flex items-center gap-2 text-sm">
+                {autosaveStatus === 'saving' && (
+                  <>
+                    <Clock className="w-4 h-4 text-blue-500 animate-spin" />
+                    <span className="text-blue-600">Sauvegarde...</span>
+                  </>
+                )}
+                {autosaveStatus === 'saved' && (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-green-600">Données enregistrées</span>
+                  </>
+                )}
+                {autosaveStatus === 'error' && (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    <span className="text-red-600">Erreur sauvegarde</span>
+                  </>
+                )}
+              </div>
         <button
           onClick={onCancel}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-600 text-sm">{error}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Titre et Description */}
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Titre de l'atelier <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.titre}
-              onChange={(e) => setFormData(prev => ({ ...prev, titre: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Ex: Développement Web avec React"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Description détaillée de l'atelier..."
-            />
           </div>
         </div>
 
-        {/* Dates et heures */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Date de début <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                value={formData.date_debut}
-                onChange={(e) => setFormData(prev => ({ ...prev, date_debut: e.target.value }))}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                type="time"
-                value={formData.heure_debut}
-                onChange={(e) => setFormData(prev => ({ ...prev, heure_debut: e.target.value }))}
-                className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+        {/* Form Content */}
+        <div className="p-6 space-y-8">
+          {/* Section 1: Informations générales */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 pb-2 border-b-2 border-blue-100">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FileText className="w-5 h-5 text-blue-600" />
             </div>
+              <h3 className="text-lg font-semibold text-gray-900">Informations générales</h3>
           </div>
 
+            <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Date de fin <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Titre de l'atelier *
             </label>
-            <div className="flex gap-2">
               <input
-                type="date"
-                value={formData.date_fin}
-                onChange={(e) => setFormData(prev => ({ ...prev, date_fin: e.target.value }))}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                type="time"
-                value={formData.heure_fin}
-                onChange={(e) => setFormData(prev => ({ ...prev, heure_fin: e.target.value }))}
-                className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+                  type="text"
+                  value={formData.titre || ''}
+                  onChange={(e) => handleFieldChange('titre', e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    errors.titre ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
+                  placeholder="Ex: Atelier CV et entretiens d'embauche"
+                />
+                {errors.titre && (
+                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.titre}
+                  </p>
+                )}
             </div>
-          </div>
-        </div>
 
-        {/* Case "Pour tous" */}
-        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <input
-            type="checkbox"
-            id="pour_tous"
-            checked={formData.pour_tous}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              pour_tous: e.target.checked,
-              pole: e.target.checked ? '' : prev.pole,
-              filliere: e.target.checked ? '' : prev.filliere
-            }))}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <label htmlFor="pour_tous" className="text-sm font-medium text-blue-900">
-            Cet atelier est ouvert à tous les pôles et filières
-          </label>
-        </div>
-
-        {/* Pôle et Filière */}
-        {!formData.pour_tous && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pôle
-              </label>
-              <select
-                value={formData.pole}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  pole: e.target.value,
-                  filliere: '' // Réinitialiser la filière
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                                 <option value="">Sélectionner un pôle</option>
-                 {poles && poles.length > 0 ? poles.filter(p => p.actif).map(pole => (
-                   <option key={pole.id} value={pole.nom}>{pole.nom}</option>
-                 )) : (
-                   <option value="" disabled>Aucun pôle disponible</option>
-                 )}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filière
-              </label>
-              <select
-                value={formData.filliere}
-                onChange={(e) => setFormData(prev => ({ ...prev, filliere: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={!formData.pole}
-              >
-                                 <option value="">
-                   {formData.pole ? 'Sélectionner une filière' : 'Sélectionnez d\'abord un pôle'}
-                 </option>
-                 {filieresFiltered && filieresFiltered.length > 0 ? filieresFiltered.map(filiere => (
-                   <option key={filiere.id} value={filiere.nom}>{filiere.nom}</option>
-                 )) : (
-                   <option value="" disabled>
-                     {formData.pole ? 'Aucune filière disponible pour ce pôle' : 'Sélectionnez d\'abord un pôle'}
-                   </option>
-                 )}
-              </select>
-            </div>
-          </div>
-        )}
-
-        {/* Capacité et Lieu */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Capacité maximale <span className="text-red-500">*</span>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Capacité maximale *
             </label>
-            <div className="relative">
-              <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="number"
                 min="1"
+                    max="100"
                 value={formData.capacite_max}
-                onChange={(e) => setFormData(prev => ({ ...prev, capacite_max: parseInt(e.target.value) || 1 }))}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) => handleFieldChange('capacite_max', parseInt(e.target.value))}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      errors.capacite_max ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                 placeholder="20"
               />
-            </div>
+                  {errors.capacite_max && (
+                    <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors.capacite_max}
+                    </p>
+                  )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lieu <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                value={formData.lieu}
-                onChange={(e) => setFormData(prev => ({ ...prev, lieu: e.target.value }))}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Salle 101 ou En ligne"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Statut et Actif */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
               Statut
             </label>
             <select
-              value={formData.statut}
-              onChange={(e) => setFormData(prev => ({ ...prev, statut: e.target.value as any }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.statut || 'planifie'}
+                    onChange={(e) => handleFieldChange('statut', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="planifie">Planifié</option>
               <option value="en_cours">En cours</option>
               <option value="termine">Terminé</option>
               <option value="annule">Annulé</option>
             </select>
+                </div>
+              </div>
+            </div>
+        </div>
+
+          {/* Section 2: Dates et lieu */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 pb-2 border-b-2 border-yellow-100">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Calendar className="w-5 h-5 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Dates et lieu</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Date de début *
+            </label>
+              <input
+                  type="datetime-local"
+                  value={formData.date_debut || ''}
+                  onChange={(e) => handleFieldChange('date_debut', e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    errors.date_debut ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
+                />
+                {errors.date_debut && (
+                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.date_debut}
+                  </p>
+                )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              État
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Date de fin
             </label>
-            <div className="flex items-center">
               <input
-                type="checkbox"
-                id="actif"
-                checked={formData.actif}
-                onChange={(e) => setFormData(prev => ({ ...prev, actif: e.target.checked }))}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="actif" className="ml-2 text-sm font-medium text-gray-700">
-                Atelier actif (visible sur la page publique)
+                  type="datetime-local"
+                  value={formData.date_fin || ''}
+                  onChange={(e) => handleFieldChange('date_fin', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Lieu *
               </label>
+              <input
+                  type="text"
+                  value={formData.lieu || ''}
+                  onChange={(e) => handleFieldChange('lieu', e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    errors.lieu ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
+                  placeholder="Ex: Salle de conférence, Amphi A, etc."
+                />
+                {errors.lieu && (
+                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.lieu}
+                  </p>
+                )}
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          {/* Section 3: Détails logistiques */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 pb-2 border-b-2 border-gray-100">
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Users className="w-5 h-5 text-gray-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Détails logistiques</h3>
+        </div>
+
+            <div className="space-y-6">
+              {/* Champ Animateur avec auto-complétion */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Animateur
+              </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={animateurSearch}
+                    onChange={(e) => setAnimateurSearch(e.target.value)}
+                    onFocus={() => setShowAnimateurDropdown(true)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Rechercher un animateur..."
+                  />
+                  <User className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  
+                  {/* Dropdown des utilisateurs */}
+                  {showAnimateurDropdown && filteredUsers.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredUsers.map(user => (
+                        <button
+                          key={user.id}
+                          onClick={() => selectAnimateur(user)}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {user.prenom} {user.nom}
+                              </p>
+                              <p className="text-sm text-gray-600">{user.email}</p>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                              {getRoleLabel(user.role)}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+            </div>
+
+                {/* Animateur sélectionné */}
+                {formData.animateur_nom && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <User className="w-4 h-4 text-blue-600" />
+                        </div>
+            <div>
+                          <p className="font-medium text-gray-900">{formData.animateur_nom}</p>
+                          <p className="text-sm text-gray-600">{formData.animateur_role}</p>
+                        </div>
+                      </div>
           <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        onClick={() => {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            animateur_id: '', 
+                            animateur_nom: '', 
+                            animateur_role: '' 
+                          }))
+                          setAnimateurSearch('')
+                        }}
+                        className="text-gray-400 hover:text-gray-600"
           >
             <X className="w-4 h-4" />
-            Annuler
           </button>
+            </div>
+          </div>
+        )}
+          </div>
 
-          {atelier?.id && isAdmin && (
+
+          <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Description
+            </label>
+                <textarea
+                  value={formData.description || ''}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                  rows={4}
+                  placeholder="Décrivez le contenu et les objectifs de l'atelier..."
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer avec boutons */}
+        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 rounded-b-xl">
+          <div className="flex justify-end gap-3">
             <button
-              type="button"
-              onClick={handleDelete}
-              disabled={loading}
-              className="px-4 py-2 text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Supprimer
-            </button>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+            onClick={() => {
+              // Nettoyer le brouillon si l'utilisateur annule
+              localStorage.removeItem('atelier_draft')
+              onCancel()
+            }}
+              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
           >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
+            Annuler
+            </button>
+          <button
+              onClick={handleFinalSave}
+              disabled={Object.keys(errors).length > 0 || !formData.titre}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg"
+            >
               <Save className="w-4 h-4" />
-            )}
-            {atelier ? 'Modifier' : 'Créer'}
+              {atelier ? 'Modifier' : 'Créer'} l'atelier
           </button>
         </div>
-      </form>
+        </div>
+      </div>
     </div>
   )
 } 

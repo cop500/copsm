@@ -9,6 +9,7 @@ import {
   Eye, Search, Filter, BookOpen, AlertCircle, CheckCircle,
   XCircle, PlayCircle, PauseCircle, X, ChevronRight
 } from 'lucide-react'
+import { AtelierForm } from '@/components/AtelierForm'
 
 export default function AteliersPage() {
   const { 
@@ -16,7 +17,8 @@ export default function AteliersPage() {
     loading, 
     error, 
     loadAteliers, 
-    deleteAtelier 
+    deleteAtelier,
+    createAtelier
   } = useAteliers()
   
   const { currentUser } = useUser()
@@ -106,6 +108,28 @@ export default function AteliersPage() {
   const handleViewDetails = (atelier: any) => {
     setSelectedAtelier(atelier)
     setShowDetailsModal(true)
+  }
+
+  // Créer un nouvel atelier
+  const handleCreateAtelier = async (atelierData: any) => {
+    try {
+      await createAtelier(atelierData)
+      setShowCreateModal(false)
+    } catch (error) {
+      console.error('Erreur création atelier:', error)
+      alert('Erreur lors de la création de l\'atelier')
+    }
+  }
+
+  // Gérer la sauvegarde d'atelier (interface compatible avec AtelierForm existant)
+  const handleSaveAtelier = async (atelierData: any) => {
+    try {
+      await createAtelier(atelierData)
+      setShowCreateModal(false)
+    } catch (error) {
+      console.error('Erreur sauvegarde atelier:', error)
+      alert('Erreur lors de la sauvegarde de l\'atelier')
+    }
   }
 
   // Statistiques
@@ -436,28 +460,16 @@ export default function AteliersPage() {
         </div>
       )}
 
-      {/* Modal de création (placeholder) */}
+      {/* Formulaire de création optimisé */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Nouvel atelier</h2>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-600 mb-4">
-                Le formulaire de création d'atelier sera implémenté dans la prochaine étape.
-              </p>
-            </div>
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <AtelierForm
+              atelier={null}
+              onSave={handleSaveAtelier}
+              onCancel={() => setShowCreateModal(false)}
+              isAdmin={isAdmin}
+            />
           </div>
         </div>
       )}
