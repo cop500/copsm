@@ -67,6 +67,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
   
   // État local pour les données du formulaire
   const [formData, setFormData] = useState({
@@ -101,6 +102,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
   // Autosave avec debounce - Sauvegarde réelle en brouillon
   const autosave = useCallback(async () => {
     if (!formData.titre || formData.titre.trim().length < 3) return // Pas d'autosave si pas de titre valide
+    if (loading) return // Pas d'autosave pendant la sauvegarde finale
 
     setAutosaveStatus('saving')
     try {
@@ -123,7 +125,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
       setAutosaveStatus('error')
       setTimeout(() => setAutosaveStatus('idle'), 3000)
     }
-  }, [formData])
+  }, [formData, loading])
 
   // Debounced autosave
   useEffect(() => {
@@ -262,6 +264,9 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
 
   // Fonction pour gérer la sauvegarde finale
   const handleFinalSave = async () => {
+    console.log('🔍 === DÉBUT handleFinalSave ===')
+    console.log('🔍 formData reçu:', formData)
+    
     // Validation finale
     const requiredFields = ['titre', 'date_debut', 'lieu']
     const newErrors: Record<string, string> = {}
@@ -278,13 +283,39 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     }
 
     setLoading(true)
+    setAutosaveStatus('idle') // Arrêter l'autosave pendant la sauvegarde
     try {
-      await onSave(formData)
+      // Nettoyer les données avant sauvegarde (retirer isDraft, lastSaved, etc.)
+      const cleanData = {
+        titre: formData.titre,
+        description: formData.description,
+        date_debut: formData.date_debut,
+        date_fin: formData.date_fin,
+        lieu: formData.lieu,
+        capacite_maximale: formData.capacite_max,
+        statut: formData.statut,
+        animateur_id: formData.animateur_id,
+        animateur_nom: formData.animateur_nom,
+        animateur_role: formData.animateur_role,
+        type_evenement: 'atelier' // Marquer comme atelier
+      }
+      
+      console.log('🔍 Début de la sauvegarde finale:', cleanData)
+      await onSave(cleanData)
+      console.log('✅ Sauvegarde réussie')
+      
       // Nettoyer le brouillon après sauvegarde réussie
       localStorage.removeItem('atelier_draft')
       console.log('✅ Brouillon nettoyé après sauvegarde')
+      
+      // Afficher un message de succès
+      alert('✅ Atelier créé avec succès !')
+      
+      // Fermer le modal
+      onCancel()
     } catch (err) {
-      console.error('Erreur sauvegarde:', err)
+      console.error('❌ Erreur sauvegarde:', err)
+      alert('❌ Erreur lors de la création de l\'atelier. Veuillez réessayer.')
     } finally {
       setLoading(false)
     }
@@ -600,7 +631,14 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
             Annuler
             </button>
           <button
-              onClick={handleFinalSave}
+              onClick={() => {
+                console.log('🔍 Clic sur le bouton Créer l\'atelier')
+                console.log('🔍 formData.titre:', formData.titre)
+                console.log('🔍 errors:', errors)
+                console.log('🔍 Object.keys(errors).length:', Object.keys(errors).length)
+                console.log('🔍 Bouton désactivé?', Object.keys(errors).length > 0 || !formData.titre)
+                handleFinalSave()
+              }}
               disabled={Object.keys(errors).length > 0 || !formData.titre}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg"
             >

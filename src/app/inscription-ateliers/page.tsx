@@ -374,7 +374,7 @@ export default function InscriptionAteliersPage() {
                   <h3 className="text-2xl font-bold text-gray-900 mb-4">Inscription réussie !</h3>
                   <p className="text-gray-600 mb-8">
                     Votre inscription à l'atelier <strong>"{selectedAtelier.titre}"</strong> a été confirmée.
-                    <br />Vous recevrez un email de confirmation.
+                    <br />Votre inscription est prise en compte.
                   </p>
                   <button
                     onClick={closeInscriptionForm}

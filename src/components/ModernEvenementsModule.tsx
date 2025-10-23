@@ -80,21 +80,27 @@ export const ModernEvenementsModule = () => {
     try {
       setLoading(true)
       
-      // Charger les événements
+      // Charger les événements (exclure les ateliers)
       const { data: evenementsData, error: evenementsError } = await supabase
         .from('evenements')
         .select(`
           *,
           event_types(nom, couleur)
         `)
+        .neq('type_evenement', 'atelier')
         .order('date_debut', { ascending: false })
 
       if (evenementsError) throw evenementsError
       
-      // Charger les ateliers
+      // Charger les ateliers (depuis la table evenements avec type_evenement = 'atelier')
       const { data: ateliersData, error: ateliersError } = await supabase
-        .from('ateliers')
-        .select('*')
+        .from('evenements')
+        .select(`
+          *,
+          event_types(nom, couleur),
+          animateur:profiles!animateur_id(nom, prenom, role)
+        `)
+        .eq('type_evenement', 'atelier')
         .order('date_debut', { ascending: false })
 
       if (ateliersError) throw ateliersError
@@ -209,18 +215,43 @@ export const ModernEvenementsModule = () => {
   // Gérer la sauvegarde d'un atelier
   const handleSaveAtelier = async (atelierData: any) => {
     try {
+      console.log('🔍 === DÉBUT handleSaveAtelier ===')
+      console.log('🔍 atelierData reçu:', atelierData)
+      console.log('🔍 editingAtelier:', editingAtelier)
+      
       if (atelierData === null) {
         // Suppression
+        console.log('🔍 Mode suppression')
         showMessage('Atelier supprimé avec succès')
       } else {
-        // Création ou modification
-        showMessage(editingAtelier ? 'Atelier modifié avec succès' : 'Atelier créé avec succès')
+        // Création ou modification - utiliser saveEvenement
+        console.log('🔍 Mode création/modification')
+        console.log('🔍 Appel saveEvenement avec:', atelierData)
+        
+        const result = await saveEvenement(atelierData)
+        console.log('🔍 Résultat saveEvenement:', result)
+        
+        if (result && result.success) {
+          console.log('✅ Sauvegarde réussie')
+          showMessage(editingAtelier ? 'Atelier modifié avec succès' : 'Atelier créé avec succès')
+        } else {
+          console.error('❌ Échec de la sauvegarde:', result)
+          throw new Error(result?.error || 'Erreur lors de la sauvegarde')
+        }
       }
+      
+      console.log('🔍 Fermeture du modal')
       setShowAtelierForm(false)
       setEditingAtelier(null)
+      
+      console.log('🔍 Rechargement des événements')
       await loadEvenements()
+      
+      console.log('🔍 === FIN handleSaveAtelier ===')
     } catch (error: any) {
-      showMessage('Erreur lors de la sauvegarde', 'error')
+      console.error('❌ Erreur sauvegarde atelier:', error)
+      showMessage(`Erreur lors de la sauvegarde: ${error.message}`, 'error')
+      throw error // Re-throw pour que AtelierForm puisse gérer l'erreur
     }
   }
 
@@ -1882,19 +1913,15 @@ export const ModernEvenementsModule = () => {
 
       {/* Modal Formulaire Atelier */}
       {showAtelierForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <AtelierForm
-              atelier={editingAtelier}
-              onSave={handleSaveAtelier}
-              onCancel={() => {
-                setShowAtelierForm(false)
-                setEditingAtelier(null)
-              }}
-              isAdmin={true} // TODO: Récupérer le rôle de l'utilisateur
-            />
-          </div>
-        </div>
+        <AtelierForm
+          atelier={editingAtelier}
+          onSave={handleSaveAtelier}
+          onCancel={() => {
+            setShowAtelierForm(false)
+            setEditingAtelier(null)
+          }}
+          isAdmin={true} // TODO: Récupérer le rôle de l'utilisateur
+        />
       )}
 
       {/* Modal Gestionnaire d'Inscriptions */}

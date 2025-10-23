@@ -125,10 +125,12 @@ export default function AteliersPage() {
   const handleSaveAtelier = async (atelierData: any) => {
     try {
       await createAtelier(atelierData)
+      // Recharger la liste des ateliers
+      await loadAteliers()
       setShowCreateModal(false)
     } catch (error) {
       console.error('Erreur sauvegarde atelier:', error)
-      alert('Erreur lors de la sauvegarde de l\'atelier')
+      throw error // Re-throw pour que AtelierForm puisse gérer l'erreur
     }
   }
 
@@ -462,16 +464,12 @@ export default function AteliersPage() {
 
       {/* Formulaire de création optimisé */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <AtelierForm
-              atelier={null}
-              onSave={handleSaveAtelier}
-              onCancel={() => setShowCreateModal(false)}
-              isAdmin={isAdmin}
-            />
-          </div>
-        </div>
+        <AtelierForm
+          atelier={null}
+          onSave={handleSaveAtelier}
+          onCancel={() => setShowCreateModal(false)}
+          isAdmin={isAdmin}
+        />
       )}
     </div>
   )
