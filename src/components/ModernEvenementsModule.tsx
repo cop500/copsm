@@ -192,9 +192,9 @@ export const ModernEvenementsModule = () => {
         console.log('⚠️ Continuation malgré l\'erreur inscriptions...')
       }
 
-      // Ensuite, supprimer l'atelier
+      // Ensuite, supprimer l'atelier (depuis la table evenements)
       const { error } = await supabase
-        .from('ateliers')
+        .from('evenements')
         .delete()
         .eq('id', id)
 

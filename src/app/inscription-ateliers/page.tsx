@@ -64,9 +64,11 @@ export default function InscriptionAteliersPage() {
       setError(null)
       
       const { data, error } = await supabase
-        .from('ateliers')
+        .from('evenements')
         .select('*')
-        .eq('actif', true)
+        .eq('type_evenement', 'atelier')
+        .eq('visible_inscription', true)
+        .in('statut', ['planifie', 'en_cours'])
         .gte('date_debut', new Date().toISOString())
         .order('date_debut', { ascending: true })
 
