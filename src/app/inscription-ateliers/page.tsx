@@ -373,16 +373,16 @@ export default function InscriptionAteliersPage() {
                         e.stopPropagation()
                         openInscriptionForm(atelier)
                       }}
-                      disabled={(atelier.capacite_actuelle || 0) >= atelier.capacite_maximale}
+                      disabled={atelier.capacite_maximale && (atelier.capacite_actuelle || 0) >= atelier.capacite_maximale}
                       className={`w-full px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-                        (atelier.capacite_actuelle || 0) < atelier.capacite_maximale
+                        !atelier.capacite_maximale || (atelier.capacite_actuelle || 0) < atelier.capacite_maximale
                           ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:scale-105'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     >
                       <ArrowRight className="w-4 h-4" />
                       <span>
-                        {(atelier.capacite_actuelle || 0) < atelier.capacite_maximale ? 'S\'inscrire' : 'Complet'}
+                        {!atelier.capacite_maximale || (atelier.capacite_actuelle || 0) < atelier.capacite_maximale ? 'S\'inscrire' : 'Complet'}
                       </span>
                     </button>
                   </div>

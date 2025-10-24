@@ -1497,6 +1497,14 @@ export const ModernEvenementsModule = () => {
                         {atelier.capacite_actuelle || 0}/{atelier.capacite_maximale || 'N/A'} places
                         {/* Debug: actuelle={atelier.capacite_actuelle}, max={atelier.capacite_maximale} */}
                       </span>
+                      {/* Debug console log */}
+                      {console.log('🔍 Atelier debug:', {
+                        id: atelier.id,
+                        titre: atelier.titre,
+                        capacite_actuelle: atelier.capacite_actuelle,
+                        capacite_maximale: atelier.capacite_maximale,
+                        visible_inscription: atelier.visible_inscription
+                      })}
                     </div>
                   </div>
                 </div>

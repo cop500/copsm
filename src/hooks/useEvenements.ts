@@ -83,6 +83,18 @@ export function useEvenements() {
       const evenementsData = data || [];
       console.log('📊 Evenements récupérés:', evenementsData.length, evenementsData);
       
+      // Debug: vérifier les valeurs de capacité pour les ateliers
+      const ateliers = evenementsData.filter(e => e.type_evenement === 'atelier');
+      if (ateliers.length > 0) {
+        console.log('🔍 Premier atelier debug:', {
+          id: ateliers[0].id,
+          titre: ateliers[0].titre,
+          capacite_maximale: ateliers[0].capacite_maximale,
+          capacite_actuelle: ateliers[0].capacite_actuelle,
+          visible_inscription: ateliers[0].visible_inscription
+        });
+      }
+      
       // Mettre en cache
       cache.set(cacheKey, {
         data: evenementsData,
@@ -193,6 +205,7 @@ export function useEvenements() {
     error,
     refresh, 
     saveEvenement,
-    ensureDataFresh
+    ensureDataFresh,
+    fetchEvenements
   };
 }
