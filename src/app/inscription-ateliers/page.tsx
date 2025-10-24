@@ -80,6 +80,18 @@ export default function InscriptionAteliersPage() {
       }
       
       console.log('✅ Ateliers chargés:', data)
+      
+      // Debug: vérifier les valeurs de capacité
+      if (data && data.length > 0) {
+        console.log('🔍 Premier atelier debug (inscription):', {
+          id: data[0].id,
+          titre: data[0].titre,
+          capacite_maximale: data[0].capacite_maximale,
+          capacite_actuelle: data[0].capacite_actuelle,
+          visible_inscription: data[0].visible_inscription
+        });
+      }
+      
       setAteliers(data || [])
     } catch (err: any) {
       console.error('❌ Erreur chargement ateliers:', err)
@@ -185,8 +197,8 @@ export default function InscriptionAteliersPage() {
 
   // Ouvrir le formulaire d'inscription
   const openInscriptionForm = (atelier: Atelier) => {
-    // Vérifier si l'atelier est complet
-    if ((atelier.capacite_actuelle || 0) >= atelier.capacite_maximale) {
+    // Vérifier si l'atelier est complet (seulement si capacité maximale définie)
+    if (atelier.capacite_maximale && (atelier.capacite_actuelle || 0) >= atelier.capacite_maximale) {
       setError('Cet atelier est complet. Aucune place disponible.')
       return
     }
@@ -340,7 +352,7 @@ export default function InscriptionAteliersPage() {
                       <div className="flex items-center gap-3 text-gray-700">
                         <Users className="w-5 h-5 text-blue-500" />
                         <span className="text-sm font-medium">
-                          {atelier.capacite_actuelle || 0} / {atelier.capacite_maximale} places
+                          {atelier.capacite_actuelle || 0} / {atelier.capacite_maximale || 'N/A'} places
                         </span>
                       </div>
 
@@ -433,7 +445,7 @@ export default function InscriptionAteliersPage() {
                       <p>📅 {new Date(selectedAtelier.date_debut).toLocaleDateString('fr-FR')}</p>
                       <p>🕐 {new Date(selectedAtelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedAtelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                       <p>📍 {selectedAtelier.lieu}</p>
-                      <p>👥 {selectedAtelier.capacite_actuelle || 0} / {selectedAtelier.capacite_maximale} places</p>
+                      <p>👥 {selectedAtelier.capacite_actuelle || 0} / {selectedAtelier.capacite_maximale || 'N/A'} places</p>
                       {selectedAtelier.animateur_nom && (
                         <p>👨‍🏫 {selectedAtelier.animateur_nom}</p>
                       )}
