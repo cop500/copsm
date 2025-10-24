@@ -10,7 +10,7 @@ import {
   TrendingUp, Users, MapPin, FileText, Zap, Edit3,
   BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download, X
 } from 'lucide-react'
-import { NewEventForm } from './NewEventForm'
+import { EvenementForm } from './EvenementForm'
 import { EventCard } from './EventCard'
 import AIContentGenerator from './AIContentGenerator'
 import { RapportsList } from './RapportsList'
@@ -22,7 +22,7 @@ import { useRole } from '@/hooks/useRole'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
-  const { saveEvenement, ensureDataFresh } = useEvenements()
+  const { evenements: allEvenements, saveEvenement, ensureDataFresh, fetchEvenements } = useEvenements()
   const { currentUser } = useUser()
   const { isAdmin, isDirecteur, isManager } = useRole()
   
@@ -36,6 +36,21 @@ export const ModernEvenementsModule = () => {
   const [evenements, setEvenements] = useState<any[]>([])
   const [ateliers, setAteliers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Synchroniser les données du hook avec les états locaux
+  useEffect(() => {
+    if (allEvenements && allEvenements.length > 0) {
+      console.log('🔍 Synchronisation des données:', allEvenements.length, 'événements')
+      
+      // Séparer les événements des ateliers
+      const evenementsData = allEvenements.filter(e => e.type_evenement !== 'atelier')
+      const ateliersData = allEvenements.filter(e => e.type_evenement === 'atelier')
+      
+      setEvenements(evenementsData)
+      setAteliers(ateliersData)
+      setLoading(false)
+    }
+  }, [allEvenements])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('tous')
   const [typeFilter, setTypeFilter] = useState('tous') // 'tous', 'evenements', 'ateliers'
@@ -81,30 +96,12 @@ export const ModernEvenementsModule = () => {
     try {
       setLoading(true)
       
-      // Charger les événements (exclure les ateliers)
-      const { data: evenementsData, error: evenementsError } = await supabase
-        .from('evenements')
-        .select(`
-          *,
-          event_types(nom, couleur)
-        `)
-        .neq('type_evenement', 'atelier')
-        .order('date_debut', { ascending: false })
-
-      if (evenementsError) throw evenementsError
+      // Utiliser fetchEvenements du hook pour recharger les données
+      await fetchEvenements(true) // forceRefresh = true
       
-      // Charger les ateliers (depuis la table evenements avec type_evenement = 'atelier')
-      const { data: ateliersData, error: ateliersError } = await supabase
-        .from('evenements')
-        .select(`
-          *,
-          event_types(nom, couleur),
-          animateur:profiles!animateur_id(nom, prenom, role)
-        `)
-        .eq('type_evenement', 'atelier')
-        .order('date_debut', { ascending: false })
-
-      if (ateliersError) throw ateliersError
+      // Séparer les événements des ateliers depuis allEvenements
+      const evenementsData = allEvenements.filter(e => e.type_evenement !== 'atelier')
+      const ateliersData = allEvenements.filter(e => e.type_evenement === 'atelier')
       
 
       
@@ -127,11 +124,25 @@ export const ModernEvenementsModule = () => {
   // Sauvegarder un événement
   const handleSaveEvent = async (eventData: any) => {
     try {
-      showMessage('Événement sauvegardé avec succès !')
-      setShowForm(false)
-      await loadEvenements()
+      console.log('🔍 Sauvegarde événement:', eventData)
+      
+      // Utiliser saveEvenement pour sauvegarder
+      const result = await saveEvenement(eventData)
+      console.log('🔍 Résultat sauvegarde:', result)
+      
+      if (result.success) {
+        showMessage('Événement sauvegardé avec succès !')
+        setShowForm(false)
+        setSelectedEvent(null)
+        
+        // Recharger les données via le hook
+        await fetchEvenements(true) // forceRefresh = true
+      } else {
+        throw new Error(result.error || 'Erreur de sauvegarde')
+      }
     } catch (error: any) {
-      showMessage('Erreur lors de la sauvegarde', 'error')
+      console.error('❌ Erreur sauvegarde:', error)
+      showMessage('Erreur lors de la sauvegarde: ' + error.message, 'error')
     }
   }
 
@@ -234,11 +245,11 @@ export const ModernEvenementsModule = () => {
         
         if (result && result.success) {
           console.log('✅ Sauvegarde réussie')
-          showMessage(editingAtelier ? 'Atelier modifié avec succès' : 'Atelier créé avec succès')
+        showMessage(editingAtelier ? 'Atelier modifié avec succès' : 'Atelier créé avec succès')
         } else {
           console.error('❌ Échec de la sauvegarde:', result)
           throw new Error(result?.error || 'Erreur lors de la sauvegarde')
-        }
+      }
       }
       
       console.log('🔍 Fermeture du modal')
@@ -1039,23 +1050,23 @@ export const ModernEvenementsModule = () => {
               </>
             )}
             {!isDirecteur && activeTab !== 'enquete' && (
-              <button
-                onClick={() => {
-                  if (activeTab === 'evenements') {
-                    setSelectedEvent(null)
-                    setShowForm(true)
-                  } else {
-                    handleCreateAtelier()
-                  }
-                }}
-                className={`${
-                  activeTab === 'evenements' 
-                    ? 'bg-blue-600 hover:bg-blue-700' 
-                    : 'bg-purple-600 hover:bg-purple-700'
-                } text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg`}
-              >
-                <Plus className="w-5 h-5" />
-                {activeTab === 'evenements' ? 'Nouvel Événement' : 'Nouvel Atelier'}
+            <button
+              onClick={() => {
+                if (activeTab === 'evenements') {
+                  setSelectedEvent(null)
+                  setShowForm(true)
+                } else {
+                  handleCreateAtelier()
+                }
+              }}
+              className={`${
+                activeTab === 'evenements' 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : 'bg-purple-600 hover:bg-purple-700'
+              } text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg`}
+            >
+              <Plus className="w-5 h-5" />
+              {activeTab === 'evenements' ? 'Nouvel Événement' : 'Nouvel Atelier'}
               </button>
             )}
             {(showAIGenerator || generatedContent || showEventDetail || showAtelierDetail || showInscriptionsModal) && (
@@ -1086,17 +1097,17 @@ export const ModernEvenementsModule = () => {
               Événements
             </button>
             {!isDirecteur && (
-              <button
-                onClick={() => setActiveTab('ateliers')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === 'ateliers'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <BookOpen className="w-4 h-4" />
-                Ateliers
-              </button>
+            <button
+              onClick={() => setActiveTab('ateliers')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'ateliers'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              Ateliers
+            </button>
             )}
             {(isAdmin || isManager || currentUser?.role === 'conseillere_carriere') && (
               <button
@@ -1168,55 +1179,55 @@ export const ModernEvenementsModule = () => {
         </div>
       ) : (
         activeTab === 'ateliers' && !isDirecteur && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total</p>
-                  <p className="text-3xl font-bold text-gray-900">{ateliers.length}</p>
-                </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-purple-600" />
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-3xl font-bold text-gray-900">{ateliers.length}</p>
               </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Planifiés</p>
-                  <p className="text-3xl font-bold text-blue-600">{ateliers.filter(a => a.statut === 'planifie').length}</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">En cours</p>
-                  <p className="text-3xl font-bold text-yellow-600">{ateliers.filter(a => a.statut === 'en_cours').length}</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-yellow-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Terminés</p>
-                  <p className="text-3xl font-bold text-green-600">{ateliers.filter(a => a.statut === 'termine').length}</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Planifiés</p>
+                <p className="text-3xl font-bold text-blue-600">{ateliers.filter(a => a.statut === 'planifie').length}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">En cours</p>
+                <p className="text-3xl font-bold text-yellow-600">{ateliers.filter(a => a.statut === 'en_cours').length}</p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Terminés</p>
+                <p className="text-3xl font-bold text-green-600">{ateliers.filter(a => a.statut === 'termine').length}</p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+        </div>
         )
       )}
 
@@ -1419,20 +1430,20 @@ export const ModernEvenementsModule = () => {
                       </button>
                       {!isDirecteur && (
                         <>
-                          <button
-                            onClick={() => handleEditAtelier(atelier)}
-                            className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                            title="Modifier"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAtelier(atelier.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      <button
+                        onClick={() => handleEditAtelier(atelier)}
+                        className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                        title="Modifier"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAtelier(atelier.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                         </>
                       )}
                     </div>
@@ -1478,13 +1489,14 @@ export const ModernEvenementsModule = () => {
 
       {/* Formulaire modal */}
       {showForm && (
-        <NewEventForm
+        <EvenementForm
+          evenement={selectedEvent}
           onSave={handleSaveEvent}
           onCancel={() => {
             setShowForm(false)
             setSelectedEvent(null)
           }}
-          initialData={selectedEvent}
+          isAdmin={isAdmin}
         />
       )}
 
@@ -1772,16 +1784,16 @@ export const ModernEvenementsModule = () => {
                   Générer contenu IA
                 </button>
                 {!isDirecteur && (
-                  <button
-                    onClick={() => {
-                      setShowEventDetail(false)
-                      handleEditEvent(selectedEvent)
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Modifier
-                  </button>
+                <button
+                  onClick={() => {
+                    setShowEventDetail(false)
+                    handleEditEvent(selectedEvent)
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Modifier
+                </button>
                 )}
                 <button
                   onClick={() => setShowEventDetail(false)}
@@ -1918,15 +1930,15 @@ export const ModernEvenementsModule = () => {
 
       {/* Modal Formulaire Atelier */}
       {showAtelierForm && (
-        <AtelierForm
-          atelier={editingAtelier}
-          onSave={handleSaveAtelier}
-          onCancel={() => {
-            setShowAtelierForm(false)
-            setEditingAtelier(null)
-          }}
-          isAdmin={true} // TODO: Récupérer le rôle de l'utilisateur
-        />
+            <AtelierForm
+              atelier={editingAtelier}
+              onSave={handleSaveAtelier}
+              onCancel={() => {
+                setShowAtelierForm(false)
+                setEditingAtelier(null)
+              }}
+              isAdmin={true} // TODO: Récupérer le rôle de l'utilisateur
+            />
       )}
 
 
@@ -1993,15 +2005,15 @@ export const ModernEvenementsModule = () => {
                   Téléchargez le fichier template pour voir le format attendu
                 </p>
                 {!isDirecteur && (
-                  <button
+              <button
                     onClick={downloadTemplate}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                  >
+              >
                     <Download className="w-4 h-4" />
                     Télécharger template_evenements.xlsx
-                  </button>
+              </button>
                 )}
-              </div>
+            </div>
 
               {/* Section 2: Upload du fichier */}
               <div className="border border-gray-200 rounded-lg p-4">
@@ -2056,8 +2068,8 @@ export const ModernEvenementsModule = () => {
                         ... et {importPreview.length - 10} autres événements
                       </p>
                     )}
-                  </div>
-                </div>
+          </div>
+        </div>
               )}
 
               {/* Boutons d'action */}

@@ -36,10 +36,10 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     try {
       setLoading(true)
       const { data, error } = await supabase
-        .from('inscriptions_ateliers')
-        .select('*')
-        .eq('atelier_id', atelier.id)
-        .order('date_inscription', { ascending: false })
+            .from('inscriptions_ateliers')
+            .select('*')
+            .eq('atelier_id', atelier.id)
+            .order('date_inscription', { ascending: false })
 
       if (error) throw error
       setInscriptions(data || [])
@@ -167,95 +167,95 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <Users className="w-6 h-6 text-purple-600" />
                 Gestion des inscriptions
-              </h2>
+          </h2>
               <p className="text-gray-600 mt-1">
                 {atelier.titre} - {inscriptions.length} inscription(s)
               </p>
             </div>
-            <button
+          <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
+          >
               <X className="w-6 h-6" />
-            </button>
+          </button>
           </div>
         </div>
 
         {/* Statistiques */}
         <div className="p-6 bg-gray-50 border-b border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center">
+            <div className="flex items-center">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Users className="w-5 h-5 text-blue-600" />
                 </div>
-                <div className="ml-3">
+              <div className="ml-3">
                   <p className="text-sm font-medium text-gray-600">Total</p>
                   <p className="text-xl font-bold text-gray-900">{inscriptions.length}</p>
-                </div>
               </div>
             </div>
-            
+          </div>
+
             <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center">
+            <div className="flex items-center">
                 <div className="p-2 bg-green-100 rounded-lg">
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
-                <div className="ml-3">
+              <div className="ml-3">
                   <p className="text-sm font-medium text-gray-600">Confirmées</p>
                   <p className="text-xl font-bold text-green-600">
                     {inscriptions.filter(i => i.statut === 'confirme').length}
                   </p>
-                </div>
               </div>
             </div>
-            
+          </div>
+
             <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center">
+            <div className="flex items-center">
                 <div className="p-2 bg-yellow-100 rounded-lg">
                   <Clock className="w-5 h-5 text-yellow-600" />
                 </div>
-                <div className="ml-3">
+              <div className="ml-3">
                   <p className="text-sm font-medium text-gray-600">En attente</p>
                   <p className="text-xl font-bold text-yellow-600">
                     {inscriptions.filter(i => i.statut === 'en_attente').length}
                   </p>
-                </div>
               </div>
             </div>
-            
+          </div>
+
             <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center">
+            <div className="flex items-center">
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <GraduationCap className="w-5 h-5 text-purple-600" />
                 </div>
-                <div className="ml-3">
+              <div className="ml-3">
                   <p className="text-sm font-medium text-gray-600">Capacité</p>
                   <p className="text-xl font-bold text-purple-600">
                     {atelier.capacite_actuelle || 0}/{atelier.capacite_maximale}
                   </p>
-                </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
         {/* Filtres et actions */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
                   placeholder="Rechercher un stagiaire..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent w-64"
-                />
-              </div>
-              
-              <select
+              />
+          </div>
+
+            <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -264,9 +264,9 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                 <option value="en_attente">En attente</option>
                 <option value="confirme">Confirmées</option>
                 <option value="annule">Annulées</option>
-              </select>
-            </div>
-            
+            </select>
+          </div>
+
             <button
               onClick={exportToExcel}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
@@ -283,10 +283,10 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement des inscriptions...</p>
-            </div>
+      </div>
           ) : filteredInscriptions.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune inscription</h3>
               <p className="text-gray-600">
                 {searchTerm || statusFilter !== 'all' 
@@ -294,8 +294,8 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                   : 'Aucune inscription n\'a encore été enregistrée pour cet atelier.'
                 }
               </p>
-            </div>
-          ) : (
+          </div>
+        ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -326,26 +326,26 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {inscription.stagiaire_nom}
-                        </div>
+                      </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{inscription.stagiaire_email}</div>
-                        {inscription.stagiaire_telephone && (
+                              {inscription.stagiaire_telephone && (
                           <div className="text-sm text-gray-500">{inscription.stagiaire_telephone}</div>
-                        )}
+                              )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {inscription.pole} - {inscription.filliere}
-                        </div>
+                            </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
                         })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -361,37 +361,37 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button
+                              <button
                             onClick={() => handleDeleteInscription(inscription.id)}
                             className="text-red-600 hover:text-red-900"
                             title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                       </td>
                     </tr>
-                  ))}
+                      ))}
                 </tbody>
               </table>
-            </div>
-          )}
-        </div>
+                </div>
+        )}
+      </div>
 
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 bg-gray-50">
           <div className="flex justify-end">
-            <button
+                <button
               onClick={onClose}
               className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Fermer
-            </button>
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
     </div>
   )
-}
+} 
 
 export default AtelierInscriptionsManager

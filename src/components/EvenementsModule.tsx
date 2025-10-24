@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx'
 import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole'
 import { AtelierForm } from './AtelierForm'
+import EvenementForm from './EvenementForm'
 
 export const EvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -353,18 +354,18 @@ export const EvenementsModule = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {evenements.map(evenement => (
-                <div key={evenement.id} className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+              {evenements.map((evenement: any) => (
+                <div key={evenement.id as string} className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-medium text-gray-900">{evenement.titre}</h3>
+                        <h3 className="text-lg font-medium text-gray-900">{evenement.titre as string}</h3>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatutColor(evenement.statut as string)}`}>
                           {getStatutLabel(evenement.statut as string)}
                         </span>
                         {evenement.event_types?.nom && (
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                            {evenement.event_types.nom}
+                            {evenement.event_types.nom as string}
                           </span>
                         )}
                       </div>
@@ -381,23 +382,23 @@ export const EvenementsModule = () => {
                         {evenement.lieu && (
                           <div className="flex items-center">
                             <MapPin className="w-4 h-4 mr-1" />
-                            {evenement.lieu}
+                            {evenement.lieu as string}
                           </div>
                         )}
                         {evenement.responsable_cop && (
                           <div className="flex items-center">
-                            <span>Responsable: {evenement.responsable_cop}</span>
+                            <span>Responsable: {evenement.responsable_cop as string}</span>
                           </div>
                         )}
                         {evenement.animateur_nom && (
                           <div className="flex items-center">
-                            <span>Animateur: {evenement.animateur_nom}</span>
+                            <span>Animateur: {evenement.animateur_nom as string}</span>
                           </div>
                         )}
                       </div>
                       
                       {evenement.description && (
-                        <p className="text-sm text-gray-600">{evenement.description}</p>
+                        <p className="text-sm text-gray-600">{evenement.description as string}</p>
                       )}
                     </div>
                     
@@ -427,15 +428,14 @@ export const EvenementsModule = () => {
 
       {/* Formulaire optimisé */}
       {showForm && (
-        <AtelierForm
-          formData={formData}
-          setFormData={setFormData}
+        <EvenementForm
+          evenement={formData}
           onSave={handleSave}
           onCancel={() => {
             setShowForm(false)
             setFormData({})
           }}
-          isEditing={!!formData.id}
+          isAdmin={isAdmin}
         />
       )}
 

@@ -447,15 +447,15 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
               <option value="termine">Terminé</option>
               <option value="annule">Annulé</option>
             </select>
-                </div>
+          </div>
 
-                <div>
+          <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Visibilité sur la page d'inscription
-                  </label>
+            </label>
                   <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
+              <input
+                type="checkbox"
                       id="visible_inscription"
                       checked={formData.visible_inscription || false}
                       onChange={(e) => handleFieldChange('visible_inscription', e.target.checked)}
@@ -463,7 +463,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
                     />
                     <label htmlFor="visible_inscription" className="text-sm text-gray-600">
                       Rendre cet atelier visible sur la page d'inscription publique
-                    </label>
+              </label>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Les ateliers terminés ou annulés ne s'affichent pas automatiquement
