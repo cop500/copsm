@@ -15,7 +15,7 @@ interface Atelier {
   description: string
   date_debut: string
   date_fin: string
-  capacite_max: number
+  capacite_maximale: number
   capacite_actuelle: number
   pole: string | null
   filliere: string | null
@@ -63,19 +63,25 @@ export default function InscriptionAteliersPage() {
       setLoading(true)
       setError(null)
       
+      console.log('🔄 Chargement des ateliers depuis evenements...')
+      
+      // TEMPORAIRE : Utiliser l'ancienne table ateliers
       const { data, error } = await supabase
-        .from('evenements')
+        .from('ateliers')
         .select('*')
-        .eq('type_evenement', 'atelier')
-        .eq('visible_inscription', true)
+        .eq('actif', true)
         .in('statut', ['planifie', 'en_cours'])
-        .gte('date_debut', new Date().toISOString())
         .order('date_debut', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Erreur chargement ateliers:', error)
+        throw error
+      }
+      
+      console.log('✅ Ateliers chargés:', data)
       setAteliers(data || [])
     } catch (err: any) {
-      console.error('Erreur chargement ateliers:', err)
+      console.error('❌ Erreur chargement ateliers:', err)
       setError(err.message)
     } finally {
       setLoading(false)
@@ -130,10 +136,10 @@ export default function InscriptionAteliersPage() {
         throw new Error('Vous êtes déjà inscrit à cet atelier')
       }
 
-      // Vérifier la capacité
-      if (selectedAtelier!.capacite_actuelle >= selectedAtelier!.capacite_max) {
-        throw new Error('Cet atelier est complet')
-      }
+      // Vérifier la capacité (temporairement désactivé)
+      // if ((selectedAtelier!.capacite_actuelle || 0) >= selectedAtelier!.capacite_maximale) {
+      //   throw new Error('Cet atelier est complet')
+      // }
 
       // Créer l'inscription
       const { error: insertError } = await supabase
@@ -151,13 +157,13 @@ export default function InscriptionAteliersPage() {
 
       if (insertError) throw insertError
 
-      // Mettre à jour la capacité de l'atelier
-      const { error: updateError } = await supabase
-        .from('ateliers')
-        .update({ capacite_actuelle: selectedAtelier!.capacite_actuelle + 1 })
-        .eq('id', selectedAtelier!.id)
+      // Mettre à jour la capacité de l'atelier (temporairement désactivé)
+      // const { error: updateError } = await supabase
+      //   .from('ateliers')
+      //   .update({ capacite_actuelle: (selectedAtelier!.capacite_actuelle || 0) + 1 })
+      //   .eq('id', selectedAtelier!.id)
 
-      if (updateError) throw updateError
+      // if (updateError) throw updateError
 
       setInscriptionSuccess(true)
       setFormData({
@@ -178,6 +184,12 @@ export default function InscriptionAteliersPage() {
 
   // Ouvrir le formulaire d'inscription
   const openInscriptionForm = (atelier: Atelier) => {
+    // Vérifier si l'atelier est complet
+    if ((atelier.capacite_actuelle || 0) >= atelier.capacite_maximale) {
+      setError('Cet atelier est complet. Aucune place disponible.')
+      return
+    }
+    
     setSelectedAtelier(atelier)
     setShowInscriptionForm(true)
     setInscriptionSuccess(false)
@@ -194,9 +206,8 @@ export default function InscriptionAteliersPage() {
 
   // Obtenir le statut de l'atelier
   const getAtelierStatus = (atelier: Atelier) => {
-    if (atelier.capacite_actuelle >= atelier.capacite_max) {
-      return { text: 'Complet', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: '🟡' }
-    } else if (atelier.statut === 'planifie') {
+    // Temporairement simplifié
+    if (atelier.statut === 'planifie') {
       return { text: 'Places disponibles', color: 'bg-green-100 text-green-800 border-green-200', icon: '🟢' }
     } else {
       return { text: 'Planifié', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '🔵' }
@@ -239,9 +250,18 @@ export default function InscriptionAteliersPage() {
         <div className="max-w-7xl mx-auto">
           {/* Section Ateliers disponibles */}
           <div className="mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 text-center">
-              Ateliers Disponibles
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                Ateliers Disponibles
+              </h2>
+              <button
+                onClick={loadAteliers}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Loader2 className="w-4 h-4" />
+                Actualiser
+              </button>
+            </div>
             <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-yellow-400 mx-auto mb-8"></div>
           </div>
 
@@ -310,7 +330,7 @@ export default function InscriptionAteliersPage() {
                       <div className="flex items-center gap-3 text-gray-700">
                         <Users className="w-5 h-5 text-blue-500" />
                         <span className="text-sm font-medium">
-                          {atelier.capacite_actuelle} / {atelier.capacite_max} places
+                          {atelier.capacite_actuelle || 0} / {atelier.capacite_maximale} places
                         </span>
                       </div>
 
@@ -343,16 +363,16 @@ export default function InscriptionAteliersPage() {
                         e.stopPropagation()
                         openInscriptionForm(atelier)
                       }}
-                      disabled={atelier.capacite_actuelle >= atelier.capacite_max}
+                      disabled={(atelier.capacite_actuelle || 0) >= atelier.capacite_maximale}
                       className={`w-full px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-                        atelier.capacite_actuelle < atelier.capacite_max
+                        (atelier.capacite_actuelle || 0) < atelier.capacite_maximale
                           ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:scale-105'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     >
                       <ArrowRight className="w-4 h-4" />
                       <span>
-                        {atelier.capacite_actuelle < atelier.capacite_max ? 'S\'inscrire' : 'Complet'}
+                        {(atelier.capacite_actuelle || 0) < atelier.capacite_maximale ? 'S\'inscrire' : 'Complet'}
                       </span>
                     </button>
                   </div>
@@ -403,7 +423,7 @@ export default function InscriptionAteliersPage() {
                       <p>📅 {new Date(selectedAtelier.date_debut).toLocaleDateString('fr-FR')}</p>
                       <p>🕐 {new Date(selectedAtelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedAtelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                       <p>📍 {selectedAtelier.lieu}</p>
-                      <p>👥 {selectedAtelier.capacite_actuelle} / {selectedAtelier.capacite_max} places</p>
+                      <p>👥 {selectedAtelier.capacite_actuelle || 0} / {selectedAtelier.capacite_maximale} places</p>
                       {selectedAtelier.animateur_nom && (
                         <p>👨‍🏫 {selectedAtelier.animateur_nom}</p>
                       )}
