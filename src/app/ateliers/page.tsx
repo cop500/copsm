@@ -35,6 +35,7 @@ export default function AteliersPage() {
     loadAteliers()
   }, [loadAteliers])
 
+
   // Filtrer les ateliers
   const filteredAteliers = ateliers.filter(atelier => {
     const matchesSearch = atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,6 +195,7 @@ export default function AteliersPage() {
               Nouvel atelier
             </button>
           </div>
+          
         </div>
       </div>
 
@@ -343,7 +345,7 @@ export default function AteliersPage() {
                         )}
                         <div className="flex items-center">
                           <Users className="w-4 h-4 mr-1" />
-                          {atelier.capacite_actuelle || 0}/{atelier.capacite_max} participants
+                          {atelier.capacite_actuelle || 0}/{atelier.capacite_maximale} participants
                         </div>
                       </div>
                     </div>
@@ -429,7 +431,7 @@ export default function AteliersPage() {
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-1">Capacité</h3>
                   <p className="text-gray-900">
-                    {selectedAtelier.capacite_actuelle || 0} / {selectedAtelier.capacite_max} participants
+                    {selectedAtelier.capacite_actuelle || 0} / {selectedAtelier.capacite_maximale} participants
                   </p>
                 </div>
                 

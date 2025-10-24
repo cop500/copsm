@@ -51,7 +51,8 @@ export const ModernEvenementsModule = () => {
   const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'enquete'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
-  const [showInscriptionsManager, setShowInscriptionsManager] = useState(false)
+  const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
+  const [selectedAtelierForInscriptions, setSelectedAtelierForInscriptions] = useState<any>(null)
   
   // États pour l'import Excel
   const [showImportModal, setShowImportModal] = useState(false)
@@ -267,6 +268,12 @@ export const ModernEvenementsModule = () => {
     setShowAtelierForm(true)
   }
 
+  // Gérer les inscriptions d'un atelier
+  const handleManageInscriptions = (atelier: any) => {
+    setSelectedAtelierForInscriptions(atelier)
+    setShowInscriptionsModal(true)
+  }
+
   // Gérer la génération de contenu IA
   const handleContentGenerated = (content: string) => {
     console.log('🔄 Contenu généré reçu:', content.substring(0, 100) + '...')
@@ -289,11 +296,12 @@ export const ModernEvenementsModule = () => {
     setShowEventDetail(false)
     setShowAtelierDetail(false)
     setShowAtelierForm(false)
-    setShowInscriptionsManager(false)
+    setShowInscriptionsModal(false)
     setShowImportModal(false)
     setSelectedEvent(null)
     setSelectedAtelier(null)
     setEditingAtelier(null)
+    setSelectedAtelierForInscriptions(null)
   }
 
   // Fonction pour télécharger le template Excel
@@ -1050,17 +1058,7 @@ export const ModernEvenementsModule = () => {
                 {activeTab === 'evenements' ? 'Nouvel Événement' : 'Nouvel Atelier'}
               </button>
             )}
-            {activeTab === 'ateliers' && (
-              <button
-                onClick={() => setShowInscriptionsManager(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                title="Gérer les inscriptions"
-              >
-                <Users className="w-4 h-4" />
-                Gérer Inscriptions
-              </button>
-            )}
-            {(showAIGenerator || generatedContent || showEventDetail || showAtelierDetail || showInscriptionsManager) && (
+            {(showAIGenerator || generatedContent || showEventDetail || showAtelierDetail || showInscriptionsModal) && (
               <button
                 onClick={resetModalStates}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
@@ -1412,6 +1410,13 @@ export const ModernEvenementsModule = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
+                      <button
+                        onClick={() => handleManageInscriptions(atelier)}
+                        className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                        title="Gérer les inscriptions"
+                      >
+                        <Users className="w-4 h-4" />
+                      </button>
                       {!isDirecteur && (
                         <>
                           <button
@@ -1461,7 +1466,7 @@ export const ModernEvenementsModule = () => {
                     
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Users className="w-4 h-4" />
-                      <span>{atelier.capacite_actuelle || 0}/{atelier.capacite_max} participants</span>
+                      <span>{atelier.capacite_actuelle || 0}/{atelier.capacite_maximale} places</span>
                     </div>
                   </div>
                 </div>
@@ -1924,24 +1929,6 @@ export const ModernEvenementsModule = () => {
         />
       )}
 
-      {/* Modal Gestionnaire d'Inscriptions */}
-      {showInscriptionsManager && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <AtelierInscriptionsManager />
-            </div>
-            <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => setShowInscriptionsManager(false)}
-                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal de suppression multiple */}
       {showBulkDeleteModal && (
@@ -2105,6 +2092,17 @@ export const ModernEvenementsModule = () => {
             title="Enquête d'Insertion"
           />
         </div>
+      )}
+
+      {/* Modal de gestion des inscriptions */}
+      {showInscriptionsModal && selectedAtelierForInscriptions && (
+        <AtelierInscriptionsManager 
+          atelier={selectedAtelierForInscriptions}
+          onClose={() => {
+            setShowInscriptionsModal(false)
+            setSelectedAtelierForInscriptions(null)
+          }}
+        />
       )}
     </div>
   )
