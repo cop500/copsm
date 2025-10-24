@@ -292,7 +292,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
         date_debut: formData.date_debut,
         date_fin: formData.date_fin,
         lieu: formData.lieu,
-        capacite_maximale: formData.capacite_maximale,
+        capacite_maximale: formData.capacite_maximale || 20, // Valeur par défaut si non définie
         capacite_actuelle: 0, // Nouvel atelier = 0 inscrits
         statut: formData.statut,
         animateur_id: formData.animateur_id,
@@ -419,17 +419,17 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
                 type="number"
                 min="1"
                     max="100"
-                value={formData.capacite_max}
-                    onChange={(e) => handleFieldChange('capacite_max', parseInt(e.target.value))}
+                value={formData.capacite_maximale}
+                    onChange={(e) => handleFieldChange('capacite_maximale', parseInt(e.target.value))}
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      errors.capacite_max ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      errors.capacite_maximale ? 'border-red-300 bg-red-50' : 'border-gray-300'
                     }`}
                 placeholder="20"
               />
-                  {errors.capacite_max && (
+                  {errors.capacite_maximale && (
                     <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
                       <AlertCircle className="w-4 h-4" />
-                      {errors.capacite_max}
+                      {errors.capacite_maximale}
                     </p>
                   )}
           </div>
