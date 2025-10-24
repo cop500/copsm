@@ -23,21 +23,25 @@ export function useEvenements() {
 
     // Utiliser le cache si disponible et pas expiré
     if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
+      console.log('📦 Utilisation du cache:', cached.data.length, 'événements');
       setEvenements(cached.data);
       setLoading(false);
       return;
     }
+    
+    console.log('🔄 Rechargement des données (cache expiré ou forceRefresh)');
 
     // Vérifier si la session est toujours valide
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 Session:', session ? 'Valide' : 'Expirée');
       if (!session) {
-        console.warn('Session expirée, rechargement des données...');
+        console.warn('⚠️ Session expirée, rechargement des données...');
         // Forcer le rechargement même si le cache existe
         forceRefresh = true;
       }
     } catch (error) {
-      console.warn('Erreur vérification session:', error);
+      console.warn('❌ Erreur vérification session:', error);
       forceRefresh = true;
     }
 
@@ -45,7 +49,7 @@ export function useEvenements() {
     setError(null);
 
     try {
-      // Requête optimisée - sélectionner seulement les colonnes nécessaires
+      // Requête avec colonnes photos, type_evenement et capacités pour l'affichage
       const { data, error } = await supabase
         .from('evenements')
         .select(`
@@ -59,28 +63,25 @@ export function useEvenements() {
           volet,
           pole_id,
           filiere_id,
-          photos_urls,
-          type_evenement,
-          type_evenement_id,
           responsable_cop,
           actif,
           created_at,
-          nombre_beneficiaires,
-          nombre_candidats,
-          nombre_candidats_retenus,
-          taux_conversion,
-          animateur_id,
-          animateur_nom,
-          animateur_role,
+          photos_urls,
+          image_url,
+          type_evenement,
           capacite_maximale,
           capacite_actuelle,
           visible_inscription
         `)
         .order('date_debut', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur fetchEvenements:', error);
+        throw error;
+      }
 
       const evenementsData = data || [];
+      console.log('📊 Evenements récupérés:', evenementsData.length, evenementsData);
       
       // Mettre en cache
       cache.set(cacheKey, {

@@ -127,6 +127,18 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
   const [photos, setPhotos] = useState<File[]>([])
   const [photosUrls, setPhotosUrls] = useState<string[]>([])
 
+  // Initialiser les photos existantes si on édite un événement
+  useEffect(() => {
+    if (evenement) {
+      // Charger les photos existantes
+      if (evenement.photos_urls && Array.isArray(evenement.photos_urls)) {
+        setPhotosUrls(evenement.photos_urls)
+      } else if (evenement.image_url) {
+        setPhotosUrls([evenement.image_url])
+      }
+    }
+  }, [evenement])
+
   // États pour l'autosave et la validation
   const [errors, setErrors] = useState<ValidationErrors>({})
   const [loading, setLoading] = useState(false)
@@ -355,6 +367,55 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
     ).slice(0, 5)
   }, [animateurs, animateurSearch])
 
+  // Upload des photos vers Supabase Storage (comme l'ancien formulaire)
+  const uploadPhotos = useCallback(async (): Promise<string[]> => {
+    if (photos.length === 0) return []
+
+    const uploadedUrls: string[] = []
+    
+    for (let i = 0; i < photos.length; i++) {
+      const photo = photos[i]
+      const fileName = `evenements/${Date.now()}_${i}_${photo.name}`
+      
+      try {
+        console.log('📸 Upload photo:', fileName, 'Taille:', photo.size, 'Type:', photo.type)
+        
+        const { data, error } = await supabase.storage
+          .from('photos')
+          .upload(fileName, photo, {
+            cacheControl: '3600',
+            upsert: false
+          })
+        
+        if (error) {
+          console.error('❌ Erreur upload:', error)
+          console.error('❌ Détails erreur:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            statusCode: error.statusCode
+          })
+          throw error
+        }
+        
+        console.log('✅ Upload réussi:', fileName)
+        
+        // Récupérer l'URL publique
+        const { data: urlData } = supabase.storage
+          .from('photos')
+          .getPublicUrl(fileName)
+        
+        uploadedUrls.push(urlData.publicUrl)
+      } catch (err) {
+        console.error('❌ Erreur upload photo:', fileName, err)
+        throw err
+      }
+    }
+    
+    return uploadedUrls
+  }, [photos])
+
   // Sauvegarde finale
   const handleFinalSave = useCallback(async () => {
     if (!validateForm()) {
@@ -366,10 +427,10 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
     setAutosaveStatus('idle')
 
     try {
-      // Pas d'image par défaut - laisser le champ vide comme l'ancien formulaire
-      // Les images par défaut peuvent causer des erreurs 400
-
       const cleanData = {
+        // IMPORTANT: Préserver l'ID pour la modification
+        ...(formData.id && { id: formData.id }),
+        
         // Champs de base
         titre: formData.titre,
         description: formData.description,
@@ -388,17 +449,45 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
         nombre_candidats: formData.nombre_candidats,
         nombre_candidats_retenus: formData.nombre_candidats_retenus,
         taux_conversion: formData.taux_conversion,
-        // image_url: '', // Colonne n'existe pas dans la table evenements
-        // video_url: formData.video_url, // Vérifier si la colonne existe
-        // lien_inscription: formData.lien_inscription, // Vérifier si la colonne existe
-        // notes_internes: formData.notes_internes, // Vérifier si la colonne existe
         
         // Champs système
         type_evenement: 'evenement',
         actif: true
       }
 
-      await onSave(cleanData)
+      // Upload des nouvelles photos d'abord (comme l'ancien formulaire)
+      let newPhotosUrls: string[] = []
+      
+      if (photos.length > 0) {
+        try {
+          console.log('📸 Début upload photos, nombre:', photos.length)
+          newPhotosUrls = await uploadPhotos()
+          console.log('✅ Tous les uploads terminés, URLs:', newPhotosUrls)
+        } catch (uploadError) {
+          console.error('❌ Erreur upload photos, on continue sans photos:', uploadError)
+          // Continuer sans les photos plutôt que d'échouer complètement
+          newPhotosUrls = []
+        }
+      }
+
+      // Combiner les photos existantes avec les nouvelles
+      const allPhotosUrls = [...photosUrls, ...newPhotosUrls]
+
+      // Préparer les données à sauvegarder (comme l'ancien formulaire)
+      const eventData = {
+        ...cleanData,
+        // Ajouter toutes les photos (existantes + nouvelles) seulement si disponibles
+        ...(allPhotosUrls.length > 0 && {
+          photos_urls: allPhotosUrls,
+          image_url: allPhotosUrls[0] // Première photo comme image principale
+        })
+      }
+
+      console.log('📊 Données événement à sauvegarder:', eventData)
+      console.log('🔍 ID de l\'événement:', eventData.id ? `Modification (ID: ${eventData.id})` : 'Création (nouvel événement)')
+
+      // Sauvegarder l'événement avec les photos
+      await onSave(eventData)
       
       // Nettoyer le brouillon après sauvegarde réussie
       localStorage.removeItem('evenement_draft')
@@ -913,14 +1002,29 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
             </div>
 
             {/* Preview des photos */}
-            {photos.length > 0 && (
+            {(photos.length > 0 || photosUrls.length > 0) && (
               <div className="mt-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {/* Photos existantes */}
+                  {photosUrls.map((url, index) => (
+                    <div key={`existing-${index}`} className="relative group">
+                      <img
+                        src={url}
+                        alt={`Photo existante ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-white text-xs">Photo existante</span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Nouvelles photos */}
                   {photos.map((photo, index) => (
-                    <div key={index} className="relative group">
+                    <div key={`new-${index}`} className="relative group">
                       <img
                         src={URL.createObjectURL(photo)}
-                        alt={`Photo ${index + 1}`}
+                        alt={`Nouvelle photo ${index + 1}`}
                         className="w-full h-24 object-cover rounded-lg"
                       />
                       <button

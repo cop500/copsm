@@ -292,7 +292,8 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
         date_debut: formData.date_debut,
         date_fin: formData.date_fin,
         lieu: formData.lieu,
-        capacite_maximale: formData.capacite_max,
+        capacite_maximale: formData.capacite_maximale,
+        capacite_actuelle: 0, // Nouvel atelier = 0 inscrits
         statut: formData.statut,
         animateur_id: formData.animateur_id,
         animateur_nom: formData.animateur_nom,

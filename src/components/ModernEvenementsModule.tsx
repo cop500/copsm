@@ -26,12 +26,6 @@ export const ModernEvenementsModule = () => {
   const { currentUser } = useUser()
   const { isAdmin, isDirecteur, isManager } = useRole()
   
-  // Debug logs
-  console.log('🔍 === DEBUG MODERN EVENEMENTS ===')
-  console.log('🔍 Current user:', currentUser)
-  console.log('🔍 User role:', currentUser?.role)
-  console.log('🔍 Is admin:', isAdmin)
-  
   const [showForm, setShowForm] = useState(false)
   // Les données viennent directement du hook via useMemo
   const [loading, setLoading] = useState(true)
@@ -52,12 +46,7 @@ export const ModernEvenementsModule = () => {
     return []
   }, [allEvenements])
 
-  // Mettre à jour le loading quand les données arrivent
-  useEffect(() => {
-    if (allEvenements && Array.isArray(allEvenements)) {
-      setLoading(false)
-    }
-  }, [allEvenements, refreshTrigger])
+  // États du composant
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('tous')
   const [typeFilter, setTypeFilter] = useState('tous') // 'tous', 'evenements', 'ateliers'
@@ -97,6 +86,24 @@ export const ModernEvenementsModule = () => {
     { value: 'assistance_carriere', label: 'Assistance au choix de carrière' },
     { value: 'assistance_filiere', label: 'Assistance au choix de filière' }
   ]
+
+  // Debug logs (après toutes les déclarations d'état)
+  console.log('🔍 === DEBUG MODERN EVENEMENTS ===')
+  console.log('🔍 Current user:', currentUser)
+  console.log('🔍 User role:', currentUser?.role)
+  console.log('🔍 Is admin:', isAdmin)
+  console.log('🔍 All evenements:', allEvenements)
+  console.log('🔍 Evenements data:', evenementsData)
+  console.log('🔍 Ateliers data:', ateliersData)
+  console.log('🔍 Active tab:', activeTab)
+  console.log('🔍 Loading:', loading)
+
+  // Mettre à jour le loading quand les données arrivent
+  useEffect(() => {
+    if (allEvenements && Array.isArray(allEvenements)) {
+      setLoading(false)
+    }
+  }, [allEvenements, refreshTrigger])
 
   // Fonction pour forcer le rechargement des données
   const reloadData = async () => {
@@ -951,11 +958,11 @@ export const ModernEvenementsModule = () => {
         (atelier.lieu && atelier.lieu.toLowerCase().includes(searchTerm.toLowerCase()))
       
       const matchesStatus = statusFilter === 'tous' || atelier.statut === statusFilter
-      const matchesType = typeFilter === 'tous' || typeFilter === 'atelier'
       
-      return matchesSearch && matchesStatus && matchesType
+      // Pour les ateliers, on affiche toujours tous les ateliers (pas de filtre par type)
+      return matchesSearch && matchesStatus
     })
-  }, [ateliersData, searchTerm, statusFilter, typeFilter])
+  }, [ateliersData, searchTerm, statusFilter])
 
   // Obtenir les éléments à afficher selon l'onglet actif avec optimisation
   const displayItems = React.useMemo(() => {
