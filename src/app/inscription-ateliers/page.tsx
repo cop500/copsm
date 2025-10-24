@@ -65,11 +65,12 @@ export default function InscriptionAteliersPage() {
       
       console.log('🔄 Chargement des ateliers depuis evenements...')
       
-      // TEMPORAIRE : Utiliser l'ancienne table ateliers
+      // Utiliser la table evenements pour la cohérence
       const { data, error } = await supabase
-        .from('ateliers')
+        .from('evenements')
         .select('*')
-        .eq('actif', true)
+        .eq('type_evenement', 'atelier')
+        .eq('visible_inscription', true)
         .in('statut', ['planifie', 'en_cours'])
         .order('date_debut', { ascending: true })
 
@@ -136,10 +137,10 @@ export default function InscriptionAteliersPage() {
         throw new Error('Vous êtes déjà inscrit à cet atelier')
       }
 
-      // Vérifier la capacité (temporairement désactivé)
-      // if ((selectedAtelier!.capacite_actuelle || 0) >= selectedAtelier!.capacite_maximale) {
-      //   throw new Error('Cet atelier est complet')
-      // }
+      // Vérifier la capacité
+      if ((selectedAtelier!.capacite_actuelle || 0) >= selectedAtelier!.capacite_maximale) {
+        throw new Error('Cet atelier est complet')
+      }
 
       // Créer l'inscription
       const { error: insertError } = await supabase
@@ -157,13 +158,13 @@ export default function InscriptionAteliersPage() {
 
       if (insertError) throw insertError
 
-      // Mettre à jour la capacité de l'atelier (temporairement désactivé)
-      // const { error: updateError } = await supabase
-      //   .from('ateliers')
-      //   .update({ capacite_actuelle: (selectedAtelier!.capacite_actuelle || 0) + 1 })
-      //   .eq('id', selectedAtelier!.id)
+      // Mettre à jour la capacité de l'atelier dans evenements
+      const { error: updateError } = await supabase
+        .from('evenements')
+        .update({ capacite_actuelle: (selectedAtelier!.capacite_actuelle || 0) + 1 })
+        .eq('id', selectedAtelier!.id)
 
-      // if (updateError) throw updateError
+      if (updateError) throw updateError
 
       setInscriptionSuccess(true)
       setFormData({
@@ -206,8 +207,9 @@ export default function InscriptionAteliersPage() {
 
   // Obtenir le statut de l'atelier
   const getAtelierStatus = (atelier: Atelier) => {
-    // Temporairement simplifié
-    if (atelier.statut === 'planifie') {
+    if ((atelier.capacite_actuelle || 0) >= atelier.capacite_maximale) {
+      return { text: 'Complet', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: '🟡' }
+    } else if (atelier.statut === 'planifie') {
       return { text: 'Places disponibles', color: 'bg-green-100 text-green-800 border-green-200', icon: '🟢' }
     } else {
       return { text: 'Planifié', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '🔵' }
