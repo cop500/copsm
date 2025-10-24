@@ -60,6 +60,7 @@ export function useEvenements() {
           pole_id,
           filiere_id,
           photos_urls,
+          type_evenement,
           type_evenement_id,
           responsable_cop,
           actif,
@@ -67,9 +68,14 @@ export function useEvenements() {
           nombre_beneficiaires,
           nombre_candidats,
           nombre_candidats_retenus,
-          taux_conversion
+          taux_conversion,
+          animateur_id,
+          animateur_nom,
+          animateur_role,
+          capacite_maximale,
+          capacite_actuelle,
+          visible_inscription
         `)
-        .eq('actif', true)
         .order('date_debut', { ascending: false });
 
       if (error) throw error;
@@ -82,6 +88,9 @@ export function useEvenements() {
         timestamp: now
       });
 
+      console.log('🔍 Hook useEvenements - Données récupérées:', evenementsData.length, 'événements');
+      console.log('🔍 Hook useEvenements - Données:', evenementsData);
+      
       setEvenements(evenementsData);
       lastFetchRef.current = now;
     } catch (err: any) {
@@ -141,7 +150,7 @@ export function useEvenements() {
         if (error) throw error;
       }
       
-      // Invalider le cache au lieu de recharger
+      // Invalider le cache seulement - le rechargement se fera automatiquement
       cache.delete('evenements');
       
       // Retourner un objet avec success: true
@@ -149,10 +158,9 @@ export function useEvenements() {
     } catch (err: any) {
       console.error('Erreur sauvegarde événement:', err);
       
-      // Si erreur de session, forcer le rechargement
+      // Si erreur de session, invalider le cache
       if (err.message?.includes('session') || err.message?.includes('auth')) {
         cache.delete('evenements');
-        await fetchEvenements(true);
       }
       
       // Retourner un objet avec success: false et l'erreur

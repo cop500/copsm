@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSettings } from '@/hooks/useSettings'
 import { useEvenements } from '@/hooks/useEvenements'
 import { supabase } from '@/lib/supabase'
@@ -33,24 +33,31 @@ export const ModernEvenementsModule = () => {
   console.log('🔍 Is admin:', isAdmin)
   
   const [showForm, setShowForm] = useState(false)
-  const [evenements, setEvenements] = useState<any[]>([])
-  const [ateliers, setAteliers] = useState<any[]>([])
+  // Les données viennent directement du hook via useMemo
   const [loading, setLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // Synchroniser les données du hook avec les états locaux
+  // Utiliser directement les données du hook sans synchronisation complexe
+  const evenementsData = useMemo(() => {
+    if (allEvenements && Array.isArray(allEvenements)) {
+      return allEvenements.filter(e => e.type_evenement !== 'atelier')
+    }
+    return []
+  }, [allEvenements])
+
+  const ateliersData = useMemo(() => {
+    if (allEvenements && Array.isArray(allEvenements)) {
+      return allEvenements.filter(e => e.type_evenement === 'atelier')
+    }
+    return []
+  }, [allEvenements])
+
+  // Mettre à jour le loading quand les données arrivent
   useEffect(() => {
-    if (allEvenements && allEvenements.length > 0) {
-      console.log('🔍 Synchronisation des données:', allEvenements.length, 'événements')
-      
-      // Séparer les événements des ateliers
-      const evenementsData = allEvenements.filter(e => e.type_evenement !== 'atelier')
-      const ateliersData = allEvenements.filter(e => e.type_evenement === 'atelier')
-      
-      setEvenements(evenementsData)
-      setAteliers(ateliersData)
+    if (allEvenements && Array.isArray(allEvenements)) {
       setLoading(false)
     }
-  }, [allEvenements])
+  }, [allEvenements, refreshTrigger])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('tous')
   const [typeFilter, setTypeFilter] = useState('tous') // 'tous', 'evenements', 'ateliers'
@@ -91,25 +98,14 @@ export const ModernEvenementsModule = () => {
     { value: 'assistance_filiere', label: 'Assistance au choix de filière' }
   ]
 
-  // Charger les événements et ateliers
-  const loadEvenements = async () => {
+  // Fonction pour forcer le rechargement des données
+  const reloadData = async () => {
     try {
       setLoading(true)
-      
-      // Utiliser fetchEvenements du hook pour recharger les données
       await fetchEvenements(true) // forceRefresh = true
-      
-      // Séparer les événements des ateliers depuis allEvenements
-      const evenementsData = allEvenements.filter(e => e.type_evenement !== 'atelier')
-      const ateliersData = allEvenements.filter(e => e.type_evenement === 'atelier')
-      
-
-      
-      setEvenements(evenementsData || [])
-      setAteliers(ateliersData || [])
     } catch (err: any) {
-      console.error('Erreur chargement:', err)
-      showMessage('Erreur lors du chargement des données', 'error')
+      console.error('Erreur rechargement:', err)
+      showMessage('Erreur lors du rechargement des données', 'error')
     } finally {
       setLoading(false)
     }
@@ -126,7 +122,7 @@ export const ModernEvenementsModule = () => {
     try {
       console.log('🔍 Sauvegarde événement:', eventData)
       
-      // Utiliser saveEvenement pour sauvegarder
+      // Utiliser saveEvenement pour sauvegarder (le hook gère le rechargement)
       const result = await saveEvenement(eventData)
       console.log('🔍 Résultat sauvegarde:', result)
       
@@ -135,14 +131,23 @@ export const ModernEvenementsModule = () => {
         setShowForm(false)
         setSelectedEvent(null)
         
-        // Recharger les données via le hook
-        await fetchEvenements(true) // forceRefresh = true
+        // Forcer le rechargement des données via le hook
+        await fetchEvenements(true)
+        
+        // Déclencher un re-rendu pour forcer l'affichage
+        setRefreshTrigger(prev => prev + 1)
       } else {
         throw new Error(result.error || 'Erreur de sauvegarde')
       }
     } catch (error: any) {
       console.error('❌ Erreur sauvegarde:', error)
-      showMessage('Erreur lors de la sauvegarde: ' + error.message, 'error')
+      console.error('❌ Détails erreur:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      showMessage('Erreur lors de la sauvegarde: ' + (error.message || 'Erreur inconnue'), 'error')
     }
   }
 
@@ -159,7 +164,7 @@ export const ModernEvenementsModule = () => {
       if (error) throw error
       
       showMessage('Événement supprimé avec succès')
-      await loadEvenements()
+      await reloadData()
     } catch (error: any) {
       showMessage('Erreur lors de la suppression', 'error')
     }
@@ -217,7 +222,7 @@ export const ModernEvenementsModule = () => {
       
       console.log('✅ Atelier supprimé avec succès')
       showMessage('Atelier supprimé avec succès')
-      await loadEvenements()
+      await reloadData()
     } catch (error: any) {
       console.error('❌ Erreur lors de la suppression:', error)
       showMessage(`Erreur lors de la suppression: ${error.message}`, 'error')
@@ -257,7 +262,7 @@ export const ModernEvenementsModule = () => {
       setEditingAtelier(null)
       
       console.log('🔍 Rechargement des événements')
-      await loadEvenements()
+      await reloadData()
       
       console.log('🔍 === FIN handleSaveAtelier ===')
     } catch (error: any) {
@@ -488,10 +493,10 @@ export const ModernEvenementsModule = () => {
   };
 
   const handleSelectAllEvents = () => {
-    if (selectedEvents.length === evenements.length) {
+    if (selectedEvents.length === evenementsData.length) {
       setSelectedEvents([]);
     } else {
-      setSelectedEvents(evenements.map(e => e.id));
+      setSelectedEvents(evenementsData.map(e => e.id));
     }
   };
 
@@ -519,7 +524,7 @@ export const ModernEvenementsModule = () => {
       }
       
       // Recharger les événements
-      await loadEvenements();
+      await reloadData();
       
       // Afficher le résultat
       const message = `Suppression terminée : ${successCount} événements supprimés`;
@@ -858,7 +863,7 @@ export const ModernEvenementsModule = () => {
       setImportPreview([]);
       
       // Recharger les événements
-      loadEvenements();
+      reloadData();
       
     } catch (error: any) {
       console.error('❌ Erreur lors de l\'import:', error);
@@ -878,10 +883,10 @@ export const ModernEvenementsModule = () => {
 
   // Statistiques
   const getStatusCount = (status: string) => 
-    evenements.filter(e => e.statut === status).length
+    evenementsData.filter(e => e.statut === status).length
 
   const getTypeCount = (typeId: string) => 
-    evenements.filter(e => e.type_evenement_id === typeId).length
+    evenementsData.filter(e => e.type_evenement_id === typeId).length
 
   // Fonctions utilitaires pour les ateliers
   const getAtelierStatusLabel = (status: string) => {
@@ -924,7 +929,7 @@ export const ModernEvenementsModule = () => {
 
   // Filtrer selon l'onglet actif avec optimisation
   const filteredEvenements = React.useMemo(() => {
-    return evenements.filter(event => {
+    return evenementsData.filter(event => {
       const matchesSearch = searchTerm === '' || 
         event.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -936,10 +941,10 @@ export const ModernEvenementsModule = () => {
       
       return matchesSearch && matchesStatus && matchesType && matchesVolet
     })
-  }, [evenements, searchTerm, statusFilter, typeFilter, voletFilter])
+  }, [evenementsData, searchTerm, statusFilter, typeFilter, voletFilter])
 
   const filteredAteliers = React.useMemo(() => {
-    return ateliers.filter(atelier => {
+    return ateliersData.filter(atelier => {
       const matchesSearch = searchTerm === '' || 
         atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (atelier.description && atelier.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -950,7 +955,7 @@ export const ModernEvenementsModule = () => {
       
       return matchesSearch && matchesStatus && matchesType
     })
-  }, [ateliers, searchTerm, statusFilter, typeFilter])
+  }, [ateliersData, searchTerm, statusFilter, typeFilter])
 
   // Obtenir les éléments à afficher selon l'onglet actif avec optimisation
   const displayItems = React.useMemo(() => {
@@ -966,10 +971,7 @@ export const ModernEvenementsModule = () => {
     return []
   }, [activeTab, filteredEvenements, filteredAteliers])
 
-  // Charger au démarrage
-  useEffect(() => {
-    loadEvenements()
-  }, [])
+  // Le hook useEvenements gère déjà le chargement initial
 
   // Effet pour fermer automatiquement le générateur quand le contenu est généré
   useEffect(() => {
@@ -1025,7 +1027,7 @@ export const ModernEvenementsModule = () => {
                   onClick={handleSelectAllEvents}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
                 >
-                  {selectedEvents.length === evenements.length ? (
+                  {selectedEvents.length === evenementsData.length ? (
                     <>
                       <X className="w-5 h-5" />
                       Tout désélectionner
@@ -1133,7 +1135,7 @@ export const ModernEvenementsModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-3xl font-bold text-gray-900">{evenements.length}</p>
+                <p className="text-3xl font-bold text-gray-900">{evenementsData.length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <Calendar className="w-6 h-6 text-blue-600" />
@@ -1184,7 +1186,7 @@ export const ModernEvenementsModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-3xl font-bold text-gray-900">{ateliers.length}</p>
+                <p className="text-3xl font-bold text-gray-900">{ateliersData.length}</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <BookOpen className="w-6 h-6 text-purple-600" />
@@ -1196,7 +1198,7 @@ export const ModernEvenementsModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Planifiés</p>
-                <p className="text-3xl font-bold text-blue-600">{ateliers.filter(a => a.statut === 'planifie').length}</p>
+                <p className="text-3xl font-bold text-blue-600">{ateliersData.filter(a => a.statut === 'planifie').length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <Clock className="w-6 h-6 text-blue-600" />
@@ -1208,7 +1210,7 @@ export const ModernEvenementsModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">En cours</p>
-                <p className="text-3xl font-bold text-yellow-600">{ateliers.filter(a => a.statut === 'en_cours').length}</p>
+                <p className="text-3xl font-bold text-yellow-600">{ateliersData.filter(a => a.statut === 'en_cours').length}</p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-yellow-600" />
@@ -1220,7 +1222,7 @@ export const ModernEvenementsModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Terminés</p>
-                <p className="text-3xl font-bold text-green-600">{ateliers.filter(a => a.statut === 'termine').length}</p>
+                <p className="text-3xl font-bold text-green-600">{ateliersData.filter(a => a.statut === 'termine').length}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -1359,11 +1361,11 @@ export const ModernEvenementsModule = () => {
             </h3>
             <p className="text-gray-600 mb-6">
               {activeTab === 'evenements' 
-                ? (evenements.length === 0 ? 'Créez votre premier événement pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
-                : (ateliers.length === 0 ? 'Créez votre premier atelier pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
+                ? (evenementsData.length === 0 ? 'Créez votre premier événement pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
+                : (ateliersData.length === 0 ? 'Créez votre premier atelier pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
               }
             </p>
-            {((activeTab === 'evenements' && evenements.length === 0) || (activeTab === 'ateliers' && ateliers.length === 0)) && (
+            {((activeTab === 'evenements' && evenementsData.length === 0) || (activeTab === 'ateliers' && ateliersData.length === 0)) && (
               <button
                 onClick={() => setShowForm(true)}
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"

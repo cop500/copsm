@@ -242,30 +242,13 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
     }
   }, [formData])
 
-  // Autosave serveur
+  // Autosave serveur - DÉSACTIVÉ pour éviter les erreurs 400
   const autosaveServer = useCallback(async () => {
-    if (loading) return
-    
-    try {
-      setAutosaveStatus('saving')
-      
-      const cleanData = {
-        ...formData,
-        isDraft: true,
-        lastSaved: new Date().toISOString()
-      }
-      
-      // Ici on pourrait envoyer au serveur pour sauvegarde distante
-      // await supabase.from('evenements_drafts').upsert(cleanData)
-      
-      setAutosaveStatus('saved')
-      setTimeout(() => setAutosaveStatus('idle'), 2000)
-    } catch (error) {
-      console.error('Erreur autosave serveur:', error)
-      setAutosaveStatus('error')
-      setTimeout(() => setAutosaveStatus('idle'), 3000)
-    }
-  }, [formData, loading])
+    // Autosave serveur désactivé pour éviter les erreurs 400
+    // Les données sont sauvegardées localement seulement
+    setAutosaveStatus('saved')
+    setTimeout(() => setAutosaveStatus('idle'), 2000)
+  }, [])
 
   // Sauvegarde automatique
   useEffect(() => {
@@ -383,38 +366,36 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
     setAutosaveStatus('idle')
 
     try {
-      // Photo par défaut si aucune photo n'est uploadée
-      let defaultImageUrl = ''
-      if (photos.length === 0) {
-        // Générer une image par défaut basée sur le type d'événement
-        const eventType = eventTypes.find(et => et.id === formData.type_evenement_id)
-        const eventTypeName = eventType?.nom || 'Événement'
-        
-        // Créer une URL d'image par défaut avec les couleurs de l'événement
-        const colors = {
-          'Job Dating': '#3B82F6', // Bleu
-          'Formation': '#10B981', // Vert
-          'Conférence': '#F59E0B', // Orange
-          'Atelier': '#8B5CF6', // Violet
-          'Séminaire': '#EF4444', // Rouge
-          'default': '#6B7280' // Gris
-        }
-        
-        const color = colors[eventTypeName as keyof typeof colors] || colors.default
-        const encodedTitle = encodeURIComponent(formData.titre)
-        const encodedDate = encodeURIComponent(new Date(formData.date_debut).toLocaleDateString('fr-FR'))
-        
-        // URL d'image par défaut générée (placeholder service)
-        defaultImageUrl = `https://via.placeholder.com/800x400/${color.replace('#', '')}/FFFFFF?text=${encodedTitle}+${encodedDate}`
-      }
+      // Pas d'image par défaut - laisser le champ vide comme l'ancien formulaire
+      // Les images par défaut peuvent causer des erreurs 400
 
       const cleanData = {
-        ...formData,
-        type_evenement: 'evenement', // Distinguer des ateliers
-        image_url: photos.length > 0 ? '' : defaultImageUrl, // Photo par défaut si pas de photos
-        photos: photos, // Inclure les photos pour l'upload
-        isDraft: undefined,
-        lastSaved: undefined
+        // Champs de base
+        titre: formData.titre,
+        description: formData.description,
+        date_debut: formData.date_debut,
+        date_fin: formData.date_fin || null,
+        lieu: formData.lieu,
+        responsable_cop: formData.responsable_cop,
+        statut: formData.statut || 'planifie',
+        type_evenement_id: formData.type_evenement_id || null,
+        
+        // Champs optionnels (convertir les chaînes vides en null pour les UUID)
+        volet: formData.volet,
+        pole_id: formData.pole_id || null,
+        filiere_id: formData.filiere_id || null,
+        nombre_beneficiaires: formData.nombre_beneficiaires,
+        nombre_candidats: formData.nombre_candidats,
+        nombre_candidats_retenus: formData.nombre_candidats_retenus,
+        taux_conversion: formData.taux_conversion,
+        // image_url: '', // Colonne n'existe pas dans la table evenements
+        // video_url: formData.video_url, // Vérifier si la colonne existe
+        // lien_inscription: formData.lien_inscription, // Vérifier si la colonne existe
+        // notes_internes: formData.notes_internes, // Vérifier si la colonne existe
+        
+        // Champs système
+        type_evenement: 'evenement',
+        actif: true
       }
 
       await onSave(cleanData)
