@@ -229,7 +229,14 @@ export const ModernEvenementsModule = () => {
       
       console.log('✅ Atelier supprimé avec succès')
       showMessage('Atelier supprimé avec succès')
-      await reloadData()
+      
+      // Recharger les données sans forcer le loading
+      try {
+        await fetchEvenements(true)
+      } catch (reloadError) {
+        console.error('⚠️ Erreur rechargement après suppression:', reloadError)
+        // Ne pas afficher d'erreur à l'utilisateur car la suppression a réussi
+      }
     } catch (error: any) {
       console.error('❌ Erreur lors de la suppression:', error)
       showMessage(`Erreur lors de la suppression: ${error.message}`, 'error')
@@ -1486,7 +1493,10 @@ export const ModernEvenementsModule = () => {
                     
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Users className="w-4 h-4" />
-                      <span>{atelier.capacite_actuelle || 0}/{atelier.capacite_maximale} places</span>
+                      <span>
+                        {atelier.capacite_actuelle || 0}/{atelier.capacite_maximale || 'N/A'} places
+                        {/* Debug: actuelle={atelier.capacite_actuelle}, max={atelier.capacite_maximale} */}
+                      </span>
                     </div>
                   </div>
                 </div>

@@ -207,7 +207,15 @@ export default function InscriptionAteliersPage() {
 
   // Obtenir le statut de l'atelier
   const getAtelierStatus = (atelier: Atelier) => {
-    if ((atelier.capacite_actuelle || 0) >= atelier.capacite_maximale) {
+    const capaciteActuelle = atelier.capacite_actuelle || 0
+    const capaciteMaximale = atelier.capacite_maximale || 0
+    
+    // Si pas de capacité maximale définie, considérer comme disponible
+    if (capaciteMaximale === 0) {
+      return { text: 'Places disponibles', color: 'bg-green-100 text-green-800 border-green-200', icon: '🟢' }
+    }
+    
+    if (capaciteActuelle >= capaciteMaximale) {
       return { text: 'Complet', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: '🟡' }
     } else if (atelier.statut === 'planifie') {
       return { text: 'Places disponibles', color: 'bg-green-100 text-green-800 border-green-200', icon: '🟢' }
