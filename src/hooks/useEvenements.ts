@@ -69,9 +69,12 @@ export function useEvenements() {
           photos_urls,
           image_url,
           type_evenement,
+          type_evenement_id,
           capacite_maximale,
           capacite_actuelle,
-          visible_inscription
+          visible_inscription,
+          nombre_beneficiaires,
+          event_types(nom, couleur)
         `)
         .order('date_debut', { ascending: false });
 
