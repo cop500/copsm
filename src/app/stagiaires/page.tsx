@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react'
 import { useCandidatures } from '@/hooks/useCandidatures'
+import { useDemandesEntreprises } from '@/hooks/useDemandesEntreprises'
+import { DemandesFolders } from '@/components/DemandesFolders'
 import { useSettings } from '@/hooks/useSettings'
 import { useRole } from '@/hooks/useRole'
 import { useAuth } from '@/hooks/useAuth'
@@ -39,6 +41,7 @@ interface CandidatureAction {
 
 export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
+  const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, deleteCandidature: deleteCandidatureDemande } = useDemandesEntreprises()
   const { poles, filieres, loading: settingsLoading } = useSettings()
   const { isDirecteur } = useRole()
   const { profile } = useAuth()
@@ -365,6 +368,20 @@ export default function StagiairesPage() {
                 <div className="flex items-center space-x-2">
                   <Send className="w-5 h-5" />
                   <span>Candidatures reçues</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('candidatures-par-demande')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'candidatures-par-demande'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Building2 className="w-5 h-5" />
+                  <span>Candidatures par demande</span>
                 </div>
               </button>
               
@@ -1194,6 +1211,34 @@ export default function StagiairesPage() {
        </div>
      )}
 
+          </div>
+        )}
+
+        {/* Candidatures par demande Tab */}
+        {activeTab === 'candidatures-par-demande' && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Building2 className="w-8 h-8 text-blue-600" />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Candidatures par demande</h2>
+                  <p className="text-gray-600">Organisez les candidatures par demande d'entreprise</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Interface en dossiers */}
+            <DemandesFolders
+              demandes={demandes}
+              loading={demandesLoading}
+              onSelectDemande={(demande) => {
+                console.log('Demande sélectionnée:', demande)
+                // Ici vous pouvez ajouter une logique pour afficher les détails de la demande
+              }}
+              onUpdateStatut={updateStatutDemande}
+              onDeleteCandidature={deleteCandidatureDemande}
+            />
           </div>
         )}
 
