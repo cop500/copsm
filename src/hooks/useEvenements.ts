@@ -74,6 +74,8 @@ export function useEvenements() {
           capacite_actuelle,
           visible_inscription,
           nombre_beneficiaires,
+          nombre_candidats,
+          nombre_candidats_retenus,
           event_types(nom, couleur)
         `)
         .order('date_debut', { ascending: false });
