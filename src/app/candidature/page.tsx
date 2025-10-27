@@ -34,6 +34,8 @@ interface FormData {
   prenom: string
   email: string
   telephone: string
+  // Nouvelle étape CMC
+  est_cmc: boolean | null // null = pas encore défini, true = stagiaire/lauréat CMC, false = externe
   pole_id: string
   filiere_id: string
   demande_id: string
@@ -54,6 +56,7 @@ export default function CandidaturePage() {
     prenom: '',
     email: '',
     telephone: '',
+    est_cmc: null, // Nouvelle étape CMC
     pole_id: '',
     filiere_id: '',
     demande_id: '',
@@ -155,6 +158,18 @@ export default function CandidaturePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Validation CMC
+    if (formData.est_cmc === null) {
+      setError('Veuillez indiquer si vous êtes stagiaire/lauréat CMC ou candidat externe')
+      return
+    }
+    
+    // Validation pôle/filière pour les CMC
+    if (formData.est_cmc === true && (!formData.pole_id || !formData.filiere_id)) {
+      setError('Veuillez sélectionner votre pôle et filière CMC')
+      return
+    }
+    
     if (!formData.cv_file) {
       setError('Veuillez sélectionner un fichier CV')
       return
@@ -196,7 +211,11 @@ export default function CandidaturePage() {
          prenom: formData.prenom,
          email: formData.email,
          telephone: formData.telephone,
-        type_contrat: 'cv'
+        type_contrat: 'cv',
+        // Nouveau champ CMC
+        est_cmc: formData.est_cmc,
+        pole_id: formData.pole_id || null,
+        filiere_id: formData.filiere_id || null
         // created_at et updated_at sont gérés automatiquement par Supabase
       }
 
@@ -244,6 +263,7 @@ export default function CandidaturePage() {
         prenom: '',
         email: '',
         telephone: '',
+        est_cmc: null, // Nouvelle étape CMC
         pole_id: '',
         filiere_id: '',
         demande_id: '',
@@ -543,60 +563,136 @@ export default function CandidaturePage() {
                   </div>
                 </div>
 
-                  {/* Sélection Pôle/Filière */}
+                  {/* Vérification CMC */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Target className="w-5 h-5 text-blue-600" />
-                      Formation
+                      <GraduationCap className="w-5 h-5 text-blue-600" />
+                      Statut CMC
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                        <label className="block text-sm font-semibold text-gray-800 mb-2">
-                          Pôle <span className="text-red-500">*</span>
-                    </label>
-                        <div className="relative">
-                          <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <select
-                            value={formData.pole_id}
-                            onChange={(e) => handlePoleChange(e.target.value)}
-                      required
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white"
-                    >
-                            <option value="">Sélectionner un pôle</option>
-                      {poles.map((pole) => (
-                        <option key={pole.id} value={pole.id}>
-                          {pole.nom}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    <div className="space-y-4">
+                      <p className="text-gray-700 font-medium">
+                        Êtes-vous stagiaire ou lauréat de la CMC SM ?
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, est_cmc: true }))}
+                          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                            formData.est_cmc === true 
+                              ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                              : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-4 h-4 rounded-full border-2 ${
+                              formData.est_cmc === true ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                            }`}>
+                              {formData.est_cmc === true && (
+                                <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-semibold">Oui, je suis CMC</div>
+                              <div className="text-sm text-gray-600">Stagiaire ou lauréat</div>
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, est_cmc: false, pole_id: '', filiere_id: '' }))}
+                          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                            formData.est_cmc === false 
+                              ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                              : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-4 h-4 rounded-full border-2 ${
+                              formData.est_cmc === false ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                            }`}>
+                              {formData.est_cmc === false && (
+                                <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-semibold">Non, je suis externe</div>
+                              <div className="text-sm text-gray-600">Candidat externe</div>
+                            </div>
+                          </div>
+                        </button>
                       </div>
-                  <div>
-                        <label className="block text-sm font-semibold text-gray-800 mb-2">
-                          Filière <span className="text-red-500">*</span>
-                    </label>
-                        <div className="relative">
-                          <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <select
-                            value={formData.filiere_id}
-                            onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
-                      required
-                      disabled={!formData.pole_id}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                            <option value="">
-                              {formData.pole_id ? "Sélectionner une filière" : "Sélectionnez d'abord un pôle"}
-                            </option>
-                      {filteredFilieres.map((filiere) => (
-                        <option key={filiere.id} value={filiere.id}>
-                          {filiere.nom}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
                     </div>
                   </div>
-                </div>
+
+                  {/* Sélection Pôle/Filière - Conditionnelle */}
+                  {formData.est_cmc === true && (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Target className="w-5 h-5 text-blue-600" />
+                        Formation CMC
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-800 mb-2">
+                            Pôle <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <select
+                              value={formData.pole_id}
+                              onChange={(e) => handlePoleChange(e.target.value)}
+                              required
+                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white"
+                            >
+                              <option value="">Sélectionner un pôle</option>
+                              {poles.map((pole) => (
+                                <option key={pole.id} value={pole.id}>
+                                  {pole.nom}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-800 mb-2">
+                            Filière <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <select
+                              value={formData.filiere_id}
+                              onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
+                              required
+                              disabled={!formData.pole_id}
+                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                              <option value="">
+                                {formData.pole_id ? "Sélectionner une filière" : "Sélectionnez d'abord un pôle"}
+                              </option>
+                              {filteredFilieres.map((filiere) => (
+                                <option key={filiere.id} value={filiere.id}>
+                                  {filiere.nom}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message pour candidats externes */}
+                  {formData.est_cmc === false && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <GraduationCap className="w-5 h-5 text-blue-600" />
+                        <h4 className="text-lg font-semibold text-blue-900">Candidat externe</h4>
+                      </div>
+                      <p className="text-blue-800">
+                        En tant que candidat externe, vous pouvez postuler directement à cette offre sans sélectionner de formation spécifique.
+                      </p>
+                    </div>
+                  )}
 
                 {/* Upload CV */}
                   <div className="bg-gray-50 rounded-lg p-4">
