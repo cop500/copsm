@@ -344,12 +344,12 @@ export const EvenementsModule = () => {
                     Importer Excel
                   </button>
                 )}
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                  Créer un événement
-                </button>
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Créer un événement
+              </button>
               </div>
             </div>
           ) : (
@@ -451,7 +451,7 @@ export const EvenementsModule = () => {
               >
                 <X className="w-6 h-6" />
               </button>
-            </div>
+              </div>
 
             <div className="space-y-6">
               {/* Section 1: Télécharger le template */}
@@ -520,26 +520,26 @@ export const EvenementsModule = () => {
                         ... et {importPreview.length - 10} autres événements
                       </p>
                     )}
-                  </div>
-                </div>
+              </div>
+            </div>
               )}
 
               {/* Boutons d'action */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button
+              <button
                   onClick={() => setShowImportModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Annuler
-                </button>
-                <button
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Annuler
+              </button>
+              <button
                   onClick={handleImport}
                   disabled={!importPreview.length || importing}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-2"
-                >
+              >
                   <Upload className="w-4 h-4" />
                   {importing ? 'Import en cours...' : 'Importer les événements'}
-                </button>
+              </button>
               </div>
             </div>
           </div>

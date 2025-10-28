@@ -167,14 +167,14 @@ export default function CandidaturePage() {
     // Validation pôle/filière pour les CMC
     if (formData.est_cmc === true && (!formData.pole_id || !formData.filiere_id)) {
       setError('Veuillez sélectionner votre pôle et filière CMC')
-      return
-    }
-    
+        return
+      }
+      
     if (!formData.cv_file) {
       setError('Veuillez sélectionner un fichier CV')
-      return
-    }
-    
+        return
+      }
+      
       setSubmitting(true)
     setError('')
 
@@ -621,8 +621,8 @@ export default function CandidaturePage() {
                           </div>
                         </button>
                       </div>
-                    </div>
                   </div>
+                </div>
 
                   {/* Sélection Pôle/Filière - Conditionnelle */}
                   {formData.est_cmc === true && (
@@ -632,53 +632,53 @@ export default function CandidaturePage() {
                         Formation CMC
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
+                  <div>
                           <label className="block text-sm font-semibold text-gray-800 mb-2">
                             Pôle <span className="text-red-500">*</span>
-                          </label>
+                    </label>
                           <div className="relative">
                             <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <select
+                    <select
                               value={formData.pole_id}
                               onChange={(e) => handlePoleChange(e.target.value)}
-                              required
+                      required
                               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white"
-                            >
+                    >
                               <option value="">Sélectionner un pôle</option>
-                              {poles.map((pole) => (
-                                <option key={pole.id} value={pole.id}>
-                                  {pole.nom}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                      {poles.map((pole) => (
+                        <option key={pole.id} value={pole.id}>
+                          {pole.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                         </div>
-                        <div>
+                  <div>
                           <label className="block text-sm font-semibold text-gray-800 mb-2">
                             Filière <span className="text-red-500">*</span>
-                          </label>
+                    </label>
                           <div className="relative">
                             <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <select
+                    <select
                               value={formData.filiere_id}
                               onChange={(e) => setFormData(prev => ({ ...prev, filiere_id: e.target.value }))}
-                              required
-                              disabled={!formData.pole_id}
+                      required
+                      disabled={!formData.pole_id}
                               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            >
+                    >
                               <option value="">
                                 {formData.pole_id ? "Sélectionner une filière" : "Sélectionnez d'abord un pôle"}
                               </option>
-                              {filteredFilieres.map((filiere) => (
-                                <option key={filiere.id} value={filiere.id}>
-                                  {filiere.nom}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      {filteredFilieres.map((filiere) => (
+                        <option key={filiere.id} value={filiere.id}>
+                          {filiere.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                  </div>
+                </div>
                   )}
 
                   {/* Message pour candidats externes */}
@@ -687,7 +687,7 @@ export default function CandidaturePage() {
                       <div className="flex items-center gap-2 mb-2">
                         <GraduationCap className="w-5 h-5 text-blue-600" />
                         <h4 className="text-lg font-semibold text-blue-900">Candidat externe</h4>
-                      </div>
+                    </div>
                       <p className="text-blue-800">
                         En tant que candidat externe, vous pouvez postuler directement à cette offre sans sélectionner de formation spécifique.
                       </p>

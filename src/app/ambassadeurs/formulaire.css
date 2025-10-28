@@ -1,0 +1,45 @@
+/* Styles pour le formulaire des ambassadeurs */
+.formulaire-bg {
+  background-image: url('/formulaire7.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Alternative avec Next.js Image */
+.formulaire-container {
+  position: relative;
+  min-height: 100vh;
+}
+
+.formulaire-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.formulaire-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.formulaire-content {
+  position: relative;
+  z-index: 20;
+}
+
+@media (max-width: 768px) {
+  .formulaire-bg {
+    background-attachment: scroll;
+  }
+}

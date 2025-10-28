@@ -338,8 +338,8 @@ export default function DemandeEntreprisePage() {
           <div className="max-w-2xl mx-auto text-sm text-gray-600 bg-white/70 backdrop-blur-sm px-4 py-3 rounded-xl border border-blue-200">
             <strong className="text-blue-700">💡 Conseil :</strong> Vous pouvez copier-coller vos informations sans problème. 
             Vos données sont sauvegardées automatiquement et restaurées si vous actualisez la page.
-          </div>
         </div>
+      </div>
         {/* Barre de progression moderne avec icônes */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <div className="flex items-center justify-between relative">
@@ -351,7 +351,7 @@ export default function DemandeEntreprisePage() {
               />
             </div>
             
-            {steps.map((s, i) => (
+        {steps.map((s, i) => (
               <div key={s.title} className="flex flex-col items-center relative z-10">
                 <div
                   className={`w-16 h-16 rounded-full flex flex-col items-center justify-center font-bold text-white shadow-lg transition-all duration-300 ${
@@ -368,11 +368,11 @@ export default function DemandeEntreprisePage() {
                     {s.title}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1">{s.description}</p>
-                </div>
-              </div>
-            ))}
+            </div>
           </div>
-        </div>
+        ))}
+      </div>
+      </div>
       {loading && <div className="text-gray-500">Chargement des pôles et filières...</div>}
       {error && <div className="text-red-600">Erreur : {error}</div>}
         {success && (
@@ -407,16 +407,16 @@ export default function DemandeEntreprisePage() {
             </div>
           </div>
         )}
-        {!loading && !error && (
+      {!loading && !error && (
           <form className="space-y-8" onSubmit={handleSubmit}>
-            {/* Section 1 */}
-            {step === 1 && (
+          {/* Section 1 */}
+          {step === 1 && (
               <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-lg">🏢</span>
                   </div>
-                  <div>
+                <div>
                     <h2 className="text-2xl font-bold text-gray-900">Détails entreprise</h2>
                     <p className="text-gray-600">Informations sur votre entreprise</p>
                   </div>
@@ -434,26 +434,26 @@ export default function DemandeEntreprisePage() {
                       required
                     >
                       <option value="">Sélectionner un secteur...</option>
-                      {secteurs.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  {form.secteur === "Autre" && (
+                    {secteurs.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                {form.secteur === "Autre" && (
                     <div className="space-y-2">
                       <label className="block text-sm font-semibold text-gray-700">
                         Préciser le secteur <span className="text-red-500">*</span>
                       </label>
-                      <input 
-                        type="text" 
-                        name="secteur_autre" 
-                        value={form.secteur_autre || ""} 
-                        onChange={handleChange} 
+                    <input 
+                      type="text" 
+                      name="secteur_autre" 
+                      value={form.secteur_autre || ""} 
+                      onChange={handleChange} 
                         onPaste={handlePaste}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm" 
-                        required 
-                        placeholder="Ex: Immobilier, Événementiel, etc." 
-                      />
-                    </div>
-                  )}
+                      required 
+                      placeholder="Ex: Immobilier, Événementiel, etc." 
+                    />
+                  </div>
+                )}
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
                       Nom de l'entreprise <span className="text-red-500">*</span>
@@ -469,7 +469,7 @@ export default function DemandeEntreprisePage() {
                       placeholder="Saisir le nom de l'entreprise"
                       autoComplete="organization"
                     />
-                  </div>
+                </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
                       Email de l'entreprise <span className="text-red-500">*</span>
@@ -485,7 +485,7 @@ export default function DemandeEntreprisePage() {
                       placeholder="exemple@entreprise.com"
                       autoComplete="email"
                     />
-                  </div>
+                </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
                       Adresse complète <span className="text-red-500">*</span>
@@ -501,7 +501,7 @@ export default function DemandeEntreprisePage() {
                       placeholder="Saisir l'adresse complète de l'entreprise"
                       autoComplete="street-address"
                     />
-                  </div>
+                </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
                       Ville
@@ -516,7 +516,7 @@ export default function DemandeEntreprisePage() {
                       placeholder="Saisir la ville"
                       autoComplete="address-level2"
                     />
-                  </div>
+                </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
                       Nom du contact <span className="text-red-500">*</span>
@@ -532,7 +532,7 @@ export default function DemandeEntreprisePage() {
                       placeholder="Saisir le nom du contact"
                       autoComplete="name"
                     />
-                  </div>
+                </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
                       Email du contact <span className="text-red-500">*</span>
@@ -548,7 +548,7 @@ export default function DemandeEntreprisePage() {
                       placeholder="exemple@entreprise.com"
                       autoComplete="email"
                     />
-                  </div>
+                </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
                       Téléphone <span className="text-red-500">*</span>
@@ -564,12 +564,12 @@ export default function DemandeEntreprisePage() {
                       placeholder="Ex: 05 12 34 56 78"
                       autoComplete="tel"
                     />
-                  </div>
+                </div>
               </div>
             </div>
           )}
-            {/* Section 2 : multi-profils */}
-            {step === 2 && (
+          {/* Section 2 : multi-profils */}
+          {step === 2 && (
               <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
@@ -580,7 +580,7 @@ export default function DemandeEntreprisePage() {
                     <p className="text-gray-600">Description des postes à pourvoir</p>
                   </div>
                 </div>
-                {profils.map((profil, idx) => (
+              {profils.map((profil, idx) => (
                   <div key={idx} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-6 border border-gray-200 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-3">
@@ -588,10 +588,10 @@ export default function DemandeEntreprisePage() {
                           <span className="text-white text-sm font-bold">{idx + 1}</span>
                         </div>
                         <h3 className="text-lg font-bold text-gray-900">
-                          Profil {idx + 1}
-                        </h3>
+                      Profil {idx + 1}
+                    </h3>
                       </div>
-                      {profils.length > 1 && (
+                    {profils.length > 1 && (
                         <button 
                           type="button" 
                           onClick={() => removeProfil(idx)} 
@@ -599,9 +599,9 @@ export default function DemandeEntreprisePage() {
                         >
                           Supprimer
                         </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Intitulé du poste <span className="text-red-500">*</span>
@@ -616,7 +616,7 @@ export default function DemandeEntreprisePage() {
                           required 
                           placeholder="Ex : Technicien de maintenance" 
                         />
-                      </div>
+                    </div>
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Pôle concerné <span className="text-red-500">*</span>
@@ -629,9 +629,9 @@ export default function DemandeEntreprisePage() {
                           required
                         >
                           <option value="">Sélectionner un pôle...</option>
-                          {poles.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
-                        </select>
-                      </div>
+                        {poles.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+                      </select>
+                    </div>
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Filière <span className="text-red-500">*</span>
@@ -645,9 +645,9 @@ export default function DemandeEntreprisePage() {
                           disabled={!profil.pole_id}
                         >
                           <option value="">Sélectionner une filière...</option>
-                          {getFilieresForPole(profil.pole_id).map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
-                        </select>
-                      </div>
+                        {getFilieresForPole(profil.pole_id).map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
+                      </select>
+                    </div>
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Nombre de profils <span className="text-red-500">*</span>
@@ -662,7 +662,7 @@ export default function DemandeEntreprisePage() {
                           required 
                           placeholder="Ex : 2" 
                         />
-                      </div>
+                    </div>
                       <div className="md:col-span-2 space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Description du poste <span className="text-red-500">*</span>
@@ -678,7 +678,7 @@ export default function DemandeEntreprisePage() {
                           placeholder="Décrivez brièvement les missions principales..."
                           style={{ minHeight: '100px' }}
                         />
-                      </div>
+                    </div>
                       <div className="md:col-span-2 space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Compétences techniques <span className="text-red-500">*</span>
@@ -693,7 +693,7 @@ export default function DemandeEntreprisePage() {
                           required 
                           placeholder="Ex : Pack Office, soudure, gestion d'équipe..." 
                         />
-                      </div>
+                    </div>
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Type de contrat <span className="text-red-500">*</span>
@@ -705,12 +705,12 @@ export default function DemandeEntreprisePage() {
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm" 
                           required
                         >
-                          <option value="Stage">Stage</option>
-                          <option value="CDD">CDD</option>
-                          <option value="CDI">CDI</option>
-                          <option value="Alternance">Alternance</option>
-                        </select>
-                      </div>
+                        <option value="Stage">Stage</option>
+                        <option value="CDD">CDD</option>
+                        <option value="CDI">CDI</option>
+                        <option value="Alternance">Alternance</option>
+                      </select>
+                    </div>
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Salaire ou indemnité
@@ -725,7 +725,7 @@ export default function DemandeEntreprisePage() {
                           placeholder="Ex : 3000 MAD/mois ou Indemnité selon profil" 
                         />
                         <p className="text-xs text-gray-500">Ex. 3000 MAD/mois</p>
-                      </div>
+                    </div>
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Date de début souhaitée <span className="text-red-500">*</span>
@@ -738,7 +738,7 @@ export default function DemandeEntreprisePage() {
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm" 
                           required 
                         />
-                      </div>
+                    </div>
                       <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700">
                           Durée du contrat <span className="text-red-500">*</span>
@@ -750,9 +750,9 @@ export default function DemandeEntreprisePage() {
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm" 
                           required
                         >
-                          {dureesContrat.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                      </div>
+                        {dureesContrat.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -762,11 +762,11 @@ export default function DemandeEntreprisePage() {
                   className="mt-6 w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   + Ajouter un profil
-                </button>
-              </div>
-            )}
-            {/* Section 3 */}
-            {step === 3 && (
+              </button>
+            </div>
+          )}
+          {/* Section 3 */}
+          {step === 3 && (
               <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
@@ -796,7 +796,7 @@ export default function DemandeEntreprisePage() {
                           <span className="text-sm font-medium text-gray-900">Oui, organiser un Job Day</span>
                           <p className="text-xs text-gray-500">Journée de recrutement au COP</p>
                         </div>
-                      </label>
+                    </label>
                       <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-all duration-200">
                         <input 
                           type="radio" 
@@ -810,11 +810,11 @@ export default function DemandeEntreprisePage() {
                           <span className="text-sm font-medium text-gray-900">Non, recevoir des CV ciblés</span>
                           <p className="text-xs text-gray-500">Candidatures directes</p>
                         </div>
-                      </label>
-                    </div>
+                    </label>
                   </div>
+                </div>
                   
-                  {form.evenement_type === 'jobday' && (
+                {form.evenement_type === 'jobday' && (
                     <div className="space-y-2">
                       <label className="block text-sm font-semibold text-gray-700">
                         Date souhaitée pour l'événement
@@ -827,8 +827,8 @@ export default function DemandeEntreprisePage() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm" 
                       />
                       <p className="text-xs text-gray-500">La date sera confirmée par le COP</p>
-                    </div>
-                  )}
+                  </div>
+                )}
                   
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
@@ -859,13 +859,13 @@ export default function DemandeEntreprisePage() {
                         ✓ Fichier sélectionné : {fileName}
                       </p>
                     )}
-                  </div>
                 </div>
+              </div>
             </div>
           )}
             {/* Navigation boutons modernes */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8">
-              {step > 1 && (
+                          {step > 1 && (
                 <button 
                   type="button" 
                   onClick={() => setStep(step - 1)} 
@@ -875,11 +875,11 @@ export default function DemandeEntreprisePage() {
                 </button>
               )}
               
-              <div className="flex-1 hidden sm:block" />
+            <div className="flex-1 hidden sm:block" />
               
-              {step < 3 && (
-                <button
-                  type="button"
+            {step < 3 && (
+              <button
+                type="button"
                   onClick={() => {
                     if (validateStep()) {
                       setStep(step + 1);
@@ -890,24 +890,24 @@ export default function DemandeEntreprisePage() {
                   className="px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Suivant →
-                </button>
-              )}
+              </button>
+            )}
               
-              {step === 3 && (
+            {step === 3 && (
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    type="button"
-                    onClick={handleReset}
+                <button
+                  type="button"
+                  onClick={handleReset}
                     className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 shadow-sm"
-                    disabled={sending}
-                  >
-                    Réinitialiser
-                  </button>
-                  <button
-                    type="submit"
+                  disabled={sending}
+                >
+                  Réinitialiser
+                </button>
+                <button
+                  type="submit"
                     className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={sending}
-                  >
+                  disabled={sending}
+                >
                     {sending ? (
                       <span className="flex items-center gap-2">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -916,12 +916,12 @@ export default function DemandeEntreprisePage() {
                     ) : (
                       "✓ Envoyer ma demande"
                     )}
-                  </button>
+                </button>
                 </div>
-              )}
-            </div>
-          </form>
-        )}
+            )}
+          </div>
+        </form>
+      )}
       </div>
     </div>
   );

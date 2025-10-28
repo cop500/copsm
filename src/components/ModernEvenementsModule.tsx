@@ -19,6 +19,7 @@ import AtelierInscriptionsManager from './AtelierInscriptionsManager'
 import * as XLSX from 'xlsx'
 import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole'
+import { EspaceAmbassadeurs } from './EspaceAmbassadeurs'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -59,7 +60,7 @@ export const ModernEvenementsModule = () => {
   const [showEventDetail, setShowEventDetail] = useState(false)
   const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
-  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'enquete'>('evenements')
+  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'enquete' | 'ambassadeurs'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
@@ -134,8 +135,8 @@ export const ModernEvenementsModule = () => {
       console.log('🔍 Résultat sauvegarde:', result)
       
       if (result.success) {
-        showMessage('Événement sauvegardé avec succès !')
-        setShowForm(false)
+      showMessage('Événement sauvegardé avec succès !')
+      setShowForm(false)
         setSelectedEvent(null)
         
         // Forcer le rechargement des données via le hook
@@ -1065,7 +1066,7 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            {!isDirecteur && activeTab !== 'enquete' && (
+            {!isDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && (
             <button
               onClick={() => {
                 if (activeTab === 'evenements') {
@@ -1138,12 +1139,25 @@ export const ModernEvenementsModule = () => {
                 Enquête d'Insertion
               </button>
             )}
+            {(isAdmin || isManager) && (
+              <button
+                onClick={() => setActiveTab('ambassadeurs')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'ambassadeurs'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Espace Ambassadeurs
+              </button>
+            )}
           </nav>
         </div>
       </div>
 
       {/* Statistiques */}
-      {activeTab !== 'enquete' && activeTab === 'evenements' ? (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab === 'evenements' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
@@ -1194,7 +1208,7 @@ export const ModernEvenementsModule = () => {
           </div>
         </div>
       ) : (
-        activeTab === 'ateliers' && !isDirecteur && (
+        activeTab === 'ateliers' && !isDirecteur && activeTab !== 'ambassadeurs' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
@@ -1248,7 +1262,7 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Filtres et recherche */}
-      {activeTab !== 'enquete' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Recherche */}
@@ -1355,14 +1369,14 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Liste des éléments selon l'onglet actif */}
-      {activeTab !== 'enquete' && loading ? (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && loading ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Chargement des données...</p>
           </div>
         </div>
-      ) : activeTab !== 'enquete' && displayItems.length === 0 ? (
+      ) : activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && displayItems.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             {activeTab === 'evenements' ? (
@@ -1389,7 +1403,7 @@ export const ModernEvenementsModule = () => {
             )}
           </div>
         </div>
-      ) : activeTab !== 'enquete' ? (
+      ) : activeTab !== 'enquete' && activeTab !== 'ambassadeurs' ? (
         <div className={`grid gap-6 ${
           viewMode === 'grid' 
             ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
@@ -2130,6 +2144,13 @@ export const ModernEvenementsModule = () => {
             style={{ height: 'calc(100vh - 200px)' }}
             title="Enquête d'Insertion"
           />
+        </div>
+      )}
+
+      {/* Onglet Espace Ambassadeurs */}
+      {activeTab === 'ambassadeurs' && (
+        <div className="p-6">
+          <EspaceAmbassadeurs />
         </div>
       )}
 

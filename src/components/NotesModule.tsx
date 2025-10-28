@@ -154,7 +154,7 @@ export default function NotesModule() {
         
         {/* Bouton compact et visible */}
         <div className="flex justify-end">
-          <button
+        <button
             onClick={handlePostMessage}
             disabled={!newMessage.trim() || isPosting}
             className={`px-4 py-2 rounded-lg font-medium text-white transition-all duration-300 text-sm ${
@@ -174,8 +174,8 @@ export default function NotesModule() {
                 <span>Publier</span>
               </div>
             )}
-          </button>
-        </div>
+        </button>
+      </div>
       </div>
 
       {/* Messages de feedback */}
@@ -223,8 +223,8 @@ export default function NotesModule() {
                 <div className="flex items-center gap-1 text-xs text-gray-500">
                   <Calendar className="w-3 h-3" />
                   <span>{getTimeAgo(note.created_at)}</span>
-                </div>
               </div>
+            </div>
               {(isAdmin || (isDirecteur && note.created_by === profile?.id)) && (
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
@@ -274,9 +274,9 @@ export default function NotesModule() {
                 Supprimer
               </button>
             </div>
-          </div>
+        </div>
         </div>
       )}
     </div>
   );
-}
+} 

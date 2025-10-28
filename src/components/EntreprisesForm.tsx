@@ -245,15 +245,15 @@ const EntreprisesForm = () => {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
-
+    
     const commonData: any = {
-      nom: formData.nom,
-      secteur: formData.secteur,
-      adresse: formData.adresse,
+        nom: formData.nom,
+        secteur: formData.secteur,
+        adresse: formData.adresse,
       statut: (formData.statut || '').toLowerCase(),
-      contact_principal_nom: formData.contact_personne,
-      contact_principal_email: formData.email,
-      contact_principal_telephone: formData.telephone,
+        contact_principal_nom: formData.contact_personne,
+        contact_principal_email: formData.email,
+        contact_principal_telephone: formData.telephone,
       description: formData.description,
       niveau_interet: formData.niveau_interet,
       notes_bd: formData.notes_bd,
@@ -403,7 +403,7 @@ const EntreprisesForm = () => {
       const matchSearch = ent.nom.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
                          (ent.contact_principal_nom || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
                          (ent.secteur || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-      const matchSecteur = filterSecteur === '' || ent.secteur === filterSecteur;
+    const matchSecteur = filterSecteur === '' || ent.secteur === filterSecteur;
       const statutVal = ((ent.statut || '') as string).toLowerCase();
       const matchStatut = filterStatut === '' || statutVal === filterStatut;
       return matchSearch && matchSecteur && matchStatut;
@@ -446,13 +446,13 @@ const EntreprisesForm = () => {
                   Importer Excel
                 </button>
               )}
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Ajouter Entreprise
-              </button>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter Entreprise
+            </button>
             </div>
           </div>
         </div>
@@ -735,7 +735,7 @@ const EntreprisesForm = () => {
                 </div>
               )}
               
-              <div className="grid gap-4">
+            <div className="grid gap-4">
               {entreprisesPaginees.map(entreprise => (
                 <div key={entreprise.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start">
@@ -822,18 +822,18 @@ const EntreprisesForm = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(entreprise.id)}
-                          className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <button
+                        onClick={() => handleDelete(entreprise.id)}
+                        className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                       )}
                     </div>
                   </div>
                 </div>
               ))}
-              </div>
+            </div>
               
               {/* Pagination */}
               {totalPages > 1 && (
