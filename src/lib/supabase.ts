@@ -20,6 +20,8 @@ export const createSupabaseClient = () => {
         persistSession: true,
         autoRefreshToken: true,
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        detectSessionInUrl: true,
+        flowType: 'pkce'
       }
     })
   }

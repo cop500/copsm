@@ -36,7 +36,7 @@ export default function FormulaireAmbassadeurs() {
     // Volet supprimé de la validation
 
     if (!formData.responsable_action.trim()) {
-      newErrors.responsable_action = 'Le responsable de l\'action est requis'
+      newErrors.responsable_action = 'L\'intitulé de l\'action est requis'
     }
 
     if (!formData.lieu_realisation.trim()) {
@@ -189,7 +189,7 @@ export default function FormulaireAmbassadeurs() {
               
               <div>
                 <label className="block text-sm font-semibold text-white mb-3 drop-shadow-lg">
-                  Nom et prénom du stagiaire ambassadeur *
+                  Nom et prénom du stagiaire ambassadeur responsable de l'action *
                 </label>
                 <input
                   type="text"
@@ -228,7 +228,7 @@ export default function FormulaireAmbassadeurs() {
 
               <div>
                 <label className="block text-sm font-semibold text-white mb-3 drop-shadow-lg">
-                  Responsable de l'action *
+                  L'intitulé de l'action *
                 </label>
                 <input
                   type="text"
@@ -237,7 +237,7 @@ export default function FormulaireAmbassadeurs() {
                   className={`w-full px-4 py-3 backdrop-blur-md bg-white/20 border border-white/40 rounded-xl focus:ring-2 focus:ring-[#00E5B0] focus:border-[#00E5B0] transition-all duration-300 text-base text-white placeholder-[#EDEDED] ${
                     errors.responsable_action ? 'border-red-400' : 'border-white/40'
                   }`}
-                  placeholder="Nom et prénom du responsable"
+                  placeholder="Intitulé de l'action réalisée"
                 />
                 {errors.responsable_action && (
                   <p className="mt-1 text-sm text-red-600 drop-shadow-sm">{errors.responsable_action}</p>

@@ -8,7 +8,7 @@ import { useRealTime } from './useRealTime';
 
 // Cache pour éviter les rechargements inutiles
 const cache = new Map();
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes de cache (augmenté pour éviter les timeouts)
+const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes de cache (augmenté pour éviter les timeouts)
 
 export function useEvenements() {
   const [evenements, setEvenements] = useState<any[]>([]);
