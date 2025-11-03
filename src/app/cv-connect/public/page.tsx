@@ -217,7 +217,7 @@ export default function CVConnectPage() {
         })
       }, 200)
 
-      const response = await fetch('/api/cv-connect/upload', {
+      const response = await fetch('/api/cv-connect/upload/', {
         method: 'POST',
         body: formDataToSend,
       })
@@ -233,8 +233,21 @@ export default function CVConnectPage() {
         setTimeout(() => setShowConfetti(false), 3000)
       } else {
         const errorData = await response.json()
-        // Utiliser le message d'erreur convivial de l'API ou un message par défaut
-        setError(errorData.error || 'Une erreur est survenue lors de l\'envoi de votre CV. Veuillez réessayer.')
+        console.error('❌ Erreur upload CV:', errorData)
+        
+        // En mode développement, afficher plus de détails
+        if (errorData.details) {
+          console.error('Détails de l\'erreur:', errorData.details)
+          setError(
+            errorData.error + 
+            (process.env.NODE_ENV === 'development' && errorData.details?.message 
+              ? ` (${errorData.details.message})` 
+              : '')
+          )
+        } else {
+          // Utiliser le message d'erreur convivial de l'API ou un message par défaut
+          setError(errorData.error || 'Une erreur est survenue lors de l\'envoi de votre CV. Veuillez réessayer.')
+        }
       }
     } catch (err: any) {
       setError('Une erreur de connexion est survenue. Veuillez vérifier votre connexion internet et réessayer.')

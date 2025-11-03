@@ -15,19 +15,37 @@ const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
 
 // Initialiser l'authentification Google Drive
 const getGoogleDriveAuth = () => {
-  if (!GOOGLE_SERVICE_ACCOUNT_EMAIL || !GOOGLE_PRIVATE_KEY) {
-    throw new Error('Configuration Google Drive manquante')
+  console.log('[Google Drive Auth] Vérification configuration...')
+  
+  if (!GOOGLE_SERVICE_ACCOUNT_EMAIL) {
+    console.error('[Google Drive Auth] ❌ GOOGLE_SERVICE_ACCOUNT_EMAIL manquant')
+    throw new Error('Configuration Google Drive manquante: GOOGLE_SERVICE_ACCOUNT_EMAIL non défini')
+  }
+  
+  if (!GOOGLE_PRIVATE_KEY) {
+    console.error('[Google Drive Auth] ❌ GOOGLE_PRIVATE_KEY manquant')
+    throw new Error('Configuration Google Drive manquante: GOOGLE_PRIVATE_KEY non défini')
   }
 
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: GOOGLE_PRIVATE_KEY,
-    },
-    scopes: ['https://www.googleapis.com/auth/drive'],
-  })
+  console.log('[Google Drive Auth] ✅ Configuration présente')
+  console.log('[Google Drive Auth] Email:', GOOGLE_SERVICE_ACCOUNT_EMAIL)
+  console.log('[Google Drive Auth] Clé privée:', GOOGLE_PRIVATE_KEY ? `${GOOGLE_PRIVATE_KEY.substring(0, 20)}...` : 'Non définie')
 
-  return auth
+  try {
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: GOOGLE_PRIVATE_KEY,
+      },
+      scopes: ['https://www.googleapis.com/auth/drive'],
+    })
+
+    console.log('[Google Drive Auth] ✅ Authentification créée avec succès')
+    return auth
+  } catch (error: any) {
+    console.error('[Google Drive Auth] ❌ Erreur lors de la création de l\'authentification:', error.message)
+    throw new Error(`Erreur d'authentification Google Drive: ${error.message}`)
+  }
 }
 
 // Obtenir le service Google Drive
@@ -39,6 +57,7 @@ const getDriveService = () => {
 // Créer un dossier sur Google Drive
 export const createFolder = async (folderName: string, parentFolderId?: string): Promise<string> => {
   try {
+    console.log(`[Google Drive] Création dossier: "${folderName}" dans ${parentFolderId || GOOGLE_DRIVE_FOLDER_ID}`)
     const drive = getDriveService()
     
     const folderMetadata = {
@@ -52,10 +71,18 @@ export const createFolder = async (folderName: string, parentFolderId?: string):
       fields: 'id',
     })
 
-    return response.data.id || ''
-  } catch (error) {
-    console.error('Erreur création dossier Google Drive:', error)
-    throw new Error('Impossible de créer le dossier sur Google Drive')
+    const folderId = response.data.id || ''
+    console.log(`[Google Drive] ✅ Dossier créé: "${folderName}" (ID: ${folderId})`)
+    return folderId
+  } catch (error: any) {
+    console.error('[Google Drive] ❌ Erreur création dossier:', {
+      folderName,
+      parentFolderId,
+      message: error.message,
+      code: error.code,
+      errors: error.errors
+    })
+    throw new Error(`Impossible de créer le dossier "${folderName}" sur Google Drive: ${error.message}`)
   }
 }
 
@@ -83,17 +110,26 @@ export const folderExists = async (folderName: string, parentFolderId?: string):
 // Obtenir ou créer un dossier
 export const getOrCreateFolder = async (folderName: string, parentFolderId?: string): Promise<string> => {
   try {
+    console.log(`[Google Drive] getOrCreateFolder: "${folderName}"`)
     // Vérifier si le dossier existe
     const existingFolderId = await folderExists(folderName, parentFolderId)
     
     if (existingFolderId) {
+      console.log(`[Google Drive] ✅ Dossier existant trouvé: "${folderName}" (ID: ${existingFolderId})`)
       return existingFolderId
     }
     
     // Créer le dossier s'il n'existe pas
+    console.log(`[Google Drive] Dossier n'existe pas, création en cours...`)
     return await createFolder(folderName, parentFolderId)
-  } catch (error) {
-    console.error('Erreur getOrCreateFolder:', error)
+  } catch (error: any) {
+    console.error('[Google Drive] ❌ Erreur getOrCreateFolder:', {
+      folderName,
+      parentFolderId,
+      message: error.message,
+      code: error.code,
+      errors: error.errors
+    })
     throw error
   }
 }
@@ -111,6 +147,8 @@ export const uploadFile = async (
       throw new Error('Le fichier est vide ou invalide')
     }
 
+    console.log(`[Google Drive] Début upload: ${fileName} (${fileBuffer.length} bytes) vers dossier ${parentFolderId}`)
+
     const drive = getDriveService()
     
     // Inclure le mimeType dans les métadonnées du fichier
@@ -120,6 +158,8 @@ export const uploadFile = async (
       mimeType: mimeType,
     }
 
+    console.log(`[Google Drive] Métadonnées du fichier:`, { name: fileName, mimeType, parentId: parentFolderId })
+
     // Uploader directement depuis le buffer (plus efficace et fiable)
     const response = await drive.files.create({
       requestBody: fileMetadata,
@@ -127,7 +167,14 @@ export const uploadFile = async (
         mimeType: mimeType,
         body: fileBuffer,
       },
-      fields: 'id, webViewLink, size',
+      fields: 'id, webViewLink, size, name',
+    })
+
+    console.log(`[Google Drive] Réponse API:`, {
+      id: response.data.id,
+      name: response.data.name,
+      size: response.data.size,
+      hasWebViewLink: !!response.data.webViewLink
     })
 
     // Vérifier que l'upload a réussi et que le fichier a une taille valide
@@ -140,14 +187,47 @@ export const uploadFile = async (
       throw new Error('Le fichier uploadé est vide (0 ko)')
     }
 
-    console.log(`Fichier uploadé avec succès : ${fileName} (${uploadedFileSize} bytes)`)
+    if (!response.data.webViewLink) {
+      console.warn(`[Google Drive] Aucun webViewLink retourné, génération d'une URL alternative`)
+      // Générer une URL alternative si webViewLink n'est pas disponible
+      const alternativeUrl = `https://drive.google.com/file/d/${response.data.id}/view`
+      console.log(`[Google Drive] URL alternative: ${alternativeUrl}`)
+      
+      return {
+        fileId: response.data.id,
+        webViewLink: alternativeUrl,
+      }
+    }
+
+    // Rendre le fichier accessible (partager avec le domaine ou les utilisateurs ayant accès au dossier parent)
+    try {
+      // Partager le fichier avec "anyone with the link" pour garantir l'accessibilité
+      await drive.permissions.create({
+        fileId: response.data.id!,
+        requestBody: {
+          role: 'reader',
+          type: 'anyone',
+        },
+      })
+      console.log(`[Google Drive] Permissions définies pour le fichier ${response.data.id}`)
+    } catch (permissionError: any) {
+      console.warn(`[Google Drive] Impossible de définir les permissions (non bloquant):`, permissionError.message)
+      // Ne pas bloquer si les permissions échouent, le fichier peut quand même être accessible via le dossier parent
+    }
+
+    console.log(`[Google Drive] ✅ Fichier uploadé avec succès : ${fileName} (${uploadedFileSize} bytes)`)
 
     return {
       fileId: response.data.id,
       webViewLink: response.data.webViewLink || '',
     }
   } catch (error: any) {
-    console.error('Erreur upload fichier Google Drive:', error)
+    console.error('[Google Drive] ❌ Erreur détaillée:', {
+      message: error.message,
+      code: error.code,
+      errors: error.errors,
+      stack: error.stack
+    })
     const errorMessage = error.message || 'Impossible d\'uploader le fichier sur Google Drive'
     throw new Error(errorMessage)
   }
@@ -156,15 +236,26 @@ export const uploadFile = async (
 // Créer la structure de dossiers pour un CV
 export const createCVFolderStructure = async (poleName: string, filiereName: string): Promise<string> => {
   try {
+    console.log(`[Google Drive] Création structure dossiers: ${poleName}/${filiereName}`)
+    
     // Créer le dossier du pôle s'il n'existe pas
+    console.log(`[Google Drive] Recherche/création dossier pôle: ${poleName}`)
     const poleFolderId = await getOrCreateFolder(poleName)
+    console.log(`[Google Drive] ✅ Dossier pôle créé/trouvé: ${poleFolderId}`)
     
     // Créer le dossier de la filière dans le pôle
+    console.log(`[Google Drive] Recherche/création dossier filière: ${filiereName} (dans ${poleFolderId})`)
     const filiereFolderId = await getOrCreateFolder(filiereName, poleFolderId)
+    console.log(`[Google Drive] ✅ Dossier filière créé/trouvé: ${filiereFolderId}`)
     
     return filiereFolderId
-  } catch (error) {
-    console.error('Erreur création structure dossiers:', error)
+  } catch (error: any) {
+    console.error('[Google Drive] ❌ Erreur création structure dossiers:', {
+      message: error.message,
+      code: error.code,
+      errors: error.errors,
+      stack: error.stack
+    })
     throw error
   }
 }

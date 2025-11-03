@@ -92,51 +92,50 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const fileName = `${nom}_${prenom}_${timestamp}.pdf`
 
-    // Uploader sur Google Drive (avec fallback)
+    // Uploader sur Google Drive (sans fallback - l'upload DOIT réussir)
     let uploadResult
     try {
+      console.log(`[CV Upload] ========================================`)
+      console.log(`[CV Upload] Tentative d'upload vers Google Drive`)
+      console.log(`[CV Upload] Nom: ${nom} ${prenom}`)
+      console.log(`[CV Upload] Fichier: ${fileName} (${fileBuffer.length} bytes)`)
+      console.log(`[CV Upload] Pôle: ${pole.nom}`)
+      console.log(`[CV Upload] Filière: ${filiere.nom}`)
+      console.log(`[CV Upload] ========================================`)
+      
       uploadResult = await uploadCV(
         fileBuffer,
         fileName,
         pole.nom,
         filiere.nom
       )
+      
+      console.log(`[CV Upload] ✅ Upload réussi:`, {
+        fileId: uploadResult.fileId,
+        webViewLink: uploadResult.webViewLink,
+        folderPath: uploadResult.folderPath
+      })
     } catch (googleDriveError: any) {
-      console.error('Erreur Google Drive, utilisation du mode fallback:', googleDriveError)
+      console.error(`[CV Upload] ❌ ERREUR GOOGLE DRIVE ========================================`)
+      console.error('[CV Upload] Message:', googleDriveError.message)
+      console.error('[CV Upload] Code:', googleDriveError.code)
+      console.error('[CV Upload] Errors:', JSON.stringify(googleDriveError.errors, null, 2))
+      console.error('[CV Upload] Stack:', googleDriveError.stack)
+      console.error(`[CV Upload] ========================================`)
       
-      // Ne pas utiliser le fallback si c'est une erreur de fichier vide ou invalide
-      if (googleDriveError?.message?.includes('vide') || googleDriveError?.message?.includes('invalide')) {
-        return NextResponse.json(
-          { error: googleDriveError.message || 'Le fichier ne peut pas être uploadé' },
-          { status: 400 }
-        )
-      }
-      
-      // Mode fallback : stocker le fichier localement
-      try {
-        const fs = require('fs')
-        const path = require('path')
-        const os = require('os')
-        
-        // Créer un dossier de fallback
-        const fallbackDir = path.join(os.tmpdir(), 'cv-connect-fallback')
-        if (!fs.existsSync(fallbackDir)) {
-          fs.mkdirSync(fallbackDir, { recursive: true })
-        }
-        
-        // Sauvegarder le fichier
-        const fallbackFilePath = path.join(fallbackDir, fileName)
-        fs.writeFileSync(fallbackFilePath, fileBuffer)
-        
-        uploadResult = {
-          fileId: `fallback_${Date.now()}`,
-          webViewLink: `Fichier stocké localement: ${fallbackFilePath}`,
-          folderPath: `${pole.nom}/${filiere.nom}`
-        }
-      } catch (fallbackError) {
-        console.error('Erreur mode fallback:', fallbackError)
-        throw new Error('Impossible de sauvegarder le CV')
-      }
+      // Ne PAS utiliser de fallback - retourner l'erreur directement
+      // Le fallback crée des URLs locales non accessibles et ne résout pas le problème
+      return NextResponse.json(
+        { 
+          error: 'Impossible d\'uploader le CV sur Google Drive. Veuillez réessayer ou contacter l\'administrateur.',
+          details: process.env.NODE_ENV === 'development' ? {
+            message: googleDriveError.message,
+            code: googleDriveError.code,
+            errors: googleDriveError.errors
+          } : undefined
+        },
+        { status: 500 }
+      )
     }
 
     // Sauvegarder en base de données
