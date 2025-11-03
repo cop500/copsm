@@ -75,6 +75,19 @@ export async function POST(request: NextRequest) {
     // Convertir le fichier en buffer
     const fileBuffer = Buffer.from(await cv_file.arrayBuffer())
     
+    // Validation supplémentaire du buffer
+    if (!fileBuffer || fileBuffer.length === 0) {
+      return NextResponse.json(
+        { error: 'Le fichier PDF est vide ou invalide' },
+        { status: 400 }
+      )
+    }
+
+    // Vérifier que la taille du buffer correspond à la taille du fichier
+    if (fileBuffer.length !== cv_file.size) {
+      console.warn(`Taille du buffer (${fileBuffer.length}) différente de la taille du fichier (${cv_file.size})`)
+    }
+    
     // Générer un nom de fichier unique
     const timestamp = Date.now()
     const fileName = `${nom}_${prenom}_${timestamp}.pdf`
@@ -88,8 +101,16 @@ export async function POST(request: NextRequest) {
         pole.nom,
         filiere.nom
       )
-    } catch (googleDriveError) {
+    } catch (googleDriveError: any) {
       console.error('Erreur Google Drive, utilisation du mode fallback:', googleDriveError)
+      
+      // Ne pas utiliser le fallback si c'est une erreur de fichier vide ou invalide
+      if (googleDriveError?.message?.includes('vide') || googleDriveError?.message?.includes('invalide')) {
+        return NextResponse.json(
+          { error: googleDriveError.message || 'Le fichier ne peut pas être uploadé' },
+          { status: 400 }
+        )
+      }
       
       // Mode fallback : stocker le fichier localement
       try {

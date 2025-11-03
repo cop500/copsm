@@ -106,42 +106,50 @@ export const uploadFile = async (
   parentFolderId: string
 ): Promise<{ fileId: string; webViewLink: string }> => {
   try {
+    // Validation du buffer
+    if (!fileBuffer || fileBuffer.length === 0) {
+      throw new Error('Le fichier est vide ou invalide')
+    }
+
     const drive = getDriveService()
     
+    // Inclure le mimeType dans les métadonnées du fichier
     const fileMetadata = {
       name: fileName,
       parents: [parentFolderId],
+      mimeType: mimeType,
     }
 
-    // Créer un fichier temporaire et utiliser fs.createReadStream
-    const fs = require('fs')
-    const path = require('path')
-    const os = require('os')
-    
-    const tempFilePath = path.join(os.tmpdir(), `temp_${Date.now()}_${fileName}`)
-    fs.writeFileSync(tempFilePath, fileBuffer)
-    
-    try {
-      // Utiliser la méthode create avec des paramètres simplifiés
-      const response = await drive.files.create({
-        requestBody: fileMetadata,
-        media: fs.createReadStream(tempFilePath),
-        fields: 'id, webViewLink',
-      })
+    // Uploader directement depuis le buffer (plus efficace et fiable)
+    const response = await drive.files.create({
+      requestBody: fileMetadata,
+      media: {
+        mimeType: mimeType,
+        body: fileBuffer,
+      },
+      fields: 'id, webViewLink, size',
+    })
 
-      return {
-        fileId: response.data.id || '',
-        webViewLink: response.data.webViewLink || '',
-      }
-    } finally {
-      // Supprimer le fichier temporaire
-      if (fs.existsSync(tempFilePath)) {
-        fs.unlinkSync(tempFilePath)
-      }
+    // Vérifier que l'upload a réussi et que le fichier a une taille valide
+    if (!response.data.id) {
+      throw new Error('L\'upload a échoué : aucun ID de fichier retourné')
     }
-  } catch (error) {
+
+    const uploadedFileSize = response.data.size ? parseInt(response.data.size) : 0
+    if (uploadedFileSize === 0) {
+      throw new Error('Le fichier uploadé est vide (0 ko)')
+    }
+
+    console.log(`Fichier uploadé avec succès : ${fileName} (${uploadedFileSize} bytes)`)
+
+    return {
+      fileId: response.data.id,
+      webViewLink: response.data.webViewLink || '',
+    }
+  } catch (error: any) {
     console.error('Erreur upload fichier Google Drive:', error)
-    throw new Error('Impossible d\'uploader le fichier sur Google Drive')
+    const errorMessage = error.message || 'Impossible d\'uploader le fichier sur Google Drive'
+    throw new Error(errorMessage)
   }
 }
 
