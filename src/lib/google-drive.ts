@@ -70,6 +70,8 @@ export const createFolder = async (folderName: string, parentFolderId?: string):
     const response = await drive.files.create({
       requestBody: folderMetadata,
       fields: 'id',
+      supportsAllDrives: true,
+      supportsTeamDrives: true,
     })
 
     const folderId = response.data.id || ''
@@ -98,6 +100,9 @@ export const folderExists = async (folderName: string, parentFolderId?: string):
     const response = await drive.files.list({
       q: query + parentQuery,
       fields: 'files(id, name)',
+      supportsAllDrives: true,
+      supportsTeamDrives: true,
+      includeItemsFromAllDrives: true,
     })
 
     const folders = response.data.files || []
@@ -168,6 +173,7 @@ export const uploadFile = async (
     bufferStream.push(null) // Signal de fin
 
     // Uploader depuis le stream (compatible avec tous les environnements)
+    // Important: Utiliser supportsAllDrives et supportsTeamDrives pour les Shared Drives
     const response = await drive.files.create({
       requestBody: fileMetadata,
       media: {
@@ -175,6 +181,8 @@ export const uploadFile = async (
         body: bufferStream,
       },
       fields: 'id, webViewLink, size, name',
+      supportsAllDrives: true,
+      supportsTeamDrives: true,
     })
 
     console.log(`[Google Drive] Réponse API:`, {
@@ -215,6 +223,8 @@ export const uploadFile = async (
           role: 'reader',
           type: 'anyone',
         },
+        supportsAllDrives: true,
+        supportsTeamDrives: true,
       })
       console.log(`[Google Drive] Permissions définies pour le fichier ${response.data.id}`)
     } catch (permissionError: any) {
@@ -315,6 +325,8 @@ export const getFileInfo = async (fileId: string) => {
     const response = await drive.files.get({
       fileId,
       fields: 'id, name, size, createdTime, webViewLink, parents',
+      supportsAllDrives: true,
+      supportsTeamDrives: true,
     })
     
     return response.data
@@ -332,6 +344,9 @@ export const listFolderFiles = async (folderId: string) => {
     const response = await drive.files.list({
       q: `'${folderId}' in parents and trashed=false`,
       fields: 'files(id, name, size, createdTime, webViewLink)',
+      supportsAllDrives: true,
+      supportsTeamDrives: true,
+      includeItemsFromAllDrives: true,
     })
     
     return response.data.files || []
