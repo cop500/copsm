@@ -64,6 +64,37 @@ export const createFolder = async (folderName: string, parentFolderId?: string):
     console.log(`[Google Drive] Création dossier: "${folderName}" dans ${targetParentId}`)
     const drive = getDriveService()
     
+    // Vérifier d'abord si le parent existe et est accessible
+    try {
+      const parentInfo = await drive.files.get({
+        fileId: targetParentId,
+        fields: 'id, name, mimeType, driveId, capabilities',
+        supportsAllDrives: true,
+        supportsTeamDrives: true,
+      })
+      
+      console.log(`[Google Drive] ✅ Parent accessible:`, {
+        id: parentInfo.data.id,
+        name: parentInfo.data.name,
+        mimeType: parentInfo.data.mimeType,
+        driveId: parentInfo.data.driveId
+      })
+    } catch (accessError: any) {
+      console.error(`[Google Drive] ❌ Impossible d'accéder au parent ${targetParentId}:`, accessError.message)
+      
+      // Si c'est une erreur "not found", fournir des instructions
+      if (accessError.code === 404 || accessError.message.includes('not found')) {
+        throw new Error(
+          `Le dossier parent (${targetParentId}) est introuvable ou inaccessible. ` +
+          `Vérifiez que : 1) Le Service Account est membre du Shared Drive, ` +
+          `2) L'ID est correct, ` +
+          `3) Les permissions sont suffisantes (Gestionnaire de contenu minimum). ` +
+          `Erreur technique: ${accessError.message}`
+        )
+      }
+      throw accessError
+    }
+    
     const folderMetadata: any = {
       name: folderName,
       mimeType: 'application/vnd.google-apps.folder',
