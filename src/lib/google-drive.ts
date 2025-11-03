@@ -9,6 +9,8 @@ import { Readable } from 'stream'
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || 'CV_Connect_Folder_ID'
 // Si GOOGLE_DRIVE_FOLDER_ID est un Shared Drive, utiliser driveId dans les requêtes
 const GOOGLE_DRIVE_ID = process.env.GOOGLE_DRIVE_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
+
+// Configuration Service Account (pour Shared Drive)
 const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
 const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
   ?.replace(/\\n/g, '\n')
@@ -16,21 +18,51 @@ const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
   ?.replace(/"$/, '')
   ?.trim()
 
+// Configuration OAuth (pour Google Drive personnel)
+const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID
+const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET
+const GOOGLE_OAUTH_REFRESH_TOKEN = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
+
 // Initialiser l'authentification Google Drive
+// Priorité : OAuth si disponible, sinon Service Account
 const getGoogleDriveAuth = () => {
   console.log('[Google Drive Auth] Vérification configuration...')
   
+  // Préférer OAuth pour Google Drive personnel
+  if (GOOGLE_OAUTH_CLIENT_ID && GOOGLE_OAUTH_CLIENT_SECRET && GOOGLE_OAUTH_REFRESH_TOKEN) {
+    console.log('[Google Drive Auth] ✅ Utilisation OAuth 2.0 (Google Drive personnel)')
+    
+    try {
+      const oauth2Client = new google.auth.OAuth2(
+        GOOGLE_OAUTH_CLIENT_ID,
+        GOOGLE_OAUTH_CLIENT_SECRET,
+        'http://localhost:3000/api/auth/google/callback' // Redirect URI (peu importe pour refresh token)
+      )
+      
+      oauth2Client.setCredentials({
+        refresh_token: GOOGLE_OAUTH_REFRESH_TOKEN
+      })
+      
+      console.log('[Google Drive Auth] ✅ Authentification OAuth créée avec succès')
+      return oauth2Client
+    } catch (error: any) {
+      console.error('[Google Drive Auth] ❌ Erreur OAuth:', error.message)
+      throw new Error(`Erreur d'authentification OAuth: ${error.message}`)
+    }
+  }
+  
+  // Fallback sur Service Account (pour Shared Drive)
   if (!GOOGLE_SERVICE_ACCOUNT_EMAIL) {
     console.error('[Google Drive Auth] ❌ GOOGLE_SERVICE_ACCOUNT_EMAIL manquant')
-    throw new Error('Configuration Google Drive manquante: GOOGLE_SERVICE_ACCOUNT_EMAIL non défini')
+    throw new Error('Configuration Google Drive manquante: GOOGLE_SERVICE_ACCOUNT_EMAIL ou GOOGLE_OAUTH_* requis')
   }
   
   if (!GOOGLE_PRIVATE_KEY) {
     console.error('[Google Drive Auth] ❌ GOOGLE_PRIVATE_KEY manquant')
-    throw new Error('Configuration Google Drive manquante: GOOGLE_PRIVATE_KEY non défini')
+    throw new Error('Configuration Google Drive manquante: GOOGLE_PRIVATE_KEY ou GOOGLE_OAUTH_REFRESH_TOKEN requis')
   }
 
-  console.log('[Google Drive Auth] ✅ Configuration présente')
+  console.log('[Google Drive Auth] ✅ Utilisation Service Account (Shared Drive)')
   console.log('[Google Drive Auth] Email:', GOOGLE_SERVICE_ACCOUNT_EMAIL)
   console.log('[Google Drive Auth] Clé privée:', GOOGLE_PRIVATE_KEY ? `${GOOGLE_PRIVATE_KEY.substring(0, 20)}...` : 'Non définie')
 
@@ -43,7 +75,7 @@ const getGoogleDriveAuth = () => {
       scopes: ['https://www.googleapis.com/auth/drive'],
     })
 
-    console.log('[Google Drive Auth] ✅ Authentification créée avec succès')
+    console.log('[Google Drive Auth] ✅ Authentification Service Account créée avec succès')
     return auth
   } catch (error: any) {
     console.error('[Google Drive Auth] ❌ Erreur lors de la création de l\'authentification:', error.message)
