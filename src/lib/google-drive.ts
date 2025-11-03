@@ -3,6 +3,7 @@
 // ========================================
 
 import { google } from 'googleapis'
+import { Readable } from 'stream'
 
 // Configuration Google Drive
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || 'CV_Connect_Folder_ID'
@@ -160,12 +161,18 @@ export const uploadFile = async (
 
     console.log(`[Google Drive] Métadonnées du fichier:`, { name: fileName, mimeType, parentId: parentFolderId })
 
-    // Uploader directement depuis le buffer (plus efficace et fiable)
+    // Convertir le Buffer en stream Readable pour compatibilité avec googleapis
+    // En production (serverless), googleapis peut avoir besoin d'un stream plutôt qu'un Buffer direct
+    const bufferStream = new Readable()
+    bufferStream.push(fileBuffer)
+    bufferStream.push(null) // Signal de fin
+
+    // Uploader depuis le stream (compatible avec tous les environnements)
     const response = await drive.files.create({
       requestBody: fileMetadata,
       media: {
         mimeType: mimeType,
-        body: fileBuffer,
+        body: bufferStream,
       },
       fields: 'id, webViewLink, size, name',
     })
