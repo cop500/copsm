@@ -123,16 +123,26 @@ export async function POST(request: NextRequest) {
       console.error('[CV Upload] Stack:', googleDriveError.stack)
       console.error(`[CV Upload] ========================================`)
       
-      // Ne PAS utiliser de fallback - retourner l'erreur directement
-      // Le fallback crée des URLs locales non accessibles et ne résout pas le problème
+      // En production, retourner des détails utiles mais sécurisés
+      const errorDetails: any = {
+        message: googleDriveError.message,
+        code: googleDriveError.code
+      }
+
+      // Ajouter les erreurs si elles existent (sans informations sensibles)
+      if (googleDriveError.errors && Array.isArray(googleDriveError.errors)) {
+        errorDetails.errors = googleDriveError.errors.map((err: any) => ({
+          domain: err.domain,
+          reason: err.reason,
+          message: err.message
+        }))
+      }
+
+      // Toujours retourner les détails pour diagnostic (même en production)
       return NextResponse.json(
         { 
           error: 'Impossible d\'uploader le CV sur Google Drive. Veuillez réessayer ou contacter l\'administrateur.',
-          details: process.env.NODE_ENV === 'development' ? {
-            message: googleDriveError.message,
-            code: googleDriveError.code,
-            errors: googleDriveError.errors
-          } : undefined
+          details: errorDetails
         },
         { status: 500 }
       )

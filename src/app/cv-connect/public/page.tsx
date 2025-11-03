@@ -235,15 +235,20 @@ export default function CVConnectPage() {
         const errorData = await response.json()
         console.error('❌ Erreur upload CV:', errorData)
         
-        // En mode développement, afficher plus de détails
+        // Afficher les détails d'erreur (même en production pour diagnostic)
         if (errorData.details) {
           console.error('Détails de l\'erreur:', errorData.details)
-          setError(
-            errorData.error + 
-            (process.env.NODE_ENV === 'development' && errorData.details?.message 
-              ? ` (${errorData.details.message})` 
-              : '')
-          )
+          
+          // Afficher le code d'erreur à l'utilisateur pour diagnostic
+          let errorMessage = errorData.error
+          if (errorData.details.code) {
+            errorMessage += ` (Code: ${errorData.details.code})`
+          }
+          if (errorData.details.message && errorData.details.message !== errorData.details.code) {
+            errorMessage += ` - ${errorData.details.message}`
+          }
+          
+          setError(errorMessage)
         } else {
           // Utiliser le message d'erreur convivial de l'API ou un message par défaut
           setError(errorData.error || 'Une erreur est survenue lors de l\'envoi de votre CV. Veuillez réessayer.')
