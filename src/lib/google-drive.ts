@@ -308,6 +308,8 @@ export const deleteFile = async (fileId: string): Promise<boolean> => {
     
     await drive.files.delete({
       fileId,
+      supportsAllDrives: true,
+      supportsTeamDrives: true,
     })
     
     return true
