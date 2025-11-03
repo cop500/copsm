@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const fileName = `${nom}_${prenom}_${timestamp}.pdf`
 
-    // Uploader sur Google Drive (sans fallback - l'upload DOIT réussir)
+    // Uploader sur Google Drive
     let uploadResult
     try {
       console.log(`[CV Upload] ========================================`)

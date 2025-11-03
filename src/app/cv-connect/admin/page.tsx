@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useCVConnect } from '@/hooks/useCVConnect'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { 
   Trash2, Clock, CheckCircle, Search, RefreshCw,
-  FileText, Archive, Download
+  FileText, Archive, Download, Eye, X, Filter
 } from 'lucide-react'
 
 export default function CVConnectAdminPage() {
@@ -21,6 +21,38 @@ export default function CVConnectAdminPage() {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterPole, setFilterPole] = useState('')
+  const [filterFiliere, setFilterFiliere] = useState('')
+  const [poles, setPoles] = useState<any[]>([])
+  const [filieres, setFilieres] = useState<any[]>([])
+  const [selectedCV, setSelectedCV] = useState<{ url: string; filename: string } | null>(null)
+  const [showCVViewer, setShowCVViewer] = useState(false)
+
+  // Charger les pôles et filières
+  useEffect(() => {
+    const loadPolesFilieres = async () => {
+      try {
+        const [polesRes, filieresRes] = await Promise.all([
+          fetch('/api/poles'),
+          fetch('/api/filieres')
+        ])
+        
+        if (polesRes.ok) {
+          const polesData = await polesRes.json()
+          setPoles(polesData || [])
+        }
+        
+        if (filieresRes.ok) {
+          const filieresData = await filieresRes.json()
+          setFilieres(filieresData || [])
+        }
+      } catch (err) {
+        console.error('Erreur chargement pôles/filières:', err)
+      }
+    }
+    
+    loadPolesFilieres()
+  }, [])
 
   // Vérifier si l'utilisateur actuel est admin
   const isAdmin = profile?.role === 'business_developer'
@@ -46,9 +78,16 @@ export default function CVConnectAdminPage() {
       submission.filiere?.nom?.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = !filterStatus || submission.statut === filterStatus
+    const matchesPole = !filterPole || submission.pole_id === filterPole
+    const matchesFiliere = !filterFiliere || submission.filiere_id === filterFiliere
     
-    return matchesSearch && matchesStatus
+    return matchesSearch && matchesStatus && matchesPole && matchesFiliere
   })
+  
+  // Filtrer les filières selon le pôle sélectionné
+  const filteredFilieresForPole = filterPole 
+    ? filieres.filter(f => f.pole_id === filterPole)
+    : filieres
 
   // Statistiques
   const stats = {
@@ -184,45 +223,94 @@ export default function CVConnectAdminPage() {
             </div>
 
             {/* Filtres pour les soumissions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Nom, prénom, email, pôle, filière..."
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="w-5 h-5 text-gray-600" />
+                <h3 className="text-sm font-medium text-gray-700">Filtres</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Nom, prénom, email..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Tous les statuts</option>
-                  <option value="nouveau">Nouveau</option>
-                  <option value="traite">Traité</option>
-                  <option value="archive">Archivé</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Tous les statuts</option>
+                    <option value="nouveau">Nouveau</option>
+                    <option value="traite">Traité</option>
+                    <option value="archive">Archivé</option>
+                  </select>
+                </div>
 
-              <div className="flex items-end">
-                <button
-                  onClick={() => {
-                    setSearchTerm('')
-                    setFilterStatus('')
-                  }}
-                  className="w-full px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-                >
-                  Réinitialiser
-                </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pôle</label>
+                  <select
+                    value={filterPole}
+                    onChange={(e) => {
+                      setFilterPole(e.target.value)
+                      setFilterFiliere('') // Reset filière quand on change de pôle
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Tous les pôles</option>
+                    {poles.map((pole) => (
+                      <option key={pole.id} value={pole.id}>
+                        {pole.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Filière</label>
+                  <select
+                    value={filterFiliere}
+                    onChange={(e) => setFilterFiliere(e.target.value)}
+                    disabled={!filterPole}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      !filterPole ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <option value="">
+                      {filterPole ? 'Toutes les filières' : 'Sélectionnez d\'abord un pôle'}
+                    </option>
+                    {filteredFilieresForPole.map((filiere) => (
+                      <option key={filiere.id} value={filiere.id}>
+                        {filiere.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    onClick={() => {
+                      setSearchTerm('')
+                      setFilterStatus('')
+                      setFilterPole('')
+                      setFilterFiliere('')
+                    }}
+                    className="w-full px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -281,15 +369,44 @@ export default function CVConnectAdminPage() {
                             <div className="text-sm text-gray-500">{submission.filiere?.nom}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <a
-                              href={submission.cv_google_drive_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm"
-                            >
-                              <Download className="w-4 h-4" />
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  if (submission.cv_google_drive_url && submission.cv_google_drive_url !== '#') {
+                                    setSelectedCV({
+                                      url: submission.cv_google_drive_url,
+                                      filename: submission.cv_filename
+                                    })
+                                    setShowCVViewer(true)
+                                  }
+                                }}
+                                disabled={!submission.cv_google_drive_url || submission.cv_google_drive_url === '#'}
+                                className="flex items-center gap-1 px-2 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Voir le CV"
+                              >
+                                <Eye className="w-4 h-4" />
+                                Voir
+                              </button>
+                              <a
+                                href={submission.cv_google_drive_url && submission.cv_google_drive_url !== '#' ? submission.cv_google_drive_url : '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  if (!submission.cv_google_drive_url || submission.cv_google_drive_url === '#') {
+                                    e.preventDefault()
+                                    alert('Le CV n\'est pas encore disponible (upload Drive temporairement désactivé)')
+                                  }
+                                }}
+                                className="flex items-center gap-1 px-2 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors disabled:opacity-50"
+                                title="Télécharger le CV"
+                              >
+                                <Download className="w-4 h-4" />
+                                Télécharger
+                              </a>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1 truncate max-w-xs">
                               {submission.cv_filename}
-                            </a>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <select
@@ -324,6 +441,51 @@ export default function CVConnectAdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de visualisation du CV */}
+      {showCVViewer && selectedCV && (
+        <div className="fixed inset-0 z-50 overflow-hidden bg-black bg-opacity-75 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-full max-h-[90vh] flex flex-col">
+            {/* En-tête du modal */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-3">
+                <FileText className="w-6 h-6 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">{selectedCV.filename}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedCV.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Télécharger
+                </a>
+                <button
+                  onClick={() => {
+                    setShowCVViewer(false)
+                    setSelectedCV(null)
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                  title="Fermer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenu du PDF */}
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={`${selectedCV.url}#toolbar=1&navpanes=0&scrollbar=1`}
+                className="w-full h-full border-0"
+                title="Visualiseur de CV"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

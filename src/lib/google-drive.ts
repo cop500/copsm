@@ -1,5 +1,6 @@
 // ========================================
 // src/lib/google-drive.ts - Service Google Drive
+// ✅ RÉACTIVÉ - Configuration OAuth 2.0
 // ========================================
 
 import { google } from 'googleapis'
@@ -24,62 +25,39 @@ const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET
 const GOOGLE_OAUTH_REFRESH_TOKEN = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
 
 // Initialiser l'authentification Google Drive
-// Priorité : OAuth si disponible, sinon Service Account
+// Utilisation OAuth 2.0 pour Google Drive personnel
 const getGoogleDriveAuth = () => {
-  console.log('[Google Drive Auth] Vérification configuration...')
+  console.log('[Google Drive Auth] Vérification configuration OAuth 2.0...')
   
-  // Préférer OAuth pour Google Drive personnel
-  if (GOOGLE_OAUTH_CLIENT_ID && GOOGLE_OAUTH_CLIENT_SECRET && GOOGLE_OAUTH_REFRESH_TOKEN) {
-    console.log('[Google Drive Auth] ✅ Utilisation OAuth 2.0 (Google Drive personnel)')
-    
-    try {
-      const oauth2Client = new google.auth.OAuth2(
-        GOOGLE_OAUTH_CLIENT_ID,
-        GOOGLE_OAUTH_CLIENT_SECRET,
-        'http://localhost:3000/api/auth/google/callback' // Redirect URI (peu importe pour refresh token)
-      )
-      
-      oauth2Client.setCredentials({
-        refresh_token: GOOGLE_OAUTH_REFRESH_TOKEN
-      })
-      
-      console.log('[Google Drive Auth] ✅ Authentification OAuth créée avec succès')
-      return oauth2Client
-    } catch (error: any) {
-      console.error('[Google Drive Auth] ❌ Erreur OAuth:', error.message)
-      throw new Error(`Erreur d'authentification OAuth: ${error.message}`)
-    }
+  // Vérifier que toutes les variables OAuth sont présentes
+  if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET || !GOOGLE_OAUTH_REFRESH_TOKEN) {
+    console.error('[Google Drive Auth] ❌ Variables OAuth manquantes')
+    console.error('[Google Drive Auth] GOOGLE_OAUTH_CLIENT_ID:', GOOGLE_OAUTH_CLIENT_ID ? '✅' : '❌')
+    console.error('[Google Drive Auth] GOOGLE_OAUTH_CLIENT_SECRET:', GOOGLE_OAUTH_CLIENT_SECRET ? '✅' : '❌')
+    console.error('[Google Drive Auth] GOOGLE_OAUTH_REFRESH_TOKEN:', GOOGLE_OAUTH_REFRESH_TOKEN ? '✅' : '❌')
+    throw new Error('Configuration Google Drive manquante: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET et GOOGLE_OAUTH_REFRESH_TOKEN requis')
   }
   
-  // Fallback sur Service Account (pour Shared Drive)
-  if (!GOOGLE_SERVICE_ACCOUNT_EMAIL) {
-    console.error('[Google Drive Auth] ❌ GOOGLE_SERVICE_ACCOUNT_EMAIL manquant')
-    throw new Error('Configuration Google Drive manquante: GOOGLE_SERVICE_ACCOUNT_EMAIL ou GOOGLE_OAUTH_* requis')
-  }
+  console.log('[Google Drive Auth] ✅ Utilisation OAuth 2.0 (Google Drive personnel)')
   
-  if (!GOOGLE_PRIVATE_KEY) {
-    console.error('[Google Drive Auth] ❌ GOOGLE_PRIVATE_KEY manquant')
-    throw new Error('Configuration Google Drive manquante: GOOGLE_PRIVATE_KEY ou GOOGLE_OAUTH_REFRESH_TOKEN requis')
-  }
-
-  console.log('[Google Drive Auth] ✅ Utilisation Service Account (Shared Drive)')
-  console.log('[Google Drive Auth] Email:', GOOGLE_SERVICE_ACCOUNT_EMAIL)
-  console.log('[Google Drive Auth] Clé privée:', GOOGLE_PRIVATE_KEY ? `${GOOGLE_PRIVATE_KEY.substring(0, 20)}...` : 'Non définie')
-
   try {
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: GOOGLE_PRIVATE_KEY,
-      },
-      scopes: ['https://www.googleapis.com/auth/drive'],
+    const oauth2Client = new google.auth.OAuth2(
+      GOOGLE_OAUTH_CLIENT_ID,
+      GOOGLE_OAUTH_CLIENT_SECRET,
+      'http://localhost:3000/api/auth/google/callback' // Redirect URI (nécessaire mais pas utilisé pour refresh token)
+    )
+    
+    // Configurer les credentials avec le refresh token
+    // Le client OAuth2 actualisera automatiquement le access token quand nécessaire
+    oauth2Client.setCredentials({
+      refresh_token: GOOGLE_OAUTH_REFRESH_TOKEN
     })
-
-    console.log('[Google Drive Auth] ✅ Authentification Service Account créée avec succès')
-    return auth
+    
+    console.log('[Google Drive Auth] ✅ Authentification OAuth créée avec succès')
+    return oauth2Client
   } catch (error: any) {
-    console.error('[Google Drive Auth] ❌ Erreur lors de la création de l\'authentification:', error.message)
-    throw new Error(`Erreur d'authentification Google Drive: ${error.message}`)
+    console.error('[Google Drive Auth] ❌ Erreur OAuth:', error.message)
+    throw new Error(`Erreur d'authentification OAuth: ${error.message}`)
   }
 }
 

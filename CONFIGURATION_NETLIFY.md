@@ -48,3 +48,4 @@ Allez sur [Netlify Dashboard](https://app.netlify.com) → Votre site → **Site
 - [ ] Variables Service Account supprimées (si présentes)
 - [ ] Déploiement redémarré
 
+
