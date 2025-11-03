@@ -7,6 +7,8 @@ import { Readable } from 'stream'
 
 // Configuration Google Drive
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || 'CV_Connect_Folder_ID'
+// Si GOOGLE_DRIVE_FOLDER_ID est un Shared Drive, utiliser driveId dans les requêtes
+const GOOGLE_DRIVE_ID = process.env.GOOGLE_DRIVE_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
 const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
 const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
   ?.replace(/\\n/g, '\n')
@@ -58,21 +60,30 @@ const getDriveService = () => {
 // Créer un dossier sur Google Drive
 export const createFolder = async (folderName: string, parentFolderId?: string): Promise<string> => {
   try {
-    console.log(`[Google Drive] Création dossier: "${folderName}" dans ${parentFolderId || GOOGLE_DRIVE_FOLDER_ID}`)
+    const targetParentId = parentFolderId || GOOGLE_DRIVE_FOLDER_ID
+    console.log(`[Google Drive] Création dossier: "${folderName}" dans ${targetParentId}`)
     const drive = getDriveService()
     
-    const folderMetadata = {
+    const folderMetadata: any = {
       name: folderName,
       mimeType: 'application/vnd.google-apps.folder',
-      parents: parentFolderId ? [parentFolderId] : [GOOGLE_DRIVE_FOLDER_ID],
+      parents: [targetParentId],
     }
 
-    const response = await drive.files.create({
+    // Si on utilise un Shared Drive, ajouter driveId
+    const requestOptions: any = {
       requestBody: folderMetadata,
       fields: 'id',
       supportsAllDrives: true,
       supportsTeamDrives: true,
-    })
+    }
+
+    // Si GOOGLE_DRIVE_ID est défini et différent du parent, c'est probablement un Shared Drive
+    if (GOOGLE_DRIVE_ID && GOOGLE_DRIVE_ID === GOOGLE_DRIVE_FOLDER_ID && !parentFolderId) {
+      requestOptions.driveId = GOOGLE_DRIVE_ID
+    }
+
+    const response = await drive.files.create(requestOptions)
 
     const folderId = response.data.id || ''
     console.log(`[Google Drive] ✅ Dossier créé: "${folderName}" (ID: ${folderId})`)
@@ -94,16 +105,24 @@ export const folderExists = async (folderName: string, parentFolderId?: string):
   try {
     const drive = getDriveService()
     
+    const targetParentId = parentFolderId || GOOGLE_DRIVE_FOLDER_ID
     const query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
-    const parentQuery = parentFolderId ? ` and '${parentFolderId}' in parents` : ` and '${GOOGLE_DRIVE_FOLDER_ID}' in parents`
+    const parentQuery = ` and '${targetParentId}' in parents`
     
-    const response = await drive.files.list({
+    const requestOptions: any = {
       q: query + parentQuery,
       fields: 'files(id, name)',
       supportsAllDrives: true,
       supportsTeamDrives: true,
       includeItemsFromAllDrives: true,
-    })
+    }
+
+    // Si on utilise un Shared Drive, ajouter driveId
+    if (GOOGLE_DRIVE_ID && GOOGLE_DRIVE_ID === GOOGLE_DRIVE_FOLDER_ID && !parentFolderId) {
+      requestOptions.driveId = GOOGLE_DRIVE_ID
+    }
+    
+    const response = await drive.files.list(requestOptions)
 
     const folders = response.data.files || []
     return folders.length > 0 ? folders[0].id || null : null
