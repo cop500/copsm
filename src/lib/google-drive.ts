@@ -141,10 +141,8 @@ export const createFolder = async (folderName: string, parentFolderId?: string):
       supportsTeamDrives: true,
     }
 
-    // Si GOOGLE_DRIVE_ID est défini et différent du parent, c'est probablement un Shared Drive
-    if (GOOGLE_DRIVE_ID && GOOGLE_DRIVE_ID === GOOGLE_DRIVE_FOLDER_ID && !parentFolderId) {
-      requestOptions.driveId = GOOGLE_DRIVE_ID
-    }
+    // Note: Pour Google Drive personnel (OAuth), on n'utilise pas driveId
+    // driveId est uniquement pour les Shared Drives (Service Account)
 
     const response = await drive.files.create(requestOptions)
 
@@ -180,10 +178,8 @@ export const folderExists = async (folderName: string, parentFolderId?: string):
       includeItemsFromAllDrives: true,
     }
 
-    // Si on utilise un Shared Drive, ajouter driveId
-    if (GOOGLE_DRIVE_ID && GOOGLE_DRIVE_ID === GOOGLE_DRIVE_FOLDER_ID && !parentFolderId) {
-      requestOptions.driveId = GOOGLE_DRIVE_ID
-    }
+    // Note: Pour Google Drive personnel (OAuth), on n'utilise pas driveId
+    // driveId est uniquement pour les Shared Drives (Service Account)
     
     const response = await drive.files.list(requestOptions)
 
