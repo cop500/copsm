@@ -185,25 +185,60 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Erreur upload CV:', error)
+    console.error('[CV Upload] ❌ ERREUR GÉNÉRALE ========================================')
+    console.error('[CV Upload] Type:', error.constructor.name)
+    console.error('[CV Upload] Message:', error.message)
+    console.error('[CV Upload] Code:', error.code)
+    console.error('[CV Upload] Stack:', error.stack)
+    console.error(`[CV Upload] ========================================`)
     
+    // Construire les détails d'erreur
+    const errorDetails: any = {
+      message: error.message || 'Erreur inconnue',
+      type: error.constructor.name || 'Error'
+    }
+    
+    if (error.code) {
+      errorDetails.code = error.code
+    }
+    
+    if (error.errors) {
+      errorDetails.errors = error.errors
+    }
+
     // Gérer les erreurs spécifiques avec des messages conviviaux
-    if (error.message.includes('Configuration Google Drive manquante')) {
+    if (error.message?.includes('Configuration Google Drive manquante')) {
       return NextResponse.json(
-        { error: 'Service temporairement indisponible. Veuillez réessayer plus tard.' },
+        { 
+          error: 'Service temporairement indisponible. Veuillez réessayer plus tard.',
+          details: {
+            ...errorDetails,
+            reason: 'Configuration Google Drive manquante'
+          }
+        },
         { status: 503 }
       )
     }
     
-    if (error.message.includes('Impossible de créer le dossier') || error.message.includes('Impossible d\'uploader le fichier')) {
+    if (error.message?.includes('Impossible de créer le dossier') || error.message?.includes('Impossible d\'uploader le fichier')) {
       return NextResponse.json(
-        { error: 'Une erreur est survenue lors de l\'enregistrement de votre CV. Veuillez réessayer ou contacter notre équipe.' },
+        { 
+          error: 'Une erreur est survenue lors de l\'enregistrement de votre CV. Veuillez réessayer ou contacter notre équipe.',
+          details: {
+            ...errorDetails,
+            reason: 'Erreur Google Drive (création/upload)'
+          }
+        },
         { status: 500 }
       )
     }
 
+    // Toujours retourner les détails pour diagnostic
     return NextResponse.json(
-      { error: 'Une erreur inattendue est survenue. Veuillez réessayer ou contacter notre équipe si le problème persiste.' },
+      { 
+        error: 'Une erreur inattendue est survenue. Veuillez réessayer ou contacter notre équipe si le problème persiste.',
+        details: errorDetails
+      },
       { status: 500 }
     )
   }

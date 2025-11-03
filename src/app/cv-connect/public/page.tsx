@@ -232,26 +232,56 @@ export default function CVConnectPage() {
         // Arrêter les confettis après 3 secondes
         setTimeout(() => setShowConfetti(false), 3000)
       } else {
-        const errorData = await response.json()
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch (parseError) {
+          const text = await response.text()
+          console.error('❌ Erreur parsing réponse:', text)
+          setError(`Erreur serveur (${response.status}): Impossible de parser la réponse`)
+          return
+        }
+        
         console.error('❌ Erreur upload CV:', errorData)
+        console.error('❌ Statut HTTP:', response.status)
+        console.error('❌ Détails complets:', JSON.stringify(errorData, null, 2))
         
         // Afficher les détails d'erreur (même en production pour diagnostic)
         if (errorData.details) {
-          console.error('Détails de l\'erreur:', errorData.details)
+          console.error('📋 Détails de l\'erreur:', errorData.details)
+          console.error('📋 Code:', errorData.details.code)
+          console.error('📋 Message:', errorData.details.message)
+          console.error('📋 Errors array:', errorData.details.errors)
           
-          // Afficher le code d'erreur à l'utilisateur pour diagnostic
-          let errorMessage = errorData.error
+          // Construire le message d'erreur avec tous les détails disponibles
+          let errorMessage = errorData.error || 'Erreur lors de l\'upload'
+          
+          // Ajouter le code si disponible
           if (errorData.details.code) {
-            errorMessage += ` (Code: ${errorData.details.code})`
+            errorMessage += ` [Code: ${errorData.details.code}]`
           }
-          if (errorData.details.message && errorData.details.message !== errorData.details.code) {
+          
+          // Ajouter le message si disponible et différent du code
+          if (errorData.details.message && 
+              errorData.details.message !== errorData.details.code &&
+              !errorMessage.includes(errorData.details.message)) {
             errorMessage += ` - ${errorData.details.message}`
+          }
+          
+          // Ajouter les erreurs spécifiques si disponibles
+          if (errorData.details.errors && errorData.details.errors.length > 0) {
+            const firstError = errorData.details.errors[0]
+            if (firstError.reason) {
+              errorMessage += ` (${firstError.reason})`
+            }
           }
           
           setError(errorMessage)
         } else {
           // Utiliser le message d'erreur convivial de l'API ou un message par défaut
-          setError(errorData.error || 'Une erreur est survenue lors de l\'envoi de votre CV. Veuillez réessayer.')
+          const baseError = errorData.error || `Erreur serveur (${response.status})`
+          console.warn('⚠️ Aucun détail d\'erreur disponible dans la réponse')
+          setError(baseError)
         }
       }
     } catch (err: any) {
