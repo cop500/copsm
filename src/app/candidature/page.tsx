@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSettings } from '@/hooks/useSettings'
+import AdSense from '@/components/AdSense'
 import { 
   User, Mail, Phone, MapPin, FileText, Upload, 
   Building2, Briefcase, Calendar, Send, CheckCircle,
@@ -364,6 +365,16 @@ export default function CandidaturePage() {
           </p>
       </div>
       
+        {/* Publicité AdSense - En haut de page (discret) */}
+        <div className="mb-6">
+          <AdSense 
+            adSlot="1234567890" 
+            adFormat="auto"
+            style={{ minHeight: '100px' }}
+            className="rounded-lg overflow-hidden"
+          />
+        </div>
+      
         {/* Liste des offres */}
         <div className="space-y-6">
           {loading ? (
@@ -458,6 +469,16 @@ export default function CandidaturePage() {
                     </div>
             ))
           )}
+            </div>
+
+            {/* Publicité AdSense - Après la liste des offres (discret) */}
+            <div className="my-6">
+              <AdSense 
+                adSlot="1234567891" 
+                adFormat="horizontal"
+                style={{ minHeight: '90px' }}
+                className="rounded-lg overflow-hidden"
+              />
             </div>
 
             {/* Formulaire de candidature amélioré */}
@@ -761,6 +782,16 @@ export default function CandidaturePage() {
             </div>
           </div>
         )}
+        
+        {/* Publicité AdSense - En bas de page (discret) */}
+        <div className="mt-8">
+          <AdSense 
+            adSlot="1234567892" 
+            adFormat="auto"
+            style={{ minHeight: '100px' }}
+            className="rounded-lg overflow-hidden"
+          />
+        </div>
       </div>
     </div>
   )
