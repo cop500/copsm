@@ -34,7 +34,6 @@ export function useEvenements() {
     // Vérifier si la session est toujours valide
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔐 Session:', session ? 'Valide' : 'Expirée');
       if (!session) {
         console.warn('⚠️ Session expirée, rechargement des données...');
         // Forcer le rechargement même si le cache existe
@@ -86,19 +85,7 @@ export function useEvenements() {
       }
 
       const evenementsData = data || [];
-      console.log('📊 Evenements récupérés:', evenementsData.length, evenementsData);
-      
-      // Debug: vérifier les valeurs de capacité pour les ateliers
-      const ateliers = evenementsData.filter(e => e.type_evenement === 'atelier');
-      if (ateliers.length > 0) {
-        console.log('🔍 Premier atelier debug:', {
-          id: ateliers[0].id,
-          titre: ateliers[0].titre,
-          capacite_maximale: ateliers[0].capacite_maximale,
-          capacite_actuelle: ateliers[0].capacite_actuelle,
-          visible_inscription: ateliers[0].visible_inscription
-        });
-      }
+      console.log('📊 Événements récupérés:', evenementsData.length);
       
       // Mettre en cache
       cache.set(cacheKey, {
@@ -107,7 +94,6 @@ export function useEvenements() {
       });
 
       console.log('🔍 Hook useEvenements - Données récupérées:', evenementsData.length, 'événements');
-      console.log('🔍 Hook useEvenements - Données:', evenementsData);
       
       setEvenements(evenementsData);
       lastFetchRef.current = now;

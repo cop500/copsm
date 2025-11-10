@@ -97,8 +97,6 @@ export const ModernEvenementsModule = () => {
   console.log('🔍 Evenements data:', evenementsData)
   console.log('🔍 Ateliers data:', ateliersData)
   console.log('🔍 Active tab:', activeTab)
-  console.log('🔍 Loading:', loading)
-
   // Mettre à jour le loading quand les données arrivent
   useEffect(() => {
     if (allEvenements && Array.isArray(allEvenements)) {
@@ -128,11 +126,8 @@ export const ModernEvenementsModule = () => {
   // Sauvegarder un événement
   const handleSaveEvent = async (eventData: any) => {
     try {
-      console.log('🔍 Sauvegarde événement:', eventData)
-      
       // Utiliser saveEvenement pour sauvegarder (le hook gère le rechargement)
       const result = await saveEvenement(eventData)
-      console.log('🔍 Résultat sauvegarde:', result)
       
       if (result.success) {
       showMessage('Événement sauvegardé avec succès !')
@@ -144,9 +139,12 @@ export const ModernEvenementsModule = () => {
         
         // Déclencher un re-rendu pour forcer l'affichage
         setRefreshTrigger(prev => prev + 1)
-      } else {
-        throw new Error(result.error || 'Erreur de sauvegarde')
+        return { success: true }
       }
+
+      const errorMessage = result.error || 'Erreur lors de la sauvegarde'
+      showMessage('Erreur lors de la sauvegarde: ' + errorMessage, 'error')
+      return { success: false, error: errorMessage }
     } catch (error: any) {
       console.error('❌ Erreur sauvegarde:', error)
       console.error('❌ Détails erreur:', {
@@ -155,7 +153,9 @@ export const ModernEvenementsModule = () => {
         hint: error.hint,
         code: error.code
       })
-      showMessage('Erreur lors de la sauvegarde: ' + (error.message || 'Erreur inconnue'), 'error')
+      const message = error.message || 'Erreur inconnue'
+      showMessage('Erreur lors de la sauvegarde: ' + message, 'error')
+      return { success: false, error: message }
     }
   }
 

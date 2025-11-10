@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { 
   Calendar, 
   Clock, 
@@ -39,7 +39,7 @@ const COLORS = {
 
 interface EvenementFormProps {
   evenement?: any
-  onSave: (data: any) => void
+  onSave: (data: any) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string } | void
   onCancel: () => void
   isAdmin: boolean
 }
@@ -145,6 +145,8 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
   const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [progress, setProgress] = useState(0)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const lastServerAutosaveRef = useRef<number>(0)
 
   // États pour les animateurs
   const [animateurs, setAnimateurs] = useState<any[]>([])
@@ -198,10 +200,6 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
         break
       case 'date_debut':
         if (!value) return 'La date de début est obligatoire'
-        const startDate = new Date(value)
-        const today = new Date()
-        today.setHours(0, 0, 0, 0) // Réinitialiser l'heure à minuit
-        if (startDate < today) return 'La date de début ne peut pas être dans le passé'
         break
       case 'date_fin':
         if (value && formData.date_debut) {
@@ -264,13 +262,15 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
 
   // Sauvegarde automatique
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       autosaveLocal()
-      // Autosave serveur toutes les 30 secondes
-      if (Date.now() % 30000 < 1000) {
+
+      const now = Date.now()
+      if (now - lastServerAutosaveRef.current > 30000) {
+        lastServerAutosaveRef.current = now
         autosaveServer()
       }
-    }, 1000)
+    }, 1500)
 
     return () => clearTimeout(timer)
   }, [formData, autosaveLocal, autosaveServer])
@@ -419,10 +419,11 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
   // Sauvegarde finale
   const handleFinalSave = useCallback(async () => {
     if (!validateForm()) {
-      alert('Veuillez corriger les erreurs avant de sauvegarder')
+      setSubmitError('Veuillez corriger les erreurs indiquées avant de sauvegarder.')
       return
     }
 
+    setSubmitError(null)
     setLoading(true)
     setAutosaveStatus('idle')
 
@@ -483,20 +484,28 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
         })
       }
 
-      console.log('📊 Données événement à sauvegarder:', eventData)
-      console.log('🔍 ID de l\'événement:', eventData.id ? `Modification (ID: ${eventData.id})` : 'Création (nouvel événement)')
-
       // Sauvegarder l'événement avec les photos
-      await onSave(eventData)
+      const result = await onSave(eventData)
+      const saveResult = (result && typeof result === 'object' && 'success' in result)
+        ? result as { success: boolean; error?: string }
+        : { success: true }
+
+      if (!saveResult.success) {
+        setSubmitError(saveResult.error || 'Impossible d\'enregistrer l\'événement. Veuillez réessayer.')
+        setAutosaveStatus('error')
+        return
+      }
       
       // Nettoyer le brouillon après sauvegarde réussie
       localStorage.removeItem('evenement_draft')
-      
-      alert(evenement ? 'Événement modifié avec succès !' : 'Événement créé avec succès !')
+
+      setAutosaveStatus('saved')
       onCancel()
     } catch (error) {
       console.error('Erreur sauvegarde:', error)
-      alert('Erreur lors de la sauvegarde. Veuillez réessayer.')
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la sauvegarde. Veuillez réessayer.'
+      setSubmitError(errorMessage)
+      setAutosaveStatus('error')
     } finally {
       setLoading(false)
     }
@@ -515,6 +524,15 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-y-auto">
         {/* En-tête avec barre de progression */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
+          {submitError && (
+            <div className="mb-4 border border-red-200 bg-red-50 text-red-700 rounded-lg p-3 flex gap-2">
+              <AlertCircle className="w-5 h-5 mt-0.5" />
+              <div>
+                <p className="font-semibold">Impossible d'enregistrer l'événement</p>
+                <p className="text-sm">{submitError}</p>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
