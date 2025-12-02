@@ -55,11 +55,8 @@ interface EnterpriseMetrics {
   sectors: { [key: string]: number };
   // Métriques des visites
   totalVisites: number;
-  visitesEffectuees: number;
   visitesPlanifiees: number;
   entreprisesPrioritaires: number;
-  actionsEnRetard: number;
-  tauxVisitesParEntreprise: number;
 }
 
 interface DemandMetrics {
@@ -173,13 +170,8 @@ export const EmployabilityDashboard: React.FC = () => {
         sectors: {},
         // Métriques des visites
         totalVisites: visites.length,
-        visitesEffectuees: visitesStats.visitesEffectuees,
         visitesPlanifiees: visitesStats.visitesPlanifiees,
-        entreprisesPrioritaires: visitesStats.entreprisesPrioritaires,
-        actionsEnRetard: visitesStats.actionsEnRetard,
-        tauxVisitesParEntreprise: entreprises.length > 0 
-          ? Math.round((visites.length / entreprises.length) * 100) / 100 
-          : 0
+        entreprisesPrioritaires: visitesStats.entreprisesPrioritaires
       };
 
       // Répartition par secteur
@@ -460,11 +452,8 @@ export const EmployabilityDashboard: React.FC = () => {
         [''],
         ['Métriques Visites Entreprises'],
         ['Total visites', enterpriseMetrics.totalVisites],
-        ['Visites effectuées', enterpriseMetrics.visitesEffectuees],
         ['Visites planifiées', enterpriseMetrics.visitesPlanifiees],
         ['Entreprises prioritaires', enterpriseMetrics.entreprisesPrioritaires],
-        ['Actions en retard', enterpriseMetrics.actionsEnRetard],
-        ['Taux visites/entreprise', enterpriseMetrics.tauxVisitesParEntreprise.toFixed(2)],
         [''],
         ['Métriques Demandes'],
         ['Total demandes', finalDemandMetrics.totalDemands],
@@ -1034,26 +1023,12 @@ export const EmployabilityDashboard: React.FC = () => {
               <span className="text-sm font-semibold text-purple-600">{enterpriseMetrics?.totalVisites || 0}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Visites effectuées</span>
-              <span className="text-sm font-semibold text-green-600">{enterpriseMetrics?.visitesEffectuees || 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
               <span className="text-xs text-gray-600">Visites planifiées</span>
               <span className="text-sm font-semibold text-orange-600">{enterpriseMetrics?.visitesPlanifiees || 0}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs text-gray-600">Entreprises prioritaires</span>
               <span className="text-sm font-semibold text-red-600">{enterpriseMetrics?.entreprisesPrioritaires || 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Actions en retard</span>
-              <span className="text-sm font-semibold text-red-600">{enterpriseMetrics?.actionsEnRetard || 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Taux visites/entreprise</span>
-              <span className="text-sm font-semibold">
-                {enterpriseMetrics?.tauxVisitesParEntreprise.toFixed(2) || '0.00'}
-              </span>
             </div>
           </div>
         </div>

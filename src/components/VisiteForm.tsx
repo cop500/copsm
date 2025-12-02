@@ -4,21 +4,13 @@ import React, { useState, useEffect } from 'react'
 import { 
   Calendar, 
   Clock, 
-  User, 
-  FileText, 
   Save, 
   X, 
-  Plus,
-  Trash2,
   AlertCircle,
-  Target,
-  Building2,
-  Mail,
-  Phone,
-  CheckCircle
+  Building2
 } from 'lucide-react'
 import { useEntreprises } from '@/hooks/useEntreprises'
-import type { VisiteEntreprise, PersonneRencontree, ActionSuivi } from '@/hooks/useVisitesEntreprises'
+import type { VisiteEntreprise } from '@/hooks/useVisitesEntreprises'
 
 interface VisiteFormProps {
   visite?: VisiteEntreprise
@@ -33,22 +25,32 @@ const VisiteForm: React.FC<VisiteFormProps> = ({
 }) => {
   const { entreprises, loading: entreprisesLoading } = useEntreprises()
   
+  // Options prédéfinies pour l'objectif
+  const objectifsOptions = [
+    'Recrutement',
+    'Partenariat',
+    'Suivi partenariat',
+    'Prospection',
+    'Présentation COP',
+    'Diagnostic besoins',
+    'Formation',
+    'Stage',
+    'Alternance',
+    'Autre'
+  ]
+
   // États du formulaire
   const [formData, setFormData] = useState<Partial<VisiteEntreprise>>({
     entreprise_id: '',
     date_visite: '',
     heure_visite: '',
     objectif: '',
-    personnes_rencontrees: [],
-    compte_rendu: '',
-    points_discutes: '',
-    besoins_detectes: '',
-    actions_a_prevues: '',
     statut_relation: 'moyen',
     etat_relation: 'prospect',
-    actions_suivi: [],
     ...visite
   })
+
+  const [objectifAutre, setObjectifAutre] = useState('')
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -58,10 +60,18 @@ const VisiteForm: React.FC<VisiteFormProps> = ({
   useEffect(() => {
     if (visite) {
       setFormData({
-        ...visite,
+        entreprise_id: visite.entreprise_id,
         date_visite: visite.date_visite ? new Date(visite.date_visite).toISOString().split('T')[0] : '',
         heure_visite: visite.heure_visite || '',
+        objectif: visite.objectif || '',
+        statut_relation: visite.statut_relation || 'moyen',
+        etat_relation: visite.etat_relation || 'prospect',
       })
+      // Si l'objectif n'est pas dans les options, c'est "Autre"
+      if (visite.objectif && !objectifsOptions.includes(visite.objectif)) {
+        setObjectifAutre(visite.objectif)
+        setFormData(prev => ({ ...prev, objectif: 'Autre' }))
+      }
     }
   }, [visite])
 
@@ -77,57 +87,14 @@ const VisiteForm: React.FC<VisiteFormProps> = ({
     }
     if (!formData.objectif) {
       newErrors.objectif = 'L\'objectif est obligatoire'
+    } else if (formData.objectif === 'Autre' && !objectifAutre.trim()) {
+      newErrors.objectif = 'Veuillez préciser l\'objectif'
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  // Gérer les personnes rencontrées
-  const addPersonne = () => {
-    setFormData({
-      ...formData,
-      personnes_rencontrees: [
-        ...(formData.personnes_rencontrees || []),
-        { nom: '', fonction: '', email: '', telephone: '' }
-      ]
-    })
-  }
-
-  const removePersonne = (index: number) => {
-    const personnes = [...(formData.personnes_rencontrees || [])]
-    personnes.splice(index, 1)
-    setFormData({ ...formData, personnes_rencontrees: personnes })
-  }
-
-  const updatePersonne = (index: number, field: keyof PersonneRencontree, value: string) => {
-    const personnes = [...(formData.personnes_rencontrees || [])]
-    personnes[index] = { ...personnes[index], [field]: value }
-    setFormData({ ...formData, personnes_rencontrees: personnes })
-  }
-
-  // Gérer les actions de suivi
-  const addAction = () => {
-    setFormData({
-      ...formData,
-      actions_suivi: [
-        ...(formData.actions_suivi || []),
-        { tache: '', date_limite: '', statut: 'en_attente' }
-      ]
-    })
-  }
-
-  const removeAction = (index: number) => {
-    const actions = [...(formData.actions_suivi || [])]
-    actions.splice(index, 1)
-    setFormData({ ...formData, actions_suivi: actions })
-  }
-
-  const updateAction = (index: number, field: keyof ActionSuivi, value: string | 'en_attente' | 'en_cours' | 'termine' | 'annule') => {
-    const actions = [...(formData.actions_suivi || [])]
-    actions[index] = { ...actions[index], [field]: value }
-    setFormData({ ...formData, actions_suivi: actions })
-  }
 
   // Soumettre le formulaire
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,6 +107,9 @@ const VisiteForm: React.FC<VisiteFormProps> = ({
 
     setLoading(true)
     try {
+      // Déterminer l'objectif final (si "Autre", utiliser objectifAutre)
+      const objectifFinal = formData.objectif === 'Autre' ? objectifAutre : formData.objectif
+
       // Formater la date avec l'heure si fournie
       let dateVisite = formData.date_visite
       if (formData.heure_visite && formData.date_visite) {
@@ -152,8 +122,12 @@ const VisiteForm: React.FC<VisiteFormProps> = ({
       }
 
       const result = await onSave({
-        ...formData,
+        entreprise_id: formData.entreprise_id,
         date_visite: dateVisite,
+        heure_visite: formData.heure_visite || null,
+        objectif: objectifFinal,
+        statut_relation: formData.statut_relation,
+        etat_relation: formData.etat_relation,
       })
 
       if (!result.success) {
@@ -266,155 +240,32 @@ const VisiteForm: React.FC<VisiteFormProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Objectif de la visite <span className="text-red-500">*</span>
             </label>
-            <textarea
+            <select
               value={formData.objectif || ''}
               onChange={(e) => setFormData({ ...formData, objectif: e.target.value })}
-              rows={3}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.objectif ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Décrivez l'objectif de cette visite..."
-            />
+            >
+              <option value="">Sélectionner un objectif</option>
+              {objectifsOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+            {formData.objectif === 'Autre' && (
+              <input
+                type="text"
+                value={objectifAutre}
+                onChange={(e) => setObjectifAutre(e.target.value)}
+                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Précisez l'objectif..."
+              />
+            )}
             {errors.objectif && (
               <p className="mt-1 text-sm text-red-600">{errors.objectif}</p>
             )}
           </div>
 
-          {/* Personnes rencontrées */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Personnes rencontrées
-              </label>
-              <button
-                type="button"
-                onClick={addPersonne}
-                className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Ajouter
-              </button>
-            </div>
-            <div className="space-y-3">
-              {(formData.personnes_rencontrees || []).map((personne, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">Personne {index + 1}</span>
-                    <button
-                      type="button"
-                      onClick={() => removePersonne(index)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Nom *</label>
-                      <input
-                        type="text"
-                        value={personne.nom}
-                        onChange={(e) => updatePersonne(index, 'nom', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        placeholder="Nom complet"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Fonction *</label>
-                      <input
-                        type="text"
-                        value={personne.fonction}
-                        onChange={(e) => updatePersonne(index, 'fonction', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        placeholder="Directeur, RH, etc."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Email</label>
-                      <input
-                        type="email"
-                        value={personne.email || ''}
-                        onChange={(e) => updatePersonne(index, 'email', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        placeholder="email@entreprise.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Téléphone</label>
-                      <input
-                        type="tel"
-                        value={personne.telephone || ''}
-                        onChange={(e) => updatePersonne(index, 'telephone', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        placeholder="+212 6XX XXX XXX"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {(!formData.personnes_rencontrees || formData.personnes_rencontrees.length === 0) && (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  Aucune personne rencontrée. Cliquez sur "Ajouter" pour en ajouter.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Compte-rendu */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Compte-rendu
-            </label>
-            <textarea
-              value={formData.compte_rendu || ''}
-              onChange={(e) => setFormData({ ...formData, compte_rendu: e.target.value })}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Résumé de la visite..."
-            />
-          </div>
-
-          {/* Points discutés */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Points discutés
-            </label>
-            <textarea
-              value={formData.points_discutes || ''}
-              onChange={(e) => setFormData({ ...formData, points_discutes: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Points principaux abordés lors de la visite..."
-            />
-          </div>
-
-          {/* Besoins détectés */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Besoins détectés
-            </label>
-            <textarea
-              value={formData.besoins_detectes || ''}
-              onChange={(e) => setFormData({ ...formData, besoins_detectes: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Besoins identifiés de l'entreprise..."
-            />
-          </div>
-
-          {/* Actions à prévoir */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Actions à prévoir
-            </label>
-            <textarea
-              value={formData.actions_a_prevues || ''}
-              onChange={(e) => setFormData({ ...formData, actions_a_prevues: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Actions à planifier suite à la visite..."
-            />
-          </div>
 
           {/* Statut relation */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -449,77 +300,6 @@ const VisiteForm: React.FC<VisiteFormProps> = ({
             </div>
           </div>
 
-          {/* Actions de suivi */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Actions de suivi
-              </label>
-              <button
-                type="button"
-                onClick={addAction}
-                className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Ajouter
-              </button>
-            </div>
-            <div className="space-y-3">
-              {(formData.actions_suivi || []).map((action, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">Action {index + 1}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeAction(index)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Tâche *</label>
-                      <input
-                        type="text"
-                        value={action.tache}
-                        onChange={(e) => updateAction(index, 'tache', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        placeholder="Description de la tâche"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Date limite</label>
-                      <input
-                        type="date"
-                        value={action.date_limite}
-                        onChange={(e) => updateAction(index, 'date_limite', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Statut</label>
-                      <select
-                        value={action.statut}
-                        onChange={(e) => updateAction(index, 'statut', e.target.value as ActionSuivi['statut'])}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="en_attente">En attente</option>
-                        <option value="en_cours">En cours</option>
-                        <option value="termine">Terminé</option>
-                        <option value="annule">Annulé</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {(!formData.actions_suivi || formData.actions_suivi.length === 0) && (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  Aucune action de suivi. Cliquez sur "Ajouter" pour en ajouter.
-                </p>
-              )}
-            </div>
-          </div>
 
           {/* Boutons */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
