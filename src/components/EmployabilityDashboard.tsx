@@ -57,6 +57,7 @@ interface EnterpriseMetrics {
   totalVisites: number;
   visitesPlanifiees: number;
   entreprisesPrioritaires: number;
+  // Champs supprimés : visitesEffectuees, actionsEnRetard, tauxVisitesParEntreprise
 }
 
 interface DemandMetrics {
