@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useEntreprises } from '@/hooks/useEntreprises';
-import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar, Upload, FileSpreadsheet, Target } from 'lucide-react';
+import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar, Upload, FileSpreadsheet, Target, Building2 } from 'lucide-react';
 import type { Entreprise } from '@/types';
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 import { useUser } from '@/contexts/UserContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Pagination } from '@/components/Pagination';
+import VisitesEntreprisesModule from './VisitesEntreprisesModule';
 
 const EntreprisesForm = () => {
   const { 
@@ -19,6 +20,9 @@ const EntreprisesForm = () => {
   
   // Vérifier si l'utilisateur est admin
   const isAdmin = currentUser?.role === 'business_developer';
+
+  // Onglet actif
+  const [activeTab, setActiveTab] = useState<'liste' | 'visites'>('liste');
 
   const [showForm, setShowForm] = useState(false);
   const [editingEntreprise, setEditingEntreprise] = useState<Entreprise | null>(null);
@@ -437,7 +441,7 @@ const EntreprisesForm = () => {
               <p className="text-gray-600 mt-1">Gérez les entreprises partenaires</p>
             </div>
             <div className="flex gap-2">
-              {isAdmin && (
+              {isAdmin && activeTab === 'liste' && (
                 <button
                   onClick={() => setShowImportModal(true)}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
@@ -446,18 +450,57 @@ const EntreprisesForm = () => {
                   Importer Excel
                 </button>
               )}
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter Entreprise
-            </button>
+            {activeTab === 'liste' && (
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Ajouter Entreprise
+              </button>
+            )}
             </div>
           </div>
         </div>
 
-        {/* Barre de recherche et filtres */}
+        {/* Onglets */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8 px-6">
+            <button
+              onClick={() => setActiveTab('liste')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'liste'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Building className="w-4 h-4" />
+              Liste des Entreprises
+            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('visites')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'visites'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                Visites Entreprises
+              </button>
+            )}
+          </nav>
+        </div>
+
+        {/* Contenu selon l'onglet actif */}
+        {activeTab === 'visites' ? (
+          <div className="p-6">
+            <VisitesEntreprisesModule />
+          </div>
+        ) : (
+          <>
+            {/* Barre de recherche et filtres */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex gap-4 items-center">
             <div className="relative flex-1">
@@ -850,6 +893,8 @@ const EntreprisesForm = () => {
             </>
           )}
         </div>
+          </>
+        )}
       </div>
 
       {/* Modal Import Excel */}

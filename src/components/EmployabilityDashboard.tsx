@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { useEvenements } from '@/hooks/useEvenements';
+import { useVisitesEntreprises } from '@/hooks/useVisitesEntreprises';
 import { useSettings } from '@/hooks/useSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
@@ -51,8 +52,14 @@ interface EnterpriseMetrics {
   totalEnterprises: number;
   prospects: number;
   partners: number;
-  withContracts: number;
   sectors: { [key: string]: number };
+  // Métriques des visites
+  totalVisites: number;
+  visitesEffectuees: number;
+  visitesPlanifiees: number;
+  entreprisesPrioritaires: number;
+  actionsEnRetard: number;
+  tauxVisitesParEntreprise: number;
 }
 
 interface DemandMetrics {
@@ -74,6 +81,7 @@ export const EmployabilityDashboard: React.FC = () => {
 
   const { entreprises, loading: entreprisesLoading, refresh: refreshEntreprises } = useEntreprises();
   const { evenements, loading: evenementsLoading, refresh: refreshEvenements } = useEvenements();
+  const { visites, loading: visitesLoading, getStats } = useVisitesEntreprises();
 
   // Fonction pour rafraîchir toutes les données
   const handleRefresh = async () => {
@@ -155,12 +163,23 @@ export const EmployabilityDashboard: React.FC = () => {
   // Calculer les métriques des entreprises
   useEffect(() => {
     if (entreprises) {
+      // Calculer les métriques des visites
+      const visitesStats = getStats();
+      
       const metrics: EnterpriseMetrics = {
         totalEnterprises: entreprises.length,
         prospects: entreprises.filter(e => e.statut === 'prospect').length,
         partners: entreprises.filter(e => e.statut === 'partenaire').length,
-        withContracts: entreprises.filter(e => e.contrat_url).length,
-        sectors: {}
+        sectors: {},
+        // Métriques des visites
+        totalVisites: visites.length,
+        visitesEffectuees: visitesStats.visitesEffectuees,
+        visitesPlanifiees: visitesStats.visitesPlanifiees,
+        entreprisesPrioritaires: visitesStats.entreprisesPrioritaires,
+        actionsEnRetard: visitesStats.actionsEnRetard,
+        tauxVisitesParEntreprise: entreprises.length > 0 
+          ? Math.round((visites.length / entreprises.length) * 100) / 100 
+          : 0
       };
 
       // Répartition par secteur
@@ -171,7 +190,7 @@ export const EmployabilityDashboard: React.FC = () => {
 
       setEnterpriseMetrics(metrics);
     }
-  }, [entreprises]);
+  }, [entreprises, visites, getStats]);
 
   // Calculer les métriques des demandes
   useEffect(() => {
@@ -438,6 +457,14 @@ export const EmployabilityDashboard: React.FC = () => {
         ['Entreprises prospects', enterpriseMetrics.prospects],
         ['Entreprises partenaires', enterpriseMetrics.partners],
         ['Taux de partenariat', `${Math.round((enterpriseMetrics.partners / enterpriseMetrics.totalEnterprises) * 100)}%`],
+        [''],
+        ['Métriques Visites Entreprises'],
+        ['Total visites', enterpriseMetrics.totalVisites],
+        ['Visites effectuées', enterpriseMetrics.visitesEffectuees],
+        ['Visites planifiées', enterpriseMetrics.visitesPlanifiees],
+        ['Entreprises prioritaires', enterpriseMetrics.entreprisesPrioritaires],
+        ['Actions en retard', enterpriseMetrics.actionsEnRetard],
+        ['Taux visites/entreprise', enterpriseMetrics.tauxVisitesParEntreprise.toFixed(2)],
         [''],
         ['Métriques Demandes'],
         ['Total demandes', finalDemandMetrics.totalDemands],
@@ -992,13 +1019,40 @@ export const EmployabilityDashboard: React.FC = () => {
               <span className="text-sm font-semibold text-green-600">{enterpriseMetrics?.partners}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Avec contrats</span>
-              <span className="text-sm font-semibold text-blue-600">{enterpriseMetrics?.withContracts}</span>
-            </div>
-            <div className="flex justify-between items-center">
               <span className="text-xs text-gray-600">Taux partenariat</span>
               <span className="text-sm font-semibold">
                 {enterpriseMetrics ? Math.round((enterpriseMetrics.partners / enterpriseMetrics.totalEnterprises) * 100) : 0}%
+              </span>
+            </div>
+            {/* Séparateur pour les métriques de visites */}
+            <div className="border-t border-gray-300 my-2"></div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                Total visites
+              </span>
+              <span className="text-sm font-semibold text-purple-600">{enterpriseMetrics?.totalVisites || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Visites effectuées</span>
+              <span className="text-sm font-semibold text-green-600">{enterpriseMetrics?.visitesEffectuees || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Visites planifiées</span>
+              <span className="text-sm font-semibold text-orange-600">{enterpriseMetrics?.visitesPlanifiees || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Entreprises prioritaires</span>
+              <span className="text-sm font-semibold text-red-600">{enterpriseMetrics?.entreprisesPrioritaires || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Actions en retard</span>
+              <span className="text-sm font-semibold text-red-600">{enterpriseMetrics?.actionsEnRetard || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600">Taux visites/entreprise</span>
+              <span className="text-sm font-semibold">
+                {enterpriseMetrics?.tauxVisitesParEntreprise.toFixed(2) || '0.00'}
               </span>
             </div>
           </div>
