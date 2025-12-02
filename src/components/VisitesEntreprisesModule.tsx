@@ -167,8 +167,9 @@ const VisitesEntreprisesModule: React.FC = () => {
           const entrepriseACreer = !entreprise ? {
             nom: entrepriseNom,
             secteur: row['Secteur Entreprise'] || row['Secteur'] || '',
-            statut: 'prospect',
+            statut: 'prospect' as 'prospect' | 'actif' | 'inactif' | 'partenaire',
             niveau_interet: normalizeStatut(row['Niveau Intérêt'] || row['Niveau Interet'] || 'moyen'),
+            partenaire_privilegie: false,
             // On stocke les infos pour créer l'entreprise plus tard
             _a_creer: true
           } : null
@@ -285,20 +286,36 @@ const VisitesEntreprisesModule: React.FC = () => {
       // Créer les entreprises manquantes
       for (const [nom, entrepriseData] of entreprisesACreer) {
         try {
+          // Préparer les données de l'entreprise avec tous les champs requis
+          const entrepriseToCreate = {
+            nom: entrepriseData.nom,
+            secteur: entrepriseData.secteur || null,
+            statut: entrepriseData.statut || 'prospect',
+            niveau_interet: entrepriseData.niveau_interet || 'moyen',
+            partenaire_privilegie: false // Champ requis
+          }
+
           // Créer l'entreprise directement avec Supabase pour récupérer l'ID
           const { data: newEntreprise, error: entrepriseError } = await supabase
             .from('entreprises')
-            .insert([entrepriseData])
+            .insert([entrepriseToCreate])
             .select()
             .single()
 
           if (entrepriseError) {
-            errors.push(`Erreur création entreprise "${entrepriseData.nom}": ${entrepriseError.message}`)
+            console.error('Erreur création entreprise:', {
+              nom: entrepriseData.nom,
+              error: entrepriseError,
+              data: entrepriseToCreate
+            })
+            errors.push(`Erreur création entreprise "${entrepriseData.nom}": ${entrepriseError.message}${entrepriseError.details ? ` (${entrepriseError.details})` : ''}${entrepriseError.hint ? ` - ${entrepriseError.hint}` : ''}`)
           } else if (newEntreprise) {
             entreprisesMap.set(nom, newEntreprise.id)
             entreprisesCreees++
+            console.log(`✅ Entreprise créée: ${entrepriseData.nom} (ID: ${newEntreprise.id})`)
           }
         } catch (error: any) {
+          console.error('Exception création entreprise:', error)
           errors.push(`Erreur création entreprise "${entrepriseData.nom}": ${error.message}`)
         }
       }
