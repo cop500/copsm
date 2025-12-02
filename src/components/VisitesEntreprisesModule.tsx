@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useVisitesEntreprises } from '@/hooks/useVisitesEntreprises'
 import { useEntreprises } from '@/hooks/useEntreprises'
+import { supabase } from '@/lib/supabase'
 import VisiteForm from './VisiteForm'
 import VisitesDashboard from './VisitesDashboard'
 import type { VisiteEntreprise } from '@/hooks/useVisitesEntreprises'
@@ -26,7 +27,7 @@ import * as XLSX from 'xlsx'
 
 const VisitesEntreprisesModule: React.FC = () => {
   const { visites, loading, error, refresh, saveVisite, deleteVisite, getStats } = useVisitesEntreprises()
-  const { entreprises } = useEntreprises()
+  const { entreprises, saveEntreprise, refresh: refreshEntreprises } = useEntreprises()
   
   const [showForm, setShowForm] = useState(false)
   const [editingVisite, setEditingVisite] = useState<VisiteEntreprise | null>(null)
@@ -66,6 +67,7 @@ const VisitesEntreprisesModule: React.FC = () => {
     const template = [
       {
         'Nom Entreprise': 'Exemple SARL',
+        'Secteur Entreprise': 'Informatique',
         'Date Visite': '2024-01-15',
         'Heure Visite': '14:00',
         'Objectif': 'Présentation des formations disponibles',
@@ -157,13 +159,19 @@ const VisitesEntreprisesModule: React.FC = () => {
         const mappedData = jsonData.map((row: any, index: number) => {
           // Trouver l'entreprise par nom
           const entrepriseNom = row['Nom Entreprise'] || row['Entreprise'] || ''
-          const entreprise = entreprises.find(e => 
+          let entreprise = entreprises.find(e => 
             e.nom.toLowerCase().trim() === entrepriseNom.toLowerCase().trim()
           )
 
-          if (!entreprise) {
-            throw new Error(`Ligne ${index + 2}: Entreprise "${entrepriseNom}" introuvable. Assurez-vous que l'entreprise existe dans la liste.`)
-          }
+          // Si l'entreprise n'existe pas, on la marquera pour création automatique
+          const entrepriseACreer = !entreprise ? {
+            nom: entrepriseNom,
+            secteur: row['Secteur Entreprise'] || row['Secteur'] || '',
+            statut: 'prospect',
+            niveau_interet: normalizeStatut(row['Niveau Intérêt'] || row['Niveau Interet'] || 'moyen'),
+            // On stocke les infos pour créer l'entreprise plus tard
+            _a_creer: true
+          } : null
 
           // Gérer les personnes rencontrées
           const personnesRencontrees = []
@@ -206,8 +214,9 @@ const VisitesEntreprisesModule: React.FC = () => {
           }
 
           return {
-            entreprise_id: entreprise.id,
-            entreprise_nom: entreprise.nom,
+            entreprise_id: entreprise?.id || null,
+            entreprise_nom: entrepriseNom,
+            entreprise_a_creer: entrepriseACreer,
             date_visite: dateVisite,
             heure_visite: row['Heure Visite'] || '',
             objectif: row['Objectif'] || '',
@@ -221,8 +230,8 @@ const VisitesEntreprisesModule: React.FC = () => {
             actions_suivi: actionsSuivi
           }
         }).filter(item => {
-          // Filtrer les lignes valides (doit avoir entreprise et date)
-          return item.entreprise_id && item.date_visite
+          // Filtrer les lignes valides (doit avoir nom entreprise et date)
+          return item.entreprise_nom && item.date_visite
         })
 
         if (mappedData.length === 0) {
@@ -253,11 +262,67 @@ const VisitesEntreprisesModule: React.FC = () => {
     setImporting(true)
     let successCount = 0
     let errorCount = 0
+    let entreprisesCreees = 0
     const errors: string[] = []
+    const entreprisesMap = new Map<string, string>() // Map nom -> id
 
     try {
+      // Étape 1: Créer les entreprises manquantes
+      const entreprisesACreer = new Map<string, any>()
+      
+      for (const row of importPreview) {
+        if (row.entreprise_a_creer && !row.entreprise_id) {
+          const nomEntreprise = row.entreprise_nom.toLowerCase().trim()
+          if (!entreprisesACreer.has(nomEntreprise)) {
+            entreprisesACreer.set(nomEntreprise, row.entreprise_a_creer)
+          }
+        } else if (row.entreprise_id) {
+          // Entreprise existante, on l'ajoute à la map
+          entreprisesMap.set(row.entreprise_nom.toLowerCase().trim(), row.entreprise_id)
+        }
+      }
+
+      // Créer les entreprises manquantes
+      for (const [nom, entrepriseData] of entreprisesACreer) {
+        try {
+          // Créer l'entreprise directement avec Supabase pour récupérer l'ID
+          const { data: newEntreprise, error: entrepriseError } = await supabase
+            .from('entreprises')
+            .insert([entrepriseData])
+            .select()
+            .single()
+
+          if (entrepriseError) {
+            errors.push(`Erreur création entreprise "${entrepriseData.nom}": ${entrepriseError.message}`)
+          } else if (newEntreprise) {
+            entreprisesMap.set(nom, newEntreprise.id)
+            entreprisesCreees++
+          }
+        } catch (error: any) {
+          errors.push(`Erreur création entreprise "${entrepriseData.nom}": ${error.message}`)
+        }
+      }
+
+      // Rafraîchir la liste des entreprises pour avoir les IDs à jour
+      if (entreprisesCreees > 0) {
+        await refreshEntreprises()
+      }
+
+      // Étape 2: Créer les visites
       for (const row of importPreview) {
         try {
+          // Trouver l'ID de l'entreprise (existante ou créée)
+          let entrepriseId = row.entreprise_id
+          if (!entrepriseId) {
+            entrepriseId = entreprisesMap.get(row.entreprise_nom.toLowerCase().trim())
+          }
+
+          if (!entrepriseId) {
+            errorCount++
+            errors.push(`${row.entreprise_nom}: Impossible de trouver ou créer l'entreprise`)
+            continue
+          }
+
           // Formater la date avec l'heure si fournie
           let dateVisite = row.date_visite
           if (row.heure_visite && dateVisite) {
@@ -270,7 +335,7 @@ const VisitesEntreprisesModule: React.FC = () => {
           }
 
           const visiteData = {
-            entreprise_id: row.entreprise_id,
+            entreprise_id: entrepriseId,
             date_visite: dateVisite,
             heure_visite: row.heure_visite || null,
             objectif: row.objectif || null,
@@ -297,9 +362,19 @@ const VisitesEntreprisesModule: React.FC = () => {
         }
       }
 
-      const message = `Import terminé : ${successCount} visite(s) ajoutée(s), ${errorCount} erreur(s)`
+      let message = `Import terminé : ${successCount} visite(s) ajoutée(s)`
+      if (entreprisesCreees > 0) {
+        message += `, ${entreprisesCreees} entreprise(s) créée(s)`
+      }
+      if (errorCount > 0) {
+        message += `, ${errorCount} erreur(s)`
+      }
+      
       if (errors.length > 0 && errors.length <= 5) {
         alert(message + '\n\nErreurs:\n' + errors.join('\n'))
+      } else if (errors.length > 5) {
+        alert(message + `\n\n${errors.length} erreur(s) détectée(s). Voir la console pour les détails.`)
+        console.error('Erreurs d\'import:', errors)
       } else {
         alert(message)
       }
@@ -843,13 +918,14 @@ const VisitesEntreprisesModule: React.FC = () => {
               {/* Instructions */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="font-semibold text-blue-900 mb-2">Instructions :</h3>
-                <ul className="list-disc list-inside text-sm text-blue-800 space-y-1">
-                  <li>Téléchargez d'abord le template Excel pour voir le format attendu</li>
-                  <li>Assurez-vous que les entreprises existent déjà dans la liste des entreprises</li>
-                  <li>Le format de date doit être YYYY-MM-DD (ex: 2024-01-15)</li>
-                  <li>Le format d'heure doit être HH:MM (ex: 14:00)</li>
-                  <li>Les colonnes obligatoires sont : Nom Entreprise, Date Visite, Objectif</li>
-                </ul>
+              <ul className="list-disc list-inside text-sm text-blue-800 space-y-1">
+                <li>Téléchargez d'abord le template Excel pour voir le format attendu</li>
+                <li>Les entreprises seront créées automatiquement si elles n'existent pas</li>
+                <li>Le format de date doit être YYYY-MM-DD (ex: 2024-01-15)</li>
+                <li>Le format d'heure doit être HH:MM (ex: 14:00)</li>
+                <li>Les colonnes obligatoires sont : Nom Entreprise, Date Visite, Objectif</li>
+                <li>Optionnel : Secteur Entreprise pour créer l'entreprise avec un secteur</li>
+              </ul>
               </div>
 
               {/* Upload de fichier */}
@@ -919,8 +995,15 @@ const VisitesEntreprisesModule: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {importPreview.slice(0, 20).map((row, index) => (
                             <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                {row.entreprise_nom}
+                              <td className="px-4 py-3 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-900">{row.entreprise_nom}</span>
+                                  {!row.entreprise_id && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800" title="Cette entreprise sera créée automatiquement">
+                                      Nouvelle
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600">
                                 {row.date_visite}
