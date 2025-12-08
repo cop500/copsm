@@ -7,6 +7,10 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   // Forcer l'export de toutes les pages
   generateBuildId: () => 'build',
+  // Configuration pour Netlify
+  experimental: {
+    useDeploymentId: true,
+  },
 }
 
 export default nextConfig
