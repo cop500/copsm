@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { TrendingUp, Users, Building2, Mail, PlusCircle, Settings } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowUp, ArrowDown, Users, Building2, Mail, PlusCircle, Settings, CheckCircle2 } from 'lucide-react';
 import { useIndicateursDashboard } from '@/hooks/useIndicateursDashboard';
 import { useRole } from '@/hooks/useRole';
 
@@ -62,37 +62,232 @@ export default function IndicateursDashboardCards() {
   if (loading) return <div>Chargement…</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
+  // Fonction pour obtenir les couleurs selon la recommandation
+  const getColorClasses = (couleur: string) => {
+    const colors: Record<string, { 
+      border: string; 
+      text: string; 
+      bg: string; 
+      iconBg: string;
+      cardBg: string; // Nouvelle propriété pour le fond de la carte
+      cardBgGradient: string; // Dégradé pour le fond
+    }> = {
+      blue: {
+        border: 'border-blue-500',
+        text: 'text-blue-600',
+        bg: 'bg-blue-50',
+        iconBg: 'bg-blue-100',
+        cardBg: 'bg-gradient-to-br from-blue-50/60 via-blue-50/40 to-blue-100/30',
+        cardBgGradient: 'from-blue-50/80 via-blue-50/50 to-indigo-50/40'
+      },
+      orange: {
+        border: 'border-orange-500',
+        text: 'text-orange-600',
+        bg: 'bg-orange-50',
+        iconBg: 'bg-orange-100',
+        cardBg: 'bg-gradient-to-br from-orange-50/60 via-orange-50/40 to-amber-50/30',
+        cardBgGradient: 'from-orange-50/80 via-orange-50/50 to-amber-50/40'
+      },
+      green: {
+        border: 'border-green-500',
+        text: 'text-green-600',
+        bg: 'bg-green-50',
+        iconBg: 'bg-green-100',
+        cardBg: 'bg-gradient-to-br from-green-50/60 via-green-50/40 to-emerald-50/30',
+        cardBgGradient: 'from-green-50/80 via-green-50/50 to-emerald-50/40'
+      },
+      purple: {
+        border: 'border-purple-500',
+        text: 'text-purple-600',
+        bg: 'bg-purple-50',
+        iconBg: 'bg-purple-100',
+        cardBg: 'bg-gradient-to-br from-purple-50/60 via-purple-50/40 to-violet-50/30',
+        cardBgGradient: 'from-purple-50/80 via-purple-50/50 to-violet-50/40'
+      }
+    };
+    return colors[couleur] || colors.blue;
+  };
+
   return (
-    <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 shadow-xl border-2 border-black/30">
-      <div className="flex justify-between items-center mb-6">
+    <div className="relative bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden">
+      {/* Motifs décoratifs subtils en arrière-plan */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+        {/* Grille de points subtile */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `radial-gradient(circle, #2563eb 1px, transparent 1px)`,
+            backgroundSize: '24px 24px',
+            backgroundPosition: '0 0'
+          }}
+        />
+        {/* Lignes diagonales très subtiles */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 20px,
+              rgba(37, 99, 235, 0.02) 20px,
+              rgba(37, 99, 235, 0.02) 21px
+            )`
+          }}
+        />
+        {/* Cercles concentriques subtils */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-200/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-200/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+      </div>
+      
+      <div className="relative z-10 flex items-center justify-center mb-8">
         <h2 className="text-2xl font-bold text-gray-900 flex items-center">
           <TrendingUp className="w-6 h-6 text-blue-600 mr-3" />
           Indicateurs clés
         </h2>
         {isAdmin && !isDirecteur && (
-          <div className="flex gap-3">
-            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 border-2 border-dashed border-blue-300 rounded-xl px-4 py-2 text-blue-600 hover:bg-blue-50 transition-all duration-300 hover:scale-105">
-              <PlusCircle className="w-5 h-5" /> Ajouter un indicateur
+          <div className="absolute right-0 flex gap-3">
+            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 border-2 border-dashed border-blue-300 rounded-lg px-4 py-2 text-blue-600 hover:bg-blue-50 transition-all duration-200 text-sm">
+              <PlusCircle className="w-4 h-4" /> Ajouter
             </button>
-            <button onClick={handleEdit} className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 font-semibold transition-all duration-300 hover:scale-105 shadow-lg">Modifier</button>
+            <button onClick={handleEdit} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold transition-all duration-200 text-sm shadow-sm">Modifier</button>
           </div>
         )}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {indicateurs.map((ind, idx) => (
-          <div key={ind.id} className={`bg-white/30 backdrop-blur-sm rounded-2xl p-6 border-l-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group border-${ind.couleur || 'blue'}-500 hover:scale-105 border-2 border-black/20`}>
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">{ind.titre}</p>
-                <p className={`text-3xl font-bold text-${ind.couleur || 'blue'}-600 mb-1`}>{ind.valeur}</p>
-                <p className={`text-sm font-medium text-${ind.couleur || 'blue'}-600`}>{ind.trend}</p>
+        {indicateurs.map((ind, idx) => {
+          const colors = getColorClasses(ind.couleur || 'blue');
+          // Détecter les tendances et statuts
+          const trendLower = ind.trend?.toLowerCase() || '';
+          const isVeryGood = trendLower.includes('très bon') || trendLower.includes('excellent');
+          const isRising = trendLower.includes('hausse') || trendLower.includes('en hausse') || trendLower.includes('↑') || trendLower.includes('augmentation');
+          const isFalling = trendLower.includes('baisse') || trendLower.includes('en baisse') || trendLower.includes('↓') || trendLower.includes('diminution');
+          const isPercentage = ind.valeur?.includes('%');
+          
+          // Calculer la largeur de la jauge (pour les pourcentages, utiliser la valeur, sinon 75%)
+          const gaugeWidth = isPercentage 
+            ? parseInt(ind.valeur.replace('%', '').replace(/\s/g, '')) || 75 
+            : 75;
+          
+          return (
+            <div 
+              key={ind.id} 
+              className={`bg-gradient-to-br ${colors.cardBgGradient} rounded-xl border ${colors.border}/30 p-6 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group relative overflow-hidden min-h-[160px] flex flex-col backdrop-blur-sm`}
+              role="article"
+              aria-label={`Indicateur: ${ind.titre}, valeur: ${ind.valeur}`}
+            >
+              {/* Motifs décoratifs subtils par carte */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+                {/* Pattern de points selon la couleur */}
+                {(() => {
+                  const colorMap: Record<string, string> = {
+                    blue: '#2563eb',
+                    orange: '#ea580c',
+                    green: '#16a34a',
+                    purple: '#9333ea'
+                  };
+                  const dotColor = colorMap[ind.couleur || 'blue'] || '#2563eb';
+                  return (
+                    <div 
+                      className="absolute inset-0"
+                      style={{
+                        backgroundImage: `radial-gradient(circle, ${dotColor} 1px, transparent 1px)`,
+                        backgroundSize: '20px 20px',
+                        backgroundPosition: '0 0'
+                      }}
+                    />
+                  );
+                })()}
+                {/* Lignes diagonales subtiles */}
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(
+                      45deg,
+                      transparent,
+                      transparent 15px,
+                      rgba(0, 0, 0, 0.01) 15px,
+                      rgba(0, 0, 0, 0.01) 16px
+                    )`
+                  }}
+                />
               </div>
-              <div className={`rounded-xl p-3 bg-${ind.couleur || 'blue'}-100 group-hover:scale-110 transition-transform duration-300`}>
-                {iconMap[ind.icone as keyof typeof iconMap] || <TrendingUp className="w-6 h-6 text-${ind.couleur || 'blue'}-600" />}
+              
+              {/* Overlay blanc très léger pour adoucir */}
+              <div className="absolute inset-0 bg-white/30 pointer-events-none rounded-xl" />
+              
+              {/* Effet de brillance subtil au survol */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out z-20"></div>
+              
+              <div className="relative z-30 flex flex-col h-full">
+                {/* En-tête avec icône */}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-600 mb-3 leading-tight line-clamp-2">{ind.titre}</p>
+                  </div>
+                  <div className={`rounded-lg p-2.5 ${colors.iconBg} ml-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                    {iconMap[ind.icone as keyof typeof iconMap] || <TrendingUp className={`w-5 h-5 ${colors.text}`} />}
+                  </div>
+                </div>
+
+                {/* Valeur principale avec icône de tendance */}
+                <div className="flex items-baseline gap-2 mb-3 flex-grow">
+                  <p className={`text-5xl font-bold ${colors.text} leading-none`}>{ind.valeur}</p>
+                  {/* Icône de tendance à droite de la valeur */}
+                  {isRising && (
+                    <div className="flex items-center bg-green-50 rounded-md px-1.5 py-0.5">
+                      <ArrowUp className="w-4 h-4 text-green-600" />
+                    </div>
+                  )}
+                  {isFalling && (
+                    <div className="flex items-center bg-red-50 rounded-md px-1.5 py-0.5">
+                      <ArrowDown className="w-4 h-4 text-red-600" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Badge et tendance */}
+                <div className="flex items-center gap-2 mt-auto mb-3">
+                  {isVeryGood && (
+                    <div className="flex items-center gap-1.5 bg-green-50 text-green-700 rounded-md px-2 py-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">Très bon</span>
+                    </div>
+                  )}
+                  {ind.trend && !isVeryGood && (
+                    <div className="flex items-center gap-1.5">
+                      {isRising ? (
+                        <>
+                          <ArrowUp className="w-4 h-4 text-green-600" />
+                          <p className="text-sm font-medium text-green-600">
+                            {ind.trend.replace(/en hausse|hausse/gi, '').trim() || 'En hausse'}
+                          </p>
+                        </>
+                      ) : isFalling ? (
+                        <>
+                          <ArrowDown className="w-4 h-4 text-red-600" />
+                          <p className="text-sm font-medium text-red-600">
+                            {ind.trend.replace(/en baisse|baisse|diminution/gi, '').trim() || 'En baisse'}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm font-medium text-gray-600">{ind.trend}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Sparkline/Jauge miniature */}
+                <div className="mt-auto h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${colors.bg} rounded-full transition-all duration-500`}
+                    style={{ width: `${Math.min(gaugeWidth, 100)}%` }}
+                    aria-hidden="true"
+                  ></div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {isAdmin && !isDirecteur && (
           <button
             onClick={() => setAddOpen(true)}

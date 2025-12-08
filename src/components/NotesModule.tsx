@@ -119,17 +119,6 @@ export default function NotesModule() {
 
   return (
     <div className="space-y-4">
-      {/* En-tête compact */}
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-blue-100 rounded-xl flex-shrink-0">
-          <MessageSquare className="w-5 h-5 text-blue-600" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 truncate">Informations & Notes d'équipe</h3>
-          <p className="text-sm text-gray-500 hidden sm:block">Partagez des informations avec l'équipe</p>
-        </div>
-      </div>
-
       {/* Zone de saisie compacte */}
       <div className="bg-white/20 backdrop-blur-sm border-2 border-black/30 rounded-xl p-3 shadow-lg">
         <div className="flex items-start gap-2 mb-2">
