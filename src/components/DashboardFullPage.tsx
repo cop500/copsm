@@ -13,6 +13,7 @@ import NotesModule from './NotesModule';
 import IndicateursDashboardCards from './IndicateursDashboardCards';
 import { useRole } from '@/hooks/useRole';
 import { EmployabilityDashboard } from './EmployabilityDashboard';
+import { getRoleLabel } from '@/utils/constants';
 
 // Types
 interface QuickAction {
@@ -114,8 +115,10 @@ const DashboardFullPage: React.FC = () => {
                   <p className="text-sm font-bold text-gray-800">
                     {profile?.role === 'directeur' ? 'HABIB AADI' : `${profile?.prenom} ${profile?.nom}`}
                   </p>
-                  <p className="text-xs font-semibold text-gray-600 capitalize">
-                    {profile?.role === 'directeur' ? 'Directeur CMC' : profile?.role?.replace('_', ' ')}
+                  <p className="text-xs font-semibold text-gray-600">
+                    {profile?.role === 'directeur' 
+                      ? 'Directeur CMC' 
+                      : getRoleLabel(profile?.role || '', profile?.prenom)}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-lg">

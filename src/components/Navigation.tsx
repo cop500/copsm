@@ -10,6 +10,7 @@ import {
 import { useState } from 'react'
 import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole';
+import { getRoleLabel } from '@/utils/constants';
 import Image from 'next/image';
 
 // 🎯 NAVIGATION SIMPLE ET CLAIRE
@@ -197,7 +198,11 @@ export default function Navigation() {
               </div>
               <div className="ml-3 flex-1">
                 <p className="text-sm font-medium text-gray-700">{getFullName()}</p>
-                <p className="text-xs text-gray-500">{currentUser?.role || 'Utilisateur'}</p>
+                <p className="text-xs text-gray-500">
+                  {currentUser?.role === 'directeur' 
+                    ? 'Directeur CMC' 
+                    : getRoleLabel(currentUser?.role || '', currentUser?.prenom)}
+                </p>
               </div>
               <button
                 onClick={handleLogout}

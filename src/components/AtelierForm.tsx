@@ -251,11 +251,12 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     }
   }
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = (role: string, prenom?: string) => {
     switch (role) {
       case 'business_developer': return 'Admin'
       case 'manager_cop': return 'Manager COP'
-      case 'conseiller_cop': return 'Conseiller COP'
+      case 'conseiller_cop': 
+        return (prenom?.toUpperCase().includes('SARA') ? 'Conseillère d\'orientation' : 'Conseiller d\'orientation')
       case 'conseillere_carriere': return 'Conseillère Carrière'
       case 'directeur': return 'Directeur'
       default: return role
@@ -582,7 +583,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
                               <p className="text-sm text-gray-600">{user.email}</p>
                             </div>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                              {getRoleLabel(user.role)}
+                              {getRoleLabel(user.role, user.prenom)}
                             </span>
                           </div>
                         </button>
