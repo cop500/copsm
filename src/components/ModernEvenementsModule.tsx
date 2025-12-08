@@ -20,12 +20,13 @@ import * as XLSX from 'xlsx'
 import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole'
 import { EspaceAmbassadeurs } from './EspaceAmbassadeurs'
+import { EnqueteSatisfactionDashboard } from './EnqueteSatisfactionDashboard'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
   const { evenements: allEvenements, saveEvenement, ensureDataFresh, fetchEvenements } = useEvenements()
   const { currentUser } = useUser()
-  const { isAdmin, isDirecteur, isManager } = useRole()
+  const { isAdmin, isDirecteur, isManager, isCarriere } = useRole()
   
   const [showForm, setShowForm] = useState(false)
   // Les données viennent directement du hook via useMemo
@@ -60,7 +61,7 @@ export const ModernEvenementsModule = () => {
   const [showEventDetail, setShowEventDetail] = useState(false)
   const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
-  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'enquete' | 'ambassadeurs'>('evenements')
+  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'enquete' | 'ambassadeurs' | 'satisfaction'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
@@ -1066,7 +1067,7 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            {!isDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && (
+            {!isDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && (
             <button
               onClick={() => {
                 if (activeTab === 'evenements') {
@@ -1139,6 +1140,19 @@ export const ModernEvenementsModule = () => {
                 Enquête d'Insertion
               </button>
             )}
+            {(isAdmin || isManager || isCarriere) && (
+              <button
+                onClick={() => setActiveTab('satisfaction')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'satisfaction'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                Enquête de Satisfaction
+              </button>
+            )}
             {(isAdmin || isManager) && (
               <button
                 onClick={() => setActiveTab('ambassadeurs')}
@@ -1157,7 +1171,7 @@ export const ModernEvenementsModule = () => {
       </div>
 
       {/* Statistiques */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab === 'evenements' ? (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab === 'evenements' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
@@ -1262,7 +1276,7 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Filtres et recherche */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Recherche */}
@@ -1369,14 +1383,14 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Liste des éléments selon l'onglet actif */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && loading ? (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && loading ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Chargement des données...</p>
           </div>
         </div>
-      ) : activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && displayItems.length === 0 ? (
+      ) : activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && displayItems.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             {activeTab === 'evenements' ? (
@@ -1403,7 +1417,7 @@ export const ModernEvenementsModule = () => {
             )}
           </div>
         </div>
-      ) : activeTab !== 'enquete' && activeTab !== 'ambassadeurs' ? (
+      ) : activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' ? (
         <div className={`grid gap-6 ${
           viewMode === 'grid' 
             ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
@@ -2144,6 +2158,13 @@ export const ModernEvenementsModule = () => {
             style={{ height: 'calc(100vh - 200px)' }}
             title="Enquête d'Insertion"
           />
+        </div>
+      )}
+
+      {/* Onglet Enquête de Satisfaction */}
+      {activeTab === 'satisfaction' && (
+        <div className="p-6">
+          <EnqueteSatisfactionDashboard />
         </div>
       )}
 

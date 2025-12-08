@@ -1,11 +1,34 @@
 'use client'
 import { UserProvider } from '@/contexts/UserContext'
 import { useAuth } from '@/hooks/useAuth'
+import { usePathname } from 'next/navigation'
 import './globals.css'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const { loading } = useAuth()
   
+  // Pages publiques qui ne nécessitent pas d'authentification
+  const publicPages = ['/enquete-satisfaction', '/cv-connect/public']
+  const isPublicPage = publicPages.some(page => pathname?.startsWith(page))
+  
+  // Pour les pages publiques, ne pas bloquer le rendu
+  if (isPublicPage) {
+    return (
+      <html lang="fr">
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        </head>
+        <body>
+          <main>
+            {children}
+          </main>
+        </body>
+      </html>
+    )
+  }
+  
+  // Pour les pages privées, attendre l'authentification
   if (loading) {
     return (
       <html lang="fr">
