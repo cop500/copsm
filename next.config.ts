@@ -7,9 +7,14 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   // Forcer l'export de toutes les pages
   generateBuildId: () => 'build',
-  // Configuration pour Netlify
+  // Configuration pour Netlify - optimiser la taille du build
   experimental: {
     useDeploymentId: true,
+  },
+  // Optimiser la taille du build
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
 }
 
