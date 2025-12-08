@@ -17,7 +17,7 @@ export interface EnqueteSatisfaction {
   adequation_besoins?: number
   profil_interessant?: 'oui' | 'non' | 'en_cours'
   intention_recruter?: 'oui' | 'non' | 'peut_etre'
-  // C. Satisfaction Job Dating
+  // C. Satisfaction par rapport à nos services
   organisation_globale?: number
   accueil_accompagnement?: number
   communication_avant_event?: number

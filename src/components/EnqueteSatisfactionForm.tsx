@@ -452,16 +452,16 @@ export const EnqueteSatisfactionForm: React.FC<EnqueteSatisfactionFormProps> = (
         </div>
       </section>
 
-      {/* C. Satisfaction sur le Job Dating */}
+      {/* C. Satisfaction par rapport à nos services */}
       <section className="bg-blue-50/50 rounded-xl p-6 md:p-8 space-y-6 border-2 border-blue-100">
         <div className="flex items-center gap-3 pb-3 border-b-2 border-blue-300">
           <Star className="w-6 h-6 text-purple-500 fill-purple-500" />
           <h2 className="text-2xl font-bold text-blue-900">
-            C. Satisfaction sur le Job Dating
+            C. Satisfaction par rapport à nos services
           </h2>
         </div>
         <p className="text-sm text-gray-600 -mt-2">
-          Évaluez votre satisfaction concernant l'organisation et le déroulement de l'événement
+          Évaluez votre satisfaction concernant nos services et notre accompagnement
         </p>
 
         <div className="space-y-6">

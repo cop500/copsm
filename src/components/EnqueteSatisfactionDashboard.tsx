@@ -217,9 +217,9 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Satisfaction Job Dating */}
+        {/* Satisfaction par rapport à nos services */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Satisfaction sur le Job Dating</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Satisfaction par rapport à nos services</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={satisfactionJDData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -469,9 +469,9 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
                 </div>
               </section>
 
-              {/* Satisfaction JD */}
+              {/* Satisfaction par rapport à nos services */}
               <section>
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Satisfaction sur le Job Dating</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Satisfaction par rapport à nos services</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {selectedEnquete.organisation_globale && (
                     <div>
