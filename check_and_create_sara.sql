@@ -62,13 +62,21 @@ FROM pg_constraint
 WHERE conrelid = 'auth.users'::regclass
 LIMIT 10;
 
--- ÉTAPE 5 : Vérifier les triggers sur auth.users
+-- ÉTAPE 5 : Vérifier la fonction handle_new_user() qui est déclenchée
 SELECT 
-  trigger_name, 
-  event_manipulation, 
-  event_object_table,
-  action_statement
-FROM information_schema.triggers
-WHERE event_object_table = 'users' 
-AND event_object_schema = 'auth';
+  p.proname as function_name,
+  pg_get_functiondef(p.oid) as function_definition
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE p.proname = 'handle_new_user'
+AND n.nspname = 'public';
+
+-- ÉTAPE 6 : Vérifier les contraintes sur profiles qui pourraient bloquer
+SELECT 
+  conname as constraint_name,
+  contype as constraint_type,
+  pg_get_constraintdef(oid) as constraint_definition
+FROM pg_constraint
+WHERE conrelid = 'profiles'::regclass
+ORDER BY contype, conname;
 
