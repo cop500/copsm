@@ -11,18 +11,4 @@
 # Configuration pour réduire la taille des fonctions serveur
 [functions]
   node_bundler = "esbuild"
-  # Ne pas inclure tout le dossier .next, le plugin Next.js gère cela automatiquement
-  # Exclure les fichiers volumineux inutiles
-  excluded_files = [
-    ".next/cache/**",
-    ".next/trace",
-    "node_modules/.cache/**",
-    "node_modules/**/*.md",
-    "node_modules/**/*.txt",
-    "node_modules/**/*.map",
-    "node_modules/**/test/**",
-    "node_modules/**/tests/**",
-    "node_modules/**/docs/**",
-    "node_modules/**/examples/**"
-  ]
 
