@@ -21,6 +21,7 @@ import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole'
 import { EspaceAmbassadeurs } from './EspaceAmbassadeurs'
 import { EnqueteSatisfactionDashboard } from './EnqueteSatisfactionDashboard'
+import CalendrierCollaboratif from './CalendrierCollaboratif'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -61,7 +62,7 @@ export const ModernEvenementsModule = () => {
   const [showEventDetail, setShowEventDetail] = useState(false)
   const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
-  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'enquete' | 'ambassadeurs' | 'satisfaction'>('evenements')
+  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'planning' | 'enquete' | 'ambassadeurs' | 'satisfaction'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
@@ -1067,7 +1068,7 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            {!isDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && (
+            {!isDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
             <button
               onClick={() => {
                 if (activeTab === 'evenements') {
@@ -1127,6 +1128,17 @@ export const ModernEvenementsModule = () => {
               Ateliers
             </button>
             )}
+            <button
+              onClick={() => setActiveTab('planning')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'planning'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              Planning
+            </button>
             {(isAdmin || isManager || currentUser?.role === 'conseillere_carriere') && (
               <button
                 onClick={() => setActiveTab('enquete')}
@@ -1171,58 +1183,60 @@ export const ModernEvenementsModule = () => {
       </div>
 
       {/* Statistiques */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab === 'evenements' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-3xl font-bold text-gray-900">{evenementsData.length}</p>
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
+        <>
+          {activeTab === 'evenements' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total</p>
+                    <p className="text-3xl font-bold text-gray-900">{evenementsData.length}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Planifiés</p>
-                <p className="text-3xl font-bold text-blue-600">{getStatusCount('planifie')}</p>
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Planifiés</p>
+                    <p className="text-3xl font-bold text-blue-600">{getStatusCount('planifie')}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">En cours</p>
-                <p className="text-3xl font-bold text-yellow-600">{getStatusCount('en_cours')}</p>
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">En cours</p>
+                    <p className="text-3xl font-bold text-yellow-600">{getStatusCount('en_cours')}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-yellow-600" />
+                  </div>
+                </div>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-yellow-600" />
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Terminés</p>
-                <p className="text-3xl font-bold text-green-600">{getStatusCount('termine')}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Terminés</p>
+                    <p className="text-3xl font-bold text-green-600">{getStatusCount('termine')}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      ) : (
-        activeTab === 'ateliers' && !isDirecteur && activeTab !== 'ambassadeurs' && (
+          )}
+          {activeTab === 'ateliers' && !isDirecteur && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
@@ -1272,11 +1286,12 @@ export const ModernEvenementsModule = () => {
             </div>
           </div>
         </div>
-        )
+          )}
+        </>
       )}
 
       {/* Filtres et recherche */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Recherche */}
@@ -1383,41 +1398,42 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Liste des éléments selon l'onglet actif */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && loading ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des données...</p>
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' ? (
+        loading ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Chargement des données...</p>
+            </div>
           </div>
-        </div>
-      ) : activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && displayItems.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-          <div className="text-center">
-            {activeTab === 'evenements' ? (
-              <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            ) : (
-              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            )}
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Aucun {activeTab === 'evenements' ? 'événement' : 'atelier'} trouvé
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {activeTab === 'evenements' 
-                ? (evenementsData.length === 0 ? 'Créez votre premier événement pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
-                : (ateliersData.length === 0 ? 'Créez votre premier atelier pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
-              }
-            </p>
-            {((activeTab === 'evenements' && evenementsData.length === 0) || (activeTab === 'ateliers' && ateliersData.length === 0)) && (
-              <button
-                onClick={() => setShowForm(true)}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Créer un {activeTab === 'evenements' ? 'événement' : 'atelier'}
-              </button>
-            )}
+        ) : displayItems.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+            <div className="text-center">
+              {activeTab === 'evenements' ? (
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              ) : (
+                <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              )}
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Aucun {activeTab === 'evenements' ? 'événement' : 'atelier'} trouvé
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {activeTab === 'evenements' 
+                  ? (evenementsData.length === 0 ? 'Créez votre premier événement pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
+                  : (ateliersData.length === 0 ? 'Créez votre premier atelier pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
+                }
+              </p>
+              {((activeTab === 'evenements' && evenementsData.length === 0) || (activeTab === 'ateliers' && ateliersData.length === 0)) && (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Créer un {activeTab === 'evenements' ? 'événement' : 'atelier'}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      ) : activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' ? (
+        ) : (
         <div className={`grid gap-6 ${
           viewMode === 'grid' 
             ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
@@ -1540,6 +1556,7 @@ export const ModernEvenementsModule = () => {
             ))
           )}
         </div>
+        )
       ) : null}
 
       {/* Formulaire modal */}
@@ -2172,6 +2189,13 @@ export const ModernEvenementsModule = () => {
       {activeTab === 'ambassadeurs' && (
         <div className="p-6">
           <EspaceAmbassadeurs />
+        </div>
+      )}
+
+      {/* Onglet Planning Collaboratif */}
+      {activeTab === 'planning' && (
+        <div className="p-6">
+          <CalendrierCollaboratif />
         </div>
       )}
 
