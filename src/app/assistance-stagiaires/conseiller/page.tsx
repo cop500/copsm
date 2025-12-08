@@ -109,7 +109,7 @@ export default function InterfaceConseiller() {
       const result = await response.json()
       
       if (result.success && result.conseillers) {
-        const conseillersAutorises = ['ABDELHAMID INAJJAREN', 'SIHAM EL OMARI', 'IMANE IDRISSI']
+        const conseillersAutorises = ['ABDELHAMID INAJJAREN', 'SIHAM EL OMARI', 'IMANE IDRISSI', 'SARA HANZAZE']
         const conseillersFiltres = result.conseillers.filter((conseiller: any) => {
           const nomComplet = `${conseiller.prenom} ${conseiller.nom}`.toUpperCase()
           return conseillersAutorises.some(autorise => 
