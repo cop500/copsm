@@ -106,6 +106,13 @@ export const ModernEvenementsModule = () => {
     }
   }, [allEvenements, refreshTrigger])
 
+  // Rediriger le directeur vers 'evenements' s'il est sur 'planning'
+  useEffect(() => {
+    if (isDirecteur && activeTab === 'planning') {
+      setActiveTab('evenements')
+    }
+  }, [isDirecteur, activeTab])
+
   // Fonction pour forcer le rechargement des données
   const reloadData = async () => {
     try {
@@ -1128,6 +1135,7 @@ export const ModernEvenementsModule = () => {
               Ateliers
             </button>
             )}
+            {!isDirecteur && (
             <button
               onClick={() => setActiveTab('planning')}
               className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -1139,6 +1147,7 @@ export const ModernEvenementsModule = () => {
               <Calendar className="w-4 h-4" />
               Planning
             </button>
+            )}
             {(isAdmin || isManager || currentUser?.role === 'conseillere_carriere') && (
               <button
                 onClick={() => setActiveTab('enquete')}
