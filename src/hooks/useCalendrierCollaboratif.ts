@@ -18,6 +18,7 @@ export interface CalendrierEvent {
   created_at: string
   updated_at: string
   animateur_id?: string
+  salle?: string
   // Informations utilisateur (créateur)
   profiles?: {
     nom: string
@@ -104,6 +105,7 @@ export const useCalendrierCollaboratif = () => {
     date_fin: string
     couleur?: string
     animateur_id?: string
+    salle?: string
   }) => {
     try {
       if (!user?.id) throw new Error('Utilisateur non authentifié')
@@ -140,7 +142,8 @@ export const useCalendrierCollaboratif = () => {
             date_debut: event.date_debut,
             date_fin: event.date_fin,
             couleur: event.couleur || '#3B82F6',
-            animateur_id: event.animateur_id || null
+            animateur_id: event.animateur_id || null,
+            salle: event.salle || null
           }
         ])
         .select('*')
@@ -190,6 +193,7 @@ export const useCalendrierCollaboratif = () => {
     date_fin?: string
     couleur?: string
     animateur_id?: string
+    salle?: string
   }) => {
     try {
       if (!user?.id) throw new Error('Utilisateur non authentifié')

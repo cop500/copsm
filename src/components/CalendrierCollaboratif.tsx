@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calendar, Plus, Edit2, Trash2, Clock, User, ChevronLeft, ChevronRight, Users, Grid, CalendarDays, Search, X } from 'lucide-react'
+import { Calendar, Plus, Edit2, Trash2, Clock, User, ChevronLeft, ChevronRight, Users, Grid, CalendarDays, Search, X, MapPin } from 'lucide-react'
 import { useCalendrierCollaboratif, CalendrierEvent } from '@/hooks/useCalendrierCollaboratif'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
@@ -35,7 +35,8 @@ const CalendrierCollaboratif: React.FC = () => {
     heure_debut: '',
     heure_fin: '',
     couleur: '#3B82F6',
-    animateur_id: ''
+    animateur_id: '',
+    salle: ''
   })
 
   // Charger les utilisateurs pour le sélecteur d'animateur
@@ -207,7 +208,8 @@ const CalendrierCollaboratif: React.FC = () => {
         heure_debut: dateDebut.toTimeString().slice(0, 5),
         heure_fin: dateFin.toTimeString().slice(0, 5),
         couleur: event.couleur,
-        animateur_id: event.animateur_id || ''
+        animateur_id: event.animateur_id || '',
+        salle: event.salle || ''
       })
     } else if (date) {
       setSelectedDate(date)
@@ -221,7 +223,8 @@ const CalendrierCollaboratif: React.FC = () => {
         heure_debut: '09:00',
         heure_fin: '10:00',
         couleur: '#3B82F6',
-        animateur_id: ''
+        animateur_id: '',
+        salle: ''
       })
     }
     setShowModal(true)
@@ -241,7 +244,8 @@ const CalendrierCollaboratif: React.FC = () => {
       heure_debut: '09:00',
       heure_fin: '10:00',
       couleur: '#3B82F6',
-      animateur_id: ''
+      animateur_id: '',
+      salle: ''
     })
   }
 
@@ -269,7 +273,8 @@ const CalendrierCollaboratif: React.FC = () => {
         date_debut: dateDebut.toISOString(),
         date_fin: dateFin.toISOString(),
         couleur: formData.couleur,
-        animateur_id: formData.animateur_id || undefined
+        animateur_id: formData.animateur_id || undefined,
+        salle: formData.salle || undefined
       })
 
       if (result.success) {
@@ -284,7 +289,8 @@ const CalendrierCollaboratif: React.FC = () => {
         date_debut: dateDebut.toISOString(),
         date_fin: dateFin.toISOString(),
         couleur: formData.couleur,
-        animateur_id: formData.animateur_id || undefined
+        animateur_id: formData.animateur_id || undefined,
+        salle: formData.salle || undefined
       })
 
       if (result.success) {
@@ -497,9 +503,15 @@ const CalendrierCollaboratif: React.FC = () => {
                         </div>
                         <div className="font-medium truncate mb-1">{event.titre}</div>
                         {animateur && (
-                          <div className="flex items-center gap-1 text-[10px] opacity-75">
+                          <div className="flex items-center gap-1 text-[10px] opacity-75 mb-0.5">
                             <User className="w-2.5 h-2.5" />
                             <span className="truncate">{animateur.prenom} {animateur.nom}</span>
+                          </div>
+                        )}
+                        {event.salle && (
+                          <div className="flex items-center gap-1 text-[10px] opacity-75">
+                            <MapPin className="w-2.5 h-2.5" />
+                            <span className="truncate">{event.salle}</span>
                           </div>
                         )}
                       </div>
@@ -647,6 +659,21 @@ const CalendrierCollaboratif: React.FC = () => {
                     </span>
                   </div>
                 )}
+              </div>
+
+              {/* Champ Salle */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  Salle
+                </label>
+                <input
+                  type="text"
+                  value={formData.salle}
+                  onChange={(e) => setFormData({ ...formData, salle: e.target.value })}
+                  placeholder="Ex: Salle 1, Amphi A, etc."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
