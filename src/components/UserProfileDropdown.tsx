@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, Settings, LogOut, Shield, ChevronDown, Sliders } from 'lucide-react';
 import MonProfil from './MonProfil';
 import { useRole } from '@/hooks/useRole';
+import { useUser } from '@/contexts/UserContext';
 import Image from 'next/image';
 
 const UserProfileDropdown = () => {
@@ -9,9 +10,10 @@ const UserProfileDropdown = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showProfil, setShowProfil] = useState(false);
   const { isAdmin } = useRole();
+  const { currentUser } = useUser();
 
-  // Données utilisateur simulées - à remplacer par useAuth()
-  const user = {
+  // Utiliser les données réelles de l'utilisateur connecté
+  const user = currentUser || {
     nom: 'Benjelloun',
     prenom: 'Ahmed', 
     email: 'ahmed.benjelloun@cop.ma',
@@ -19,11 +21,16 @@ const UserProfileDropdown = () => {
     avatar: null
   };
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = (role: string, prenom?: string) => {
     switch(role) {
       case 'business_developer': return 'Administrateur';
       case 'manager_cop': return 'Manager COP';
-      case 'conseiller_cop': return 'Conseiller COP';
+      case 'conseiller_cop': 
+        // Afficher "Conseillère d'orientation" pour SARA
+        if (prenom && prenom.toUpperCase().includes('SARA')) {
+          return 'Conseillère d\'orientation';
+        }
+        return 'Conseiller d\'orientation';
       case 'conseillere_carriere': return 'Conseillère Carrière';
       default: return 'Utilisateur';
     }
@@ -109,7 +116,7 @@ const UserProfileDropdown = () => {
             {user.prenom} {user.nom}
           </p>
           <p className="text-xs text-gray-500 truncate">
-            {getRoleLabel(user.role)}
+            {getRoleLabel(user.role, user.prenom)}
           </p>
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -132,7 +139,7 @@ const UserProfileDropdown = () => {
                 <p className="text-sm text-gray-500">{user.email}</p>
                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium mt-1 ${getRoleColor(user.role)}`}>
                   <Shield className="w-3 h-3" />
-                  {getRoleLabel(user.role)}
+                  {getRoleLabel(user.role, user.prenom)}
                 </span>
               </div>
             </div>

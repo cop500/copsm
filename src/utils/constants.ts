@@ -10,10 +10,27 @@ export const ROLES = {
   DIRECTEUR: 'directeur' as const,
 }
 
+// Fonction pour obtenir le label du rôle avec support du genre
+export const getRoleLabel = (role: string, prenom?: string): string => {
+  switch(role) {
+    case ROLES.BUSINESS_DEVELOPER: return 'Business Developer';
+    case ROLES.MANAGER_COP: return 'Manager COP';
+    case ROLES.CONSEILLER_COP: 
+      // Afficher "Conseillère d'orientation" pour SARA
+      if (prenom && prenom.toUpperCase().includes('SARA')) {
+        return 'Conseillère d\'orientation';
+      }
+      return 'Conseiller d\'orientation';
+    case ROLES.CONSEILLERE_CARRIERE: return 'Conseillère Carrière';
+    case ROLES.DIRECTEUR: return 'Directeur';
+    default: return 'Utilisateur';
+  }
+}
+
 export const ROLE_LABELS = {
   [ROLES.BUSINESS_DEVELOPER]: 'Business Developer',
   [ROLES.MANAGER_COP]: 'Manager COP',
-  [ROLES.CONSEILLER_COP]: 'Conseiller COP',
+  [ROLES.CONSEILLER_COP]: 'Conseiller d\'orientation',
   [ROLES.CONSEILLERE_CARRIERE]: 'Conseillère Carrière',
   [ROLES.DIRECTEUR]: 'Directeur',
 }

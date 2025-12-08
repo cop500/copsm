@@ -121,7 +121,9 @@ export default function InterfaceConseiller() {
         const conseillersAvecIds = conseillersFiltres.map((conseiller: any) => ({
           id: conseiller.id,
           nom: `${conseiller.prenom} ${conseiller.nom}`.toUpperCase(),
-          role: conseiller.role === 'conseiller_cop' ? 'Conseiller d\'orientation' : 'Conseillère Carrière'
+          role: conseiller.role === 'conseiller_cop' 
+            ? (conseiller.prenom?.toUpperCase().includes('SARA') ? 'Conseillère d\'orientation' : 'Conseiller d\'orientation')
+            : 'Conseillère Carrière'
         }))
         
         setConseillers(conseillersAvecIds)

@@ -511,7 +511,9 @@ export default function DemandeAssistance() {
                         {conseiller.prenom} {conseiller.nom}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {conseiller.role === 'conseiller_cop' ? 'Conseiller d\'orientation' : 'Conseillère Carrière'}
+                        {conseiller.role === 'conseiller_cop' 
+                          ? (conseiller.prenom?.toUpperCase().includes('SARA') ? 'Conseillère d\'orientation' : 'Conseiller d\'orientation')
+                          : 'Conseillère Carrière'}
                         {conseiller.poste && ` - ${conseiller.poste}`}
                       </p>
                     </div>
