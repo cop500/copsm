@@ -1,6 +1,6 @@
 // ========================================
 // src/lib/google-drive.ts - Service Google Drive
-// ✅ RÉACTIVÉ - Configuration OAuth 2.0
+// ✅ SOLUTION DÉFINITIVE - Service Account (prioritaire) + OAuth 2.0 (fallback)
 // ========================================
 
 import { google } from 'googleapis'
@@ -11,7 +11,7 @@ const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || 'CV_Connect
 // Si GOOGLE_DRIVE_FOLDER_ID est un Shared Drive, utiliser driveId dans les requêtes
 const GOOGLE_DRIVE_ID = process.env.GOOGLE_DRIVE_ID || process.env.GOOGLE_DRIVE_FOLDER_ID
 
-// Configuration Service Account (pour Shared Drive)
+// Configuration Service Account (SOLUTION DÉFINITIVE - Prioritaire)
 const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
 const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
   ?.replace(/\\n/g, '\n')
@@ -19,15 +19,40 @@ const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
   ?.replace(/"$/, '')
   ?.trim()
 
-// Configuration OAuth (pour Google Drive personnel)
+// Configuration OAuth (Fallback - si Service Account non disponible)
 const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID
 const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET
 const GOOGLE_OAUTH_REFRESH_TOKEN = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
 
 // Initialiser l'authentification Google Drive
-// Utilisation OAuth 2.0 pour Google Drive personnel
+// PRIORITÉ 1: Service Account (solution définitive, pas d'expiration)
+// PRIORITÉ 2: OAuth 2.0 (fallback si Service Account non configuré)
 const getGoogleDriveAuth = () => {
-  console.log('[Google Drive Auth] Vérification configuration OAuth 2.0...')
+  // PRIORITÉ 1: Vérifier si Service Account est configuré
+  if (GOOGLE_SERVICE_ACCOUNT_EMAIL && GOOGLE_PRIVATE_KEY) {
+    console.log('[Google Drive Auth] 🔐 Utilisation Service Account (solution définitive)')
+    
+    try {
+      const serviceAccountAuth = new google.auth.JWT({
+        email: GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        key: GOOGLE_PRIVATE_KEY,
+        scopes: [
+          'https://www.googleapis.com/auth/drive',
+          'https://www.googleapis.com/auth/drive.file'
+        ]
+      })
+      
+      console.log('[Google Drive Auth] ✅ Authentification Service Account créée avec succès')
+      return serviceAccountAuth
+    } catch (error: any) {
+      console.error('[Google Drive Auth] ❌ Erreur Service Account:', error.message)
+      throw new Error(`Erreur d'authentification Service Account: ${error.message}`)
+    }
+  }
+  
+  // PRIORITÉ 2: Fallback sur OAuth 2.0
+  console.log('[Google Drive Auth] ⚠️  Service Account non configuré, utilisation OAuth 2.0 (fallback)')
+  console.log('[Google Drive Auth] 💡 Pour une solution définitive, configurez GOOGLE_SERVICE_ACCOUNT_EMAIL et GOOGLE_PRIVATE_KEY')
   
   // Vérifier que toutes les variables OAuth sont présentes
   if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET || !GOOGLE_OAUTH_REFRESH_TOKEN) {
@@ -35,7 +60,7 @@ const getGoogleDriveAuth = () => {
     console.error('[Google Drive Auth] GOOGLE_OAUTH_CLIENT_ID:', GOOGLE_OAUTH_CLIENT_ID ? '✅' : '❌')
     console.error('[Google Drive Auth] GOOGLE_OAUTH_CLIENT_SECRET:', GOOGLE_OAUTH_CLIENT_SECRET ? '✅' : '❌')
     console.error('[Google Drive Auth] GOOGLE_OAUTH_REFRESH_TOKEN:', GOOGLE_OAUTH_REFRESH_TOKEN ? '✅' : '❌')
-    throw new Error('Configuration Google Drive manquante: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET et GOOGLE_OAUTH_REFRESH_TOKEN requis')
+    throw new Error('Configuration Google Drive manquante: Configurez soit Service Account (GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_PRIVATE_KEY) soit OAuth 2.0 (GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET + GOOGLE_OAUTH_REFRESH_TOKEN)')
   }
   
   console.log('[Google Drive Auth] ✅ Utilisation OAuth 2.0 (Google Drive personnel)')
@@ -60,7 +85,7 @@ const getGoogleDriveAuth = () => {
     
     // Détecter spécifiquement l'erreur invalid_grant
     if (error.message?.includes('invalid_grant') || error.code === 'invalid_grant') {
-      throw new Error('INVALID_GRANT: Le refresh token OAuth a expiré ou a été révoqué. Veuillez régénérer le refresh token dans la console Google Cloud.')
+      throw new Error('INVALID_GRANT: Le refresh token OAuth a expiré ou a été révoqué. Veuillez migrer vers Service Account (solution définitive) ou régénérer le refresh token.')
     }
     
     throw new Error(`Erreur d'authentification OAuth: ${error.message}`)
