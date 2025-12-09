@@ -1,4 +1,8 @@
-# 🚀 Guide de Migration vers Service Account (Solution Définitive)
+# 🚀 Guide Complet de Migration vers Service Account
+
+> 💡 **Pour une version simplifiée, consultez : `GUIDE_SIMPLE_SERVICE_ACCOUNT.md`**
+
+# Guide de Migration vers Service Account (Solution Définitive)
 
 ## 📋 Pourquoi migrer vers Service Account ?
 
