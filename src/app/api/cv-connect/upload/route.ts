@@ -138,6 +138,25 @@ export async function POST(request: NextRequest) {
         }))
       }
 
+      // Détecter spécifiquement l'erreur invalid_grant
+      const isInvalidGrant = googleDriveError.message?.includes('invalid_grant') ||
+                            googleDriveError.code === 'invalid_grant' ||
+                            errorDetails.errors?.some((err: any) => err.reason === 'invalid_grant')
+
+      if (isInvalidGrant) {
+        return NextResponse.json(
+          { 
+            error: 'Le service d\'authentification Google Drive nécessite une mise à jour. Veuillez contacter l\'administrateur pour résoudre ce problème.',
+            details: {
+              ...errorDetails,
+              reason: 'Refresh token OAuth expiré ou révoqué',
+              adminAction: 'Régénérer le refresh token OAuth dans la console Google Cloud'
+            }
+          },
+          { status: 503 }
+        )
+      }
+
       // Toujours retourner les détails pour diagnostic (même en production)
       return NextResponse.json(
         { 
@@ -214,6 +233,24 @@ export async function POST(request: NextRequest) {
           details: {
             ...errorDetails,
             reason: 'Configuration Google Drive manquante'
+          }
+        },
+        { status: 503 }
+      )
+    }
+    
+    // Détecter spécifiquement l'erreur invalid_grant
+    if (error.message?.includes('INVALID_GRANT') || 
+        error.message?.includes('invalid_grant') ||
+        error.code === 'invalid_grant' ||
+        errorDetails.code === 'invalid_grant') {
+      return NextResponse.json(
+        { 
+          error: 'Le service d\'authentification Google Drive nécessite une mise à jour. Veuillez contacter l\'administrateur pour résoudre ce problème.',
+          details: {
+            ...errorDetails,
+            reason: 'Refresh token OAuth expiré ou révoqué',
+            adminAction: 'Régénérer le refresh token OAuth dans la console Google Cloud'
           }
         },
         { status: 503 }

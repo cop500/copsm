@@ -57,6 +57,12 @@ const getGoogleDriveAuth = () => {
     return oauth2Client
   } catch (error: any) {
     console.error('[Google Drive Auth] ❌ Erreur OAuth:', error.message)
+    
+    // Détecter spécifiquement l'erreur invalid_grant
+    if (error.message?.includes('invalid_grant') || error.code === 'invalid_grant') {
+      throw new Error('INVALID_GRANT: Le refresh token OAuth a expiré ou a été révoqué. Veuillez régénérer le refresh token dans la console Google Cloud.')
+    }
+    
     throw new Error(`Erreur d'authentification OAuth: ${error.message}`)
   }
 }
@@ -135,6 +141,14 @@ export const createFolder = async (folderName: string, parentFolderId?: string):
       code: error.code,
       errors: error.errors
     })
+    
+    // Détecter spécifiquement l'erreur invalid_grant
+    if (error.message?.includes('invalid_grant') || 
+        error.code === 'invalid_grant' ||
+        error.errors?.some((e: any) => e.reason === 'invalid_grant')) {
+      throw new Error('INVALID_GRANT: Le refresh token OAuth a expiré ou a été révoqué. Veuillez régénérer le refresh token dans la console Google Cloud.')
+    }
+    
     throw new Error(`Impossible de créer le dossier "${folderName}" sur Google Drive: ${error.message}`)
   }
 }
@@ -301,6 +315,14 @@ export const uploadFile = async (
       errors: error.errors,
       stack: error.stack
     })
+    
+    // Détecter spécifiquement l'erreur invalid_grant
+    if (error.message?.includes('invalid_grant') || 
+        error.code === 'invalid_grant' ||
+        error.errors?.some((e: any) => e.reason === 'invalid_grant')) {
+      throw new Error('INVALID_GRANT: Le refresh token OAuth a expiré ou a été révoqué. Veuillez régénérer le refresh token dans la console Google Cloud.')
+    }
+    
     const errorMessage = error.message || 'Impossible d\'uploader le fichier sur Google Drive'
     throw new Error(errorMessage)
   }
