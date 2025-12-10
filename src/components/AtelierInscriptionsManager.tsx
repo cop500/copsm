@@ -2,10 +2,21 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
+// Import du plugin autotable - il ajoute automatiquement la méthode autoTable à jsPDF
+import 'jspdf-autotable'
+
+// Extension de type pour autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 import { 
   Users, X, Download, Trash2, Eye, CheckCircle, 
   Clock, AlertCircle, Search, Filter, Calendar,
-  Mail, Phone, MapPin, GraduationCap
+  Mail, Phone, MapPin, GraduationCap, FileText
 } from 'lucide-react'
 
 interface AtelierInscriptionsManagerProps {
@@ -42,7 +53,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             .order('date_inscription', { ascending: false })
 
       if (error) throw error
-      setInscriptions(data || [])
+      setInscriptions((data || []) as unknown as Inscription[])
     } catch (error) {
       console.error('Erreur chargement inscriptions:', error)
     } finally {
@@ -83,33 +94,288 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     }
   }
 
-  // Exporter les inscriptions en Excel
+  // Exporter les inscriptions en Excel (structuré)
   const exportToExcel = () => {
-    const data = filteredInscriptions.map(inscription => ({
-      'Nom': inscription.stagiaire_nom,
-      'Email': inscription.stagiaire_email,
-      'Téléphone': inscription.stagiaire_telephone || '',
-      'Pôle': inscription.pole,
-      'Filière': inscription.filliere,
-      'Statut': getStatusLabel(inscription.statut),
-      'Date inscription': new Date(inscription.date_inscription).toLocaleDateString('fr-FR')
-    }))
+    if (filteredInscriptions.length === 0) {
+      alert('Aucune inscription à exporter')
+      return
+    }
 
-    // Créer un fichier CSV simple
-    const csvContent = [
-      Object.keys(data[0] || {}).join(','),
-      ...data.map(row => Object.values(row).join(','))
-    ].join('\n')
+    try {
+      // Créer le workbook
+      const workbook = XLSX.utils.book_new()
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `inscriptions_${atelier.titre.replace(/[^a-zA-Z0-9]/g, '_')}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      // Préparer les données avec formatage
+      const data = filteredInscriptions.map((inscription, index) => ({
+        'N°': index + 1,
+        'Nom complet': inscription.stagiaire_nom,
+        'Email': inscription.stagiaire_email,
+        'Téléphone': inscription.stagiaire_telephone || 'Non renseigné',
+        'Pôle': inscription.pole,
+        'Filière': inscription.filliere,
+        'Statut': getStatusLabel(inscription.statut),
+        'Date inscription': new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      }))
+
+      // Créer la feuille avec les données
+      const worksheet = XLSX.utils.json_to_sheet(data)
+
+      // Définir les largeurs de colonnes
+      const columnWidths = [
+        { wch: 5 },   // N°
+        { wch: 25 },  // Nom complet
+        { wch: 30 },  // Email
+        { wch: 15 },  // Téléphone
+        { wch: 20 },  // Pôle
+        { wch: 25 },  // Filière
+        { wch: 15 },  // Statut
+        { wch: 20 }   // Date inscription
+      ]
+      worksheet['!cols'] = columnWidths
+
+      // Ajouter un en-tête avec informations de l'atelier
+      const headerData = [
+        ['LISTE DES INSCRIPTIONS - ATELIER'],
+        [''],
+        ['Atelier', atelier.titre || 'N/A'],
+        ['Date d\'export', new Date().toLocaleDateString('fr-FR')],
+        ['Total inscriptions', filteredInscriptions.length],
+        ['Confirmées', inscriptions.filter(i => i.statut === 'confirme').length],
+        ['En attente', inscriptions.filter(i => i.statut === 'en_attente').length],
+        ['Annulées', inscriptions.filter(i => i.statut === 'annule').length],
+        [''],
+        ['DÉTAIL DES INSCRIPTIONS'],
+        [''],
+        Object.keys(data[0] || {}),
+        ...data.map(row => Object.values(row))
+      ]
+
+      // Créer une nouvelle feuille avec l'en-tête et les données
+      const wsWithHeader = XLSX.utils.aoa_to_sheet(headerData)
+      
+      // Définir les largeurs pour la feuille complète
+      wsWithHeader['!cols'] = columnWidths
+
+      // Fusionner les cellules de l'en-tête
+      if (!wsWithHeader['!merges']) wsWithHeader['!merges'] = []
+      wsWithHeader['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } })
+      wsWithHeader['!merges'].push({ s: { r: 9, c: 0 }, e: { r: 9, c: 7 } })
+
+      // Ajouter la feuille au workbook
+      XLSX.utils.book_append_sheet(workbook, wsWithHeader, 'Inscriptions')
+
+      // Générer le nom du fichier
+      const fileName = `Inscriptions_${atelier.titre.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`
+
+      // Télécharger le fichier
+      XLSX.writeFile(workbook, fileName)
+      
+      alert(`Fichier Excel exporté avec succès : ${fileName}`)
+    } catch (error) {
+      console.error('Erreur lors de l\'export Excel:', error)
+      alert('Erreur lors de l\'export Excel. Veuillez réessayer.')
+    }
+  }
+
+  // Exporter les inscriptions en PDF
+  const exportToPDF = () => {
+    if (filteredInscriptions.length === 0) {
+      alert('Aucune inscription à exporter')
+      return
+    }
+
+    try {
+      // Créer le document PDF
+      const doc = new jsPDF('landscape', 'mm', 'a4')
+      
+      // Couleurs
+      const primaryColor = [255, 102, 0] // Orange
+      const secondaryColor = [0, 102, 204] // Bleu
+      const textColor = [51, 51, 51]
+      const lightGray = [245, 245, 245]
+
+      // En-tête
+      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+      doc.rect(0, 0, doc.internal.pageSize.getWidth(), 25, 'F')
+      
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(18)
+      doc.setFont('helvetica', 'bold')
+      doc.text('LISTE DES INSCRIPTIONS', 15, 15)
+      
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Atelier: ${atelier.titre || 'N/A'}`, 15, 22)
+
+      // Informations de l'atelier
+      let yPos = 35
+      doc.setTextColor(textColor[0], textColor[1], textColor[2])
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Informations générales', 15, yPos)
+      
+      yPos += 7
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Date d'export: ${new Date().toLocaleDateString('fr-FR')}`, 15, yPos)
+      yPos += 5
+      doc.text(`Total inscriptions: ${filteredInscriptions.length}`, 15, yPos)
+      yPos += 5
+      doc.text(`Confirmées: ${inscriptions.filter(i => i.statut === 'confirme').length}`, 15, yPos)
+      yPos += 5
+      doc.text(`En attente: ${inscriptions.filter(i => i.statut === 'en_attente').length}`, 15, yPos)
+      yPos += 5
+      doc.text(`Annulées: ${inscriptions.filter(i => i.statut === 'annule').length}`, 15, yPos)
+
+      // Préparer les données pour le tableau
+      const tableData = filteredInscriptions.map((inscription, index) => [
+        index + 1,
+        inscription.stagiaire_nom,
+        inscription.stagiaire_email,
+        inscription.stagiaire_telephone || 'Non renseigné',
+        inscription.pole,
+        inscription.filliere,
+        getStatusLabel(inscription.statut),
+        new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        })
+      ])
+
+      // Créer le tableau avec autoTable
+      // Vérifier si autoTable est disponible
+      if (typeof (doc as any).autoTable === 'function') {
+        try {
+          ;(doc as any).autoTable({
+            startY: yPos + 10,
+            head: [['N°', 'Nom complet', 'Email', 'Téléphone', 'Pôle', 'Filière', 'Statut', 'Date inscription']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: {
+              fillColor: [secondaryColor[0], secondaryColor[1], secondaryColor[2]],
+              textColor: 255,
+              fontStyle: 'bold',
+              fontSize: 9
+            },
+            bodyStyles: {
+              fontSize: 8,
+              textColor: [textColor[0], textColor[1], textColor[2]]
+            },
+            alternateRowStyles: {
+              fillColor: [lightGray[0], lightGray[1], lightGray[2]]
+            },
+            columnStyles: {
+              0: { cellWidth: 15 }, // N°
+              1: { cellWidth: 40 }, // Nom complet
+              2: { cellWidth: 50 }, // Email
+              3: { cellWidth: 35 }, // Téléphone
+              4: { cellWidth: 35 }, // Pôle
+              5: { cellWidth: 40 }, // Filière
+              6: { cellWidth: 30 }, // Statut
+              7: { cellWidth: 30 }  // Date inscription
+            },
+            margin: { left: 15, right: 15 },
+            styles: {
+              overflow: 'linebreak',
+              cellPadding: 2
+            }
+          })
+        } catch (tableError) {
+          // Fallback: créer un tableau simple sans autoTable
+          createSimpleTable(doc, yPos + 10, tableData, secondaryColor, textColor, lightGray)
+        }
+      } else {
+        // Fallback si autoTable n'est pas disponible
+        createSimpleTable(doc, yPos + 10, tableData, secondaryColor, textColor, lightGray)
+      }
+      
+      // Fonction helper pour créer un tableau simple sans autoTable
+      function createSimpleTable(
+        doc: jsPDF, 
+        startY: number, 
+        data: any[][], 
+        headerColor: number[], 
+        textColor: number[], 
+        rowColor: number[]
+      ) {
+        const headers = ['N°', 'Nom complet', 'Email', 'Téléphone', 'Pôle', 'Filière', 'Statut', 'Date inscription']
+        const colWidths = [15, 40, 50, 35, 35, 40, 30, 30]
+        const rowHeight = 8
+        let currentY = startY
+        
+        // En-tête
+        doc.setFillColor(headerColor[0], headerColor[1], headerColor[2])
+        doc.setTextColor(255, 255, 255)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        let xPos = 15
+        headers.forEach((header, i) => {
+          doc.rect(xPos, currentY, colWidths[i], rowHeight, 'F')
+          doc.text(header, xPos + 2, currentY + 5)
+          xPos += colWidths[i]
+        })
+        currentY += rowHeight
+        
+        // Données
+        doc.setTextColor(textColor[0], textColor[1], textColor[2])
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        data.forEach((row, rowIndex) => {
+          if (rowIndex % 2 === 0) {
+            doc.setFillColor(rowColor[0], rowColor[1], rowColor[2])
+            let xPos = 15
+            colWidths.forEach((width) => {
+              doc.rect(xPos, currentY, width, rowHeight, 'F')
+              xPos += width
+            })
+          }
+          xPos = 15
+          row.forEach((cell, colIndex) => {
+            const cellText = String(cell || '').substring(0, 30) // Limiter la longueur
+            doc.text(cellText, xPos + 2, currentY + 5)
+            xPos += colWidths[colIndex]
+          })
+          currentY += rowHeight
+          
+          // Nouvelle page si nécessaire
+          if (currentY > doc.internal.pageSize.getHeight() - 30) {
+            doc.addPage()
+            currentY = 20
+          }
+        })
+      }
+
+      // Pied de page
+      const pageCount = (doc as any).internal.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setFontSize(8)
+        doc.setTextColor(128, 128, 128)
+        doc.text(
+          `Page ${i} sur ${pageCount} - Exporté le ${new Date().toLocaleDateString('fr-FR')}`,
+          doc.internal.pageSize.getWidth() / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        )
+      }
+
+      // Générer le nom du fichier
+      const fileName = `Inscriptions_${atelier.titre.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
+
+      // Télécharger le PDF
+      doc.save(fileName)
+      
+      alert(`Fichier PDF exporté avec succès : ${fileName}`)
+    } catch (error: any) {
+      console.error('Erreur lors de l\'export PDF:', error)
+      alert('Erreur lors de l\'export PDF. Veuillez réessayer.')
+    }
   }
 
   // Supprimer une inscription
@@ -267,13 +533,22 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             </select>
           </div>
 
-            <button
-              onClick={exportToExcel}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Exporter
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={exportToExcel}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Excel
+              </button>
+              <button
+                onClick={exportToPDF}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                PDF
+              </button>
+            </div>
           </div>
         </div>
 
