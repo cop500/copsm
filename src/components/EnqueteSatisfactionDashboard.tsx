@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useEnqueteSatisfaction } from '@/hooks/useEnqueteSatisfaction'
+import { supabase } from '@/lib/supabase'
 import {
   BarChart,
   Bar,
@@ -26,7 +27,9 @@ import {
   Building2,
   Mail,
   Phone,
-  Calendar
+  Calendar,
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
@@ -37,8 +40,30 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
   const [selectedEnquete, setSelectedEnquete] = useState<any>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const stats = getStats()
+
+  // Chargement du rôle pour afficher les actions admin
+  useEffect(() => {
+    const loadRole = async () => {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (profile?.role === 'business_developer') {
+        setIsAdmin(true)
+      }
+    }
+    loadRole()
+  }, [])
 
   // Filtrer les enquêtes
   const filteredEnquetes = useMemo(() => {
@@ -111,6 +136,98 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Enquêtes')
     XLSX.writeFile(wb, `enquetes_satisfaction_${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  // Télécharger un template Excel (admin)
+  const downloadTemplate = () => {
+    const sample = [
+      {
+        nom_entreprise: 'Exemple SARL',
+        nom_representant: 'Marie Dupont',
+        fonction_representant: 'DRH',
+        email_entreprise: 'contact@exemple.com',
+        telephone_entreprise: '0600000000',
+        niveau_technique: 4,
+        communication: 4,
+        soft_skills: 5,
+        adequation_besoins: 4,
+        profil_interessant: 'oui',
+        intention_recruter: 'peut_etre',
+        organisation_globale: 5,
+        accueil_accompagnement: 5,
+        communication_avant_event: 4,
+        pertinence_profils: 4,
+        fluidite_delais: 4,
+        logistique_espace: 5,
+        nombre_profils_retenus: '2-5',
+        intention_revenir: 'oui',
+        recommandation_autres_entreprises: 'oui',
+        suggestions: 'Exemple de remarque facultative'
+      }
+    ]
+    const ws = XLSX.utils.json_to_sheet(sample)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Template')
+    XLSX.writeFile(wb, 'template_enquete_satisfaction.xlsx')
+  }
+
+  // Importer un fichier Excel (admin)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+      const firstSheet = workbook.SheetNames[0]
+      const sheet = workbook.Sheets[firstSheet]
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+
+      if (!rows.length) {
+        alert('Le fichier est vide.')
+        return
+      }
+
+      const required = ['nom_entreprise', 'nom_representant', 'fonction_representant', 'email_entreprise']
+      const missingHeaders = required.filter((h) => !(h in rows[0]))
+      if (missingHeaders.length) {
+        alert(`En-têtes manquants dans le fichier : ${missingHeaders.join(', ')}`)
+        return
+      }
+
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) {
+        alert('Session expirée, veuillez vous reconnecter.')
+        return
+      }
+
+      const res = await fetch('/api/enquete-satisfaction/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ rows })
+      })
+
+      const json = await res.json()
+      if (!res.ok) {
+        alert(`Import en erreur : ${json.error || 'Erreur inconnue'}`)
+        return
+      }
+
+      await fetchEnquetes(true)
+      alert(`Import terminé : ${json.imported} lignes importées. ${json.rejected?.length || 0} rejetées.`)
+    } catch (err: any) {
+      console.error('Erreur import Excel:', err)
+      alert('Erreur lors de l’import. Vérifiez le format du fichier.')
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   // Supprimer une enquête
@@ -284,7 +401,7 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
           <h3 className="text-lg font-bold text-gray-900">Liste des enquêtes</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             <button
               onClick={exportToExcel}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
@@ -292,6 +409,32 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
               <Download className="w-4 h-4" />
               Exporter Excel
             </button>
+            {isAdmin && (
+              <>
+                <button
+                  onClick={downloadTemplate}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Template admin
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 disabled:opacity-60"
+                >
+                  <Upload className="w-4 h-4" />
+                  {importing ? 'Import...' : 'Importer Excel'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </>
+            )}
             <button
               onClick={() => fetchEnquetes(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
