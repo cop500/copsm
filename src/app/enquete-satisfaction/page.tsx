@@ -23,26 +23,32 @@ export default function EnqueteSatisfactionPage() {
         console.groupEnd()
       }
 
-      const { data: newEnquete, error: insertError } = await supabase
-        .from('satisfaction_entreprises_jobdating')
-        .insert([data as any])
-        .select()
-        .single()
+      // Utiliser la route API pour contourner RLS en production
+      const response = await fetch('/api/enquete-satisfaction/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
 
-      if (insertError) {
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
         // Log détaillé de l'erreur
-        const errorDetails = getErrorDetails(insertError)
-        console.error('❌ Erreur Supabase lors de l\'insertion:', errorDetails)
-        throw insertError
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Erreur API lors de l\'insertion:', result)
+        }
+        throw new Error(result.error || 'Erreur lors de la soumission')
       }
 
       // Log de succès
       if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Enquête soumise avec succès:', newEnquete)
+        console.log('✅ Enquête soumise avec succès:', result.data)
       }
 
       setSubmitted(true)
-      return { success: true, data: newEnquete }
+      return { success: true, data: result.data }
     } catch (err: any) {
       // Utiliser la fonction utilitaire pour obtenir un message utilisateur
       const errorMessage = getErrorMessage(err)
