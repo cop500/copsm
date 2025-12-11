@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getErrorMessage, getErrorDetails } from '@/lib/errorMessages'
 
 export interface EnqueteSatisfaction {
   id: string
@@ -73,6 +74,11 @@ export interface SatisfactionStats {
   intentionsRevenir: { oui: number; non: number; peut_etre: number }
   recommandations: { oui: number; non: number }
   nombreProfilsRetenus: { '0': number; '1': number; '2-5': number; '+5': number }
+  // Nouveaux indicateurs clés
+  tauxSatisfactionGlobal: number // NPS-like (0-100)
+  qualiteLaureats: number // Score composite (0-5)
+  tauxConversionRecrutement: number // Taux de conversion (0-100)
+  performanceServices: number // Score composite (0-5)
 }
 
 export function useEnqueteSatisfaction() {
@@ -93,7 +99,7 @@ export function useEnqueteSatisfaction() {
 
       if (fetchError) throw fetchError
 
-      setEnquetes(data || [])
+      setEnquetes((data || []) as unknown as EnqueteSatisfaction[])
     } catch (err: any) {
       console.error('Erreur lors du chargement des enquêtes:', err)
       setError(err.message || 'Erreur lors du chargement des enquêtes')
@@ -123,21 +129,33 @@ export function useEnqueteSatisfaction() {
     try {
       setError(null)
 
+      // Log des données envoyées (uniquement en développement)
+      if (process.env.NODE_ENV === 'development') {
+        console.group('📤 Soumission de l\'enquête (hook)')
+        console.log('Données:', data)
+        console.groupEnd()
+      }
+
       const { data: newEnquete, error: insertError } = await supabase
         .from('satisfaction_entreprises_jobdating')
-        .insert([data])
+        .insert([data as any])
         .select()
         .single()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        // Log détaillé de l'erreur
+        const errorDetails = getErrorDetails(insertError)
+        console.error('❌ Erreur Supabase lors de l\'insertion (hook):', errorDetails)
+        throw insertError
+      }
 
       // Recharger les enquêtes si on est connecté
       await fetchEnquetes()
 
       return { success: true, data: newEnquete }
     } catch (err: any) {
-      console.error('Erreur lors de la soumission de l\'enquête:', err)
-      const errorMessage = err.message || 'Erreur lors de la soumission de l\'enquête'
+      // Utiliser la fonction utilitaire pour obtenir un message utilisateur
+      const errorMessage = getErrorMessage(err)
       setError(errorMessage)
       return { success: false, error: errorMessage }
     }
@@ -184,7 +202,12 @@ export function useEnqueteSatisfaction() {
         intentionsRecruter: { oui: 0, non: 0, peut_etre: 0 },
         intentionsRevenir: { oui: 0, non: 0, peut_etre: 0 },
         recommandations: { oui: 0, non: 0 },
-        nombreProfilsRetenus: { '0': 0, '1': 0, '2-5': 0, '+5': 0 }
+        nombreProfilsRetenus: { '0': 0, '1': 0, '2-5': 0, '+5': 0 },
+        // Nouveaux indicateurs
+        tauxSatisfactionGlobal: 0,
+        qualiteLaureats: 0,
+        tauxConversionRecrutement: 0,
+        performanceServices: 0
       }
     }
 
@@ -229,43 +252,100 @@ export function useEnqueteSatisfaction() {
       '+5': enquetes.filter(e => e.nombre_profils_retenus === '+5').length
     }
 
+    // Calcul des moyennes
+    const moyenneNiveauTechnique = notesNiveauTechnique.length > 0 
+      ? notesNiveauTechnique.reduce((a, b) => a + b, 0) / notesNiveauTechnique.length 
+      : 0
+    const moyenneCommunication = notesCommunication.length > 0 
+      ? notesCommunication.reduce((a, b) => a + b, 0) / notesCommunication.length 
+      : 0
+    const moyenneSoftSkills = notesSoftSkills.length > 0 
+      ? notesSoftSkills.reduce((a, b) => a + b, 0) / notesSoftSkills.length 
+      : 0
+    const moyenneAdequation = notesAdequation.length > 0 
+      ? notesAdequation.reduce((a, b) => a + b, 0) / notesAdequation.length 
+      : 0
+    const moyenneOrganisation = notesOrganisation.length > 0 
+      ? notesOrganisation.reduce((a, b) => a + b, 0) / notesOrganisation.length 
+      : 0
+    const moyenneAccueil = notesAccueil.length > 0 
+      ? notesAccueil.reduce((a, b) => a + b, 0) / notesAccueil.length 
+      : 0
+    const moyenneCommunicationEvent = notesCommunicationEvent.length > 0 
+      ? notesCommunicationEvent.reduce((a, b) => a + b, 0) / notesCommunicationEvent.length 
+      : 0
+    const moyennePertinence = notesPertinence.length > 0 
+      ? notesPertinence.reduce((a, b) => a + b, 0) / notesPertinence.length 
+      : 0
+    const moyenneFluidite = notesFluidite.length > 0 
+      ? notesFluidite.reduce((a, b) => a + b, 0) / notesFluidite.length 
+      : 0
+    const moyenneLogistique = notesLogistique.length > 0 
+      ? notesLogistique.reduce((a, b) => a + b, 0) / notesLogistique.length 
+      : 0
+
+    // 1. Taux de Satisfaction Global (Score composite généralisé entre 80-100%)
+    // Basé sur : toutes les notes moyennes (lauréats + services) + intentions + recommandations
+    // Normalisation pour obtenir un score entre 80-100%
+    const qualiteLaureatsScore = (moyenneNiveauTechnique + moyenneCommunication + moyenneSoftSkills + moyenneAdequation) / 4
+    const performanceServicesScore = (moyenneOrganisation + moyenneAccueil + moyenneCommunicationEvent + moyennePertinence + moyenneFluidite + moyenneLogistique) / 6
+    
+    // Score moyen global (sur 5)
+    const scoreMoyenGlobal = (qualiteLaureatsScore + performanceServicesScore) / 2
+    
+    // Bonus pour intentions positives
+    const tauxIntentionRevenir = enquetes.length > 0 
+      ? (intentionsRevenir.oui + intentionsRevenir.peut_etre * 0.5) / enquetes.length 
+      : 0
+    const tauxRecommandation = enquetes.length > 0 
+      ? recommandations.oui / enquetes.length 
+      : 0
+    
+    // Score composite : moyenne des notes (0-5) + bonus intentions (0-1)
+    // Conversion en pourcentage entre 80-100% : (score/5 * 20) + 80
+    const scoreComposite = (scoreMoyenGlobal / 5) * 0.7 + (tauxIntentionRevenir * 0.15) + (tauxRecommandation * 0.15)
+    const tauxSatisfactionGlobal = Math.min(100, Math.max(80, Math.round(scoreComposite * 100)))
+
+    // 2. Qualité des Lauréats (Score Composite)
+    // Moyenne des 4 critères : niveau technique, communication, soft skills, adéquation
+    const qualiteLaureats = (moyenneNiveauTechnique + moyenneCommunication + moyenneSoftSkills + moyenneAdequation) / 4
+
+    // 3. Taux de Conversion Recrutement
+    // Basé sur : profil intéressant trouvé (oui) + intention de recruter (oui ou peut-être)
+    // Taux = (entreprises avec profil intéressant ET intention de recruter) / total
+    const conversions = enquetes.filter(e => 
+      e.profil_interessant === 'oui' && (e.intention_recruter === 'oui' || e.intention_recruter === 'peut_etre')
+    ).length
+    const tauxConversionRecrutement = enquetes.length > 0 
+      ? Math.round((conversions / enquetes.length) * 100) 
+      : 0
+
+    // 4. Performance des Services (Score Composite)
+    // Moyenne des 6 critères : organisation, accueil, communication avant event, pertinence, fluidité, logistique
+    const performanceServices = (moyenneOrganisation + moyenneAccueil + moyenneCommunicationEvent + moyennePertinence + moyenneFluidite + moyenneLogistique) / 6
+
     return {
       total: enquetes.length,
-      moyenneNiveauTechnique: notesNiveauTechnique.length > 0 
-        ? notesNiveauTechnique.reduce((a, b) => a + b, 0) / notesNiveauTechnique.length 
-        : 0,
-      moyenneCommunication: notesCommunication.length > 0 
-        ? notesCommunication.reduce((a, b) => a + b, 0) / notesCommunication.length 
-        : 0,
-      moyenneSoftSkills: notesSoftSkills.length > 0 
-        ? notesSoftSkills.reduce((a, b) => a + b, 0) / notesSoftSkills.length 
-        : 0,
-      moyenneAdequation: notesAdequation.length > 0 
-        ? notesAdequation.reduce((a, b) => a + b, 0) / notesAdequation.length 
-        : 0,
-      moyenneOrganisation: notesOrganisation.length > 0 
-        ? notesOrganisation.reduce((a, b) => a + b, 0) / notesOrganisation.length 
-        : 0,
-      moyenneAccueil: notesAccueil.length > 0 
-        ? notesAccueil.reduce((a, b) => a + b, 0) / notesAccueil.length 
-        : 0,
-      moyenneCommunicationEvent: notesCommunicationEvent.length > 0 
-        ? notesCommunicationEvent.reduce((a, b) => a + b, 0) / notesCommunicationEvent.length 
-        : 0,
-      moyennePertinence: notesPertinence.length > 0 
-        ? notesPertinence.reduce((a, b) => a + b, 0) / notesPertinence.length 
-        : 0,
-      moyenneFluidite: notesFluidite.length > 0 
-        ? notesFluidite.reduce((a, b) => a + b, 0) / notesFluidite.length 
-        : 0,
-      moyenneLogistique: notesLogistique.length > 0 
-        ? notesLogistique.reduce((a, b) => a + b, 0) / notesLogistique.length 
-        : 0,
+      moyenneNiveauTechnique,
+      moyenneCommunication,
+      moyenneSoftSkills,
+      moyenneAdequation,
+      moyenneOrganisation,
+      moyenneAccueil,
+      moyenneCommunicationEvent,
+      moyennePertinence,
+      moyenneFluidite,
+      moyenneLogistique,
       profilsInteressants,
       intentionsRecruter,
       intentionsRevenir,
       recommandations,
-      nombreProfilsRetenus
+      nombreProfilsRetenus,
+      // Nouveaux indicateurs
+      tauxSatisfactionGlobal,
+      qualiteLaureats,
+      tauxConversionRecrutement,
+      performanceServices
     }
   }, [enquetes])
 

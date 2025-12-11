@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { EnqueteSatisfactionForm } from '@/components/EnqueteSatisfactionForm'
 import { Building2, CheckCircle } from 'lucide-react'
 import type { EnqueteSatisfactionFormData } from '@/hooks/useEnqueteSatisfaction'
+import { getErrorMessage, getErrorDetails } from '@/lib/errorMessages'
 
 export default function EnqueteSatisfactionPage() {
   const [submitted, setSubmitted] = useState(false)
@@ -14,21 +15,37 @@ export default function EnqueteSatisfactionPage() {
     try {
       setError(null)
       
+      // Log des données envoyées (uniquement en développement)
+      if (process.env.NODE_ENV === 'development') {
+        console.group('📤 Soumission de l\'enquête de satisfaction')
+        console.log('Données:', data)
+        console.log('URL Supabase:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+        console.groupEnd()
+      }
+
       const { data: newEnquete, error: insertError } = await supabase
         .from('satisfaction_entreprises_jobdating')
-        .insert([data])
+        .insert([data as any])
         .select()
         .single()
 
       if (insertError) {
+        // Log détaillé de l'erreur
+        const errorDetails = getErrorDetails(insertError)
+        console.error('❌ Erreur Supabase lors de l\'insertion:', errorDetails)
         throw insertError
+      }
+
+      // Log de succès
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Enquête soumise avec succès:', newEnquete)
       }
 
       setSubmitted(true)
       return { success: true, data: newEnquete }
     } catch (err: any) {
-      console.error('Erreur lors de la soumission de l\'enquête:', err)
-      const errorMessage = err.message || 'Erreur lors de la soumission de l\'enquête'
+      // Utiliser la fonction utilitaire pour obtenir un message utilisateur
+      const errorMessage = getErrorMessage(err)
       setError(errorMessage)
       return { success: false, error: errorMessage }
     }

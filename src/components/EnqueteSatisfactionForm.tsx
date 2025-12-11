@@ -14,6 +14,7 @@ import {
   Save
 } from 'lucide-react'
 import type { EnqueteSatisfactionFormData } from '@/hooks/useEnqueteSatisfaction'
+import { getErrorMessage } from '@/lib/errorMessages'
 
 interface EnqueteSatisfactionFormProps {
   onSubmit: (data: EnqueteSatisfactionFormData) => Promise<{ success: boolean; error?: string }>
@@ -211,10 +212,14 @@ export const EnqueteSatisfactionForm: React.FC<EnqueteSatisfactionFormProps> = (
           }, 2000)
         }
       } else {
-        setSubmitError(result.error || 'Erreur lors de la soumission')
+        // Utiliser la fonction utilitaire pour obtenir un message utilisateur clair
+        const errorMessage = getErrorMessage(result.error)
+        setSubmitError(errorMessage)
       }
     } catch (err: any) {
-      setSubmitError(err.message || 'Erreur lors de la soumission')
+      // Utiliser la fonction utilitaire pour obtenir un message utilisateur clair
+      const errorMessage = getErrorMessage(err)
+      setSubmitError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -252,11 +257,14 @@ export const EnqueteSatisfactionForm: React.FC<EnqueteSatisfactionFormProps> = (
       )}
 
       {submitError && (
-        <div className="border-2 border-red-300 bg-red-50 text-red-700 rounded-xl p-5 flex gap-3 mb-6">
+        <div className="border-2 border-red-300 bg-red-50 text-red-700 rounded-xl p-5 flex gap-3 mb-6 animate-fade-in">
           <AlertCircle className="w-6 h-6 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-bold text-base mb-1">Erreur</p>
-            <p className="text-sm">{submitError}</p>
+          <div className="flex-1">
+            <p className="font-bold text-base mb-1">Erreur lors de la soumission</p>
+            <p className="text-sm mb-2">{submitError}</p>
+            <p className="text-xs text-red-600 italic">
+              💡 Si le problème persiste, veuillez vérifier votre connexion internet ou contacter le support.
+            </p>
           </div>
         </div>
       )}

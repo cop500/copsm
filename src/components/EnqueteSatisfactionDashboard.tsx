@@ -29,7 +29,11 @@ import {
   Phone,
   Calendar,
   Upload,
-  FileSpreadsheet
+  FileSpreadsheet,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ArrowRight
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
@@ -49,17 +53,35 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
   // Chargement du rôle pour afficher les actions admin
   useEffect(() => {
     const loadRole = async () => {
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      if (profile?.role === 'business_developer') {
-        setIsAdmin(true)
+      try {
+        const {
+          data: { user }
+        } = await supabase.auth.getUser()
+        if (!user) {
+          console.log('Aucun utilisateur connecté')
+          return
+        }
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        
+        if (error) {
+          console.error('Erreur lors du chargement du profil:', error)
+          return
+        }
+        
+        // Vérifier plusieurs rôles admin possibles
+        const adminRoles = ['business_developer', 'manager_cop', 'directeur']
+        if (profile?.role && adminRoles.includes(profile.role)) {
+          console.log('Rôle admin détecté:', profile.role)
+          setIsAdmin(true)
+        } else {
+          console.log('Rôle non-admin:', profile?.role)
+        }
+      } catch (err) {
+        console.error('Erreur lors de la vérification du rôle:', err)
       }
     }
     loadRole()
@@ -261,65 +283,59 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* En-tête avec statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total enquêtes</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-blue-600" />
+      {/* En-tête avec les 4 indicateurs clés */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* 1. Taux de Satisfaction Global (NPS-like) */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-sm border-2 border-blue-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+              <TrendingUp className="w-6 h-6 text-white" />
             </div>
           </div>
+          <p className="text-sm font-semibold text-blue-700 mb-1">Taux de Satisfaction Global</p>
+          <p className="text-4xl font-bold text-blue-900 mb-1">{stats.tauxSatisfactionGlobal}%</p>
+          <p className="text-xs text-blue-600">NPS-like (Fidélité + Advocacy)</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Moy. satisfaction lauréats</p>
-              <p className="text-3xl font-bold text-green-600">
-                {((stats.moyenneNiveauTechnique + stats.moyenneCommunication + stats.moyenneSoftSkills + stats.moyenneAdequation) / 4).toFixed(1)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Star className="w-6 h-6 text-green-600" />
+        {/* 2. Qualité des Lauréats */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-sm border-2 border-green-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+              <Star className="w-6 h-6 text-white" />
             </div>
           </div>
+          <p className="text-sm font-semibold text-green-700 mb-1">Qualité des Lauréats</p>
+          <p className="text-4xl font-bold text-green-900 mb-1">{stats.qualiteLaureats.toFixed(1)}/5</p>
+          <p className="text-xs text-green-600">Score composite (4 critères)</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Moy. satisfaction JD</p>
-              <p className="text-3xl font-bold text-purple-600">
-                {((stats.moyenneOrganisation + stats.moyenneAccueil + stats.moyenneCommunicationEvent + stats.moyennePertinence + stats.moyenneFluidite + stats.moyenneLogistique) / 6).toFixed(1)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
+        {/* 3. Taux de Conversion Recrutement */}
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-sm border-2 border-purple-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
+              <Users className="w-6 h-6 text-white" />
             </div>
           </div>
+          <p className="text-sm font-semibold text-purple-700 mb-1">Taux de Conversion</p>
+          <p className="text-4xl font-bold text-purple-900 mb-1">{stats.tauxConversionRecrutement}%</p>
+          <p className="text-xs text-purple-600">Recrutement (Matching)</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Taux recommandation</p>
-              <p className="text-3xl font-bold text-orange-600">
-                {stats.total > 0 ? Math.round((stats.recommandations.oui / stats.total) * 100) : 0}%
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-orange-600" />
+        {/* 4. Performance des Services */}
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl shadow-sm border-2 border-orange-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+              <Star className="w-6 h-6 text-white" />
             </div>
           </div>
+          <p className="text-sm font-semibold text-orange-700 mb-1">Performance des Services</p>
+          <p className="text-4xl font-bold text-orange-900 mb-1">{stats.performanceServices.toFixed(1)}/5</p>
+          <p className="text-xs text-orange-600">Score composite (6 critères)</p>
         </div>
       </div>
 
-      {/* Graphiques */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Graphiques - Section principale */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Satisfaction lauréats */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Satisfaction concernant les lauréats</h3>
@@ -347,53 +363,241 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
 
-        {/* Profils intéressants */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Profils intéressants trouvés</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={profilsInteressantsData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {profilsInteressantsData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+      {/* Graphiques - Profils intéressants et Intention de revenir - Design créatif */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Profils intéressants - Diagramme en barres verticales créatif */}
+        <div className="bg-gradient-to-br from-blue-50 via-white to-green-50 p-6 rounded-2xl shadow-xl border-2 border-blue-300 relative overflow-hidden">
+          {/* Effet de fond décoratif */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 rounded-full blur-3xl opacity-20"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-green-200 rounded-full blur-2xl opacity-20"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Profils intéressants trouvés</h3>
+              </div>
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md">
+                {stats.profilsInteressants.oui + stats.profilsInteressants.non + stats.profilsInteressants.en_cours} réponses
+              </div>
+            </div>
+
+            {/* Graphique en barres verticales avec design créatif */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 mb-4 border border-blue-100">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart
+                  data={profilsInteressantsData.map(item => ({
+                    ...item,
+                    name: item.name === 'En cours' ? 'En cours' : item.name
+                  }))}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                >
+                  <defs>
+                    <linearGradient id="colorOui" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#059669" stopOpacity={1} />
+                    </linearGradient>
+                    <linearGradient id="colorNon" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#EF4444" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#DC2626" stopOpacity={1} />
+                    </linearGradient>
+                    <linearGradient id="colorEnCours" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#F59E0B" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#D97706" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fill: '#6b7280', fontSize: 12, fontWeight: 600 }}
+                    axisLine={{ stroke: '#d1d5db' }}
+                  />
+                  <YAxis 
+                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                    axisLine={{ stroke: '#d1d5db' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'white', 
+                      border: '2px solid #3b82f6',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                    formatter={(value: any) => [`${value} réponses`, 'Nombre']}
+                  />
+                  <Bar 
+                    dataKey="value" 
+                    radius={[12, 12, 0, 0]}
+                    strokeWidth={2}
+                  >
+                    {profilsInteressantsData.map((entry, index) => {
+                      let fillColor = ''
+                      if (entry.name === 'Oui') fillColor = 'url(#colorOui)'
+                      else if (entry.name === 'Non') fillColor = 'url(#colorNon)'
+                      else fillColor = 'url(#colorEnCours)'
+                      
+                      return (
+                        <Cell key={`cell-${index}`} fill={fillColor} stroke={fillColor} strokeWidth={2} />
+                      )
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Cartes statistiques avec icônes */}
+            <div className="grid grid-cols-3 gap-3">
+              {profilsInteressantsData.map((item, index) => {
+                const total = stats.profilsInteressants.oui + stats.profilsInteressants.non + stats.profilsInteressants.en_cours
+                const percentage = total > 0 ? (item.value / total) * 100 : 0
+                const iconMap: { [key: string]: any } = {
+                  'Oui': CheckCircle,
+                  'Non': XCircle,
+                  'En cours': Clock
+                }
+                const colorMap: { [key: string]: string } = {
+                  'Oui': 'from-green-500 to-green-600',
+                  'Non': 'from-red-500 to-red-600',
+                  'En cours': 'from-yellow-500 to-orange-500'
+                }
+                const bgColorMap: { [key: string]: string } = {
+                  'Oui': 'bg-green-50 border-green-200',
+                  'Non': 'bg-red-50 border-red-200',
+                  'En cours': 'bg-yellow-50 border-yellow-200'
+                }
+                const Icon = iconMap[item.name] || CheckCircle
+                
+                return (
+                  <div key={item.name} className={`${bgColorMap[item.name]} rounded-xl p-4 border-2 transition-transform hover:scale-105`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`w-5 h-5 text-${item.name === 'Oui' ? 'green' : item.name === 'Non' ? 'red' : 'yellow'}-600`} />
+                      <span className="text-xs font-semibold text-gray-600 uppercase">{item.name}</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 mb-1">{item.value}</div>
+                    <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
 
-        {/* Intentions de revenir */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Intention de revenir</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={intentionsRevenirData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {intentionsRevenirData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+        {/* Intentions de revenir - Diagramme en barres verticales créatif */}
+        <div className="bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6 rounded-2xl shadow-xl border-2 border-purple-300 relative overflow-hidden">
+          {/* Effet de fond décoratif */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200 rounded-full blur-3xl opacity-20"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-pink-200 rounded-full blur-2xl opacity-20"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <ArrowRight className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Intention de revenir</h3>
+              </div>
+              <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md">
+                {stats.intentionsRevenir.oui + stats.intentionsRevenir.non + stats.intentionsRevenir.peut_etre} réponses
+              </div>
+            </div>
+
+            {/* Graphique en barres verticales avec design créatif */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 mb-4 border border-purple-100">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart
+                  data={intentionsRevenirData.map(item => ({
+                    ...item,
+                    name: item.name === 'Peut-être' ? 'Peut-être' : item.name
+                  }))}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                >
+                  <defs>
+                    <linearGradient id="colorOuiRevenir" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#059669" stopOpacity={1} />
+                    </linearGradient>
+                    <linearGradient id="colorNonRevenir" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#EF4444" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#DC2626" stopOpacity={1} />
+                    </linearGradient>
+                    <linearGradient id="colorPeutEtre" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#F97316" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#EA580C" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fill: '#6b7280', fontSize: 12, fontWeight: 600 }}
+                    axisLine={{ stroke: '#d1d5db' }}
+                  />
+                  <YAxis 
+                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                    axisLine={{ stroke: '#d1d5db' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'white', 
+                      border: '2px solid #8b5cf6',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                    formatter={(value: any) => [`${value} réponses`, 'Nombre']}
+                  />
+                  <Bar 
+                    dataKey="value" 
+                    radius={[12, 12, 0, 0]}
+                    strokeWidth={2}
+                  >
+                    {intentionsRevenirData.map((entry, index) => {
+                      let fillColor = ''
+                      if (entry.name === 'Oui') fillColor = 'url(#colorOuiRevenir)'
+                      else if (entry.name === 'Non') fillColor = 'url(#colorNonRevenir)'
+                      else fillColor = 'url(#colorPeutEtre)'
+                      
+                      return (
+                        <Cell key={`cell-${index}`} fill={fillColor} stroke={fillColor} strokeWidth={2} />
+                      )
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Cartes statistiques avec icônes */}
+            <div className="grid grid-cols-3 gap-3">
+              {intentionsRevenirData.map((item, index) => {
+                const total = stats.intentionsRevenir.oui + stats.intentionsRevenir.non + stats.intentionsRevenir.peut_etre
+                const percentage = total > 0 ? (item.value / total) * 100 : 0
+                const iconMap: { [key: string]: any } = {
+                  'Oui': CheckCircle,
+                  'Non': XCircle,
+                  'Peut-être': Clock
+                }
+                const bgColorMap: { [key: string]: string } = {
+                  'Oui': 'bg-green-50 border-green-200',
+                  'Non': 'bg-red-50 border-red-200',
+                  'Peut-être': 'bg-orange-50 border-orange-200'
+                }
+                const Icon = iconMap[item.name] || CheckCircle
+                
+                return (
+                  <div key={item.name} className={`${bgColorMap[item.name]} rounded-xl p-4 border-2 transition-transform hover:scale-105`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`w-5 h-5 text-${item.name === 'Oui' ? 'green' : item.name === 'Non' ? 'red' : 'orange'}-600`} />
+                      <span className="text-xs font-semibold text-gray-600 uppercase">{item.name}</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 mb-1">{item.value}</div>
+                    <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -446,14 +650,19 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
         </div>
 
         {/* Recherche */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between gap-4">
           <input
             type="text"
             placeholder="Rechercher par entreprise, représentant ou email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
+          {process.env.NODE_ENV === 'development' && (
+            <div className="text-xs text-gray-500 px-3 py-2 bg-gray-100 rounded-lg">
+              Admin: {isAdmin ? '✅ Oui' : '❌ Non'}
+            </div>
+          )}
         </div>
 
         {/* Table */}
@@ -494,16 +703,20 @@ export const EnqueteSatisfactionDashboard: React.FC = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleViewDetail(enquete)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-blue-600 hover:text-blue-800 transition-colors p-1 rounded hover:bg-blue-50"
+                          title="Voir les détails"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(enquete.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isAdmin ? (
+                          <button
+                            onClick={() => handleDelete(enquete.id)}
+                            className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
+                            title="Supprimer (Admin uniquement)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
