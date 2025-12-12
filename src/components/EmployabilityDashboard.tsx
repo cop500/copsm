@@ -56,8 +56,14 @@ interface EnterpriseMetrics {
   // Métriques des visites
   totalVisites: number;
   visitesPlanifiees: number;
-  entreprisesPrioritaires: number;
-  // Champs supprimés : visitesEffectuees, actionsEnRetard, tauxVisitesParEntreprise
+  // Statut BD
+  statutBD: {
+    label: string;
+    date?: string;
+    color: string;
+    icon: string;
+  };
+  // Champs supprimés : visitesEffectuees, actionsEnRetard, tauxVisitesParEntreprise, entreprisesPrioritaires
 }
 
 interface DemandMetrics {
@@ -164,6 +170,62 @@ export const EmployabilityDashboard: React.FC = () => {
       // Calculer les métriques des visites
       const visitesStats = getStats();
       
+      // Déterminer le statut BD basé sur les visites planifiées
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Trouver les visites planifiées pour aujourd'hui
+      const visitesAujourdhui = visites.filter(v => {
+        if (!v.date_visite) return false;
+        const dateVisite = new Date(v.date_visite);
+        dateVisite.setHours(0, 0, 0, 0);
+        return dateVisite.getTime() === today.getTime();
+      });
+      
+      // Trouver la prochaine visite planifiée
+      const prochaineVisite = visites
+        .filter(v => {
+          if (!v.date_visite) return false;
+          const dateVisite = new Date(v.date_visite);
+          dateVisite.setHours(0, 0, 0, 0);
+          return dateVisite.getTime() >= today.getTime();
+        })
+        .sort((a, b) => new Date(a.date_visite).getTime() - new Date(b.date_visite).getTime())[0];
+      
+      let statutBD: EnterpriseMetrics['statutBD'];
+      
+      if (visitesAujourdhui.length > 0) {
+        // BD EN DÉPLACEMENT : visite planifiée aujourd'hui
+        const visite = visitesAujourdhui[0];
+        const dateVisite = new Date(visite.date_visite);
+        const entrepriseNom = visite.entreprise?.nom || 'Entreprise';
+        statutBD = {
+          label: `BD EN DÉPLACEMENT`,
+          date: dateVisite.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }),
+          color: 'text-blue-600 bg-blue-50',
+          icon: '🚗'
+        };
+      } else if (prochaineVisite) {
+        // BD EN VISITE : pas de visite aujourd'hui mais visite planifiée
+        const dateVisite = new Date(prochaineVisite.date_visite);
+        const joursRestants = Math.ceil((dateVisite.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        statutBD = {
+          label: `BD EN VISITE`,
+          date: joursRestants === 1 
+            ? 'Demain' 
+            : `Dans ${joursRestants} jours (${dateVisite.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})`,
+          color: 'text-orange-600 bg-orange-50',
+          icon: '📅'
+        };
+      } else {
+        // BD EN CMC : pas de visite planifiée
+        statutBD = {
+          label: 'BD EN CMC',
+          color: 'text-gray-600 bg-gray-50',
+          icon: '🏢'
+        };
+      }
+      
       const metrics: EnterpriseMetrics = {
         totalEnterprises: entreprises.length,
         prospects: entreprises.filter(e => e.statut === 'prospect').length,
@@ -172,7 +234,7 @@ export const EmployabilityDashboard: React.FC = () => {
         // Métriques des visites
         totalVisites: visites.length,
         visitesPlanifiees: visitesStats.visitesPlanifiees,
-        entreprisesPrioritaires: visitesStats.entreprisesPrioritaires
+        statutBD
       };
 
       // Répartition par secteur
@@ -454,7 +516,7 @@ export const EmployabilityDashboard: React.FC = () => {
         ['Métriques Visites Entreprises'],
         ['Total visites', enterpriseMetrics.totalVisites],
         ['Visites planifiées', enterpriseMetrics.visitesPlanifiees],
-        ['Entreprises prioritaires', enterpriseMetrics.entreprisesPrioritaires],
+        ['Statut BD', `${enterpriseMetrics.statutBD.label}${enterpriseMetrics.statutBD.date ? ` - ${enterpriseMetrics.statutBD.date}` : ''}`],
         [''],
         ['Métriques Demandes'],
         ['Total demandes', finalDemandMetrics.totalDemands],
@@ -1027,9 +1089,23 @@ export const EmployabilityDashboard: React.FC = () => {
               <span className="text-xs text-gray-600">Visites planifiées</span>
               <span className="text-sm font-semibold text-orange-600">{enterpriseMetrics?.visitesPlanifiees || 0}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Entreprises prioritaires</span>
-              <span className="text-sm font-semibold text-red-600">{enterpriseMetrics?.entreprisesPrioritaires || 0}</span>
+            {/* Statut BD - Section améliorée et créative */}
+            <div className="border-t border-gray-300 my-3"></div>
+            <div className={`rounded-lg p-3 ${enterpriseMetrics?.statutBD.color || 'bg-gray-50'} border-2 ${enterpriseMetrics?.statutBD.label === 'BD EN DÉPLACEMENT' ? 'border-blue-300' : enterpriseMetrics?.statutBD.label === 'BD EN VISITE' ? 'border-orange-300' : 'border-gray-300'} shadow-sm`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{enterpriseMetrics?.statutBD.icon || '🏢'}</span>
+                <span className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                  {enterpriseMetrics?.statutBD.label || 'BD EN CMC'}
+                </span>
+              </div>
+              {enterpriseMetrics?.statutBD.date && (
+                <div className="flex items-center gap-1 mt-1.5">
+                  <Calendar className="w-3 h-3 text-gray-600" />
+                  <span className="text-xs font-medium text-gray-700">
+                    {enterpriseMetrics.statutBD.date}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

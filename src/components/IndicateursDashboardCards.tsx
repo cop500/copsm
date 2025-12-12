@@ -171,9 +171,10 @@ export default function IndicateursDashboardCards() {
           return (
             <div 
               key={ind.id} 
-              className={`bg-gradient-to-br ${colors.cardBgGradient} rounded-xl border ${colors.border}/30 p-6 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group relative overflow-hidden min-h-[160px] flex flex-col backdrop-blur-sm`}
+              className={`bg-gradient-to-br ${colors.cardBgGradient} rounded-xl border ${colors.border}/30 p-4 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group relative overflow-hidden min-h-[160px] flex flex-col backdrop-blur-sm`}
               role="article"
               aria-label={`Indicateur: ${ind.titre}, valeur: ${ind.valeur}`}
+              title={ind.titre}
             >
               {/* Motifs décoratifs subtils par carte */}
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
@@ -219,65 +220,68 @@ export default function IndicateursDashboardCards() {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out z-20"></div>
               
               <div className="relative z-30 flex flex-col h-full">
-                {/* En-tête avec icône */}
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-600 mb-3 leading-tight line-clamp-2">{ind.titre}</p>
-                  </div>
-                  <div className={`rounded-lg p-2.5 ${colors.iconBg} ml-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
-                    {iconMap[ind.icone as keyof typeof iconMap] || <TrendingUp className={`w-5 h-5 ${colors.text}`} />}
+                {/* En-tête avec icône - Positionnée en haut à droite, plus discrète */}
+                <div className="flex justify-end items-start mb-2">
+                  <div className={`rounded-lg p-1.5 ${colors.iconBg} flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                    {iconMap[ind.icone as keyof typeof iconMap] || <TrendingUp className={`w-4 h-4 ${colors.text}`} />}
                   </div>
                 </div>
 
-                {/* Valeur principale avec icône de tendance */}
-                <div className="flex items-baseline gap-2 mb-3 flex-grow">
-                  <p className={`text-5xl font-bold ${colors.text} leading-none`}>{ind.valeur}</p>
-                  {/* Icône de tendance à droite de la valeur */}
+                {/* Valeur principale - Mise en avant, plus grande */}
+                <div className="flex items-baseline gap-2 mb-2 flex-grow justify-center">
+                  <p className={`text-6xl font-bold ${colors.text} leading-none tracking-tight`}>{ind.valeur}</p>
+                  {/* Icône de tendance compacte */}
                   {isRising && (
-                    <div className="flex items-center bg-green-50 rounded-md px-1.5 py-0.5">
-                      <ArrowUp className="w-4 h-4 text-green-600" />
-                    </div>
+                    <ArrowUp className="w-5 h-5 text-green-600 flex-shrink-0" />
                   )}
                   {isFalling && (
-                    <div className="flex items-center bg-red-50 rounded-md px-1.5 py-0.5">
-                      <ArrowDown className="w-4 h-4 text-red-600" />
-                    </div>
+                    <ArrowDown className="w-5 h-5 text-red-600 flex-shrink-0" />
                   )}
                 </div>
 
-                {/* Badge et tendance */}
-                <div className="flex items-center gap-2 mt-auto mb-3">
+                {/* Titre - En dessous du chiffre, avec tooltip au survol */}
+                <div className="mb-2 text-center">
+                  <p 
+                    className="text-xs font-semibold text-gray-700 leading-tight line-clamp-2 cursor-help" 
+                    title={ind.titre}
+                  >
+                    {ind.titre}
+                  </p>
+                </div>
+
+                {/* Badge et tendance - Version compacte */}
+                <div className="flex items-center justify-center gap-2 mt-auto mb-2">
                   {isVeryGood && (
-                    <div className="flex items-center gap-1.5 bg-green-50 text-green-700 rounded-md px-2 py-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-1 bg-green-50 text-green-700 rounded-full px-2 py-0.5">
+                      <CheckCircle2 className="w-3 h-3" />
                       <span className="text-xs font-medium">Très bon</span>
                     </div>
                   )}
                   {ind.trend && !isVeryGood && (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       {isRising ? (
                         <>
-                          <ArrowUp className="w-4 h-4 text-green-600" />
-                          <p className="text-sm font-medium text-green-600">
+                          <ArrowUp className="w-3 h-3 text-green-600" />
+                          <p className="text-xs font-medium text-green-600">
                             {ind.trend.replace(/en hausse|hausse/gi, '').trim() || 'En hausse'}
                           </p>
                         </>
                       ) : isFalling ? (
                         <>
-                          <ArrowDown className="w-4 h-4 text-red-600" />
-                          <p className="text-sm font-medium text-red-600">
+                          <ArrowDown className="w-3 h-3 text-red-600" />
+                          <p className="text-xs font-medium text-red-600">
                             {ind.trend.replace(/en baisse|baisse|diminution/gi, '').trim() || 'En baisse'}
                           </p>
                         </>
                       ) : (
-                        <p className="text-sm font-medium text-gray-600">{ind.trend}</p>
+                        <p className="text-xs font-medium text-gray-600">{ind.trend}</p>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* Sparkline/Jauge miniature */}
-                <div className="mt-auto h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                {/* Sparkline/Jauge miniature - Plus fine */}
+                <div className="mt-auto h-1 bg-gray-100 rounded-full overflow-hidden">
                   <div 
                     className={`h-full ${colors.bg} rounded-full transition-all duration-500`}
                     style={{ width: `${Math.min(gaugeWidth, 100)}%` }}
