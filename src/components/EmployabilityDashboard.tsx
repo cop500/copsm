@@ -164,87 +164,104 @@ export const EmployabilityDashboard: React.FC = () => {
     }
   }, [evenements, poles]);
 
-  // Calculer les métriques des entreprises
+  // Calculer les métriques des entreprises et des visites (pour tous les utilisateurs)
   useEffect(() => {
-    if (entreprises) {
-      // Calculer les métriques des visites
-      const visitesStats = getStats();
-      
-      // Déterminer le statut BD basé sur les visites planifiées
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      // Trouver les visites planifiées pour aujourd'hui
-      const visitesAujourdhui = visites.filter(v => {
-        if (!v.date_visite) return false;
+    // S'assurer que visites est défini (peut être un tableau vide)
+    const visitesArray = visites || [];
+    
+    // Calculer les métriques des visites (toujours, même si entreprises n'est pas chargé)
+    const visitesStats = getStats();
+    
+    // Déterminer le statut BD basé sur les visites planifiées (pour tous les utilisateurs)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Trouver les visites planifiées pour aujourd'hui
+    const visitesAujourdhui = visitesArray.filter(v => {
+      if (!v.date_visite) return false;
+      try {
         const dateVisite = new Date(v.date_visite);
         dateVisite.setHours(0, 0, 0, 0);
         return dateVisite.getTime() === today.getTime();
-      });
-      
-      // Trouver la prochaine visite planifiée
-      const prochaineVisite = visites
-        .filter(v => {
-          if (!v.date_visite) return false;
+      } catch (e) {
+        return false;
+      }
+    });
+    
+    // Trouver la prochaine visite planifiée
+    const prochaineVisite = visitesArray
+      .filter(v => {
+        if (!v.date_visite) return false;
+        try {
           const dateVisite = new Date(v.date_visite);
           dateVisite.setHours(0, 0, 0, 0);
           return dateVisite.getTime() >= today.getTime();
-        })
-        .sort((a, b) => new Date(a.date_visite).getTime() - new Date(b.date_visite).getTime())[0];
-      
-      let statutBD: EnterpriseMetrics['statutBD'];
-      
-      if (visitesAujourdhui.length > 0) {
-        // BD EN DÉPLACEMENT : visite planifiée aujourd'hui
-        const visite = visitesAujourdhui[0];
-        const dateVisite = new Date(visite.date_visite);
-        const entrepriseNom = visite.entreprise?.nom || 'Entreprise';
-        statutBD = {
-          label: `BD EN DÉPLACEMENT`,
-          date: dateVisite.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }),
-          color: 'text-blue-600 bg-blue-50',
-          icon: '🚗'
-        };
-      } else if (prochaineVisite) {
-        // BD EN VISITE : pas de visite aujourd'hui mais visite planifiée
-        const dateVisite = new Date(prochaineVisite.date_visite);
-        const joursRestants = Math.ceil((dateVisite.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        statutBD = {
-          label: `BD EN VISITE`,
-          date: joursRestants === 1 
-            ? 'Demain' 
-            : `Dans ${joursRestants} jours (${dateVisite.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})`,
-          color: 'text-orange-600 bg-orange-50',
-          icon: '📅'
-        };
-      } else {
-        // BD EN CMC : pas de visite planifiée
-        statutBD = {
-          label: 'BD EN CMC',
-          color: 'text-gray-600 bg-gray-50',
-          icon: '🏢'
-        };
-      }
-      
-      const metrics: EnterpriseMetrics = {
-        totalEnterprises: entreprises.length,
-        prospects: entreprises.filter(e => e.statut === 'prospect').length,
-        partners: entreprises.filter(e => e.statut === 'partenaire').length,
-        sectors: {},
-        // Métriques des visites
-        totalVisites: visites.length,
-        visitesPlanifiees: visitesStats.visitesPlanifiees,
-        statutBD
+        } catch (e) {
+          return false;
+        }
+      })
+      .sort((a, b) => {
+        try {
+          return new Date(a.date_visite).getTime() - new Date(b.date_visite).getTime();
+        } catch (e) {
+          return 0;
+        }
+      })[0];
+    
+    let statutBD: EnterpriseMetrics['statutBD'];
+    
+    if (visitesAujourdhui.length > 0) {
+      // BD EN DÉPLACEMENT : visite planifiée aujourd'hui
+      const visite = visitesAujourdhui[0];
+      const dateVisite = new Date(visite.date_visite);
+      statutBD = {
+        label: `BD EN DÉPLACEMENT`,
+        date: dateVisite.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }),
+        color: 'text-blue-600 bg-blue-50',
+        icon: '🚗'
       };
+    } else if (prochaineVisite) {
+      // BD EN VISITE : pas de visite aujourd'hui mais visite planifiée
+      const dateVisite = new Date(prochaineVisite.date_visite);
+      const joursRestants = Math.ceil((dateVisite.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      statutBD = {
+        label: `BD EN VISITE`,
+        date: joursRestants === 1 
+          ? 'Demain' 
+          : `Dans ${joursRestants} jours (${dateVisite.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})`,
+        color: 'text-orange-600 bg-orange-50',
+        icon: '📅'
+      };
+    } else {
+      // BD EN CMC : pas de visite planifiée
+      statutBD = {
+        label: 'BD EN CMC',
+        color: 'text-gray-600 bg-gray-50',
+        icon: '🏢'
+      };
+    }
+    
+    // Créer les métriques (toujours, même si entreprises n'est pas chargé)
+    const metrics: EnterpriseMetrics = {
+      totalEnterprises: entreprises?.length || 0,
+      prospects: entreprises?.filter(e => e.statut === 'prospect').length || 0,
+      partners: entreprises?.filter(e => e.statut === 'partenaire').length || 0,
+      sectors: {},
+      // Métriques des visites (toujours affichées pour tous les utilisateurs)
+      totalVisites: visitesArray.length,
+      visitesPlanifiees: visitesStats.visitesPlanifiees || 0,
+      statutBD
+    };
 
-      // Répartition par secteur
+    // Répartition par secteur (si entreprises est chargé)
+    if (entreprises) {
       entreprises.forEach(entreprise => {
         const secteur = entreprise.secteur || 'Non défini';
         metrics.sectors[secteur] = (metrics.sectors[secteur] || 0) + 1;
       });
-
-      setEnterpriseMetrics(metrics);
     }
+
+    setEnterpriseMetrics(metrics);
   }, [entreprises, visites, getStats]);
 
   // Calculer les métriques des demandes
