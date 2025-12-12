@@ -105,6 +105,59 @@ export const EmployabilityDashboard: React.FC = () => {
   const { user: currentUser } = useAuth();
   const { isAdmin, isDirecteur, isManager, isConseiller } = useRole();
 
+  // Fonction pour calculer la luminosité d'une couleur (0-255)
+  const getLuminance = (hex: string): number => {
+    const rgb = hex.match(/[A-Za-z0-9]{2}/g)?.map(v => parseInt(v, 16)) || [0, 0, 0];
+    return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]);
+  };
+
+  // Fonction pour obtenir la couleur de fond selon le pôle
+  const getPoleBackgroundColor = (poleName: string): string => {
+    // Normaliser le nom du pôle (minuscules, sans accents, sans espaces multiples)
+    const normalizedName = poleName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .replace(/\s+/g, ' ');
+
+    // Mapping des couleurs pastel/vives par pôle
+    const poleColorMap: { [key: string]: string } = {
+      'btp': '#FFD700',                    // Jaune vif - couleur construction
+      'artisanat': '#E8D5B7',              // Beige chaud - couleur artisanale
+      'industrie': '#B0C4DE',              // Gris bleuté pastel - harmonieux avec la palette
+      'sante': '#FFE5F1',                  // Rose pâle - doux et apaisant
+      'peche aqua': '#87CEEB',             // Bleu ciel - couleur eau/ciel
+      'peche aquacole': '#87CEEB',         // Bleu ciel - couleur eau/ciel
+      'peche maintenance': '#87CEEB',      // Bleu ciel - couleur eau/ciel
+      'agriculture': '#B8E6B8',            // Vert nature pastel - couleur nature
+      'agc': '#7FCDCD',                    // Turquoise pastel - créatif et moderne
+      'arts et industries graphiques': '#7FCDCD', // Turquoise pastel - créatif et moderne
+      'ev': '#FFE0A8',                     // Jaune/ambre pastel - énergique
+      'digital & ag': '#FFB88C',           // Orange pastel - tech/innovation
+      'digitale et ia': '#FFB88C',         // Orange pastel - tech/innovation
+      'digitale et ag': '#FFB88C',         // Orange pastel - tech/innovation
+      'hotellerie & tourisme': '#FFA07A',   // Corail pastel - chaleureux et accueillant
+      'tourisme & hotellerie & restauration': '#FFA07A', // Corail pastel - chaleureux et accueillant
+      'gestion & commerce': '#DDA0DD',     // Mauve pastel - professionnel
+    };
+
+    // Recherche exacte d'abord
+    if (poleColorMap[normalizedName]) {
+      return poleColorMap[normalizedName];
+    }
+
+    // Recherche partielle (pour gérer les variations)
+    for (const [key, color] of Object.entries(poleColorMap)) {
+      if (normalizedName.includes(key) || key.includes(normalizedName)) {
+        return color;
+      }
+    }
+
+    // Couleur par défaut (bleu ciel pastel) si non trouvé
+    return '#A8D0E0';
+  };
+
     // Calculer les métriques des événements
   useEffect(() => {
     if (evenements) {
@@ -1177,37 +1230,50 @@ export const EmployabilityDashboard: React.FC = () => {
             Métriques par Pôles
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(eventMetrics.eventsByPole).map(([poleName, eventCount]) => (
-              <div key={poleName} className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
-                {/* Motifs décoratifs */}
+            {Object.entries(eventMetrics.eventsByPole).map(([poleName, eventCount]) => {
+              const backgroundColor = getPoleBackgroundColor(poleName);
+              const luminance = getLuminance(backgroundColor);
+              // Si la luminosité est faible (< 128), utiliser texte clair, sinon texte foncé
+              const useLightText = luminance < 128;
+              
+              return (
+              <div 
+                key={poleName} 
+                className="rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden"
+                style={{
+                  backgroundColor: backgroundColor,
+                }}
+              >
+                {/* Motifs décoratifs - subtils pour les couleurs pastel */}
                 <div 
-                  className="absolute inset-0 opacity-15 pointer-events-none"
+                  className="absolute inset-0 opacity-8 pointer-events-none"
                   style={{
                     backgroundImage: `
-                      radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-                      radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-                      linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
+                      radial-gradient(circle at 25% 25%, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                      radial-gradient(circle at 75% 75%, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                      linear-gradient(45deg, transparent 48%, rgba(0, 0, 0, 0.05) 49%, rgba(0, 0, 0, 0.05) 51%, transparent 52%)
                     `,
                     backgroundSize: '20px 20px, 30px 30px, 12px 12px',
                     backgroundPosition: '0 0, 10px 10px, 0 0'
                   }}
                 ></div>
                 
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 relative z-10">{poleName}</h4>
+                <h4 className={`text-sm font-semibold mb-3 relative z-10 ${useLightText ? 'text-white' : 'text-gray-900'}`}>{poleName}</h4>
                 <div className="space-y-2 relative z-10">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Événements</span>
-                    <span className="text-sm font-semibold">{eventCount}</span>
+                    <span className={`text-xs ${useLightText ? 'text-gray-200' : 'text-gray-700'}`}>Événements</span>
+                    <span className={`text-sm font-semibold ${useLightText ? 'text-white' : 'text-gray-900'}`}>{eventCount}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Taux de conversion</span>
+                    <span className={`text-xs ${useLightText ? 'text-gray-200' : 'text-gray-700'}`}>Taux de conversion</span>
                     <span className="text-sm font-semibold text-green-600">
                       {eventMetrics.conversionRateByPole[poleName] || 0}%
                     </span>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
