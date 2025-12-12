@@ -158,9 +158,24 @@ const DashboardFullPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Grid responsive KPI - Recommandation 1: 4 colonnes desktop → 2 tablette → 1 mobile */}
+        {/* Événements passés - Carousel */}
         <div className="mb-8">
-          <IndicateursDashboardCards />
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col flex-shrink-0" style={{ minHeight: '320px', maxHeight: '320px' }}>
+            <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-violet-50 to-purple-50 flex-shrink-0">
+              <div className="flex items-center justify-center gap-3">
+                <div className="p-2 bg-violet-100 rounded-lg">
+                  <Calendar className="w-5 h-5 text-violet-700" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-lg font-semibold text-gray-900">Événements passés</h2>
+                  <p className="text-xs text-gray-600">Retour sur nos événements récents</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 flex-1 overflow-hidden">
+              <EvenementsPassesCarousel />
+            </div>
+          </div>
         </div>
 
         {/* Layout asymétrique - Recommandation 1: 2/3 gauche + 1/3 droite */}
@@ -212,21 +227,10 @@ const DashboardFullPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Événements passés - Carousel (déplacé dans la colonne de gauche) */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col flex-shrink-0" style={{ minHeight: '320px', maxHeight: '320px' }}>
-              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-violet-50 to-purple-50 flex-shrink-0">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="p-2 bg-violet-100 rounded-lg">
-                    <Calendar className="w-5 h-5 text-violet-700" />
-                  </div>
-                  <div className="text-center">
-                    <h2 className="text-lg font-semibold text-gray-900">Événements passés</h2>
-                    <p className="text-xs text-gray-600">Retour sur nos événements récents</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 flex-1 overflow-hidden">
-                <EvenementsPassesCarousel />
+            {/* Grid responsive KPI - Recommandation 1: 4 colonnes desktop → 2 tablette → 1 mobile */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col flex-shrink-0">
+              <div className="p-6">
+                <IndicateursDashboardCards />
               </div>
             </div>
 
