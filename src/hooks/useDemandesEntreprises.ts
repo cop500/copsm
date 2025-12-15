@@ -51,6 +51,8 @@ interface Candidature {
   telephone?: string
   created_at: string
   updated_at?: string
+  demande_entreprise_id?: string
+  poste_index?: number
 }
 
 export const useDemandesEntreprises = () => {
@@ -81,22 +83,27 @@ export const useDemandesEntreprises = () => {
       
       if (candidaturesError) throw candidaturesError
 
-      // Grouper les candidatures par entreprise
-      const candidaturesByEntreprise = candidaturesData?.reduce((acc, candidature) => {
-        const entrepriseNom = candidature.entreprise_nom
-        if (!acc[entrepriseNom]) {
-          acc[entrepriseNom] = []
+      // Grouper les candidatures par demande_entreprise_id (nouveau) ou par entreprise_nom (fallback)
+      const candidaturesByDemande = candidaturesData?.reduce((acc, candidature) => {
+        // Priorité à demande_entreprise_id si disponible
+        const key = candidature.demande_entreprise_id || candidature.entreprise_nom
+        if (!acc[key]) {
+          acc[key] = []
         }
-        acc[entrepriseNom].push(candidature)
+        acc[key].push(candidature)
         return acc
       }, {} as Record<string, Candidature[]>) || {}
 
       // Enrichir les demandes avec les candidatures
-      const demandesEnrichies = demandesData?.map(demande => ({
-        ...demande,
-        candidatures_count: candidaturesByEntreprise[demande.entreprise_nom]?.length || 0,
-        candidatures: candidaturesByEntreprise[demande.entreprise_nom] || []
-      })) || []
+      const demandesEnrichies = demandesData?.map(demande => {
+        // Chercher les candidatures par demande_entreprise_id d'abord, puis par entreprise_nom
+        const candidatures = candidaturesByDemande[demande.id] || candidaturesByDemande[demande.entreprise_nom] || []
+        return {
+          ...demande,
+          candidatures_count: candidatures.length,
+          candidatures: candidatures
+        }
+      }) || []
 
       setDemandes(demandesEnrichies)
     } catch (err: any) {
@@ -110,22 +117,34 @@ export const useDemandesEntreprises = () => {
   // Charger les candidatures d'une demande spécifique
   const loadCandidaturesByDemande = async (demandeId: string) => {
     try {
+      // D'abord, récupérer le nom de l'entreprise pour le fallback
       const { data: demande } = await supabase
         .from('demandes_entreprises')
         .select('entreprise_nom')
         .eq('id', demandeId)
         .single()
 
-      if (!demande) return []
-
-      const { data: candidatures, error } = await supabase
+      // Charger les candidatures par demande_entreprise_id (priorité)
+      const { data: candidaturesByDemandeId, error: error1 } = await supabase
         .from('candidatures_stagiaires')
         .select('*')
-        .eq('entreprise_nom', demande.entreprise_nom)
+        .eq('demande_entreprise_id', demandeId)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      return candidatures || []
+      // Si pas de résultats et qu'on a le nom de l'entreprise, chercher par nom (fallback)
+      if ((!candidaturesByDemandeId || candidaturesByDemandeId.length === 0) && demande?.entreprise_nom) {
+        const { data: candidaturesByNom, error: error2 } = await supabase
+          .from('candidatures_stagiaires')
+          .select('*')
+          .eq('entreprise_nom', demande.entreprise_nom)
+          .order('created_at', { ascending: false })
+        
+        if (error2) throw error2
+        return candidaturesByNom || []
+      }
+
+      if (error1) throw error1
+      return candidaturesByDemandeId || []
     } catch (err: any) {
       console.error('Erreur chargement candidatures par demande:', err)
       return []

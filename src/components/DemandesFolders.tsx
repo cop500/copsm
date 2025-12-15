@@ -41,6 +41,8 @@ interface Candidature {
   email?: string
   telephone?: string
   created_at: string
+  demande_entreprise_id?: string
+  poste_index?: number
 }
 
 interface DemandesFoldersProps {
@@ -59,6 +61,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   onDeleteCandidature
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+  const [expandedPostes, setExpandedPostes] = useState<Set<string>>(new Set())
   const [selectedCandidature, setSelectedCandidature] = useState<Candidature | null>(null)
   const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
   const [candidatureNotes, setCandidatureNotes] = useState('')
@@ -71,6 +74,56 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       newExpanded.add(demandeId)
     }
     setExpandedFolders(newExpanded)
+  }
+
+  const togglePoste = (demandeId: string, posteIndex: number) => {
+    const key = `${demandeId}-${posteIndex}`
+    const newExpanded = new Set(expandedPostes)
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key)
+    } else {
+      newExpanded.add(key)
+    }
+    setExpandedPostes(newExpanded)
+  }
+
+  // Grouper les candidatures par poste
+  const groupCandidaturesByPoste = (demande: DemandeEntreprise) => {
+    if (!demande.candidatures || demande.candidatures.length === 0) {
+      return {}
+    }
+
+    const grouped: { [key: string]: Candidature[] } = {}
+    
+    demande.candidatures.forEach((candidature) => {
+      // Utiliser poste_index si disponible et valide, sinon utiliser le nom du poste
+      let key: string
+      if (candidature.poste_index !== null && candidature.poste_index !== undefined && candidature.poste_index >= 0) {
+        key = `poste_${candidature.poste_index}`
+      } else {
+        // Utiliser le nom du poste comme clé (nettoyer pour éviter les problèmes)
+        const posteName = candidature.poste || 'autre'
+        key = `poste_${posteName.replace(/[^a-zA-Z0-9]/g, '_')}`
+      }
+      
+      if (!grouped[key]) {
+        grouped[key] = []
+      }
+      grouped[key].push(candidature)
+    })
+
+    return grouped
+  }
+
+  // Obtenir le nom du poste depuis les profils
+  const getPosteName = (demande: DemandeEntreprise, posteIndex: number | null | undefined): string => {
+    if (posteIndex !== null && posteIndex !== undefined && demande.profils && Array.isArray(demande.profils)) {
+      const profil = demande.profils[posteIndex]
+      if (profil && profil.poste_intitule) {
+        return profil.poste_intitule
+      }
+    }
+    return 'Poste non spécifié'
   }
 
   const getStatutColor = (statut: string) => {
@@ -144,6 +197,66 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       }
     }
   }
+
+  // Fonction pour rendre une carte de candidature
+  const renderCandidatureCard = (candidature: Candidature) => (
+    <div className="flex items-center justify-between">
+      <div className="flex-1">
+        <div className="flex items-center space-x-3 mb-2">
+          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+            <Users className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h5 className="font-medium text-gray-900">
+              {candidature.nom} {candidature.prenom}
+            </h5>
+            <p className="text-sm text-gray-600">
+              {candidature.email}
+            </p>
+          </div>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCandidatureStatutColor(candidature.statut_candidature || 'envoye')}`}>
+            {getCandidatureStatutLabel(candidature.statut_candidature || 'envoye')}
+          </span>
+        </div>
+        
+        <div className="flex items-center space-x-4 text-sm text-gray-600">
+          {candidature.poste && (
+            <div className="flex items-center space-x-1">
+              <Briefcase className="w-4 h-4" />
+              <span>{candidature.poste}</span>
+            </div>
+          )}
+          <div className="flex items-center space-x-1">
+            <Calendar className="w-4 h-4" />
+            <span>{new Date(candidature.created_at).toLocaleDateString('fr-FR')}</span>
+          </div>
+          {candidature.telephone && (
+            <div className="flex items-center space-x-1">
+              <Phone className="w-4 h-4" />
+              <span>{candidature.telephone}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => handleViewCandidature(candidature)}
+          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+          title="Voir détails"
+        >
+          <Eye className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => handleDeleteCandidature(candidature.id)}
+          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+          title="Supprimer"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  )
 
   if (loading) {
     return (
@@ -248,7 +361,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
               </div>
             </div>
 
-            {/* Contenu du dossier (candidatures) */}
+            {/* Contenu du dossier (candidatures organisées par poste) */}
             {isExpanded && (
               <div className="border-t border-gray-200 p-6">
                 {candidaturesCount === 0 ? (
@@ -259,67 +372,91 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                 ) : (
                   <div className="space-y-4">
                     <h4 className="text-md font-semibold text-gray-900 mb-4">
-                      Candidatures reçues ({candidaturesCount})
+                      Candidatures reçues ({candidaturesCount}) - Organisées par poste
                     </h4>
                     
-                    {demande.candidatures?.map((candidature) => (
-                      <div key={candidature.id} className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                                <Users className="w-4 h-4 text-white" />
+                    {/* Grouper les candidatures par poste */}
+                    {(() => {
+                      const candidaturesByPoste = groupCandidaturesByPoste(demande)
+                      const posteKeys = Object.keys(candidaturesByPoste).sort()
+                      
+                      // Si pas de postes définis, afficher toutes les candidatures
+                      if (posteKeys.length === 0 && demande.candidatures && demande.candidatures.length > 0) {
+                        return (
+                          <div className="space-y-3">
+                            {demande.candidatures.map((candidature) => (
+                              <div key={candidature.id} className="bg-gray-50 rounded-lg p-4">
+                                {renderCandidatureCard(candidature)}
                               </div>
-                              <div>
-                                <h5 className="font-medium text-gray-900">
-                                  {candidature.nom} {candidature.prenom}
-                                </h5>
-                                <p className="text-sm text-gray-600">
-                                  {candidature.email}
-                                </p>
-                              </div>
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCandidatureStatutColor(candidature.statut_candidature || 'envoye')}`}>
-                                {getCandidatureStatutLabel(candidature.statut_candidature || 'envoye')}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center space-x-4 text-sm text-gray-600">
-                              <div className="flex items-center space-x-1">
-                                <Briefcase className="w-4 h-4" />
-                                <span>{candidature.poste}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-4 h-4" />
-                                <span>{new Date(candidature.created_at).toLocaleDateString('fr-FR')}</span>
-                              </div>
-                              {candidature.telephone && (
-                                <div className="flex items-center space-x-1">
-                                  <Phone className="w-4 h-4" />
-                                  <span>{candidature.telephone}</span>
+                            ))}
+                          </div>
+                        )
+                      }
+                      
+                      return posteKeys.map((posteKey) => {
+                        const candidatures = candidaturesByPoste[posteKey]
+                        // Extraire l'index du poste depuis la clé
+                        const posteIndexMatch = posteKey.match(/^poste_(\d+)$/)
+                        const posteIndex = posteIndexMatch ? Number(posteIndexMatch[1]) : null
+                        const posteName = posteIndex !== null && posteIndex >= 0
+                          ? getPosteName(demande, posteIndex)
+                          : candidatures[0]?.poste || 'Poste non spécifié'
+                        const posteToggleKey = posteIndex !== null && posteIndex >= 0 
+                          ? `${demande.id}-${posteIndex}`
+                          : `${demande.id}-${posteKey}`
+                        const isPosteExpanded = expandedPostes.has(posteToggleKey)
+                        
+                        return (
+                          <div key={posteKey} className="border border-gray-200 rounded-lg overflow-hidden">
+                            {/* Header du poste */}
+                            <div
+                              className="bg-blue-50 hover:bg-blue-100 p-4 cursor-pointer transition-colors flex items-center justify-between"
+                              onClick={() => {
+                                if (posteIndex !== null && posteIndex >= 0) {
+                                  togglePoste(demande.id, posteIndex)
+                                } else {
+                                  // Pour les postes sans index, utiliser la clé
+                                  const key = `${demande.id}-${posteKey}`
+                                  const newExpanded = new Set(expandedPostes)
+                                  if (newExpanded.has(key)) {
+                                    newExpanded.delete(key)
+                                  } else {
+                                    newExpanded.add(key)
+                                  }
+                                  setExpandedPostes(newExpanded)
+                                }
+                              }}
+                            >
+                              <div className="flex items-center space-x-3">
+                                <Briefcase className="w-5 h-5 text-blue-600" />
+                                <div>
+                                  <h5 className="font-semibold text-gray-900">{posteName}</h5>
+                                  <p className="text-sm text-gray-600">
+                                    {candidatures.length} candidature{candidatures.length > 1 ? 's' : ''}
+                                  </p>
                                 </div>
+                              </div>
+                              {isPosteExpanded ? (
+                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-400" />
                               )}
                             </div>
+                            
+                            {/* Candidatures du poste */}
+                            {isPosteExpanded && (
+                              <div className="bg-white p-4 space-y-3">
+                                {candidatures.map((candidature) => (
+                                  <div key={candidature.id} className="bg-gray-50 rounded-lg p-4">
+                                    {renderCandidatureCard(candidature)}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleViewCandidature(candidature)}
-                              className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                              title="Voir détails"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCandidature(candidature.id)}
-                              className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                              title="Supprimer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                        )
+                      })
+                    })()}
                   </div>
                 )}
               </div>

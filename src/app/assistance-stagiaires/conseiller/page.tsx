@@ -29,6 +29,8 @@ interface DemandeAssistance {
   created_at: string
   updated_at: string
   conseiller_id: string
+  pole_id?: string
+  filiere_id?: string
   poles?: {
     nom: string
     code: string
@@ -62,6 +64,7 @@ export default function InterfaceConseiller() {
   const [demandes, setDemandes] = useState<DemandeAssistance[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState({
     statut: '',
@@ -118,15 +121,42 @@ export default function InterfaceConseiller() {
           )
         })
         
-        const conseillersAvecIds = conseillersFiltres.map((conseiller: any) => ({
-          id: conseiller.id,
-          nom: `${conseiller.prenom} ${conseiller.nom}`.toUpperCase(),
-          role: conseiller.role === 'conseiller_cop' 
-            ? (conseiller.prenom?.toUpperCase().includes('SARA') ? 'Conseillère d\'orientation' : 'Conseiller d\'orientation')
-            : 'Conseillère Carrière'
-        }))
+        const conseillersAvecIds = conseillersFiltres
+          .filter((conseiller: any) => {
+            // Filtrer les conseillers avec des IDs valides
+            if (!conseiller.id || conseiller.id === 'undefined' || conseiller.id.trim() === '') {
+              console.warn('Conseiller sans ID valide ignoré:', conseiller)
+              return false
+            }
+            // Vérifier que c'est un UUID valide
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+            if (!uuidRegex.test(conseiller.id.trim())) {
+              console.warn('Conseiller avec ID non-UUID ignoré:', conseiller.id, conseiller)
+              return false
+            }
+            return true
+          })
+          .map((conseiller: any) => ({
+            id: conseiller.id.trim(),
+            nom: `${conseiller.prenom} ${conseiller.nom}`.toUpperCase(),
+            role: conseiller.role === 'conseiller_cop' 
+              ? (conseiller.prenom?.toUpperCase().includes('SARA') ? 'Conseillère d\'orientation' : 'Conseiller d\'orientation')
+              : 'Conseillère Carrière'
+          }))
         
+        console.log('Conseillers chargés:', conseillersAvecIds)
         setConseillers(conseillersAvecIds)
+        
+        // Vérifier que le conseiller connecté existe toujours dans la liste
+        if (conseillerConnecte && conseillerConnecte.trim() !== '') {
+          const conseillerExiste = conseillersAvecIds.some((c: {id: string, nom: string, role: string}) => c.id === conseillerConnecte.trim())
+          if (!conseillerExiste) {
+            console.warn('Conseiller connecté non trouvé dans la liste, déconnexion forcée')
+            setConseillerConnecte('')
+            setShowConseillerSelect(true)
+            localStorage.removeItem('conseillerConnecte')
+          }
+        }
       }
     } catch (err) {
       console.error('Erreur lors du chargement des conseillers:', err)
@@ -137,7 +167,10 @@ export default function InterfaceConseiller() {
 
   // Charger les demandes
   const loadDemandes = async () => {
-    if (!conseillerConnecte) return
+    if (!conseillerConnecte || conseillerConnecte.trim() === '' || conseillerConnecte === 'undefined') {
+      console.warn('Conseiller non connecté, impossible de charger les demandes')
+      return
+    }
     
     try {
       setLoading(true)
@@ -145,10 +178,22 @@ export default function InterfaceConseiller() {
       const result = await response.json()
       
       if (result.success) {
-        // Filtrer les demandes pour ce conseiller spécifique
+        // Filtrer les demandes : celles assignées à ce conseiller OU celles en attente (non assignées)
         const demandesFiltrees = (result.data || []).filter((demande: DemandeAssistance) => {
-          // Utiliser l'ID du conseiller pour filtrer
-          return demande.conseiller_id === conseillerConnecte
+          // Afficher les demandes assignées à ce conseiller
+          if (demande.conseiller_id === conseillerConnecte) {
+            return true
+          }
+          // Afficher aussi les demandes en attente (non assignées) pour que le conseiller puisse les prendre
+          if (demande.statut === 'en_attente' && (!demande.conseiller_id || demande.conseiller_id.trim() === '')) {
+            return true
+          }
+          return false
+        })
+        console.log('Demandes chargées:', {
+          total: result.data?.length || 0,
+          filtrees: demandesFiltrees.length,
+          conseillerConnecte
         })
         setDemandes(demandesFiltrees)
       } else {
@@ -156,6 +201,7 @@ export default function InterfaceConseiller() {
       }
     } catch (err) {
       setError('Erreur de connexion')
+      console.error('Erreur lors du chargement des demandes:', err)
     } finally {
       setLoading(false)
     }
@@ -175,17 +221,42 @@ export default function InterfaceConseiller() {
 
   // Fonction pour se connecter en tant que conseiller
   const handleConseillerLogin = (conseillerId: string) => {
-    setConseillerConnecte(conseillerId)
+    console.log('handleConseillerLogin appelé avec:', conseillerId)
+    if (!conseillerId || conseillerId.trim() === '' || conseillerId === 'undefined') {
+      console.error('ID conseiller invalide:', conseillerId)
+      setActionError('Erreur: ID conseiller invalide')
+      return
+    }
+    const idTrimmed = conseillerId.trim()
+    console.log('Conseiller ID validé:', idTrimmed)
+    setConseillerConnecte(idTrimmed)
     setShowConseillerSelect(false)
-    localStorage.setItem('conseillerConnecte', conseillerId)
+    localStorage.setItem('conseillerConnecte', idTrimmed)
+    console.log('Conseiller connecté et sauvegardé:', idTrimmed)
   }
 
   // Vérifier si un conseiller est déjà connecté
   useEffect(() => {
     const conseillerSauvegarde = localStorage.getItem('conseillerConnecte')
-    if (conseillerSauvegarde) {
-      setConseillerConnecte(conseillerSauvegarde)
-      setShowConseillerSelect(false)
+    if (conseillerSauvegarde && conseillerSauvegarde.trim() !== '' && conseillerSauvegarde !== 'undefined') {
+      const idTrimmed = conseillerSauvegarde.trim()
+      // Vérifier que c'est un UUID valide (format basique)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (uuidRegex.test(idTrimmed)) {
+        setConseillerConnecte(idTrimmed)
+        setShowConseillerSelect(false)
+        console.log('Conseiller restauré depuis localStorage:', idTrimmed)
+      } else {
+        console.error('ID conseiller invalide dans localStorage:', idTrimmed)
+        localStorage.removeItem('conseillerConnecte')
+        setConseillerConnecte('')
+        setShowConseillerSelect(true)
+      }
+    } else {
+      // Nettoyer localStorage si la valeur est invalide
+      localStorage.removeItem('conseillerConnecte')
+      setConseillerConnecte('')
+      setShowConseillerSelect(true)
     }
   }, [])
 
@@ -219,29 +290,126 @@ export default function InterfaceConseiller() {
   const handleAction = async (demandeId: string, action: string, data?: any) => {
     try {
       setActionLoading(true)
+      setActionError('') // Réinitialiser l'erreur d'action
+      
+      // Validation des paramètres
+      if (!demandeId || demandeId === 'undefined') {
+        setActionError('Erreur: ID de la demande manquant')
+        setActionLoading(false)
+        return
+      }
+      
+      // Si l'action est "prendre", vérifier que le conseiller est connecté
+      if (action === 'prendre') {
+        // Vérifier que conseillerConnecte existe et est valide
+        if (!conseillerConnecte || conseillerConnecte === 'undefined' || conseillerConnecte.trim() === '') {
+          console.error('Conseiller non connecté:', conseillerConnecte)
+          setActionError('Erreur: Aucun conseiller sélectionné. Veuillez vous reconnecter.')
+          setActionLoading(false)
+          return
+        }
+        
+        // Vérifier que c'est un UUID valide
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        const conseillerIdTrimmed = conseillerConnecte.trim()
+        if (!uuidRegex.test(conseillerIdTrimmed)) {
+          console.error('Format UUID invalide pour conseiller:', conseillerIdTrimmed)
+          setActionError('Erreur: ID conseiller invalide. Veuillez vous reconnecter.')
+          setActionLoading(false)
+          return
+        }
+        
+        // Vérifier que le conseiller existe dans la liste des conseillers chargés
+        const conseillerExiste = conseillers.some((c: {id: string, nom: string, role: string}) => c.id === conseillerIdTrimmed)
+        if (!conseillerExiste) {
+          console.error('Conseiller non trouvé dans la liste:', conseillerIdTrimmed, 'Liste:', conseillers)
+          setActionError('Erreur: Conseiller non trouvé. Veuillez vous reconnecter.')
+          setActionLoading(false)
+          return
+        }
+      }
+      
+      // Préparer les données de mise à jour
+      const updateData: any = {
+        statut: action === 'prendre' ? 'en_cours' : action === 'terminer' ? 'terminee' : data?.statut,
+        ...data
+      }
+      
+      // Si l'action est "prendre", ajouter le conseiller_id
+      if (action === 'prendre') {
+        const conseillerIdTrimmed = conseillerConnecte.trim()
+        // Double vérification avant d'ajouter
+        if (conseillerIdTrimmed && conseillerIdTrimmed !== 'undefined' && conseillerIdTrimmed !== '') {
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          if (uuidRegex.test(conseillerIdTrimmed)) {
+            updateData.conseiller_id = conseillerIdTrimmed
+            console.log('✅ Conseiller ID validé et ajouté à updateData:', conseillerIdTrimmed)
+          } else {
+            console.error('❌ Format UUID invalide après validation:', conseillerIdTrimmed)
+            setActionError('Erreur: Format ID conseiller invalide. Veuillez vous reconnecter.')
+            setActionLoading(false)
+            return
+          }
+        } else {
+          console.error('❌ Conseiller ID invalide après validation:', conseillerIdTrimmed)
+          setActionError('Erreur: ID conseiller invalide. Veuillez vous reconnecter.')
+          setActionLoading(false)
+          return
+        }
+      }
+      
+      // Vérifier que updateData.conseiller_id existe si l'action est "prendre"
+      if (action === 'prendre' && !updateData.conseiller_id) {
+        console.error('❌ conseiller_id manquant dans updateData après validation')
+        setActionError('Erreur: Impossible de déterminer l\'ID du conseiller. Veuillez vous reconnecter.')
+        setActionLoading(false)
+        return
+      }
+      
+      const bodyJson = JSON.stringify(updateData)
+      console.log('📤 Envoi requête PUT:', { 
+        url: `/api/assistance-stagiaires/${demandeId}`,
+        demandeId, 
+        action, 
+        updateData, 
+        bodyJson,
+        conseillerConnecte,
+        hasConseillerId: !!updateData.conseiller_id,
+        conseillerIdValue: updateData.conseiller_id
+      })
+      
+      // Vérifier que le JSON ne contient pas "undefined"
+      if (bodyJson.includes('"undefined"') || bodyJson.includes('undefined')) {
+        console.error('❌ Le JSON contient "undefined":', bodyJson)
+        setActionError('Erreur: Données invalides détectées. Veuillez vous reconnecter.')
+        setActionLoading(false)
+        return
+      }
       
       const response = await fetch(`/api/assistance-stagiaires/${demandeId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          statut: action === 'prendre' ? 'en_cours' : action === 'terminer' ? 'terminee' : data?.statut,
-          ...data
-        })
+        body: bodyJson
       })
       
       const result = await response.json()
       
-      if (response.ok) {
+      if (response.ok && result.success) {
         await loadDemandes() // Recharger les demandes
         setShowModal(false)
         setSelectedDemande(null)
+        setActionError('') // S'assurer qu'il n'y a pas d'erreur
       } else {
-        setError(result.error || 'Erreur lors de l\'action')
+        const errorMessage = result.error || 'Erreur lors de la mise à jour de la demande'
+        setActionError(errorMessage)
+        console.error('Erreur lors de la mise à jour:', result)
       }
     } catch (err) {
-      setError('Erreur de connexion')
+      const errorMessage = err instanceof Error ? err.message : 'Erreur de connexion'
+      setActionError(errorMessage)
+      console.error('Erreur lors de l\'action:', err)
     } finally {
       setActionLoading(false)
     }
@@ -320,7 +488,64 @@ export default function InterfaceConseiller() {
     )
   }
 
-  const conseillerActuel = conseillers.find(c => c.id === conseillerConnecte)
+  const conseillerActuel = conseillers.find((c: {id: string, nom: string, role: string}) => c.id === conseillerConnecte)
+  
+  // Log pour déboguer
+  console.log('🔍 État actuel:', {
+    conseillerConnecte,
+    conseillerActuel,
+    conseillersCount: conseillers.length,
+    showConseillerSelect
+  })
+
+  // Vérifier que le conseiller est bien connecté avant d'afficher l'interface
+  if (!conseillerConnecte || conseillerConnecte.trim() === '' || conseillerConnecte === 'undefined') {
+    console.warn('⚠️ Conseiller non connecté, affichage de la sélection')
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                🆘 Interface Conseiller
+              </h1>
+              <p className="text-gray-600">
+                Veuillez sélectionner votre profil pour accéder à vos demandes d'assistance
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {conseillersLoading ? (
+                <div className="col-span-full flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">Chargement des conseillers...</span>
+                </div>
+              ) : (
+                conseillers.map((conseiller) => (
+                  <button
+                    key={conseiller.id}
+                    onClick={() => handleConseillerLogin(conseiller.id)}
+                    className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
+                        <User className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {conseiller.nom}
+                        </h3>
+                        <p className="text-gray-600">{conseiller.role}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
@@ -330,11 +555,16 @@ export default function InterfaceConseiller() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                🆘 Interface Conseiller - {conseillerActuel?.nom}
+                🆘 Interface Conseiller - {conseillerActuel?.nom || 'Non connecté'}
               </h1>
               <p className="text-gray-600">
                 Gérez vos demandes d'assistance assignées
               </p>
+              {conseillerConnecte && (
+                <p className="text-xs text-gray-400 mt-1">
+                  ID: {conseillerConnecte.substring(0, 8)}...
+                </p>
+              )}
             </div>
             <div className="flex gap-3">
               <button
@@ -358,6 +588,24 @@ export default function InterfaceConseiller() {
             </div>
           </div>
         </div>
+
+        {/* Affichage des erreurs d'action */}
+        {actionError && (
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+                <p className="text-red-700 font-medium">{actionError}</p>
+              </div>
+              <button
+                onClick={() => setActionError('')}
+                className="text-red-500 hover:text-red-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Filtres et recherche */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">

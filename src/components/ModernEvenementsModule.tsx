@@ -8,7 +8,8 @@ import {
   Calendar, Plus, Search, Filter, Grid, List, 
   Clock, CheckCircle, AlertTriangle, XCircle,
   TrendingUp, Users, MapPin, FileText, Zap, Edit3,
-  BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download, X
+  BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download, X,
+  EyeOff
 } from 'lucide-react'
 import { EvenementForm } from './EvenementForm'
 import { EventCard } from './EventCard'
@@ -312,6 +313,35 @@ export const ModernEvenementsModule = () => {
   const handleManageInscriptions = (atelier: any) => {
     setSelectedAtelierForInscriptions(atelier)
     setShowInscriptionsModal(true)
+  }
+
+  // Toggle rapide de la visibilité pour les inscriptions (admin seulement)
+  const handleToggleVisibility = async (atelier: any) => {
+    if (!isAdmin) return
+    
+    try {
+      const newVisibility = !atelier.visible_inscription
+      
+      const { error } = await supabase
+        .from('evenements')
+        .update({ visible_inscription: newVisibility })
+        .eq('id', atelier.id)
+
+      if (error) throw error
+      
+      showMessage(
+        newVisibility 
+          ? 'Atelier rendu visible sur la page d\'inscription' 
+          : 'Atelier masqué de la page d\'inscription',
+        'success'
+      )
+      
+      // Recharger les données
+      await fetchEvenements(true)
+    } catch (error: any) {
+      console.error('❌ Erreur toggle visibilité:', error)
+      showMessage(`Erreur lors de la mise à jour: ${error.message}`, 'error')
+    }
   }
 
   // Gérer la génération de contenu IA
@@ -1477,9 +1507,30 @@ export const ModernEvenementsModule = () => {
                           {atelier.titre}
                         </h3>
                       </div>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAtelierStatusColor(atelier.statut)}`}>
-                        {getAtelierStatusLabel(atelier.statut)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAtelierStatusColor(atelier.statut)}`}>
+                          {getAtelierStatusLabel(atelier.statut)}
+                        </span>
+                        {isAdmin && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            atelier.visible_inscription 
+                              ? 'bg-green-100 text-green-800 border border-green-200' 
+                              : 'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}>
+                            {atelier.visible_inscription ? (
+                              <>
+                                <Eye className="w-3 h-3 mr-1" />
+                                Visible
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="w-3 h-3 mr-1" />
+                                Masqué
+                              </>
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex gap-2">
@@ -1497,6 +1548,25 @@ export const ModernEvenementsModule = () => {
                       >
                         <Users className="w-4 h-4" />
                       </button>
+                      {isAdmin && !isDirecteur && (
+                        <button
+                          onClick={() => handleToggleVisibility(atelier)}
+                          className={`p-2 transition-colors ${
+                            atelier.visible_inscription 
+                              ? 'text-green-600 hover:text-green-700' 
+                              : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                          title={atelier.visible_inscription 
+                            ? 'Masquer de la page d\'inscription' 
+                            : 'Rendre visible sur la page d\'inscription'}
+                        >
+                          {atelier.visible_inscription ? (
+                            <Eye className="w-4 h-4" />
+                          ) : (
+                            <EyeOff className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                       {!isDirecteur && (
                         <>
                       <button

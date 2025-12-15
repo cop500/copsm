@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Préparer les données pour l'insertion (structure conforme à la table)
-    const candidatureData = {
+    const candidatureData: any = {
       // demande_cv_id sera null car nous n'avons pas d'UUID valide
       demande_cv_id: body.demande_cv_id || null,
       date_candidature: new Date().toISOString().split('T')[0],
@@ -41,7 +41,14 @@ export async function POST(request: NextRequest) {
       telephone: body.telephone || null,
       entreprise_nom: body.entreprise_nom || 'À définir',
       poste: body.poste || 'À définir',
-      type_contrat: body.type_contrat || 'cv'
+      type_contrat: body.type_contrat || 'cv',
+      // Nouveaux champs pour organiser par demande et poste
+      demande_entreprise_id: body.demande_entreprise_id || null,
+      poste_index: body.poste_index !== undefined && body.poste_index !== null ? body.poste_index : null,
+      // Champs optionnels
+      est_cmc: body.est_cmc !== undefined ? body.est_cmc : null,
+      pole_id: body.pole_id || null,
+      filiere_id: body.filiere_id || null
       // created_at et updated_at sont gérés automatiquement par Supabase
     }
 

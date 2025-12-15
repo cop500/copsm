@@ -221,7 +221,8 @@ export default function CandidaturePage() {
 
       if (demande.source === 'entreprises' && demande.profils) {
         // Demande avec profils détaillés
-        const profil = demande.profils[parseInt(profilIndex)]
+        const profilIndexNum = parseInt(profilIndex)
+        const profil = demande.profils[profilIndexNum]
         if (!profil) {
           throw new Error('Profil introuvable')
         }
@@ -229,7 +230,10 @@ export default function CandidaturePage() {
           ...candidatureData,
           entreprise_nom: demande.entreprise_nom,
           poste: profil.poste_intitule,
-          type_contrat: profil.type_contrat
+          type_contrat: profil.type_contrat,
+          // Nouveaux champs pour organiser par demande et poste
+          demande_entreprise_id: demande.id,
+          poste_index: profilIndexNum
         }
       } else {
         // Demande CV simple
@@ -237,7 +241,10 @@ export default function CandidaturePage() {
           ...candidatureData,
           entreprise_nom: demande.nom_entreprise || demande.entreprise_nom,
           poste: demande.poste_recherche || 'Poste à définir',
-          type_contrat: 'À définir'
+          type_contrat: 'À définir',
+          // Pour les demandes CV, on peut aussi lier si c'est une demande_entreprise
+          demande_entreprise_id: demande.id || null,
+          poste_index: null
         }
       }
 
