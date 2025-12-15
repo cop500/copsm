@@ -8,6 +8,7 @@ import {
   Trash2, Clock, CheckCircle, Search, RefreshCw,
   FileText, Archive, Download, Eye, X, Filter
 } from 'lucide-react'
+import { CVConnectFolders } from '@/components/CVConnectFolders'
 
 export default function CVConnectAdminPage() {
   const { profile } = useAuth()
@@ -314,129 +315,22 @@ export default function CVConnectAdminPage() {
               </div>
             </div>
 
-            {/* Liste des soumissions */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              {filteredSubmissions.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune soumission</h3>
-                  <p className="text-gray-500">Les stagiaires n'ont pas encore déposé de CV.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Stagiaire
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Contact
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Pôle / Filière
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          CV
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Statut
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredSubmissions.map((submission) => (
-                        <tr key={submission.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {submission.nom} {submission.prenom}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{submission.email}</div>
-                            {submission.telephone && (
-                              <div className="text-sm text-gray-500">{submission.telephone}</div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{submission.pole?.nom}</div>
-                            <div className="text-sm text-gray-500">{submission.filiere?.nom}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => {
-                                  if (submission.cv_google_drive_url && submission.cv_google_drive_url !== '#') {
-                                    setSelectedCV({
-                                      url: submission.cv_google_drive_url,
-                                      filename: submission.cv_filename
-                                    })
-                                    setShowCVViewer(true)
-                                  }
-                                }}
-                                disabled={!submission.cv_google_drive_url || submission.cv_google_drive_url === '#'}
-                                className="flex items-center gap-1 px-2 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Voir le CV"
-                              >
-                                <Eye className="w-4 h-4" />
-                                Voir
-                              </button>
-                              <a
-                                href={submission.cv_google_drive_url && submission.cv_google_drive_url !== '#' ? submission.cv_google_drive_url : '#'}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => {
-                                  if (!submission.cv_google_drive_url || submission.cv_google_drive_url === '#') {
-                                    e.preventDefault()
-                                    alert('Le CV n\'est pas encore disponible (upload Drive temporairement désactivé)')
-                                  }
-                                }}
-                                className="flex items-center gap-1 px-2 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors disabled:opacity-50"
-                                title="Télécharger le CV"
-                              >
-                                <Download className="w-4 h-4" />
-                                Télécharger
-                              </a>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1 truncate max-w-xs">
-                              {submission.cv_filename}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <select
-                              value={submission.statut}
-                              onChange={(e) => updateSubmissionStatus(submission.id, e.target.value as any)}
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(submission.statut)}`}
-                            >
-                              <option value="nouveau">Nouveau</option>
-                              <option value="traite">Traité</option>
-                              <option value="archive">Archivé</option>
-                            </select>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(submission.submitted_at).toLocaleDateString('fr-FR')}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() => handleDeleteSubmission(submission.id, submission.cv_filename)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Supprimer le CV"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+            {/* Interface en dossiers par Pôle/Filière */}
+            <div className="bg-transparent">
+              <CVConnectFolders
+                submissions={filteredSubmissions}
+                loading={loading}
+                onViewCV={(url, filename) => {
+                  setSelectedCV({ url, filename })
+                  setShowCVViewer(true)
+                }}
+                onDownloadCV={(url, filename) => {
+                  window.open(url, '_blank')
+                }}
+                onDeleteCV={handleDeleteSubmission}
+                onUpdateStatus={updateSubmissionStatus}
+                searchTerm={searchTerm}
+              />
             </div>
           </div>
         </div>

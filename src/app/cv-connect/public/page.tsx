@@ -226,6 +226,7 @@ export default function CVConnectPage() {
       setUploadProgress(100)
 
       if (response.ok) {
+        const result = await response.json()
         setSuccess(true)
         setShowConfetti(true)
         

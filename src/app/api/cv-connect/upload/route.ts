@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { uploadCV } from '@/lib/google-drive'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,39 +38,52 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Vérifier si l'utilisateur a déjà déposé un CV
-    const { data: existingSubmission } = await supabase
+    // Vérifier si l'utilisateur a déjà déposé un CV (utiliser admin pour bypasser RLS)
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Configuration serveur manquante' },
+        { status: 500 }
+      )
+    }
+
+    const { data: existingSubmission } = await supabaseAdmin
       .from('cv_connect_submissions')
       .select('id, nom, prenom, submitted_at')
       .eq('email', email)
       .single()
 
     if (existingSubmission) {
+      const submittedDate = existingSubmission.submitted_at 
+        ? new Date(existingSubmission.submitted_at as string).toLocaleDateString('fr-FR')
+        : 'récemment'
       return NextResponse.json(
-        { error: `Vous avez déjà déposé un CV le ${new Date(existingSubmission.submitted_at).toLocaleDateString('fr-FR')}. Un seul CV par personne est autorisé.` },
+        { error: `Vous avez déjà déposé un CV le ${submittedDate}. Un seul CV par personne est autorisé.` },
         { status: 400 }
       )
     }
 
     // Récupérer les informations du pôle et de la filière
-    const { data: pole } = await supabase
+    const { data: pole, error: poleError } = await supabase
       .from('poles')
       .select('nom')
       .eq('id', pole_id)
       .single()
 
-    const { data: filiere } = await supabase
+    const { data: filiere, error: filiereError } = await supabase
       .from('filieres')
       .select('nom')
       .eq('id', filiere_id)
       .single()
 
-    if (!pole || !filiere) {
+    if (poleError || filiereError || !pole || !filiere) {
       return NextResponse.json(
         { error: 'Pôle ou filière introuvable' },
         { status: 400 }
       )
     }
+
+    const poleNom = (pole as { nom: string }).nom
+    const filiereNom = (filiere as { nom: string }).nom
 
     // Convertir le fichier en buffer
     const fileBuffer = Buffer.from(await cv_file.arrayBuffer())
@@ -90,118 +103,136 @@ export async function POST(request: NextRequest) {
     
     // Générer un nom de fichier unique
     const timestamp = Date.now()
-    const fileName = `${nom}_${prenom}_${timestamp}.pdf`
+    const sanitizedNom = nom.replace(/[^a-zA-Z0-9]/g, '_')
+    const sanitizedPrenom = prenom.replace(/[^a-zA-Z0-9]/g, '_')
+    const fileName = `${sanitizedNom}_${sanitizedPrenom}_${timestamp}.pdf`
+    
+    // Chemin dans Supabase Storage (organisé par pôle/filière)
+    const sanitizedPole = poleNom.replace(/[^a-zA-Z0-9]/g, '_')
+    const sanitizedFiliere = filiereNom.replace(/[^a-zA-Z0-9]/g, '_')
+    const storagePath = `cv-connect/${sanitizedPole}/${sanitizedFiliere}/${fileName}`
 
-    // Uploader sur Google Drive
-    let uploadResult
+    // Uploader sur Supabase Storage
+    console.log(`[CV Upload] ========================================`)
+    console.log(`[CV Upload] Tentative d'upload vers Supabase Storage`)
+    console.log(`[CV Upload] Nom: ${nom} ${prenom}`)
+    console.log(`[CV Upload] Fichier: ${fileName} (${fileBuffer.length} bytes)`)
+    console.log(`[CV Upload] Pôle: ${poleNom}`)
+    console.log(`[CV Upload] Filière: ${filiereNom}`)
+    console.log(`[CV Upload] Chemin Storage: ${storagePath}`)
+    console.log(`[CV Upload] ========================================`)
+
     try {
-      console.log(`[CV Upload] ========================================`)
-      console.log(`[CV Upload] Tentative d'upload vers Google Drive`)
-      console.log(`[CV Upload] Nom: ${nom} ${prenom}`)
-      console.log(`[CV Upload] Fichier: ${fileName} (${fileBuffer.length} bytes)`)
-      console.log(`[CV Upload] Pôle: ${pole.nom}`)
-      console.log(`[CV Upload] Filière: ${filiere.nom}`)
-      console.log(`[CV Upload] ========================================`)
-      
-      uploadResult = await uploadCV(
-        fileBuffer,
-        fileName,
-        pole.nom,
-        filiere.nom
-      )
-      
-      console.log(`[CV Upload] ✅ Upload réussi:`, {
-        fileId: uploadResult.fileId,
-        webViewLink: uploadResult.webViewLink,
-        folderPath: uploadResult.folderPath
+      // Uploader le fichier dans Supabase Storage (utiliser admin pour bypasser RLS)
+      if (!supabaseAdmin) {
+        throw new Error('Configuration serveur manquante pour l\'upload Storage')
+      }
+
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from('cv-connect')
+        .upload(storagePath, fileBuffer, {
+          contentType: 'application/pdf',
+          upsert: false // Ne pas écraser si le fichier existe déjà
+        })
+
+      if (uploadError) {
+        console.error('[CV Upload] ❌ Erreur upload Supabase Storage:', uploadError)
+        console.error('[CV Upload] Détails erreur Storage:', {
+          message: uploadError.message,
+          name: uploadError.name
+        })
+        
+        // Vérifier si le bucket existe
+        if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('not found')) {
+          throw new Error(`Le bucket 'cv-connect' n'existe pas. Veuillez exécuter la migration SQL pour créer le bucket.`)
+        }
+        
+        throw new Error(`Erreur lors de l'upload: ${uploadError.message}`)
+      }
+
+      console.log(`[CV Upload] ✅ Upload réussi vers Supabase Storage:`, {
+        path: uploadData.path,
+        fullPath: uploadData.fullPath
       })
-    } catch (googleDriveError: any) {
-      console.error(`[CV Upload] ❌ ERREUR GOOGLE DRIVE ========================================`)
-      console.error('[CV Upload] Message:', googleDriveError.message)
-      console.error('[CV Upload] Code:', googleDriveError.code)
-      console.error('[CV Upload] Errors:', JSON.stringify(googleDriveError.errors, null, 2))
-      console.error('[CV Upload] Stack:', googleDriveError.stack)
-      console.error(`[CV Upload] ========================================`)
-      
-      // En production, retourner des détails utiles mais sécurisés
-      const errorDetails: any = {
-        message: googleDriveError.message,
-        code: googleDriveError.code
-      }
 
-      // Ajouter les erreurs si elles existent (sans informations sensibles)
-      if (googleDriveError.errors && Array.isArray(googleDriveError.errors)) {
-        errorDetails.errors = googleDriveError.errors.map((err: any) => ({
-          domain: err.domain,
-          reason: err.reason,
-          message: err.message
-        }))
-      }
+      // Obtenir l'URL publique du fichier
+      const { data: urlData } = supabaseAdmin.storage
+        .from('cv-connect')
+        .getPublicUrl(storagePath)
 
-      // Détecter spécifiquement l'erreur invalid_grant
-      const isInvalidGrant = googleDriveError.message?.includes('invalid_grant') ||
-                            googleDriveError.code === 'invalid_grant' ||
-                            errorDetails.errors?.some((err: any) => err.reason === 'invalid_grant')
+      console.log(`[CV Upload] ✅ URL publique générée:`, urlData.publicUrl)
 
-      if (isInvalidGrant) {
+      // Sauvegarder en base de données (utiliser admin pour bypasser RLS)
+      const { data: submission, error: insertError } = await supabaseAdmin
+        .from('cv_connect_submissions')
+        .insert([{
+          nom,
+          prenom,
+          email,
+          telephone: telephone || null,
+          pole_id,
+          filiere_id,
+          cv_filename: fileName,
+          cv_storage_path: storagePath,
+          cv_storage_url: urlData.publicUrl,
+          cv_google_drive_id: null, // Explicitement null car on n'utilise plus Google Drive
+          cv_google_drive_url: null, // Explicitement null car on n'utilise plus Google Drive
+          statut: 'nouveau'
+        }])
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('[CV Upload] ❌ Erreur insertion base de données:', insertError)
+        console.error('[CV Upload] Détails erreur:', {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint
+        })
+        
+        // Essayer de supprimer le fichier uploadé en cas d'erreur
+        if (supabaseAdmin) {
+          await supabaseAdmin.storage
+            .from('cv-connect')
+            .remove([storagePath])
+            .catch(err => console.error('Erreur suppression fichier après erreur DB:', err))
+        }
+        
         return NextResponse.json(
           { 
-            error: 'Le service d\'authentification Google Drive nécessite une mise à jour. Veuillez contacter l\'administrateur pour résoudre ce problème.',
-            details: {
-              ...errorDetails,
-              reason: 'Refresh token OAuth expiré ou révoqué',
-              adminAction: 'Régénérer le refresh token OAuth dans la console Google Cloud'
-            }
+            error: 'Erreur lors de la sauvegarde',
+            details: insertError.message || 'Erreur inconnue lors de l\'insertion en base de données'
           },
-          { status: 503 }
+          { status: 500 }
         )
       }
 
-      // Toujours retourner les détails pour diagnostic (même en production)
+      return NextResponse.json({
+        success: true,
+        submission: {
+          id: submission.id,
+          fileName,
+          storagePath,
+          publicUrl: urlData.publicUrl
+        }
+      })
+    } catch (storageError: any) {
+      console.error('[CV Upload] ❌ ERREUR STOCKAGE ========================================')
+      console.error('[CV Upload] Message:', storageError.message)
+      console.error('[CV Upload] Stack:', storageError.stack)
+      console.error(`[CV Upload] ========================================`)
+      
       return NextResponse.json(
         { 
-          error: 'Impossible d\'uploader le CV sur Google Drive. Veuillez réessayer ou contacter l\'administrateur.',
-          details: errorDetails
+          error: 'Impossible d\'uploader le CV. Veuillez réessayer ou contacter l\'administrateur.',
+          details: {
+            message: storageError.message
+          }
         },
         { status: 500 }
       )
     }
-
-    // Sauvegarder en base de données
-    const { data: submission, error: insertError } = await supabase
-      .from('cv_connect_submissions')
-      .insert([{
-        nom,
-        prenom,
-        email,
-        telephone: telephone || null,
-        pole_id,
-        filiere_id,
-        cv_filename: fileName,
-        cv_google_drive_id: uploadResult.fileId,
-        cv_google_drive_url: uploadResult.webViewLink,
-        statut: 'nouveau'
-      }])
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Erreur insertion base de données:', insertError)
-      return NextResponse.json(
-        { error: 'Erreur lors de la sauvegarde' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      submission: {
-        id: submission.id,
-        fileName,
-        folderPath: uploadResult.folderPath,
-        webViewLink: uploadResult.webViewLink
-      }
-    })
 
   } catch (error: any) {
     console.error('[CV Upload] ❌ ERREUR GÉNÉRALE ========================================')
@@ -225,50 +256,6 @@ export async function POST(request: NextRequest) {
       errorDetails.errors = error.errors
     }
 
-    // Gérer les erreurs spécifiques avec des messages conviviaux
-    if (error.message?.includes('Configuration Google Drive manquante')) {
-      return NextResponse.json(
-        { 
-          error: 'Service temporairement indisponible. Veuillez réessayer plus tard.',
-          details: {
-            ...errorDetails,
-            reason: 'Configuration Google Drive manquante'
-          }
-        },
-        { status: 503 }
-      )
-    }
-    
-    // Détecter spécifiquement l'erreur invalid_grant
-    if (error.message?.includes('INVALID_GRANT') || 
-        error.message?.includes('invalid_grant') ||
-        error.code === 'invalid_grant' ||
-        errorDetails.code === 'invalid_grant') {
-      return NextResponse.json(
-        { 
-          error: 'Le service d\'authentification Google Drive nécessite une mise à jour. Veuillez contacter l\'administrateur pour résoudre ce problème.',
-          details: {
-            ...errorDetails,
-            reason: 'Refresh token OAuth expiré ou révoqué',
-            adminAction: 'Régénérer le refresh token OAuth dans la console Google Cloud'
-          }
-        },
-        { status: 503 }
-      )
-    }
-    
-    if (error.message?.includes('Impossible de créer le dossier') || error.message?.includes('Impossible d\'uploader le fichier')) {
-      return NextResponse.json(
-        { 
-          error: 'Une erreur est survenue lors de l\'enregistrement de votre CV. Veuillez réessayer ou contacter notre équipe.',
-          details: {
-            ...errorDetails,
-            reason: 'Erreur Google Drive (création/upload)'
-          }
-        },
-        { status: 500 }
-      )
-    }
 
     // Toujours retourner les détails pour diagnostic
     return NextResponse.json(
