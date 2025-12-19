@@ -112,6 +112,11 @@ const NouvellesDemandesEntreprises: React.FC = () => {
                 <h3 className="text-sm font-semibold text-gray-900 truncate">
                   {demande.entreprise_nom}
                 </h3>
+                {(demande as any).reference && (
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-mono font-semibold flex-shrink-0">
+                    {(demande as any).reference}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-gray-600 mb-2">
                 {getTypeDemandeLabel(demande.type_demande)}

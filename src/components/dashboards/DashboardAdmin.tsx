@@ -25,6 +25,7 @@ interface DemandeEntreprise {
   created_at: string;
   traite_par?: string | null;
   statut?: string;
+  reference?: string;
 }
 
 const STATUTS = [
@@ -454,6 +455,11 @@ const DashboardAdmin = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-4 mb-3">
                           <h3 className="text-2xl font-bold text-[#1E40AF]">{demande.entreprise_nom}</h3>
+                          {demande.reference && (
+                            <span className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-mono font-semibold shadow-lg">
+                              {demande.reference}
+                            </span>
+                          )}
                           {currentStatut && (
                             <span className={`px-3 py-1 text-sm font-semibold text-white rounded-full ${currentStatut.color} shadow-lg`}>
                               {currentStatut.label}

@@ -5,11 +5,11 @@ import { useSettings } from '@/hooks/useSettings'
 import { useEvenements } from '@/hooks/useEvenements'
 import { supabase } from '@/lib/supabase'
 import { 
-  Calendar, Plus, Search, Filter, Grid, List, 
+  Calendar, Plus, Search, Filter,   Grid, List, 
   Clock, CheckCircle, AlertTriangle, XCircle,
   TrendingUp, Users, MapPin, FileText, Zap, Edit3,
   BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download, X,
-  EyeOff
+  EyeOff, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { EvenementForm } from './EvenementForm'
 import { EventCard } from './EventCard'
@@ -68,6 +68,10 @@ export const ModernEvenementsModule = () => {
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
   const [selectedAtelierForInscriptions, setSelectedAtelierForInscriptions] = useState<any>(null)
+  
+  // États pour la pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 12
   
   // États pour l'import Excel
   const [showImportModal, setShowImportModal] = useState(false)
@@ -547,10 +551,10 @@ export const ModernEvenementsModule = () => {
   };
 
   const handleSelectAllEvents = () => {
-    if (selectedEvents.length === evenementsData.length) {
+    if (selectedEvents.length === displayItems.length && displayItems.length > 0) {
       setSelectedEvents([]);
     } else {
-      setSelectedEvents(evenementsData.map(e => e.id));
+      setSelectedEvents(displayItems.map(e => e.id));
     }
   };
 
@@ -620,13 +624,11 @@ export const ModernEvenementsModule = () => {
       
       'assistance au choix de carrière': 'assistance_carriere',
       'assistance_carriere': 'assistance_carriere',
-      'carrière': 'assistance_carriere',
       'carriere': 'assistance_carriere',
       'carrière': 'assistance_carriere',
       
       'assistance au choix de filière': 'assistance_filiere',
       'assistance_filiere': 'assistance_filiere',
-      'filière': 'assistance_filiere',
       'filiere': 'assistance_filiere',
       'filière': 'assistance_filiere'
     };
@@ -697,10 +699,9 @@ export const ModernEvenementsModule = () => {
             raw: false
           });
         } catch (error2) {
-          console.warn('⚠️ Échec avec header: "A", tentative avec header: true');
-          // Dernier recours avec header: true
+          console.warn('⚠️ Échec avec header: "A", tentative avec header: undefined');
+          // Dernier recours avec header par défaut (noms de colonnes)
           data = XLSX.utils.sheet_to_json(worksheet, {
-            header: true,
             defval: '',
             blankrows: false,
             raw: false
@@ -1011,19 +1012,33 @@ export const ModernEvenementsModule = () => {
     })
   }, [ateliersData, searchTerm, statusFilter])
 
+  // Réinitialiser la page quand on change d'onglet ou de filtre
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [activeTab, searchTerm, statusFilter, typeFilter, voletFilter])
+
   // Obtenir les éléments à afficher selon l'onglet actif avec optimisation
   const displayItems = React.useMemo(() => {
+    let items = []
     if (activeTab === 'evenements') {
-      return filteredEvenements.sort((a, b) => 
+      items = [...filteredEvenements].sort((a, b) => 
         new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
       )
     } else if (activeTab === 'ateliers') {
-      return filteredAteliers.sort((a, b) => 
+      items = [...filteredAteliers].sort((a, b) => 
         new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
       )
     }
-    return []
+    return items
   }, [activeTab, filteredEvenements, filteredAteliers])
+
+  // Éléments paginés
+  const paginatedItems = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    return displayItems.slice(startIndex, startIndex + itemsPerPage)
+  }, [displayItems, currentPage])
+
+  const totalPages = Math.ceil(displayItems.length / itemsPerPage)
 
   // Le hook useEvenements gère déjà le chargement initial
 
@@ -1480,7 +1495,7 @@ export const ModernEvenementsModule = () => {
         }`}>
           {activeTab === 'evenements' ? (
             // Affichage des événements
-            displayItems.map(event => (
+            paginatedItems.map(event => (
               <EventCard
                 key={event.id}
                 event={event}
@@ -1495,7 +1510,7 @@ export const ModernEvenementsModule = () => {
             ))
           ) : (
             // Affichage des ateliers
-            displayItems.map(atelier => (
+            paginatedItems.map(atelier => (
               <div key={atelier.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div className="p-6">
                   {/* Header de la carte */}
@@ -1620,14 +1635,6 @@ export const ModernEvenementsModule = () => {
                         {atelier.capacite_actuelle || 0}/{atelier.capacite_maximale || 'N/A'} places
                         {/* Debug: actuelle={atelier.capacite_actuelle}, max={atelier.capacite_maximale} */}
                       </span>
-                      {/* Debug console log */}
-                      {console.log('🔍 Atelier debug:', {
-                        id: atelier.id,
-                        titre: atelier.titre,
-                        capacite_actuelle: atelier.capacite_actuelle,
-                        capacite_maximale: atelier.capacite_maximale,
-                        visible_inscription: atelier.visible_inscription
-                      })}
                     </div>
                   </div>
                 </div>
@@ -1635,8 +1642,46 @@ export const ModernEvenementsModule = () => {
             ))
           )}
         </div>
-        )
-      ) : null}
+      )) : null}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex items-center justify-center gap-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Précédent
+          </button>
+          
+          <div className="flex items-center gap-1">
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i + 1}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`w-10 h-10 rounded-lg border transition-colors ${
+                  currentPage === i + 1
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          >
+            Suivant
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Formulaire modal */}
       {showForm && (
@@ -1687,7 +1732,6 @@ export const ModernEvenementsModule = () => {
       {/* Affichage du contenu généré - Masqué pour le directeur */}
       {generatedContent && !isDirecteur && (
         <>
-          {console.log('📄 Affichage du modal de contenu généré')}
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
@@ -1886,11 +1930,10 @@ export const ModernEvenementsModule = () => {
                       <p className="text-gray-700 leading-relaxed">{selectedEvent.description}</p>
                     </div>
 
-                    {selectedEvent.photos_urls && selectedEvent.photos_urls.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Photos ({selectedEvent.photos_urls.length})</h3>
-                        {console.log('📸 Photos URLs:', selectedEvent.photos_urls)}
-                        <div className="grid grid-cols-2 gap-2">
+                  {selectedEvent.photos_urls && selectedEvent.photos_urls.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Photos ({selectedEvent.photos_urls.length})</h3>
+                      <div className="grid grid-cols-2 gap-2">
                           {selectedEvent.photos_urls.map((photo: string, index: number) => (
                             <div key={index} className="relative group">
                               <img

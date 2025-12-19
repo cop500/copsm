@@ -9,10 +9,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const { loading } = useAuth()
   
   // Pages publiques qui ne nécessitent pas d'authentification
-  const publicPages = ['/enquete-satisfaction', '/cv-connect/public']
+  const publicPages = ['/enquete-satisfaction', '/cv-connect/public', '/candidature', '/inscription-ateliers', '/evenements']
   const isPublicPage = publicPages.some(page => pathname?.startsWith(page))
   
-  // Pour les pages publiques, ne pas bloquer le rendu
+  // Pour les pages publiques, ne pas bloquer le rendu mais garder le UserProvider
   if (isPublicPage) {
     return (
       <html lang="fr">
@@ -20,9 +20,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         </head>
         <body>
-          <main>
-            {children}
-          </main>
+          <UserProvider>
+            <main>
+              {children}
+            </main>
+          </UserProvider>
         </body>
       </html>
     )

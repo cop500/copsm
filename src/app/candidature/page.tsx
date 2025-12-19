@@ -11,22 +11,28 @@ import {
 
 interface DemandeEntreprise {
   id: string
-  entreprise_nom: string
-  secteur: string
-  entreprise_ville: string
-  contact_nom: string
-  contact_email: string
-  profils: Array<{
+  entreprise_nom?: string
+  nom_entreprise?: string
+  secteur?: string
+  entreprise_ville?: string
+  contact_nom?: string
+  contact_email?: string
+  reference?: string
+  profils?: Array<{
     pole_id: string
     filiere_id: string
     poste_intitule: string
     poste_description: string
     competences: string
-  type_contrat: string
+    type_contrat: string
     salaire: string
     duree: string
   }>
-  created_at: string
+  poste_recherche?: string
+  description?: string
+  statut?: string
+  source?: 'entreprises' | 'cv'
+  created_at?: string
 }
 
 interface FormData {
@@ -92,9 +98,9 @@ export default function CandidaturePage() {
       }
 
       // Combiner les deux sources de données
-      const allDemandes = [
-        ...(dataEntreprises || []).map(d => ({ ...d, source: 'entreprises' })),
-        ...(dataCV || []).map(d => ({ ...d, source: 'cv' }))
+      const allDemandes: DemandeEntreprise[] = [
+        ...(dataEntreprises || []).map(d => ({ ...d, source: 'entreprises' as const } as DemandeEntreprise)),
+        ...(dataCV || []).map(d => ({ ...d, source: 'cv' as const } as DemandeEntreprise))
       ]
       
       console.log('Demandes trouvées:', {
@@ -397,10 +403,20 @@ export default function CandidaturePage() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <Building2 className="w-5 h-5 text-blue-600" />
-                                {demande.entreprise_nom}
-                              </h3>
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                  <Building2 className="w-5 h-5 text-blue-600" />
+                                  {demande.entreprise_nom}
+                                </h3>
+                                {demande.reference && (
+                                  <div className="mt-1 flex items-center gap-2">
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-mono font-semibold">
+                                      {demande.reference}
+                                    </span>
+                                    <span className="text-xs text-gray-500">Référence de l'offre</span>
+                                  </div>
+                                )}
+                              </div>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 demande.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
                                 demande.statut === 'en_cours' ? 'bg-blue-100 text-blue-800' :
@@ -430,10 +446,20 @@ export default function CandidaturePage() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                              <Building2 className="w-5 h-5 text-blue-600" />
-                              {demande.nom_entreprise || demande.entreprise_nom}
-                            </h3>
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                <Building2 className="w-5 h-5 text-blue-600" />
+                                {demande.nom_entreprise || demande.entreprise_nom}
+                              </h3>
+                              {demande.reference && (
+                                <div className="mt-1 flex items-center gap-2">
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-mono font-semibold">
+                                    {demande.reference}
+                                  </span>
+                                  <span className="text-xs text-gray-500">Référence de l'offre</span>
+                                </div>
+                              )}
+                            </div>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               demande.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
                               demande.statut === 'en_cours' ? 'bg-blue-100 text-blue-800' :
