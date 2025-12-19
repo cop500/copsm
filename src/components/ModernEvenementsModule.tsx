@@ -26,13 +26,12 @@ import CalendrierCollaboratif from './CalendrierCollaboratif'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
-  const { evenements: allEvenements, saveEvenement, ensureDataFresh, fetchEvenements } = useEvenements()
+  const { evenements: allEvenements, loading: hookLoading, saveEvenement, ensureDataFresh, fetchEvenements } = useEvenements()
   const { currentUser } = useUser()
   const { isAdmin, isDirecteur, isManager, isCarriere } = useRole()
   
   const [showForm, setShowForm] = useState(false)
-  // Les données viennent directement du hook via useMemo
-  const [loading, setLoading] = useState(true)
+  // Utiliser le loading du hook directement
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // Utiliser directement les données du hook sans synchronisation complexe
@@ -100,12 +99,7 @@ export const ModernEvenementsModule = () => {
   console.log('🔍 Evenements data:', evenementsData)
   console.log('🔍 Ateliers data:', ateliersData)
   console.log('🔍 Active tab:', activeTab)
-  // Mettre à jour le loading quand les données arrivent
-  useEffect(() => {
-    if (allEvenements && Array.isArray(allEvenements)) {
-      setLoading(false)
-    }
-  }, [allEvenements, refreshTrigger])
+  // Utiliser le loading du hook directement, pas besoin de useEffect séparé
 
   // Rediriger le directeur vers 'evenements' s'il est sur 'planning'
   useEffect(() => {
@@ -114,16 +108,33 @@ export const ModernEvenementsModule = () => {
     }
   }, [isDirecteur, activeTab])
 
+  // Recharger les données quand on change d'onglet ou au montage du composant
+  useEffect(() => {
+    // S'assurer que les données sont chargées au montage
+    if (!allEvenements || allEvenements.length === 0) {
+      fetchEvenements(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Seulement au montage
+
+  // Recharger les données quand on change d'onglet (pour éviter les problèmes de cache)
+  useEffect(() => {
+    if (activeTab === 'evenements' || activeTab === 'ateliers') {
+      // Vérifier si les données sont vides et recharger si nécessaire
+      if (!allEvenements || allEvenements.length === 0) {
+        fetchEvenements(true)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, allEvenements])
+
   // Fonction pour forcer le rechargement des données
   const reloadData = async () => {
     try {
-      setLoading(true)
       await fetchEvenements(true) // forceRefresh = true
     } catch (err: any) {
       console.error('Erreur rechargement:', err)
       showMessage('Erreur lors du rechargement des données', 'error')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -1435,7 +1446,7 @@ export const ModernEvenementsModule = () => {
 
       {/* Liste des éléments selon l'onglet actif */}
       {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' ? (
-        loading ? (
+        hookLoading ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>

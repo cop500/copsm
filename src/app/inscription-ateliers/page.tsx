@@ -129,8 +129,20 @@ export default function InscriptionAteliersPage() {
     setError(null)
 
     try {
+      // Validation des champs obligatoires
       if (!formData.nom || !formData.email || !formData.pole || !formData.filliere) {
         throw new Error('Veuillez remplir tous les champs obligatoires')
+      }
+
+      // Validation de l'email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email)) {
+        throw new Error('Veuillez entrer une adresse email valide')
+      }
+
+      // Validation du nom (au moins 2 caractères)
+      if (formData.nom.trim().length < 2) {
+        throw new Error('Le nom doit contenir au moins 2 caractères')
       }
 
       // Vérifier si l'utilisateur n'est pas déjà inscrit
@@ -165,18 +177,22 @@ export default function InscriptionAteliersPage() {
 
       // Créer l'inscription
       // Ne pas inclure statut pour laisser la valeur par défaut NULL s'appliquer
+      const inscriptionData = {
+        atelier_id: selectedAtelier!.id,
+        stagiaire_nom: formData.nom.trim(),
+        stagiaire_email: formData.email.trim().toLowerCase(),
+        pole: formData.pole,
+        filliere: formData.filliere,
+        stagiaire_telephone: formData.telephone?.trim() || null,
+        date_inscription: new Date().toISOString()
+        // statut non inclus : la valeur par défaut NULL sera utilisée automatiquement
+      }
+
+      console.log('📝 Données d\'inscription:', inscriptionData)
+
       const { error: insertError } = await supabase
         .from('inscriptions_ateliers')
-        .insert([{
-          atelier_id: selectedAtelier!.id,
-          stagiaire_nom: formData.nom,
-          stagiaire_email: formData.email,
-          pole: formData.pole,
-          filliere: formData.filliere,
-          stagiaire_telephone: formData.telephone,
-          date_inscription: new Date().toISOString()
-          // statut non inclus : la valeur par défaut NULL sera utilisée automatiquement
-        }])
+        .insert([inscriptionData])
 
       if (insertError) throw insertError
 
@@ -199,7 +215,28 @@ export default function InscriptionAteliersPage() {
       
       await loadAteliers()
     } catch (err: any) {
-      setError(err.message)
+      // Gestion des erreurs avec messages clairs pour mobile
+      let errorMessage = 'Une erreur est survenue lors de l\'inscription'
+      
+      if (err.message) {
+        errorMessage = err.message
+      } else if (err.error?.message) {
+        errorMessage = err.error.message
+      } else if (typeof err === 'string') {
+        errorMessage = err
+      }
+      
+      // Messages d'erreur spécifiques pour les problèmes courants
+      if (errorMessage.includes('check constraint')) {
+        errorMessage = 'Erreur technique. Veuillez réessayer ou contacter le support.'
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        errorMessage = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.'
+      } else if (errorMessage.includes('session') || errorMessage.includes('auth')) {
+        errorMessage = 'Session expirée. Veuillez rafraîchir la page et réessayer.'
+      }
+      
+      setError(errorMessage)
+      console.error('Erreur inscription atelier:', err)
     } finally {
       setSubmitting(false)
     }
@@ -417,8 +454,8 @@ export default function InscriptionAteliersPage() {
 
       {/* Modal Formulaire d'inscription */}
       {showInscriptionForm && selectedAtelier && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto my-4">
             <div className="p-6">
               {inscriptionSuccess ? (
                 <div className="text-center">
@@ -464,7 +501,10 @@ export default function InscriptionAteliersPage() {
 
                   {error && (
                     <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-red-600 font-medium">{error}</p>
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-red-600 font-medium text-sm sm:text-base break-words">{error}</p>
+                      </div>
                     </div>
                   )}
 
@@ -478,9 +518,10 @@ export default function InscriptionAteliersPage() {
                           type="text"
                           value={formData.nom}
                           onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white placeholder:text-gray-400"
                           placeholder="Votre nom complet"
                           required
+                          autoComplete="name"
                         />
                       </div>
 
@@ -492,9 +533,11 @@ export default function InscriptionAteliersPage() {
                           type="email"
                           value={formData.email}
                           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white placeholder:text-gray-400"
                           placeholder="votre.email@exemple.com"
                           required
+                          autoComplete="email"
+                          inputMode="email"
                         />
                       </div>
                     </div>
@@ -508,8 +551,10 @@ export default function InscriptionAteliersPage() {
                           type="tel"
                           value={formData.telephone}
                           onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white placeholder:text-gray-400"
                           placeholder="06 12 34 56 78"
+                          autoComplete="tel"
+                          inputMode="tel"
                         />
                       </div>
 
@@ -524,12 +569,12 @@ export default function InscriptionAteliersPage() {
                             pole: e.target.value,
                             filliere: ''
                           }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white"
                           required
                         >
-                          <option value="">Sélectionnez un pôle</option>
+                          <option value="" className="text-gray-900">Sélectionnez un pôle</option>
                           {poles.filter(p => p.actif).map(pole => (
-                            <option key={pole.id} value={pole.nom}>{pole.nom}</option>
+                            <option key={pole.id} value={pole.nom} className="text-gray-900">{pole.nom}</option>
                           ))}
                         </select>
                       </div>
@@ -542,31 +587,31 @@ export default function InscriptionAteliersPage() {
                       <select
                         value={formData.filliere}
                         onChange={(e) => setFormData(prev => ({ ...prev, filliere: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 text-gray-900 bg-white disabled:text-gray-500"
                         disabled={!formData.pole}
                         required
                       >
-                        <option value="">
+                        <option value="" className="text-gray-900">
                           {formData.pole ? 'Sélectionnez une filière' : 'Sélectionnez d\'abord un pôle'}
                         </option>
                         {filieresFiltered.map(filiere => (
-                          <option key={filiere.id} value={filiere.nom}>{filiere.nom}</option>
+                          <option key={filiere.id} value={filiere.nom} className="text-gray-900">{filiere.nom}</option>
                         ))}
                       </select>
                     </div>
 
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
                       <button
                         type="button"
                         onClick={closeInscriptionForm}
-                        className="flex-1 px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+                        className="flex-1 px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-semibold text-base"
                       >
                         Annuler
                       </button>
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="flex-1 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold transition-colors"
+                        className="flex-1 px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold transition-colors text-base min-h-[48px]"
                       >
                         {submitting ? (
                           <>
