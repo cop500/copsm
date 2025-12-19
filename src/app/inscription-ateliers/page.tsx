@@ -149,12 +149,22 @@ export default function InscriptionAteliersPage() {
         throw new Error('Vous êtes déjà inscrit à cet atelier')
       }
 
-      // Vérifier la capacité
-      if ((selectedAtelier!.capacite_actuelle || 0) >= selectedAtelier!.capacite_maximale) {
+      // Vérifier la capacité en comptant les inscriptions actives (non annulées)
+      const { data: activeInscriptions, error: countError } = await supabase
+        .from('inscriptions_ateliers')
+        .select('id', { count: 'exact', head: false })
+        .eq('atelier_id', selectedAtelier!.id)
+        .or('statut.is.null,statut.neq.annule')
+
+      if (countError) throw countError
+
+      const activeCount = activeInscriptions?.length || 0
+      if (activeCount >= selectedAtelier!.capacite_maximale) {
         throw new Error('Cet atelier est complet')
       }
 
       // Créer l'inscription
+      // Ne pas inclure statut pour laisser la valeur par défaut NULL s'appliquer
       const { error: insertError } = await supabase
         .from('inscriptions_ateliers')
         .insert([{
@@ -164,8 +174,8 @@ export default function InscriptionAteliersPage() {
           pole: formData.pole,
           filliere: formData.filliere,
           stagiaire_telephone: formData.telephone,
-          statut: 'en_attente',
           date_inscription: new Date().toISOString()
+          // statut non inclus : la valeur par défaut NULL sera utilisée automatiquement
         }])
 
       if (insertError) throw insertError

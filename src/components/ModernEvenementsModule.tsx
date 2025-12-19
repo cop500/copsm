@@ -9,7 +9,7 @@ import {
   Clock, CheckCircle, AlertTriangle, XCircle,
   TrendingUp, Users, MapPin, FileText, Zap, Edit3,
   BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download, X,
-  EyeOff, ChevronLeft, ChevronRight
+  EyeOff
 } from 'lucide-react'
 import { EvenementForm } from './EvenementForm'
 import { EventCard } from './EventCard'
@@ -68,10 +68,6 @@ export const ModernEvenementsModule = () => {
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
   const [selectedAtelierForInscriptions, setSelectedAtelierForInscriptions] = useState<any>(null)
-  
-  // États pour la pagination
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 12
   
   // États pour l'import Excel
   const [showImportModal, setShowImportModal] = useState(false)
@@ -551,10 +547,10 @@ export const ModernEvenementsModule = () => {
   };
 
   const handleSelectAllEvents = () => {
-    if (selectedEvents.length === displayItems.length && displayItems.length > 0) {
+    if (selectedEvents.length === evenementsData.length) {
       setSelectedEvents([]);
     } else {
-      setSelectedEvents(displayItems.map(e => e.id));
+      setSelectedEvents(evenementsData.map(e => e.id));
     }
   };
 
@@ -1012,33 +1008,19 @@ export const ModernEvenementsModule = () => {
     })
   }, [ateliersData, searchTerm, statusFilter])
 
-  // Réinitialiser la page quand on change d'onglet ou de filtre
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [activeTab, searchTerm, statusFilter, typeFilter, voletFilter])
-
   // Obtenir les éléments à afficher selon l'onglet actif avec optimisation
   const displayItems = React.useMemo(() => {
-    let items = []
     if (activeTab === 'evenements') {
-      items = [...filteredEvenements].sort((a, b) => 
+      return filteredEvenements.sort((a, b) => 
         new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
       )
     } else if (activeTab === 'ateliers') {
-      items = [...filteredAteliers].sort((a, b) => 
+      return filteredAteliers.sort((a, b) => 
         new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
       )
     }
-    return items
+    return []
   }, [activeTab, filteredEvenements, filteredAteliers])
-
-  // Éléments paginés
-  const paginatedItems = React.useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return displayItems.slice(startIndex, startIndex + itemsPerPage)
-  }, [displayItems, currentPage])
-
-  const totalPages = Math.ceil(displayItems.length / itemsPerPage)
 
   // Le hook useEvenements gère déjà le chargement initial
 
@@ -1240,55 +1222,55 @@ export const ModernEvenementsModule = () => {
       {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
         <>
           {activeTab === 'evenements' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total</p>
                     <p className="text-3xl font-bold text-gray-900">{evenementsData.length}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
               </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Planifiés</p>
-                    <p className="text-3xl font-bold text-blue-600">{getStatusCount('planifie')}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">En cours</p>
-                    <p className="text-3xl font-bold text-yellow-600">{getStatusCount('en_cours')}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-yellow-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Terminés</p>
-                    <p className="text-3xl font-bold text-green-600">{getStatusCount('termine')}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-blue-600" />
               </div>
             </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Planifiés</p>
+                <p className="text-3xl font-bold text-blue-600">{getStatusCount('planifie')}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">En cours</p>
+                <p className="text-3xl font-bold text-yellow-600">{getStatusCount('en_cours')}</p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Terminés</p>
+                <p className="text-3xl font-bold text-green-600">{getStatusCount('termine')}</p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+        </div>
           )}
           {activeTab === 'ateliers' && !isDirecteur && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1454,40 +1436,40 @@ export const ModernEvenementsModule = () => {
       {/* Liste des éléments selon l'onglet actif */}
       {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' ? (
         loading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Chargement des données...</p>
-            </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement des données...</p>
           </div>
-        ) : displayItems.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-            <div className="text-center">
-              {activeTab === 'evenements' ? (
-                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              ) : (
-                <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              )}
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Aucun {activeTab === 'evenements' ? 'événement' : 'atelier'} trouvé
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {activeTab === 'evenements' 
+        </div>
+      ) : displayItems.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+          <div className="text-center">
+            {activeTab === 'evenements' ? (
+              <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            ) : (
+              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            )}
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Aucun {activeTab === 'evenements' ? 'événement' : 'atelier'} trouvé
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {activeTab === 'evenements' 
                   ? (evenementsData.length === 0 ? 'Créez votre premier événement pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
                   : (ateliersData.length === 0 ? 'Créez votre premier atelier pour commencer' : 'Ajustez vos filtres pour voir plus de résultats')
-                }
-              </p>
+              }
+            </p>
               {((activeTab === 'evenements' && evenementsData.length === 0) || (activeTab === 'ateliers' && ateliersData.length === 0)) && (
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Créer un {activeTab === 'evenements' ? 'événement' : 'atelier'}
-                </button>
-              )}
-            </div>
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Créer un {activeTab === 'evenements' ? 'événement' : 'atelier'}
+              </button>
+            )}
           </div>
-        ) : (
+        </div>
+      ) : (
         <div className={`grid gap-6 ${
           viewMode === 'grid' 
             ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
@@ -1495,7 +1477,7 @@ export const ModernEvenementsModule = () => {
         }`}>
           {activeTab === 'evenements' ? (
             // Affichage des événements
-            paginatedItems.map(event => (
+            displayItems.map(event => (
               <EventCard
                 key={event.id}
                 event={event}
@@ -1510,7 +1492,7 @@ export const ModernEvenementsModule = () => {
             ))
           ) : (
             // Affichage des ateliers
-            paginatedItems.map(atelier => (
+            displayItems.map(atelier => (
               <div key={atelier.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div className="p-6">
                   {/* Header de la carte */}
@@ -1523,9 +1505,9 @@ export const ModernEvenementsModule = () => {
                         </h3>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAtelierStatusColor(atelier.statut)}`}>
-                          {getAtelierStatusLabel(atelier.statut)}
-                        </span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAtelierStatusColor(atelier.statut)}`}>
+                        {getAtelierStatusLabel(atelier.statut)}
+                      </span>
                         {isAdmin && (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             atelier.visible_inscription 
@@ -1643,45 +1625,6 @@ export const ModernEvenementsModule = () => {
           )}
         </div>
       )) : null}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-2">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Précédent
-          </button>
-          
-          <div className="flex items-center gap-1">
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`w-10 h-10 rounded-lg border transition-colors ${
-                  currentPage === i + 1
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-          >
-            Suivant
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Formulaire modal */}
       {showForm && (
@@ -1930,10 +1873,10 @@ export const ModernEvenementsModule = () => {
                       <p className="text-gray-700 leading-relaxed">{selectedEvent.description}</p>
                     </div>
 
-                  {selectedEvent.photos_urls && selectedEvent.photos_urls.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Photos ({selectedEvent.photos_urls.length})</h3>
-                      <div className="grid grid-cols-2 gap-2">
+                    {selectedEvent.photos_urls && selectedEvent.photos_urls.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Photos ({selectedEvent.photos_urls.length})</h3>
+                        <div className="grid grid-cols-2 gap-2">
                           {selectedEvent.photos_urls.map((photo: string, index: number) => (
                             <div key={index} className="relative group">
                               <img

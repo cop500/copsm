@@ -14,9 +14,8 @@ declare module 'jspdf' {
   }
 }
 import { 
-  Users, X, Download, Trash2, Eye, CheckCircle, 
-  Clock, AlertCircle, Search, Filter, Calendar,
-  Mail, Phone, MapPin, GraduationCap, FileText
+  Users, X, Download, Trash2, Search,
+  GraduationCap, FileText, XCircle
 } from 'lucide-react'
 
 interface AtelierInscriptionsManagerProps {
@@ -31,7 +30,7 @@ interface Inscription {
   stagiaire_telephone?: string
   pole: string
   filliere: string
-  statut: string
+  statut?: string // Optionnel maintenant, seulement 'annule' si annulée
   date_inscription: string
 }
 
@@ -39,7 +38,6 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   const [inscriptions, setInscriptions] = useState<Inscription[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [selectedInscriptions, setSelectedInscriptions] = useState<string[]>([])
 
   // Charger les inscriptions de l'atelier
@@ -61,37 +59,27 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     }
   }
 
-  // Filtrer les inscriptions
+  // Filtrer les inscriptions (seulement par recherche, plus de filtre par statut)
   const filteredInscriptions = inscriptions.filter(inscription => {
+    // Exclure les inscriptions annulées de l'affichage
+    if (inscription.statut === 'annule') return false
+    
     const matchesSearch = searchTerm === '' || 
       inscription.stagiaire_nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inscription.stagiaire_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inscription.pole.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inscription.filliere.toLowerCase().includes(searchTerm.toLowerCase())
+      (inscription.pole && inscription.pole.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (inscription.filliere && inscription.filliere.toLowerCase().includes(searchTerm.toLowerCase()))
     
-    const matchesStatus = statusFilter === 'all' || inscription.statut === statusFilter
-    
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
+  
+  // Compter uniquement les inscriptions actives (non annulées)
+  const inscriptionsActives = inscriptions.filter(i => i.statut !== 'annule')
 
-  // Obtenir le statut en français
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'confirme': return 'Confirmée'
-      case 'en_attente': return 'En attente'
-      case 'annule': return 'Annulée'
-      default: return status
-    }
-  }
-
-  // Obtenir la couleur du statut
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirme': return 'bg-green-100 text-green-800 border-green-200'
-      case 'en_attente': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'annule': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
+  // Obtenir le statut en français (seulement pour les annulées)
+  const getStatusLabel = (status?: string) => {
+    if (status === 'annule') return 'Annulée'
+    return 'Inscrit' // Par défaut, toutes les inscriptions sont considérées comme inscrites
   }
 
   // Exporter les inscriptions en Excel (structuré)
@@ -113,7 +101,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
         'Téléphone': inscription.stagiaire_telephone || 'Non renseigné',
         'Pôle': inscription.pole,
         'Filière': inscription.filliere,
-        'Statut': getStatusLabel(inscription.statut),
+        'Statut': inscription.statut === 'annule' ? 'Annulée' : 'Inscrit',
         'Date inscription': new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
@@ -145,9 +133,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
         [''],
         ['Atelier', atelier.titre || 'N/A'],
         ['Date d\'export', new Date().toLocaleDateString('fr-FR')],
-        ['Total inscriptions', filteredInscriptions.length],
-        ['Confirmées', inscriptions.filter(i => i.statut === 'confirme').length],
-        ['En attente', inscriptions.filter(i => i.statut === 'en_attente').length],
+        ['Total inscriptions', inscriptionsActives.length],
         ['Annulées', inscriptions.filter(i => i.statut === 'annule').length],
         [''],
         ['DÉTAIL DES INSCRIPTIONS'],
@@ -224,11 +210,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
       doc.setFont('helvetica', 'normal')
       doc.text(`Date d'export: ${new Date().toLocaleDateString('fr-FR')}`, 15, yPos)
       yPos += 5
-      doc.text(`Total inscriptions: ${filteredInscriptions.length}`, 15, yPos)
-      yPos += 5
-      doc.text(`Confirmées: ${inscriptions.filter(i => i.statut === 'confirme').length}`, 15, yPos)
-      yPos += 5
-      doc.text(`En attente: ${inscriptions.filter(i => i.statut === 'en_attente').length}`, 15, yPos)
+      doc.text(`Total inscriptions: ${inscriptionsActives.length}`, 15, yPos)
       yPos += 5
       doc.text(`Annulées: ${inscriptions.filter(i => i.statut === 'annule').length}`, 15, yPos)
 
@@ -240,7 +222,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
         inscription.stagiaire_telephone || 'Non renseigné',
         inscription.pole,
         inscription.filliere,
-        getStatusLabel(inscription.statut),
+        inscription.statut === 'annule' ? 'Annulée' : 'Inscrit',
         new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
@@ -390,11 +372,14 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
       if (error) throw error
 
-      // Mettre à jour la capacité de l'atelier
-      await supabase
-        .from('evenements')
-        .update({ capacite_actuelle: (atelier.capacite_actuelle || 0) - 1 })
-        .eq('id', atelier.id)
+      // Mettre à jour la capacité de l'atelier (décrémenter seulement si l'inscription n'était pas annulée)
+      const inscriptionToDelete = inscriptions.find(i => i.id === id)
+      if (inscriptionToDelete && inscriptionToDelete.statut !== 'annule') {
+        await supabase
+          .from('evenements')
+          .update({ capacite_actuelle: Math.max(0, (atelier.capacite_actuelle || 0) - 1) })
+          .eq('id', atelier.id)
+      }
 
       await loadInscriptions()
     } catch (error) {
@@ -403,19 +388,28 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     }
   }
 
-  // Changer le statut d'une inscription
-  const handleChangeStatus = async (id: string, newStatus: string) => {
+  // Annuler une inscription
+  const handleCancelInscription = async (id: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir annuler cette inscription ?')) return
+
     try {
       const { error } = await supabase
         .from('inscriptions_ateliers')
-        .update({ statut: newStatus })
+        .update({ statut: 'annule' })
         .eq('id', id)
 
       if (error) throw error
+
+      // Mettre à jour la capacité de l'atelier
+      await supabase
+        .from('evenements')
+        .update({ capacite_actuelle: Math.max(0, (atelier.capacite_actuelle || 0) - 1) })
+        .eq('id', atelier.id)
+
       await loadInscriptions()
     } catch (error) {
-      console.error('Erreur changement statut:', error)
-      alert('Erreur lors du changement de statut')
+      console.error('Erreur annulation inscription:', error)
+      alert('Erreur lors de l\'annulation')
     }
   }
 
@@ -435,7 +429,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                 Gestion des inscriptions
           </h2>
               <p className="text-gray-600 mt-1">
-                {atelier.titre} - {inscriptions.length} inscription(s)
+                {atelier.titre} - {inscriptionsActives.length} inscription(s)
               </p>
             </div>
           <button
@@ -444,48 +438,20 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
           >
               <X className="w-6 h-6" />
           </button>
+            </div>
           </div>
-        </div>
 
-        {/* Statistiques */}
+        {/* Statistiques simplifiées */}
         <div className="p-6 bg-gray-50 border-b border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="flex items-center">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Users className="w-5 h-5 text-blue-600" />
                 </div>
               <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Total</p>
-                  <p className="text-xl font-bold text-gray-900">{inscriptions.length}</p>
-              </div>
-            </div>
-          </div>
-
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-              <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Confirmées</p>
-                  <p className="text-xl font-bold text-green-600">
-                    {inscriptions.filter(i => i.statut === 'confirme').length}
-                  </p>
-              </div>
-            </div>
-          </div>
-
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Clock className="w-5 h-5 text-yellow-600" />
-                </div>
-              <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">En attente</p>
-                  <p className="text-xl font-bold text-yellow-600">
-                    {inscriptions.filter(i => i.statut === 'en_attente').length}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">Inscriptions actives</p>
+                  <p className="text-xl font-bold text-gray-900">{inscriptionsActives.length}</p>
               </div>
             </div>
           </div>
@@ -494,11 +460,11 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             <div className="flex items-center">
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <GraduationCap className="w-5 h-5 text-purple-600" />
-                </div>
+          </div>
               <div className="ml-3">
                   <p className="text-sm font-medium text-gray-600">Capacité</p>
                   <p className="text-xl font-bold text-purple-600">
-                    {atelier.capacite_actuelle || 0}/{atelier.capacite_maximale}
+                    {inscriptionsActives.length}/{atelier.capacite_maximale || 'N/A'}
                   </p>
               </div>
             </div>
@@ -519,18 +485,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                 onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent w-64"
               />
-          </div>
-
-            <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="en_attente">En attente</option>
-                <option value="confirme">Confirmées</option>
-                <option value="annule">Annulées</option>
-            </select>
+            </div>
           </div>
 
             <div className="flex gap-2">
@@ -541,16 +496,16 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                 <Download className="w-4 h-4" />
                 Excel
               </button>
-              <button
+            <button
                 onClick={exportToPDF}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
                 PDF
-              </button>
-            </div>
+            </button>
           </div>
         </div>
+      </div>
 
         {/* Liste des inscriptions */}
         <div className="p-6">
@@ -564,7 +519,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune inscription</h3>
               <p className="text-gray-600">
-                {searchTerm || statusFilter !== 'all' 
+                {searchTerm 
                   ? 'Aucune inscription ne correspond à vos critères de recherche.'
                   : 'Aucune inscription n\'a encore été enregistrée pour cet atelier.'
                 }
@@ -586,9 +541,6 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date inscription
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Statut
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -623,23 +575,19 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                                 minute: '2-digit'
                         })}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={inscription.statut}
-                          onChange={(e) => handleChangeStatus(inscription.id, e.target.value)}
-                          className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(inscription.statut)}`}
-                        >
-                          <option value="en_attente">En attente</option>
-                          <option value="confirme">Confirmée</option>
-                          <option value="annule">Annulée</option>
-                        </select>
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
                               <button
+                            onClick={() => handleCancelInscription(inscription.id)}
+                            className="text-orange-600 hover:text-orange-900"
+                            title="Annuler l'inscription"
+                          >
+                            <XCircle className="w-4 h-4" />
+                              </button>
+                              <button
                             onClick={() => handleDeleteInscription(inscription.id)}
                             className="text-red-600 hover:text-red-900"
-                            title="Supprimer"
+                            title="Supprimer définitivement"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
