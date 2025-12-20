@@ -781,11 +781,11 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
             )}
           </div>
 
-          {/* Lieu */}
+          {/* Lieu (Salle) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-gray-500" />
-              Lieu *
+              Salle *
             </label>
             <input
               type="text"
@@ -802,26 +802,6 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
                 {errors.lieu}
               </p>
             )}
-            
-            {/* Suggestions de lieu */}
-            <div className="mt-3">
-              <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                Suggestions rapides (cliquez pour sélectionner) :
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {['COP CMC', 'COP CMC Salle Séminaire', 'Lieu à préciser'].map((suggestion, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleChange('lieu', suggestion)}
-                    className="px-3 py-1 text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Responsable COP */}

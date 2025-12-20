@@ -266,6 +266,88 @@ const CalendrierCollaboratif: React.FC = () => {
       return
     }
 
+    // Vérifier les conflits de réservation si une salle COP est sélectionnée
+    if (formData.salle && (formData.salle === 'Salle de formation COP' || formData.salle === 'Salle séminaire COP')) {
+      try {
+        // Vérifier dans calendrier_collaboratif
+        const { data: calendrierEvents, error: calendrierError } = await supabase
+          .from('calendrier_collaboratif')
+          .select('id, titre, date_debut, date_fin')
+          .eq('salle', formData.salle)
+          .neq('id', editingEvent?.id || '')
+
+        if (calendrierError) {
+          console.error('Erreur vérification calendrier:', calendrierError)
+        } else if (calendrierEvents) {
+          for (const event of calendrierEvents) {
+            const eventStart = new Date(event.date_debut)
+            const eventEnd = new Date(event.date_fin)
+            
+            // Vérifier si les créneaux se chevauchent
+            if (dateDebut < eventEnd && dateFin > eventStart) {
+              const conflictStart = eventStart.toLocaleString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+              const conflictEnd = eventEnd.toLocaleString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+              alert(`⚠️ La salle "${formData.salle}" est déjà réservée pour l'événement "${event.titre}" du ${conflictStart} au ${conflictEnd}. Veuillez choisir une autre salle ou un autre créneau horaire.`)
+              return
+            }
+          }
+        }
+
+        // Vérifier dans evenements
+        const { data: evenementsEvents, error: evenementsError } = await supabase
+          .from('evenements')
+          .select('id, titre, date_debut, date_fin, lieu, statut')
+          .eq('lieu', formData.salle)
+          .neq('statut', 'annule')
+
+        if (evenementsError) {
+          console.error('Erreur vérification evenements:', evenementsError)
+        } else if (evenementsEvents) {
+          for (const event of evenementsEvents) {
+            const eventStart = new Date(event.date_debut)
+            const eventEnd = event.date_fin ? new Date(event.date_fin) : new Date(eventStart.getTime() + 2 * 60 * 60 * 1000)
+            
+            // Vérifier si les créneaux se chevauchent
+            if (dateDebut < eventEnd && dateFin > eventStart) {
+              const conflictStart = eventStart.toLocaleString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+              const conflictEnd = event.date_fin 
+                ? eventEnd.toLocaleString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                : 'Non spécifiée'
+              alert(`⚠️ La salle "${formData.salle}" est déjà réservée pour l'événement "${event.titre}" du ${conflictStart} au ${conflictEnd}. Veuillez choisir une autre salle ou un autre créneau horaire.`)
+              return
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erreur vérification conflit:', error)
+        // Continuer malgré l'erreur pour ne pas bloquer l'utilisateur
+      }
+    }
+
     if (editingEvent) {
       const result = await updateEvent(editingEvent.id, {
         titre: formData.titre,
@@ -667,13 +749,15 @@ const CalendrierCollaboratif: React.FC = () => {
                   <MapPin className="w-4 h-4 inline mr-1" />
                   Salle
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.salle}
                   onChange={(e) => setFormData({ ...formData, salle: e.target.value })}
-                  placeholder="Ex: Salle 1, Amphi A, etc."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                >
+                  <option value="">Sélectionner une salle</option>
+                  <option value="Salle de formation COP">Salle de formation COP</option>
+                  <option value="Salle séminaire COP">Salle séminaire COP</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -31,20 +31,15 @@ export function useEvenements() {
     
     console.log('🔄 Rechargement des données (cache expiré ou forceRefresh)');
 
-    // Vérifier si la session est toujours valide
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('⚠️ Session expirée, rechargement des données...');
-        // Forcer le rechargement même si le cache existe
-        forceRefresh = true;
-      }
-    } catch (error) {
-      console.warn('❌ Erreur vérification session:', error);
-      forceRefresh = true;
-    }
+    // Ne pas vérifier la session ici car cela peut causer des problèmes
+    // La session sera vérifiée par Supabase lors de la requête
+    // Si la session est invalide, Supabase retournera une erreur qu'on gérera
 
-    setLoading(true);
+    // Ne pas mettre loading à true si on a déjà des données (pour éviter le flash blanc)
+    // Seulement mettre loading à true si on n'a pas de données
+    if (evenements.length === 0) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -105,25 +100,66 @@ export function useEvenements() {
   }, []);
 
   useEffect(() => {
-    fetchEvenements();
-  }, [fetchEvenements]);
+    // Charger les données seulement si elles ne sont pas déjà en cache
+    const cacheKey = 'evenements';
+    const cached = cache.get(cacheKey);
+    const now = Date.now();
+    
+    // Si le cache est valide, utiliser les données en cache
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      console.log('📦 Utilisation du cache au montage:', cached.data.length, 'événements');
+      setEvenements(cached.data);
+      setLoading(false);
+    } else {
+      // Sinon, charger les données
+      fetchEvenements();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Seulement au montage, pas de dépendance sur fetchEvenements pour éviter les rechargements
 
   // Optimisation du temps réel - mise à jour locale au lieu de recharger
   useRealTime('evenements', ({ eventType, new: newRow, old: oldRow }) => {
     setEvenements((prev) => {
+      // S'assurer que prev est un tableau valide
+      if (!Array.isArray(prev)) {
+        console.warn('⚠️ prev n\'est pas un tableau, réinitialisation');
+        return [];
+      }
+      
       if (eventType === 'INSERT' && newRow) {
-        // Invalider le cache
-        cache.delete('evenements');
+        // Mettre à jour le cache avec la nouvelle donnée
+        const cacheKey = 'evenements';
+        const cached = cache.get(cacheKey);
+        if (cached) {
+          cache.set(cacheKey, {
+            data: [...prev, newRow],
+            timestamp: cached.timestamp
+          });
+        }
         return [...prev, newRow];
       }
       if (eventType === 'UPDATE' && newRow) {
-        // Invalider le cache
-        cache.delete('evenements');
+        // Mettre à jour le cache
+        const cacheKey = 'evenements';
+        const cached = cache.get(cacheKey);
+        if (cached) {
+          cache.set(cacheKey, {
+            data: prev.map((item) => (item.id === newRow.id ? newRow : item)),
+            timestamp: cached.timestamp
+          });
+        }
         return prev.map((item) => (item.id === newRow.id ? newRow : item));
       }
       if (eventType === 'DELETE' && oldRow) {
-        // Invalider le cache
-        cache.delete('evenements');
+        // Mettre à jour le cache
+        const cacheKey = 'evenements';
+        const cached = cache.get(cacheKey);
+        if (cached) {
+          cache.set(cacheKey, {
+            data: prev.filter((item) => item.id !== oldRow.id),
+            timestamp: cached.timestamp
+          });
+        }
         return prev.filter((item) => item.id !== oldRow.id);
       }
       return prev;

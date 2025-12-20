@@ -9,7 +9,7 @@ import {
   Clock, CheckCircle, AlertTriangle, XCircle,
   TrendingUp, Users, MapPin, FileText, Zap, Edit3,
   BookOpen, Eye, Trash2, Upload, FileSpreadsheet, Download, X,
-  EyeOff
+  EyeOff, Copy
 } from 'lucide-react'
 import { EvenementForm } from './EvenementForm'
 import { EventCard } from './EventCard'
@@ -35,18 +35,19 @@ export const ModernEvenementsModule = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // Utiliser directement les données du hook sans synchronisation complexe
+  // Protection contre les données invalides
   const evenementsData = useMemo(() => {
-    if (allEvenements && Array.isArray(allEvenements)) {
-      return allEvenements.filter(e => e.type_evenement !== 'atelier')
+    if (!allEvenements || !Array.isArray(allEvenements)) {
+      return []
     }
-    return []
+    return allEvenements.filter(e => e && e.type_evenement !== 'atelier')
   }, [allEvenements])
 
   const ateliersData = useMemo(() => {
-    if (allEvenements && Array.isArray(allEvenements)) {
-      return allEvenements.filter(e => e.type_evenement === 'atelier')
+    if (!allEvenements || !Array.isArray(allEvenements)) {
+      return []
     }
-    return []
+    return allEvenements.filter(e => e && e.type_evenement === 'atelier')
   }, [allEvenements])
 
   // États du composant
@@ -108,25 +109,8 @@ export const ModernEvenementsModule = () => {
     }
   }, [isDirecteur, activeTab])
 
-  // Recharger les données quand on change d'onglet ou au montage du composant
-  useEffect(() => {
-    // S'assurer que les données sont chargées au montage
-    if (!allEvenements || allEvenements.length === 0) {
-      fetchEvenements(true)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Seulement au montage
-
-  // Recharger les données quand on change d'onglet (pour éviter les problèmes de cache)
-  useEffect(() => {
-    if (activeTab === 'evenements' || activeTab === 'ateliers') {
-      // Vérifier si les données sont vides et recharger si nécessaire
-      if (!allEvenements || allEvenements.length === 0) {
-        fetchEvenements(true)
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, allEvenements])
+  // Le hook useEvenements gère déjà le chargement initial
+  // Pas besoin de useEffect supplémentaires qui pourraient causer des rechargements multiples
 
   // Fonction pour forcer le rechargement des données
   const reloadData = async () => {
@@ -317,6 +301,37 @@ export const ModernEvenementsModule = () => {
   // Modifier un atelier
   const handleEditAtelier = (atelier: any) => {
     setEditingAtelier(atelier)
+    setShowAtelierForm(true)
+  }
+
+  // Dupliquer un atelier
+  const handleDuplicateAtelier = (atelier: any) => {
+    // Créer une copie de l'atelier avec les champs modifiables
+    const duplicatedAtelier = {
+      ...atelier,
+      // Réinitialiser l'ID pour créer un nouvel atelier
+      id: undefined,
+      // Réinitialiser les dates (l'admin devra les modifier)
+      date_debut: '',
+      date_fin: '',
+      // Réinitialiser la capacité actuelle
+      capacite_actuelle: 0,
+      // Garder le titre avec indication de duplication
+      titre: `${atelier.titre} (Copie)`,
+      // Garder la capacité maximale (l'admin peut la modifier)
+      capacite_maximale: atelier.capacite_maximale,
+      // Garder la salle (l'admin peut la modifier)
+      lieu: atelier.lieu || '',
+      // Réinitialiser le statut
+      statut: 'planifie',
+      // Garder la visibilité
+      visible_inscription: atelier.visible_inscription || false,
+      // Réinitialiser les photos
+      photos_urls: [],
+      image_url: '',
+    }
+    
+    setEditingAtelier(duplicatedAtelier)
     setShowAtelierForm(true)
   }
 
@@ -1446,7 +1461,7 @@ export const ModernEvenementsModule = () => {
 
       {/* Liste des éléments selon l'onglet actif */}
       {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' ? (
-        hookLoading ? (
+        hookLoading && evenementsData.length === 0 && ateliersData.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -1577,6 +1592,15 @@ export const ModernEvenementsModule = () => {
                       )}
                       {!isDirecteur && (
                         <>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDuplicateAtelier(atelier)}
+                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Dupliquer l'atelier"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEditAtelier(atelier)}
                         className="p-2 text-gray-400 hover:text-green-600 transition-colors"

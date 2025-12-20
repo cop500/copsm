@@ -66,13 +66,27 @@ export default function InscriptionAteliersPage() {
       console.log('🔄 Chargement des ateliers depuis evenements...')
       
       // Utiliser la table evenements pour la cohérence
+      // Trier par created_at décroissant pour afficher les ateliers récents en premier
       const { data, error } = await supabase
         .from('evenements')
         .select('*')
         .eq('type_evenement', 'atelier')
         .eq('visible_inscription', true)
         .in('statut', ['planifie', 'en_cours'])
-        .order('date_debut', { ascending: true })
+        .order('created_at', { ascending: false })
+      
+      // Trier ensuite par date_debut côté client pour les ateliers créés le même jour
+      if (data) {
+        data.sort((a, b) => {
+          // D'abord par created_at (déjà trié par la requête)
+          const createdDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          if (Math.abs(createdDiff) > 24 * 60 * 60 * 1000) { // Si différence > 24h, garder l'ordre created_at
+            return createdDiff
+          }
+          // Sinon, trier par date_debut croissant
+          return new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime()
+        })
+      }
 
       if (error) {
         console.error('❌ Erreur chargement ateliers:', error)
