@@ -33,6 +33,14 @@ interface Candidature {
   updated_at?: string
 }
 
+const CACHE_KEY = 'candidatures_cache'
+const CACHE_DURATION = 4 * 60 * 60 * 1000 // 4 heures en millisecondes
+
+interface CacheData {
+  candidatures: Candidature[]
+  timestamp: number
+}
+
 export const useCandidatures = () => {
   const [candidatures, setCandidatures] = useState<Candidature[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,10 +48,63 @@ export const useCandidatures = () => {
   const [newCandidatureCount, setNewCandidatureCount] = useState(0)
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false)
 
-  // Charger toutes les candidatures
-  const loadCandidatures = async () => {
+  // Charger le cache depuis localStorage
+  const loadFromCache = useCallback((): Candidature[] | null => {
     try {
-      setLoading(true)
+      const cached = localStorage.getItem(CACHE_KEY)
+      if (!cached) return null
+
+      const cacheData: CacheData = JSON.parse(cached)
+      const now = Date.now()
+      
+      // Vérifier si le cache est encore valide
+      if (now - cacheData.timestamp < CACHE_DURATION) {
+        console.log('✅ Cache candidatures valide, utilisation des données en cache')
+        return cacheData.candidatures
+      } else {
+        console.log('⏰ Cache candidatures expiré, suppression')
+        localStorage.removeItem(CACHE_KEY)
+        return null
+      }
+    } catch (err) {
+      console.error('Erreur lecture cache:', err)
+      return null
+    }
+  }, [])
+
+  // Sauvegarder dans le cache
+  const saveToCache = useCallback((data: Candidature[]) => {
+    try {
+      const cacheData: CacheData = {
+        candidatures: data,
+        timestamp: Date.now()
+      }
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData))
+      console.log('💾 Candidatures sauvegardées dans le cache')
+    } catch (err) {
+      console.error('Erreur sauvegarde cache:', err)
+    }
+  }, [])
+
+  // Charger toutes les candidatures
+  const loadCandidatures = useCallback(async (forceRefresh = false) => {
+    try {
+      // Vérifier le cache d'abord si pas de force refresh
+      if (!forceRefresh) {
+        const cachedData = loadFromCache()
+        if (cachedData && cachedData.length > 0) {
+          setCandidatures(cachedData)
+          setLoading(false)
+          // Charger en arrière-plan pour mettre à jour le cache
+          setTimeout(() => loadCandidatures(true), 100)
+          return
+        }
+      }
+
+      // Charger depuis la base de données seulement si nécessaire
+      if (candidatures.length === 0 || forceRefresh) {
+        setLoading(true)
+      }
       setError(null)
       
       const { data, error } = await supabase
@@ -52,14 +113,17 @@ export const useCandidatures = () => {
         .order('created_at', { ascending: false })
       
       if (error) throw error
-      setCandidatures(data || [])
+      
+      const candidaturesData = data || []
+      setCandidatures(candidaturesData)
+      saveToCache(candidaturesData)
     } catch (err: any) {
       console.error('Erreur chargement candidatures:', err)
       setError(err.message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [loadFromCache, saveToCache, candidatures.length])
 
   // Mettre à jour le statut d'une candidature
   const updateStatutCandidature = async (candidatureId: string, newStatut: string, notes?: string) => {
@@ -80,8 +144,17 @@ export const useCandidatures = () => {
       
       if (error) throw error
       
-      // Recharger les candidatures
-      await loadCandidatures()
+      // Mettre à jour localement sans recharger complètement
+      setCandidatures(prev => {
+        const updated = prev.map(c => 
+          c.id === candidatureId 
+            ? { ...c, ...updateData }
+            : c
+        )
+        // Mettre à jour le cache avec les données mises à jour
+        saveToCache(updated)
+        return updated
+      })
       
       return { success: true }
     } catch (err: any) {
@@ -100,8 +173,10 @@ export const useCandidatures = () => {
       
       if (error) throw error
       
-      // Recharger les candidatures
-      await loadCandidatures()
+      // Mettre à jour localement sans recharger complètement
+      const updatedCandidatures = candidatures.filter(c => c.id !== candidatureId)
+      setCandidatures(updatedCandidatures)
+      saveToCache(updatedCandidatures)
       
       return { success: true }
     } catch (err: any) {
@@ -113,45 +188,56 @@ export const useCandidatures = () => {
   // Charger les candidatures au montage du composant
   useEffect(() => {
     loadCandidatures()
-  }, [])
+  }, [loadCandidatures])
 
-  // Polling automatique toutes les 30 secondes (fallback si temps réel ne fonctionne pas)
+  // Polling automatique toutes les 5 minutes seulement si temps réel ne fonctionne pas (fallback)
   useEffect(() => {
+    if (isRealtimeConnected) {
+      console.log('✅ Temps réel actif, polling désactivé')
+      return
+    }
+
     const interval = setInterval(() => {
-      console.log('🔄 Polling automatique - rechargement des candidatures')
-      loadCandidatures()
-    }, 30000) // 30 secondes
+      console.log('🔄 Polling automatique (fallback) - rechargement des candidatures')
+      loadCandidatures(true) // Force refresh
+    }, 5 * 60 * 1000) // 5 minutes au lieu de 30 secondes
 
     return () => clearInterval(interval)
-  }, [])
+  }, [isRealtimeConnected, loadCandidatures])
 
   // Fonction pour recharger les candidatures
   const refreshCandidatures = useCallback(async () => {
-    await loadCandidatures()
+    await loadCandidatures(true) // Force refresh
     setNewCandidatureCount(0) // Reset le compteur après actualisation
-  }, [])
+  }, [loadCandidatures])
 
   // Handler stable pour les changements en temps réel
   const handleRealtimeChange = useCallback(({ eventType, new: newRow, old: oldRow }) => {
     console.log(`🔄 Événement temps réel: ${eventType}`, { newRow, oldRow })
     
     setCandidatures((prev) => {
+      let updated: Candidature[] = prev
+      
       if (eventType === 'INSERT' && newRow) {
         console.log('➕ Nouvelle candidature ajoutée:', newRow)
         setNewCandidatureCount(prev => prev + 1)
-        return [newRow, ...prev]
-      }
-      if (eventType === 'UPDATE' && newRow) {
+        updated = [newRow, ...prev]
+      } else if (eventType === 'UPDATE' && newRow) {
         console.log('✏️ Candidature mise à jour:', newRow)
-        return prev.map((item) => (item.id === newRow.id ? newRow : item))
-      }
-      if (eventType === 'DELETE' && oldRow) {
+        updated = prev.map((item) => (item.id === newRow.id ? newRow : item))
+      } else if (eventType === 'DELETE' && oldRow) {
         console.log('🗑️ Candidature supprimée:', oldRow)
-        return prev.filter((item) => item.id !== oldRow.id)
+        updated = prev.filter((item) => item.id !== oldRow.id)
       }
-      return prev
+      
+      // Mettre à jour le cache après chaque changement temps réel
+      if (updated !== prev) {
+        saveToCache(updated)
+      }
+      
+      return updated
     })
-  }, [])
+  }, [saveToCache])
 
   // Synchronisation en temps réel
   const { isConnected } = useRealTime('candidatures_stagiaires', handleRealtimeChange)

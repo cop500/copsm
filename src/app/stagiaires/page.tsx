@@ -68,6 +68,7 @@ export default function StagiairesPage() {
   const [candidatureSearch, setCandidatureSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('tous')
   const [entrepriseFilter, setEntrepriseFilter] = useState('')
+  const [posteFilter, setPosteFilter] = useState('')
   const [poleFilter, setPoleFilter] = useState('')
   const [filiereFilter, setFiliereFilter] = useState('')
   const [selectedCandidature, setSelectedCandidature] = useState<any>(null)
@@ -90,6 +91,7 @@ export default function StagiairesPage() {
   const [pdfTitle, setPdfTitle] = useState('')
   const [pdfScale, setPdfScale] = useState(1.0)
   const [pdfRotation, setPdfRotation] = useState(0)
+  const [pdfCandidature, setPdfCandidature] = useState<any>(null) // Candidature associée au CV visualisé
 
   // Configuration des statuts
   const statusConfig = {
@@ -137,15 +139,50 @@ export default function StagiairesPage() {
   }
 
   // Ouvrir le visualiseur PDF
-  const handleViewPdf = (cvUrl: string, candidatName: string, entrepriseName: string) => {
+  const handleViewPdf = (cvUrl: string, candidatName: string, entrepriseName: string, candidature?: any) => {
     if (cvUrl) {
       setPdfUrl(cvUrl)
       setPdfTitle(`CV - ${candidatName} - ${entrepriseName}`)
       setPdfScale(1.0)
       setPdfRotation(0)
+      setPdfCandidature(candidature || null) // Stocker la candidature pour les actions
       setShowPdfViewer(true)
     } else {
       showMessage('CV non disponible', 'error')
+    }
+  }
+
+  // Gérer l'acceptation depuis le visualiseur
+  const handleAcceptFromViewer = async () => {
+    if (!pdfCandidature) {
+      showMessage('Candidature non trouvée', 'error')
+      return
+    }
+
+    const result = await updateStatutCandidature(pdfCandidature.id, 'acceptee')
+    if (result.success) {
+      showMessage('Candidature acceptée avec succès')
+      setShowPdfViewer(false)
+      setPdfCandidature(null)
+    } else {
+      showMessage(result.error || 'Erreur lors de l\'acceptation', 'error')
+    }
+  }
+
+  // Gérer le refus depuis le visualiseur
+  const handleRejectFromViewer = async () => {
+    if (!pdfCandidature) {
+      showMessage('Candidature non trouvée', 'error')
+      return
+    }
+
+    const result = await updateStatutCandidature(pdfCandidature.id, 'refusee')
+    if (result.success) {
+      showMessage('Candidature refusée')
+      setShowPdfViewer(false)
+      setPdfCandidature(null)
+    } else {
+      showMessage(result.error || 'Erreur lors du refus', 'error')
     }
   }
 
@@ -311,10 +348,11 @@ export default function StagiairesPage() {
       }
     })()
 
+    const matchesPoste = posteFilter === '' || candidature.poste?.toLowerCase() === posteFilter.toLowerCase()
     const matchesPole = poleFilter === '' || candidature.pole_id === poleFilter
     const matchesFiliere = filiereFilter === '' || candidature.filiere_id === filiereFilter
 
-    return matchesSearch && matchesFilter && matchesEntreprise && matchesDate && matchesPole && matchesFiliere
+    return matchesSearch && matchesFilter && matchesEntreprise && matchesDate && matchesPoste && matchesPole && matchesFiliere
   })
 
   // Filtres pour les filières selon le pôle sélectionné
@@ -505,7 +543,7 @@ export default function StagiairesPage() {
 
       {/* Filtres et recherche */}
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-4">
           <div className="lg:col-span-2">
                 <div className="relative">
                   <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
@@ -553,6 +591,21 @@ export default function StagiairesPage() {
               onChange={(e) => setEntrepriseFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          <div>
+            <select
+              value={posteFilter}
+              onChange={(e) => setPosteFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Tous les postes</option>
+              {Array.from(new Set(candidaturesStagiaires.map(c => c.poste).filter(Boolean))).sort().map((poste) => (
+                <option key={poste} value={poste}>
+                  {poste}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -722,7 +775,8 @@ export default function StagiairesPage() {
                               onClick={() => handleViewPdf(
                                 candidature.cv_url,
                                 `${candidature.nom} ${candidature.prenom}`,
-                                candidature.entreprise_nom
+                                candidature.entreprise_nom,
+                                candidature
                               )}
                               className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center"
                             >
@@ -943,7 +997,8 @@ export default function StagiairesPage() {
                             onClick={() => handleViewPdf(
                               selectedCandidature.cv_url, 
                               `${selectedCandidature.nom} ${selectedCandidature.prenom}`,
-                              selectedCandidature.entreprise_nom
+                              selectedCandidature.entreprise_nom,
+                              selectedCandidature
                             )}
                             className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center"
                           >
@@ -1163,7 +1218,10 @@ export default function StagiairesPage() {
 
                 {/* Bouton fermer */}
                 <button
-                  onClick={() => setShowPdfViewer(false)}
+                  onClick={() => {
+                    setShowPdfViewer(false)
+                    setPdfCandidature(null)
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-lg"
                   title="Fermer"
                 >
@@ -1186,27 +1244,50 @@ export default function StagiairesPage() {
            </div>
 
             {/* Footer avec actions */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Utilisez les contrôles ci-dessus pour naviguer dans le document
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm text-gray-600">
+                  Utilisez les contrôles ci-dessus pour naviguer dans le document
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleDownloadCv(pdfUrl, pdfTitle, '')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Télécharger
+                  </button>
+                  <button
+                    onClick={() => window.open(pdfUrl, '_blank')}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Ouvrir dans un nouvel onglet
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-             <button
-                  onClick={() => handleDownloadCv(pdfUrl, pdfTitle, '')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-             >
-                  <Download className="w-4 h-4 mr-2" />
-                  Télécharger
-             </button>
-             <button
-                  onClick={() => window.open(pdfUrl, '_blank')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-             >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Ouvrir dans un nouvel onglet
-             </button>
-              </div>
-           </div>
+              
+              {/* Actions de décision sur la candidature */}
+              {pdfCandidature && (
+                <div className="flex items-center justify-center space-x-3 pt-3 border-t border-gray-300">
+                  <span className="text-sm font-medium text-gray-700">Décision :</span>
+                  <button
+                    onClick={handleAcceptFromViewer}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2 font-medium transition-colors"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Accepter la candidature</span>
+                  </button>
+                  <button
+                    onClick={handleRejectFromViewer}
+                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2 font-medium transition-colors"
+                  >
+                    <XSquare className="w-4 h-4" />
+                    <span>Refuser la candidature</span>
+                  </button>
+                </div>
+              )}
+            </div>
          </div>
        </div>
      )}
