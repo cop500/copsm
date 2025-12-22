@@ -27,12 +27,30 @@ import CalendrierCollaboratif from './CalendrierCollaboratif'
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
   const { evenements: allEvenements, loading: hookLoading, saveEvenement, ensureDataFresh, fetchEvenements } = useEvenements()
-  const { currentUser } = useUser()
+  const { currentUser, isLoading: userLoading } = useUser()
   const { isAdmin, isDirecteur, isManager, isCarriere } = useRole()
   
   const [showForm, setShowForm] = useState(false)
   // Utiliser le loading du hook directement
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  
+  // Mémoriser les rôles pour éviter les changements intempestifs qui font disparaître les onglets
+  const memoizedRoles = useMemo(() => {
+    const role = currentUser?.role || null;
+    return {
+      isAdmin: role === 'business_developer',
+      isManager: role === 'manager_cop',
+      isDirecteur: role === 'directeur',
+      isCarriere: role === 'conseillere_carriere',
+      role: role
+    };
+  }, [currentUser?.role]);
+  
+  // Utiliser les rôles mémorisés avec fallback sur les rôles du hook
+  const stableIsAdmin = memoizedRoles.isAdmin || isAdmin;
+  const stableIsManager = memoizedRoles.isManager || isManager;
+  const stableIsDirecteur = memoizedRoles.isDirecteur || isDirecteur;
+  const stableIsCarriere = memoizedRoles.isCarriere || isCarriere;
 
   // Utiliser directement les données du hook sans synchronisation complexe
   // Protection contre les données invalides
@@ -95,19 +113,36 @@ export const ModernEvenementsModule = () => {
   console.log('🔍 === DEBUG MODERN EVENEMENTS ===')
   console.log('🔍 Current user:', currentUser)
   console.log('🔍 User role:', currentUser?.role)
-  console.log('🔍 Is admin:', isAdmin)
+  console.log('🔍 Is admin:', stableIsAdmin)
   console.log('🔍 All evenements:', allEvenements)
   console.log('🔍 Evenements data:', evenementsData)
   console.log('🔍 Ateliers data:', ateliersData)
   console.log('🔍 Active tab:', activeTab)
   // Utiliser le loading du hook directement, pas besoin de useEffect séparé
 
+  // Persister l'onglet actif dans localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('cop_app_active_tab');
+      if (savedTab && ['evenements', 'ateliers', 'planning', 'enquete', 'ambassadeurs', 'satisfaction'].includes(savedTab)) {
+        setActiveTab(savedTab as any);
+      }
+    }
+  }, []);
+  
+  // Sauvegarder l'onglet actif dans localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cop_app_active_tab', activeTab);
+    }
+  }, [activeTab]);
+  
   // Rediriger le directeur vers 'evenements' s'il est sur 'planning'
   useEffect(() => {
-    if (isDirecteur && activeTab === 'planning') {
+    if (stableIsDirecteur && activeTab === 'planning') {
       setActiveTab('evenements')
     }
-  }, [isDirecteur, activeTab])
+  }, [stableIsDirecteur, activeTab])
 
   // Le hook useEvenements gère déjà le chargement initial
   // Pas besoin de useEffect supplémentaires qui pourraient causer des rechargements multiples
@@ -343,7 +378,7 @@ export const ModernEvenementsModule = () => {
 
   // Toggle rapide de la visibilité pour les inscriptions (admin seulement)
   const handleToggleVisibility = async (atelier: any) => {
-    if (!isAdmin) return
+    if (!stableIsAdmin) return
     
     try {
       const newVisibility = !atelier.visible_inscription
@@ -1083,14 +1118,14 @@ export const ModernEvenementsModule = () => {
             <p className="text-gray-600 mt-2">
               Organisez et gérez vos événements et ateliers d'insertion professionnelle
             </p>
-            {isAdmin && activeTab === 'evenements' && selectedEvents.length > 0 && (
+            {stableIsAdmin && activeTab === 'evenements' && selectedEvents.length > 0 && (
               <div className="mt-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium inline-block">
                 {selectedEvents.length} événement(s) sélectionné(s)
               </div>
             )}
           </div>
           <div className="flex items-center gap-3">
-            {isAdmin && activeTab === 'evenements' && (
+            {stableIsAdmin && activeTab === 'evenements' && (
               <>
                 <button
                   onClick={() => setShowImportModal(true)}
@@ -1117,7 +1152,7 @@ export const ModernEvenementsModule = () => {
                   )}
                 </button>
                 
-                {selectedEvents.length > 0 && !isDirecteur && (
+                {selectedEvents.length > 0 && !stableIsDirecteur && (
                   <button
                     onClick={() => setShowBulkDeleteModal(true)}
                     className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
@@ -1128,7 +1163,7 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            {!isDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
+            {!stableIsDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
             <button
               onClick={() => {
                 if (activeTab === 'evenements') {
@@ -1175,7 +1210,7 @@ export const ModernEvenementsModule = () => {
               <Calendar className="w-4 h-4" />
               Événements
             </button>
-            {!isDirecteur && (
+            {!stableIsDirecteur && (
             <button
               onClick={() => setActiveTab('ateliers')}
               className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -1188,7 +1223,7 @@ export const ModernEvenementsModule = () => {
               Ateliers
             </button>
             )}
-            {!isDirecteur && (
+            {!stableIsDirecteur && (
             <button
               onClick={() => setActiveTab('planning')}
               className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -1201,7 +1236,7 @@ export const ModernEvenementsModule = () => {
               Planning
             </button>
             )}
-            {(isAdmin || isManager || currentUser?.role === 'conseillere_carriere') && (
+            {(stableIsAdmin || stableIsManager || currentUser?.role === 'conseillere_carriere') && (
               <button
                 onClick={() => setActiveTab('enquete')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -1214,7 +1249,7 @@ export const ModernEvenementsModule = () => {
                 Enquête d'Insertion
               </button>
             )}
-            {(isAdmin || isManager || isCarriere) && (
+            {(stableIsAdmin || stableIsManager || stableIsCarriere) && (
               <button
                 onClick={() => setActiveTab('satisfaction')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -1227,7 +1262,7 @@ export const ModernEvenementsModule = () => {
                 Enquête de Satisfaction
               </button>
             )}
-            {(isAdmin || isManager) && (
+            {(stableIsAdmin || stableIsManager) && (
               <button
                 onClick={() => setActiveTab('ambassadeurs')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -1298,7 +1333,7 @@ export const ModernEvenementsModule = () => {
           </div>
         </div>
           )}
-          {activeTab === 'ateliers' && !isDirecteur && (
+          {activeTab === 'ateliers' && !stableIsDirecteur && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
@@ -1507,13 +1542,13 @@ export const ModernEvenementsModule = () => {
               <EventCard
                 key={event.id}
                 event={event}
-                onEdit={!isDirecteur ? handleEditEvent : undefined}
-                onDelete={!isDirecteur ? handleDeleteEvent : undefined}
+                onEdit={!stableIsDirecteur ? handleEditEvent : undefined}
+                onDelete={!stableIsDirecteur ? handleDeleteEvent : undefined}
                 onView={handleViewEvent}
                 isSelected={selectedEvents.includes(event.id)}
                 onSelect={() => handleSelectEvent(event.id)}
-                showSelection={isAdmin && !isDirecteur}
-                onGenerateContent={!isDirecteur ? handleGenerateContent : undefined}
+                showSelection={stableIsAdmin && !stableIsDirecteur}
+                onGenerateContent={!stableIsDirecteur ? handleGenerateContent : undefined}
               />
             ))
           ) : (
@@ -1534,7 +1569,7 @@ export const ModernEvenementsModule = () => {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAtelierStatusColor(atelier.statut)}`}>
                         {getAtelierStatusLabel(atelier.statut)}
                       </span>
-                        {isAdmin && (
+                        {stableIsAdmin && (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             atelier.visible_inscription 
                               ? 'bg-green-100 text-green-800 border border-green-200' 
@@ -1571,7 +1606,7 @@ export const ModernEvenementsModule = () => {
                       >
                         <Users className="w-4 h-4" />
                       </button>
-                      {isAdmin && !isDirecteur && (
+                      {stableIsAdmin && !stableIsDirecteur && (
                         <button
                           onClick={() => handleToggleVisibility(atelier)}
                           className={`p-2 transition-colors ${
@@ -1590,7 +1625,7 @@ export const ModernEvenementsModule = () => {
                           )}
                         </button>
                       )}
-                      {!isDirecteur && (
+                      {!stableIsDirecteur && (
                         <>
                       {isAdmin && (
                         <button
@@ -1670,12 +1705,12 @@ export const ModernEvenementsModule = () => {
             setShowForm(false)
             setSelectedEvent(null)
           }}
-          isAdmin={isAdmin}
+          isAdmin={stableIsAdmin}
         />
       )}
 
       {/* Modal Générateur IA - Masqué pour le directeur */}
-      {showAIGenerator && !isDirecteur && (
+      {showAIGenerator && !stableIsDirecteur && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
@@ -1708,7 +1743,7 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Affichage du contenu généré - Masqué pour le directeur */}
-      {generatedContent && !isDirecteur && (
+      {generatedContent && !stableIsDirecteur && (
         <>
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -1955,7 +1990,7 @@ export const ModernEvenementsModule = () => {
                   <Zap className="w-4 h-4" />
                   Générer contenu IA
                 </button>
-                {!isDirecteur && (
+                {!stableIsDirecteur && (
                 <button
                   onClick={() => {
                     setShowEventDetail(false)
@@ -2176,7 +2211,7 @@ export const ModernEvenementsModule = () => {
                 <p className="text-gray-600 mb-3">
                   Téléchargez le fichier template pour voir le format attendu
                 </p>
-                {!isDirecteur && (
+                {!stableIsDirecteur && (
               <button
                     onClick={downloadTemplate}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
