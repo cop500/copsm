@@ -1262,7 +1262,7 @@ export const ModernEvenementsModule = () => {
                 Enquête de Satisfaction
               </button>
             )}
-            {(stableIsAdmin || stableIsManager) && (
+            {(stableIsAdmin || stableIsManager || stableIsCarriere) && (
               <button
                 onClick={() => setActiveTab('ambassadeurs')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -1627,7 +1627,7 @@ export const ModernEvenementsModule = () => {
                       )}
                       {!stableIsDirecteur && (
                         <>
-                      {isAdmin && (
+                      {(isAdmin || stableIsCarriere) && (
                         <button
                           onClick={() => handleDuplicateAtelier(atelier)}
                           className="p-2 text-gray-400 hover:text-blue-600 transition-colors"

@@ -353,9 +353,14 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
     }
   }, [photos.length])
 
-  // Supprimer une photo
+  // Supprimer une photo (nouvelles photos)
   const removePhoto = useCallback((index: number) => {
     setPhotos(prev => prev.filter((_, i) => i !== index))
+  }, [])
+
+  // Supprimer une photo existante (déjà uploadée)
+  const removeExistingPhoto = useCallback((index: number) => {
+    setPhotosUrls(prev => prev.filter((_, i) => i !== index))
   }, [])
 
   // Filtrage des animateurs
@@ -1011,6 +1016,16 @@ const EvenementForm: React.FC<EvenementFormProps> = ({
                         alt={`Photo existante ${index + 1}`}
                         className="w-full h-24 object-cover rounded-lg"
                       />
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => removeExistingPhoto(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          title="Supprimer cette photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                       <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <span className="text-white text-xs">Photo existante</span>
                       </div>

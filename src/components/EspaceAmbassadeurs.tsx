@@ -876,6 +876,86 @@ export const EspaceAmbassadeurs: React.FC = () => {
     loadEvaluation(stagiaire)
   }
 
+  // Fonction pour éditer un stagiaire (utilisée depuis les cartes)
+  const handleEditStagiaire = (stagiaire: StagiaireAmbassadeur) => {
+    setSelectedStagiaire(stagiaire)
+    setEditingStagiaire({ ...stagiaire })
+    setEditingPhotoPreview(null)
+    setEditingPhotoFile(null)
+    setShowStagiaireDetail(true)
+  }
+
+  // Sauvegarder les modifications d'un stagiaire ambassadeur
+  const handleSaveStagiaireEdit = async () => {
+    if (!editingStagiaire || !isAdmin) {
+      return
+    }
+
+    setUploadingPhoto(true)
+
+    try {
+      let photoUrl = editingStagiaire.photo_url
+
+      // Upload de la nouvelle photo si fournie
+      if (editingPhotoFile) {
+        const fileExt = editingPhotoFile.name.split('.').pop()
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+        const filePath = `stagiaires-ambassadeurs/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('photos')
+          .upload(filePath, editingPhotoFile, {
+            upsert: true
+          })
+
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('photos')
+          .getPublicUrl(filePath)
+
+        photoUrl = publicUrl
+      }
+
+      // Mettre à jour le stagiaire dans la base de données
+      const { error: updateError } = await supabase
+        .from('stagiaires')
+        .update({
+          nom: editingStagiaire.nom,
+          prenom: editingStagiaire.prenom,
+          email: editingStagiaire.email || null,
+          telephone: editingStagiaire.telephone || null,
+          pole_id: editingStagiaire.pole_id || null,
+          filiere_id: editingStagiaire.filiere_id || null,
+          photo_url: photoUrl
+        })
+        .eq('id', editingStagiaire.id)
+
+      if (updateError) throw updateError
+
+      // Mettre à jour l'état local
+      setSelectedStagiaire({
+        ...editingStagiaire,
+        photo_url: photoUrl
+      })
+
+      // Réinitialiser les états d'édition
+      setEditingStagiaire(null)
+      setEditingPhotoFile(null)
+      setEditingPhotoPreview(null)
+
+      // Recharger les données
+      await reloadStagiairesData()
+
+      alert('Stagiaire modifié avec succès !')
+    } catch (err: any) {
+      console.error('Erreur modification stagiaire:', err)
+      alert(`Erreur lors de la modification: ${err.message}`)
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
   // Charger l'évaluation d'un stagiaire
   const loadEvaluation = async (stagiaire: StagiaireAmbassadeur) => {
     try {
