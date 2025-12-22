@@ -125,36 +125,44 @@ export const useCandidatures = () => {
     }
   }, [loadFromCache, saveToCache, candidatures.length])
 
-  // Mettre à jour le statut d'une candidature
+  // Mettre à jour le statut d'une candidature (optimistic update)
   const updateStatutCandidature = async (candidatureId: string, newStatut: string, notes?: string) => {
+    const updateData: any = {
+      statut_candidature: newStatut,
+      date_derniere_maj: new Date().toISOString().split('T')[0]
+    }
+    
+    if (notes) {
+      updateData.feedback_entreprise = notes
+    }
+
+    // Mise à jour optimiste : mettre à jour l'interface IMMÉDIATEMENT
+    let previousCandidatures: Candidature[] = []
+    setCandidatures(prev => {
+      previousCandidatures = prev // Sauvegarder l'état précédent en cas d'erreur
+      const updated = prev.map(c => 
+        c.id === candidatureId 
+          ? { ...c, ...updateData }
+          : c
+      )
+      // Mettre à jour le cache immédiatement
+      saveToCache(updated)
+      return updated
+    })
+
     try {
-      const updateData: any = {
-        statut_candidature: newStatut,
-        date_derniere_maj: new Date().toISOString().split('T')[0]
-      }
-      
-      if (notes) {
-        updateData.feedback_entreprise = notes
-      }
-      
+      // Ensuite, mettre à jour dans la base de données (en arrière-plan)
       const { error } = await supabase
         .from('candidatures_stagiaires')
         .update(updateData)
         .eq('id', candidatureId)
       
-      if (error) throw error
-      
-      // Mettre à jour localement sans recharger complètement
-      setCandidatures(prev => {
-        const updated = prev.map(c => 
-          c.id === candidatureId 
-            ? { ...c, ...updateData }
-            : c
-        )
-        // Mettre à jour le cache avec les données mises à jour
-        saveToCache(updated)
-        return updated
-      })
+      if (error) {
+        // En cas d'erreur, restaurer l'état précédent
+        setCandidatures(previousCandidatures)
+        saveToCache(previousCandidatures)
+        throw error
+      }
       
       return { success: true }
     } catch (err: any) {

@@ -159,13 +159,26 @@ export default function StagiairesPage() {
       return
     }
 
+    // Demander confirmation
+    const candidatName = `${pdfCandidature.prenom || ''} ${pdfCandidature.nom || ''}`.trim() || 'le candidat'
+    const confirmMessage = `Êtes-vous sûr de vouloir accepter la candidature de ${candidatName} pour le poste "${pdfCandidature.poste}" chez ${pdfCandidature.entreprise_nom} ?`
+    
+    if (!window.confirm(confirmMessage)) {
+      return // L'utilisateur a annulé
+    }
+
+    // Afficher le message de succès immédiatement (optimistic update)
+    showMessage(`✅ Candidature de ${candidatName} acceptée avec succès !`, 'success')
+    setShowPdfViewer(false)
+    setPdfCandidature(null)
+
+    // Mettre à jour en arrière-plan
     const result = await updateStatutCandidature(pdfCandidature.id, 'acceptee')
-    if (result.success) {
-      showMessage('Candidature acceptée avec succès')
-      setShowPdfViewer(false)
-      setPdfCandidature(null)
-    } else {
-      showMessage(result.error || 'Erreur lors de l\'acceptation', 'error')
+    if (!result.success) {
+      // En cas d'erreur, rouvrir le visualiseur et afficher l'erreur
+      setShowPdfViewer(true)
+      setPdfCandidature(pdfCandidature)
+      showMessage(result.error || 'Erreur lors de l\'acceptation. Veuillez réessayer.', 'error')
     }
   }
 
@@ -176,13 +189,26 @@ export default function StagiairesPage() {
       return
     }
 
+    // Demander confirmation
+    const candidatName = `${pdfCandidature.prenom || ''} ${pdfCandidature.nom || ''}`.trim() || 'le candidat'
+    const confirmMessage = `Êtes-vous sûr de vouloir refuser la candidature de ${candidatName} pour le poste "${pdfCandidature.poste}" chez ${pdfCandidature.entreprise_nom} ?`
+    
+    if (!window.confirm(confirmMessage)) {
+      return // L'utilisateur a annulé
+    }
+
+    // Afficher le message de succès immédiatement (optimistic update)
+    showMessage(`❌ Candidature de ${candidatName} refusée`, 'success')
+    setShowPdfViewer(false)
+    setPdfCandidature(null)
+
+    // Mettre à jour en arrière-plan
     const result = await updateStatutCandidature(pdfCandidature.id, 'refusee')
-    if (result.success) {
-      showMessage('Candidature refusée')
-      setShowPdfViewer(false)
-      setPdfCandidature(null)
-    } else {
-      showMessage(result.error || 'Erreur lors du refus', 'error')
+    if (!result.success) {
+      // En cas d'erreur, rouvrir le visualiseur et afficher l'erreur
+      setShowPdfViewer(true)
+      setPdfCandidature(pdfCandidature)
+      showMessage(result.error || 'Erreur lors du refus. Veuillez réessayer.', 'error')
     }
   }
 
