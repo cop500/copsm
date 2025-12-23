@@ -14,13 +14,22 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('📥 ==========================================')
+    console.log('📥 NOUVELLE DEMANDE D\'ASSISTANCE REÇUE')
+    console.log('📥 ==========================================')
+    
     const body = await request.json()
+    console.log('📥 Body reçu:', JSON.stringify(body, null, 2))
+    console.log('📥 Conseiller ID reçu:', body.conseiller_id)
+    console.log('📥 Conseiller ID type:', typeof body.conseiller_id)
+    console.log('📥 Conseiller ID vide?', !body.conseiller_id || String(body.conseiller_id).trim() === '')
     
     // Validation des données requises
     const requiredFields = ['nom', 'prenom', 'telephone', 'pole_id', 'filiere_id', 'type_assistance', 'conseiller_id']
     const missingFields = requiredFields.filter(field => !body[field])
     
     if (missingFields.length > 0) {
+      console.error('❌ Champs manquants:', missingFields)
       return NextResponse.json(
         { error: `Champs manquants: ${missingFields.join(', ')}` },
         { status: 400 }

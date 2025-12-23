@@ -231,6 +231,13 @@ export default function DemandeAssistance() {
     setLoading(true)
     
     try {
+      // Logs de débogage côté client
+      console.log('📤 Envoi de la demande d\'assistance...')
+      console.log('📋 Données du formulaire:', form)
+      console.log('📋 Conseiller ID:', form.conseiller_id)
+      console.log('📋 Conseiller ID type:', typeof form.conseiller_id)
+      console.log('📋 Conseiller ID vide?', !form.conseiller_id || form.conseiller_id.trim() === '')
+      
       const response = await fetch('/api/assistance-stagiaires', {
         method: 'POST',
         headers: {
@@ -241,11 +248,16 @@ export default function DemandeAssistance() {
       
       const result = await response.json()
       
+      console.log('📥 Réponse du serveur:', result)
+      console.log('📥 Status:', response.status)
+      
       if (!response.ok) {
+        console.error('❌ Erreur serveur:', result.error)
         throw new Error(result.error || 'Erreur lors de l\'envoi')
       }
       
       // Succès
+      console.log('✅ Demande créée avec succès, ID:', result.data?.id)
       alert(result.message || 'Votre demande a été soumise avec succès ! Vous recevrez une réponse sous 24h.')
       
       // Reset form
