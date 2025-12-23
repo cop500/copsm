@@ -93,9 +93,17 @@ export async function POST(request: NextRequest) {
       }
 
       const rpcInsertData = rpcData[0]
+      console.log('📋 Données RPC de la demande:', {
+        id: rpcInsertData?.id,
+        conseiller_id: demandeData.conseiller_id,
+        conseiller_id_type: typeof demandeData.conseiller_id,
+        conseiller_id_length: demandeData.conseiller_id?.length
+      })
 
       // Envoyer une notification par email si un conseiller a été assigné
-      if (demandeData.conseiller_id && rpcInsertData?.id) {
+      // Vérifier que conseiller_id est présent et non vide
+      if (demandeData.conseiller_id && String(demandeData.conseiller_id).trim() !== '' && rpcInsertData?.id) {
+        console.log('✅ Conseiller ID détecté (RPC), préparation envoi email...')
         try {
           console.log('📧 Tentative d\'envoi de notification email pour nouvelle demande (RPC):', rpcInsertData.id)
           console.log('📧 Conseiller assigné:', demandeData.conseiller_id)
@@ -131,17 +139,24 @@ export async function POST(request: NextRequest) {
               console.log('✅ Email de notification envoyé avec succès pour nouvelle demande (RPC)')
             } else {
               console.warn('⚠️ Email non envoyé pour nouvelle demande (RPC), raison:', result.reason)
+              console.warn('⚠️ Détails:', JSON.stringify(result, null, 2))
             }
           } else {
-            console.warn('⚠️ Impossible de récupérer les données complètes pour l\'envoi d\'email (RPC):', fetchError)
+            console.warn('⚠️ Impossible de récupérer les données complètes pour l\'envoi d\'email (RPC)')
+            console.warn('⚠️ Erreur:', fetchError)
+            console.warn('⚠️ Données récupérées:', demandeComplete)
           }
         } catch (emailError: any) {
-          console.error('❌ Erreur envoi email notification pour nouvelle demande RPC (non bloquant):', {
-            message: emailError.message,
-            stack: emailError.stack
-          })
+          console.error('❌ Erreur envoi email notification pour nouvelle demande RPC (non bloquant):')
+          console.error('❌ Message:', emailError.message)
+          console.error('❌ Stack:', emailError.stack)
+          console.error('❌ Erreur complète:', JSON.stringify(emailError, null, 2))
           // On continue même si l'email échoue
         }
+      } else {
+        console.log('ℹ️ Pas de conseiller assigné (RPC) (conseiller_id manquant ou vide), pas d\'envoi d\'email')
+        console.log('ℹ️ Valeur conseiller_id:', demandeData.conseiller_id)
+        console.log('ℹ️ RPC Insert Data ID:', rpcInsertData?.id)
       }
 
       return NextResponse.json({
@@ -156,12 +171,20 @@ export async function POST(request: NextRequest) {
 
     // Log pour le suivi
     console.log('Nouvelle demande d\'assistance créée:', insertData)
+    console.log('📋 Données de la demande:', {
+      id: insertData.id,
+      conseiller_id: demandeData.conseiller_id,
+      conseiller_id_type: typeof demandeData.conseiller_id,
+      conseiller_id_length: demandeData.conseiller_id?.length
+    })
 
     // Envoyer une notification par email si un conseiller a été assigné
-    if (demandeData.conseiller_id) {
+    // Vérifier que conseiller_id est présent et non vide
+    if (demandeData.conseiller_id && String(demandeData.conseiller_id).trim() !== '') {
+      console.log('✅ Conseiller ID détecté, préparation envoi email...')
+      console.log('📧 Conseiller ID:', demandeData.conseiller_id)
       try {
         console.log('📧 Tentative d\'envoi de notification email pour nouvelle demande:', insertData.id)
-        console.log('📧 Conseiller assigné:', demandeData.conseiller_id)
         
         // Récupérer les données complètes avec les relations
         const { data: demandeComplete, error: fetchError } = await supabase
@@ -194,17 +217,23 @@ export async function POST(request: NextRequest) {
             console.log('✅ Email de notification envoyé avec succès pour nouvelle demande')
           } else {
             console.warn('⚠️ Email non envoyé pour nouvelle demande, raison:', result.reason)
+            console.warn('⚠️ Détails:', JSON.stringify(result, null, 2))
           }
         } else {
-          console.warn('⚠️ Impossible de récupérer les données complètes pour l\'envoi d\'email:', fetchError)
+          console.warn('⚠️ Impossible de récupérer les données complètes pour l\'envoi d\'email')
+          console.warn('⚠️ Erreur:', fetchError)
+          console.warn('⚠️ Données récupérées:', demandeComplete)
         }
       } catch (emailError: any) {
-        console.error('❌ Erreur envoi email notification pour nouvelle demande (non bloquant):', {
-          message: emailError.message,
-          stack: emailError.stack
-        })
+        console.error('❌ Erreur envoi email notification pour nouvelle demande (non bloquant):')
+        console.error('❌ Message:', emailError.message)
+        console.error('❌ Stack:', emailError.stack)
+        console.error('❌ Erreur complète:', JSON.stringify(emailError, null, 2))
         // On continue même si l'email échoue
       }
+    } else {
+      console.log('ℹ️ Pas de conseiller assigné (conseiller_id manquant ou vide), pas d\'envoi d\'email')
+      console.log('ℹ️ Valeur conseiller_id:', demandeData.conseiller_id)
     }
 
     return NextResponse.json({

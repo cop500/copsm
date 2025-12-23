@@ -184,15 +184,10 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
     console.log('📧 Demande ID:', demande.id)
     console.log('📧 Conseiller ID:', demande.conseiller_id)
     console.log('📧 Stagiaire:', `${demande.prenom} ${demande.nom}`)
-    
-    // Vérifier que le conseiller a un email
-    if (!demande.profiles?.email) {
-      console.error('❌ Email du conseiller non trouvé dans le profil')
-      console.error('❌ Profil conseiller:', JSON.stringify(demande.profiles, null, 2))
-      return { success: false, reason: 'no_conseiller_email' }
-    }
+    console.log('📧 Profil conseiller:', JSON.stringify(demande.profiles, null, 2))
 
-    // Récupérer la configuration
+    // Récupérer la configuration AVANT de vérifier l'email du profil
+    // Car l'email peut être configuré manuellement même si le profil n'a pas d'email
     const { getAssistanceEmailConfig } = await import('./email-config')
     const config = await getAssistanceEmailConfig()
     console.log('📋 Configuration récupérée:', config)
@@ -209,7 +204,7 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
 
     // Logs de débogage pour diagnostiquer le problème d'email
     console.log('🔍 DEBUG - Conseiller ID:', demande.conseiller_id)
-    console.log('🔍 DEBUG - Email du profil:', demande.profiles.email)
+    console.log('🔍 DEBUG - Email du profil:', demande.profiles?.email || 'Non disponible')
     console.log('🔍 DEBUG - recipient_emails configurés:', JSON.stringify(config.recipient_emails, null, 2))
     console.log('🔍 DEBUG - Type de recipient_emails:', typeof config.recipient_emails)
     
@@ -234,15 +229,21 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
 
     // Utiliser l'email configuré manuellement s'il existe, sinon utiliser l'email du profil
     const emailConfigure = recipientEmailsObj[demande.conseiller_id]
-    const conseillerEmail = emailConfigure || demande.profiles.email
-    const conseillerNom = `${demande.profiles.prenom} ${demande.profiles.nom}`
+    const emailProfil = demande.profiles?.email
+    const conseillerEmail = emailConfigure || emailProfil
+    const conseillerNom = demande.profiles ? `${demande.profiles.prenom || ''} ${demande.profiles.nom || ''}`.trim() : 'Conseiller'
     
-    console.log('🔍 DEBUG - Email final utilisé:', conseillerEmail)
-    console.log('🔍 DEBUG - Source de l\'email:', emailConfigure ? 'CONFIGURÉ MANUELLEMENT' : 'PROFIL')
+    console.log('🔍 DEBUG - Email configuré manuellement:', emailConfigure || 'Aucun')
+    console.log('🔍 DEBUG - Email du profil:', emailProfil || 'Aucun')
+    console.log('🔍 DEBUG - Email final utilisé:', conseillerEmail || 'AUCUN')
+    console.log('🔍 DEBUG - Source de l\'email:', emailConfigure ? 'CONFIGURÉ MANUELLEMENT' : (emailProfil ? 'PROFIL' : 'AUCUN'))
     
     // Vérifier que l'email est valide
     if (!conseillerEmail || !conseillerEmail.includes('@')) {
-      console.error('❌ Email du conseiller invalide ou non configuré:', conseillerEmail)
+      console.error('❌ Email du conseiller invalide ou non configuré')
+      console.error('❌ Email configuré manuellement:', emailConfigure || 'Non configuré')
+      console.error('❌ Email du profil:', emailProfil || 'Non disponible')
+      console.error('❌ Conseiller ID:', demande.conseiller_id)
       return { success: false, reason: 'invalid_email' }
     }
     
