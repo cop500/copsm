@@ -201,9 +201,38 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
       return { success: false, reason: 'notifications_disabled' }
     }
 
+    // Logs de débogage pour diagnostiquer le problème d'email
+    console.log('🔍 DEBUG - Conseiller ID:', demande.conseiller_id)
+    console.log('🔍 DEBUG - Email du profil:', demande.profiles.email)
+    console.log('🔍 DEBUG - recipient_emails configurés:', JSON.stringify(config.recipient_emails, null, 2))
+    console.log('🔍 DEBUG - Type de recipient_emails:', typeof config.recipient_emails)
+    
+    // Vérifier si recipient_emails est un objet
+    let recipientEmailsObj: Record<string, string> = {}
+    if (config.recipient_emails) {
+      if (typeof config.recipient_emails === 'string') {
+        // Si c'est une chaîne JSON, la parser
+        try {
+          recipientEmailsObj = JSON.parse(config.recipient_emails)
+        } catch (e) {
+          console.error('❌ Erreur parsing recipient_emails:', e)
+          recipientEmailsObj = {}
+        }
+      } else if (typeof config.recipient_emails === 'object') {
+        recipientEmailsObj = config.recipient_emails as Record<string, string>
+      }
+    }
+    
+    console.log('🔍 DEBUG - recipient_emails parsé:', JSON.stringify(recipientEmailsObj, null, 2))
+    console.log('🔍 DEBUG - Email configuré pour ce conseiller:', recipientEmailsObj[demande.conseiller_id])
+
     // Utiliser l'email configuré manuellement s'il existe, sinon utiliser l'email du profil
-    const conseillerEmail = config.recipient_emails?.[demande.conseiller_id] || demande.profiles.email
+    const emailConfigure = recipientEmailsObj[demande.conseiller_id]
+    const conseillerEmail = emailConfigure || demande.profiles.email
     const conseillerNom = `${demande.profiles.prenom} ${demande.profiles.nom}`
+    
+    console.log('🔍 DEBUG - Email final utilisé:', conseillerEmail)
+    console.log('🔍 DEBUG - Source de l\'email:', emailConfigure ? 'CONFIGURÉ MANUELLEMENT' : 'PROFIL')
     
     // Vérifier que l'email est valide
     if (!conseillerEmail || !conseillerEmail.includes('@')) {
