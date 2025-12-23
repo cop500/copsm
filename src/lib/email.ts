@@ -1,8 +1,11 @@
 import { getEmailConfig } from './email-config'
 import emailjs from '@emailjs/browser'
+import emailjsNode from '@emailjs/nodejs'
 
-// Initialiser EmailJS
-emailjs.init('bnj9zb9qdXb4RjnvB')
+// Initialiser EmailJS (côté client)
+if (typeof window !== 'undefined') {
+  emailjs.init('bnj9zb9qdXb4RjnvB')
+}
 
 interface DemandeEntreprise {
   id: string
@@ -247,11 +250,14 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
 
     console.log('📧 Paramètres EmailJS:', templateParams)
 
-    const result = await emailjs.send(
+    // Utiliser @emailjs/nodejs pour les API routes (côté serveur)
+    const result = await emailjsNode.send(
       EMAILJS_SERVICE_ID,
       EMAILJS_TEMPLATE_ASSISTANCE_ID, // Utiliser le template spécifique pour l'assistance
       templateParams,
-      EMAILJS_PUBLIC_KEY
+      {
+        publicKey: EMAILJS_PUBLIC_KEY,
+      }
     )
     
     console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', result)
