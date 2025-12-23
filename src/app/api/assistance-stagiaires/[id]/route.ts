@@ -209,10 +209,15 @@ export async function PUT(
     })
 
     // Envoyer une notification par email si un conseiller a été assigné
-    if (cleanedUpdateData.conseiller_id && data.profiles?.email) {
+    // Note: On envoie même si l'email du profil n'est pas présent, car l'email peut être configuré manuellement
+    if (cleanedUpdateData.conseiller_id) {
       try {
+        console.log('📧 Tentative d\'envoi de notification email pour demande:', data.id)
+        console.log('📧 Conseiller assigné:', data.conseiller_id)
+        console.log('📧 Email du profil:', data.profiles?.email || 'Non disponible (peut être configuré manuellement)')
+        
         const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
-        await sendAssistanceAssignmentNotification({
+        const result = await sendAssistanceAssignmentNotification({
           id: data.id,
           nom: data.nom || '',
           prenom: data.prenom || '',
@@ -224,11 +229,22 @@ export async function PUT(
           poles: data.poles,
           filieres: data.filieres
         })
-        console.log('✅ Email de notification d\'assignation envoyé')
-      } catch (emailError) {
-        console.error('⚠️ Erreur envoi email notification (non bloquant):', emailError)
+        
+        if (result.success) {
+          console.log('✅ Email de notification d\'assignation envoyé avec succès')
+        } else {
+          console.warn('⚠️ Email non envoyé, raison:', result.reason)
+        }
+      } catch (emailError: any) {
+        console.error('❌ Erreur envoi email notification (non bloquant):', {
+          message: emailError.message,
+          stack: emailError.stack,
+          error: emailError
+        })
         // On continue même si l'email échoue
       }
+    } else {
+      console.log('ℹ️ Pas de conseiller assigné, pas d\'envoi d\'email')
     }
 
     return NextResponse.json({

@@ -178,11 +178,17 @@ interface DemandeAssistance {
 
 export async function sendAssistanceAssignmentNotification(demande: DemandeAssistance) {
   try {
-    console.log('📧 Début envoi notification email assignation assistance...')
+    console.log('📧 ==========================================')
+    console.log('📧 DÉBUT ENVOI NOTIFICATION ASSISTANCE')
+    console.log('📧 ==========================================')
+    console.log('📧 Demande ID:', demande.id)
+    console.log('📧 Conseiller ID:', demande.conseiller_id)
+    console.log('📧 Stagiaire:', `${demande.prenom} ${demande.nom}`)
     
     // Vérifier que le conseiller a un email
     if (!demande.profiles?.email) {
-      console.error('❌ Email du conseiller non trouvé')
+      console.error('❌ Email du conseiller non trouvé dans le profil')
+      console.error('❌ Profil conseiller:', JSON.stringify(demande.profiles, null, 2))
       return { success: false, reason: 'no_conseiller_email' }
     }
 
@@ -266,7 +272,8 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
     console.log('📧 Envoi vers:', conseillerEmail)
     
     const templateParams = {
-      email: conseillerEmail,
+      to_email: conseillerEmail, // Variable principale pour EmailJS
+      email: conseillerEmail, // Variable alternative
       subject: config.subject,
       message: emailContent,
       conseiller_nom: conseillerNom,
@@ -278,20 +285,35 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
     }
 
     console.log('📧 Paramètres EmailJS:', templateParams)
+    console.log('📧 Service ID:', EMAILJS_SERVICE_ID)
+    console.log('📧 Template ID:', EMAILJS_TEMPLATE_ASSISTANCE_ID)
+    console.log('📧 Public Key:', EMAILJS_PUBLIC_KEY ? 'Configuré' : 'MANQUANT')
 
     // Utiliser @emailjs/nodejs pour les API routes (côté serveur)
-    const result = await emailjsNode.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ASSISTANCE_ID, // Utiliser le template spécifique pour l'assistance
-      templateParams,
-      {
-        publicKey: EMAILJS_PUBLIC_KEY,
-      }
-    )
-    
-    console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', result)
-    console.log('✅ Email de notification d\'assignation envoyé avec succès')
-    return { success: true, data: result }
+    // Syntaxe: emailjs.send(serviceID, templateID, templateParams, options)
+    try {
+      const result = await emailjsNode.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ASSISTANCE_ID,
+        templateParams,
+        {
+          publicKey: EMAILJS_PUBLIC_KEY
+        }
+      )
+      
+      console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', JSON.stringify(result, null, 2))
+      console.log('✅ Email de notification d\'assignation envoyé avec succès')
+      return { success: true, data: result }
+    } catch (emailjsError: any) {
+      console.error('❌ Erreur EmailJS détaillée:', {
+        message: emailjsError.message,
+        status: emailjsError.status,
+        text: emailjsError.text,
+        response: emailjsError.response,
+        stack: emailjsError.stack
+      })
+      throw emailjsError
+    }
   } catch (error) {
     console.error('❌ Erreur notification email assignation assistance:', error)
     throw error
