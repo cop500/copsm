@@ -23,7 +23,8 @@ interface EmailConfig {
 
 // Configuration EmailJS
 const EMAILJS_SERVICE_ID = 'service_exp84pb'
-const EMAILJS_TEMPLATE_ID = 'template_rjxiwdp'
+const EMAILJS_TEMPLATE_ID = 'template_rjxiwdp' // Template pour demandes entreprises
+const EMAILJS_TEMPLATE_ASSISTANCE_ID = 'template_9fbr18k' // Template pour demandes assistance
 const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB'
 
 export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
@@ -144,6 +145,113 @@ export async function sendTestEmail(demande: DemandeEntreprise & { config: Email
     return { success: true, data: results }
   } catch (error) {
     console.error('❌ Erreur email test:', error)
+    throw error
+  }
+}
+
+interface DemandeAssistance {
+  id: string
+  nom: string
+  prenom: string
+  telephone: string
+  type_assistance: string
+  statut: string
+  conseiller_id: string
+  profiles?: {
+    nom: string
+    prenom: string
+    email: string
+    role: string
+  }
+  poles?: {
+    nom: string
+    code: string
+  }
+  filieres?: {
+    nom: string
+    code: string
+  }
+}
+
+export async function sendAssistanceAssignmentNotification(demande: DemandeAssistance) {
+  try {
+    console.log('📧 Début envoi notification email assignation assistance...')
+    
+    // Vérifier que le conseiller a un email
+    if (!demande.profiles?.email) {
+      console.error('❌ Email du conseiller non trouvé')
+      return { success: false, reason: 'no_conseiller_email' }
+    }
+
+    // Récupérer la configuration
+    const { getAssistanceEmailConfig } = await import('./email-config')
+    const config = await getAssistanceEmailConfig()
+    console.log('📋 Configuration récupérée:', config)
+    
+    if (!config) {
+      console.error('❌ Configuration email assistance non trouvée')
+      return { success: false, reason: 'config_not_found' }
+    }
+    
+    if (!config.enabled) {
+      console.log('⚠️ Notifications email assistance désactivées')
+      return { success: false, reason: 'notifications_disabled' }
+    }
+
+    const conseillerEmail = demande.profiles.email
+    const conseillerNom = `${demande.profiles.prenom} ${demande.profiles.nom}`
+    
+    // Construire le lien vers la demande d'assistance
+    const demandeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/assistance-stagiaires/conseiller`
+
+    // Types d'assistance en français
+    const typesAssistance: Record<string, string> = {
+      orientation: 'Orientation',
+      strategie: 'Stratégie de recherche',
+      entretiens: 'Préparation entretiens',
+      developpement: 'Développement personnel'
+    }
+
+    const typeAssistanceLabel = typesAssistance[demande.type_assistance] || demande.type_assistance
+    const statutLabel = demande.statut === 'en_attente' ? 'En attente' : demande.statut === 'en_cours' ? 'En cours' : 'Terminée'
+
+    // Remplacer les variables dans le message
+    let emailContent = config.message
+      .replace('{conseiller_nom}', conseillerNom)
+      .replace('{nom_stagiaire}', `${demande.prenom} ${demande.nom}`)
+      .replace('{telephone_stagiaire}', demande.telephone)
+      .replace('{type_assistance}', typeAssistanceLabel)
+      .replace('{statut}', statutLabel)
+      .replace('{lien}', demandeUrl)
+
+    console.log('📧 Envoi vers:', conseillerEmail)
+    
+    const templateParams = {
+      email: conseillerEmail,
+      subject: config.subject,
+      message: emailContent,
+      conseiller_nom: conseillerNom,
+      nom_stagiaire: `${demande.prenom} ${demande.nom}`,
+      telephone_stagiaire: demande.telephone,
+      type_assistance: typeAssistanceLabel,
+      statut: statutLabel,
+      lien: demandeUrl,
+    }
+
+    console.log('📧 Paramètres EmailJS:', templateParams)
+
+    const result = await emailjs.send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ASSISTANCE_ID, // Utiliser le template spécifique pour l'assistance
+      templateParams,
+      EMAILJS_PUBLIC_KEY
+    )
+    
+    console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', result)
+    console.log('✅ Email de notification d\'assignation envoyé avec succès')
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('❌ Erreur notification email assignation assistance:', error)
     throw error
   }
 }

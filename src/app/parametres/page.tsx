@@ -63,19 +63,36 @@ export default function ParametresPage() {
 
       {activeTab === 'notifications' && (
         <div>
-          <p className="text-gray-600 mb-4">Configurez les notifications automatiques pour les nouvelles demandes d'entreprises</p>
-          <div className="mt-8">
+          <p className="text-gray-600 mb-4">Configurez les notifications automatiques pour les demandes d'entreprises et d'assistance</p>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Notifications demandes entreprises */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="text-center py-12">
-                <Mail className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Gestion des Notifications Email</h3>
-                <p className="text-gray-600 mb-6">Configurez les emails de notification pour les nouvelles demandes d'entreprises</p>
+              <div className="text-center py-8">
+                <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Demandes Entreprises</h3>
+                <p className="text-gray-600 mb-6 text-sm">Configurez les emails de notification pour les nouvelles demandes d'entreprises</p>
                 <button
                   onClick={() => router.push('/parametres/notifications-email')}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
                 >
                   <Mail className="w-5 h-5" />
-                  Ouvrir la configuration
+                  Configurer
+                </button>
+              </div>
+            </div>
+
+            {/* Notifications demandes assistance */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Demandes d'Assistance</h3>
+                <p className="text-gray-600 mb-6 text-sm">Configurez les emails de notification pour les demandes d'assistance assignées aux conseillers</p>
+                <button
+                  onClick={() => router.push('/parametres/notifications-assistance')}
+                  className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2 mx-auto"
+                >
+                  <Mail className="w-5 h-5" />
+                  Configurer
                 </button>
               </div>
             </div>

@@ -42,6 +42,7 @@ export const ModernEvenementsModule = () => {
       isManager: role === 'manager_cop',
       isDirecteur: role === 'directeur',
       isCarriere: role === 'conseillere_carriere',
+      isConseillerCop: role === 'conseiller_cop',
       role: role
     };
   }, [currentUser?.role]);
@@ -51,6 +52,7 @@ export const ModernEvenementsModule = () => {
   const stableIsManager = memoizedRoles.isManager || isManager;
   const stableIsDirecteur = memoizedRoles.isDirecteur || isDirecteur;
   const stableIsCarriere = memoizedRoles.isCarriere || isCarriere;
+  const stableIsConseillerCop = memoizedRoles.isConseillerCop;
 
   // Utiliser directement les données du hook sans synchronisation complexe
   // Protection contre les données invalides
@@ -1262,7 +1264,7 @@ export const ModernEvenementsModule = () => {
                 Enquête de Satisfaction
               </button>
             )}
-            {(stableIsAdmin || stableIsManager || stableIsCarriere) && (
+            {(stableIsAdmin || stableIsManager || stableIsCarriere || stableIsConseillerCop) && (
               <button
                 onClick={() => setActiveTab('ambassadeurs')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${

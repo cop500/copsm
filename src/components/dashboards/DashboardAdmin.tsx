@@ -46,6 +46,7 @@ const DashboardAdmin = () => {
   const { currentUser } = useUser();
   const isAdmin = currentUser?.role === 'business_developer';
   const isDirecteur = currentUser?.role === 'directeur';
+  const isCarriere = currentUser?.role === 'conseillere_carriere';
   const { poles, filieres, loading: loadingSettings } = useSettings();
   
   // États pour les commentaires
@@ -879,7 +880,7 @@ const DashboardAdmin = () => {
                       <div className="mt-8 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <h4 className="text-lg font-semibold text-gray-800 mb-4">Actions</h4>
                         <div className="flex flex-wrap gap-4">
-                          {isAdmin ? (
+                          {(isAdmin || isCarriere) ? (
                             <div className="flex-1 min-w-[200px]">
                               <label className="block text-sm font-medium text-gray-700 mb-2">Changer le statut</label>
                               <select

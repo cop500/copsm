@@ -66,3 +66,46 @@ export async function testEmailNotification(): Promise<boolean> {
   }
 }
 
+// Configuration pour les notifications d'assistance
+export interface AssistanceEmailConfig {
+  id: string
+  enabled: boolean
+  subject: string
+  message: string
+  created_at: string
+  updated_at: string
+}
+
+export async function getAssistanceEmailConfig(): Promise<AssistanceEmailConfig | null> {
+  try {
+    const { data, error } = await supabase
+      .from('email_notifications_assistance_config')
+      .select('*')
+      .single()
+
+    if (error) throw error
+    return data as AssistanceEmailConfig
+  } catch (error) {
+    console.error('Erreur récupération config email assistance:', error)
+    return null
+  }
+}
+
+export async function updateAssistanceEmailConfig(config: Partial<AssistanceEmailConfig>): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('email_notifications_assistance_config')
+      .update({
+        ...config,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', '00000000-0000-0000-0000-000000000002')
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Erreur mise à jour config email assistance:', error)
+    return false
+  }
+}
+

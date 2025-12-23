@@ -208,6 +208,29 @@ export async function PUT(
       conseiller: data.profiles?.prenom + ' ' + data.profiles?.nom
     })
 
+    // Envoyer une notification par email si un conseiller a été assigné
+    if (cleanedUpdateData.conseiller_id && data.profiles?.email) {
+      try {
+        const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
+        await sendAssistanceAssignmentNotification({
+          id: data.id,
+          nom: data.nom || '',
+          prenom: data.prenom || '',
+          telephone: data.telephone || '',
+          type_assistance: data.type_assistance || '',
+          statut: data.statut || 'en_attente',
+          conseiller_id: data.conseiller_id || '',
+          profiles: data.profiles,
+          poles: data.poles,
+          filieres: data.filieres
+        })
+        console.log('✅ Email de notification d\'assignation envoyé')
+      } catch (emailError) {
+        console.error('⚠️ Erreur envoi email notification (non bloquant):', emailError)
+        // On continue même si l'email échoue
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Demande mise à jour avec succès',
