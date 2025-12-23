@@ -2,11 +2,6 @@ import { getEmailConfig } from './email-config'
 import emailjs from '@emailjs/browser'
 import emailjsNode from '@emailjs/nodejs'
 
-// Initialiser EmailJS (côté client)
-if (typeof window !== 'undefined') {
-  emailjs.init('bnj9zb9qdXb4RjnvB')
-}
-
 interface DemandeEntreprise {
   id: string
   nom_entreprise: string
@@ -28,7 +23,22 @@ interface EmailConfig {
 const EMAILJS_SERVICE_ID = 'service_exp84pb'
 const EMAILJS_TEMPLATE_ID = 'template_rjxiwdp' // Template pour demandes entreprises
 const EMAILJS_TEMPLATE_ASSISTANCE_ID = 'template_9fbr18k' // Template pour demandes assistance
-const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB'
+const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB' // Pour les appels navigateur
+// Private Key pour les appels serveur (@emailjs/nodejs)
+const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY || 'I1YMENNRhAzFYwcJLDBex'
+
+// Initialiser EmailJS (côté client)
+if (typeof window !== 'undefined') {
+  emailjs.init(EMAILJS_PUBLIC_KEY)
+}
+
+// Initialiser EmailJS Node.js (côté serveur) si on est côté serveur
+if (typeof window === 'undefined' && EMAILJS_PRIVATE_KEY) {
+  emailjsNode.init({
+    publicKey: EMAILJS_PUBLIC_KEY,
+    privateKey: EMAILJS_PRIVATE_KEY
+  })
+}
 
 export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
   try {
@@ -185,6 +195,7 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
     console.log('📧 Conseiller ID:', demande.conseiller_id)
     console.log('📧 Stagiaire:', `${demande.prenom} ${demande.nom}`)
     console.log('📧 Profil conseiller:', JSON.stringify(demande.profiles, null, 2))
+    console.log('📧 Environnement:', typeof window !== 'undefined' ? 'CLIENT (navigateur)' : 'SERVEUR')
 
     // Récupérer la configuration AVANT de vérifier l'email du profil
     // Car l'email peut être configuré manuellement même si le profil n'a pas d'email
@@ -288,32 +299,75 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
     console.log('📧 Paramètres EmailJS:', templateParams)
     console.log('📧 Service ID:', EMAILJS_SERVICE_ID)
     console.log('📧 Template ID:', EMAILJS_TEMPLATE_ASSISTANCE_ID)
-    console.log('📧 Public Key:', EMAILJS_PUBLIC_KEY ? 'Configuré' : 'MANQUANT')
+    console.log('📧 Environnement:', typeof window !== 'undefined' ? 'CLIENT (navigateur)' : 'SERVEUR')
 
-    // Utiliser @emailjs/nodejs pour les API routes (côté serveur)
-    // Syntaxe: emailjs.send(serviceID, templateID, templateParams, options)
-    try {
-      const result = await emailjsNode.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ASSISTANCE_ID,
-        templateParams,
-        {
-          publicKey: EMAILJS_PUBLIC_KEY
-        }
-      )
-      
-      console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', JSON.stringify(result, null, 2))
-      console.log('✅ Email de notification d\'assignation envoyé avec succès')
-      return { success: true, data: result }
-    } catch (emailjsError: any) {
-      console.error('❌ Erreur EmailJS détaillée:', {
-        message: emailjsError.message,
-        status: emailjsError.status,
-        text: emailjsError.text,
-        response: emailjsError.response,
-        stack: emailjsError.stack
-      })
-      throw emailjsError
+    // Utiliser emailjs (browser) si on est côté client, sinon emailjsNode (serveur)
+    if (typeof window !== 'undefined') {
+      // Côté client (navigateur) - utiliser emailjs comme pour les demandes entreprises
+      console.log('📧 Utilisation de emailjs (browser) côté client')
+      try {
+        const result = await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ASSISTANCE_ID,
+          templateParams,
+          EMAILJS_PUBLIC_KEY
+        )
+        
+        console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', JSON.stringify(result, null, 2))
+        console.log('✅ Email de notification d\'assignation envoyé avec succès')
+        return { success: true, data: result }
+      } catch (emailjsError: any) {
+        console.error('❌ Erreur EmailJS détaillée:', {
+          message: emailjsError.message,
+          status: emailjsError.status,
+          text: emailjsError.text,
+          response: emailjsError.response,
+          stack: emailjsError.stack
+        })
+        throw emailjsError
+      }
+    } else {
+      // Côté serveur - utiliser emailjsNode
+      console.log('📧 Utilisation de emailjsNode (serveur)')
+      console.log('📧 Private Key:', EMAILJS_PRIVATE_KEY ? 'Configuré' : 'MANQUANT (nécessaire pour appels serveur)')
+
+      if (!EMAILJS_PRIVATE_KEY) {
+        console.error('❌ EMAILJS_PRIVATE_KEY manquante dans les variables d\'environnement')
+        console.error('❌ Récupérez-la depuis: https://dashboard.emailjs.com/admin/account')
+        throw new Error('EMAILJS_PRIVATE_KEY manquante')
+      }
+
+      try {
+        // S'assurer que emailjsNode est initialisé avant l'appel
+        emailjsNode.init({
+          publicKey: EMAILJS_PUBLIC_KEY,
+          privateKey: EMAILJS_PRIVATE_KEY
+        })
+        
+        // Appeler send() avec les clés dans les options pour être sûr
+        const result = await emailjsNode.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ASSISTANCE_ID,
+          templateParams,
+          {
+            publicKey: EMAILJS_PUBLIC_KEY,
+            privateKey: EMAILJS_PRIVATE_KEY
+          }
+        )
+        
+        console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', JSON.stringify(result, null, 2))
+        console.log('✅ Email de notification d\'assignation envoyé avec succès')
+        return { success: true, data: result }
+      } catch (emailjsError: any) {
+        console.error('❌ Erreur EmailJS détaillée:', {
+          message: emailjsError.message,
+          status: emailjsError.status,
+          text: emailjsError.text,
+          response: emailjsError.response,
+          stack: emailjsError.stack
+        })
+        throw emailjsError
+      }
     }
   } catch (error) {
     console.error('❌ Erreur notification email assignation assistance:', error)
