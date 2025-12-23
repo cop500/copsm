@@ -74,9 +74,9 @@ Notification automatique - Système COP`,
         }
       } else if (data) {
         setConfig({
-          enabled: data.enabled,
-          subject: data.subject,
-          message: data.message,
+          enabled: Boolean(data.enabled),
+          subject: String(data.subject || ''),
+          message: String(data.message || ''),
           recipient_emails: (data.recipient_emails || {}) as Record<string, string>
         })
       }
@@ -99,7 +99,13 @@ Notification automatique - Système COP`,
       if (error) {
         console.error('Erreur chargement conseillers:', error)
       } else if (data) {
-        setConseillers(data)
+        setConseillers(data.map((c: any) => ({
+          id: String(c.id),
+          nom: String(c.nom || ''),
+          prenom: String(c.prenom || ''),
+          email: String(c.email || ''),
+          role: String(c.role || '')
+        })))
       }
     } catch (error) {
       console.error('Erreur chargement conseillers:', error)
@@ -172,44 +178,59 @@ Notification automatique - Système COP`,
     try {
       const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
       
-      // Récupérer un email de conseiller pour le test
-      let testEmail = 'test@example.com'
-      if (config.enabled) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('email, nom, prenom')
-          .in('role', ['conseiller_cop', 'conseillere_carriere'])
-          .limit(1)
-          .single()
-        
-        if (data?.email) {
-          testEmail = data.email
-        }
+      // Récupérer le premier conseiller disponible pour le test
+      const { data: conseillerData } = await supabase
+        .from('profiles')
+        .select('id, email, nom, prenom, role')
+        .in('role', ['conseiller_cop', 'conseillere_carriere'])
+        .eq('actif', true)
+        .limit(1)
+        .single()
+      
+      if (!conseillerData) {
+        setMessage({ type: 'error', text: 'Aucun conseiller trouvé pour le test' })
+        return
       }
       
-      // Créer une demande de test
+      // Vérifier si un email est configuré manuellement pour ce conseiller
+      const conseillerId = String(conseillerData.id)
+      const emailConfigure = config.recipient_emails[conseillerId]
+      const emailTest = emailConfigure || String(conseillerData.email || '')
+      
+      console.log('🧪 Test email - Conseiller ID:', conseillerData.id)
+      console.log('🧪 Test email - Email configuré manuellement:', emailConfigure || 'Aucun')
+      console.log('🧪 Test email - Email du profil:', conseillerData.email)
+      console.log('🧪 Test email - Email final utilisé:', emailTest)
+      
+      // Créer une demande de test avec le vrai conseiller
       const demandeTest = {
-        id: 'test',
+        id: 'test-' + Date.now(),
         nom: 'Test',
         prenom: 'Stagiaire',
         telephone: '0612345678',
         type_assistance: 'orientation',
         statut: 'en_attente',
-        conseiller_id: 'test',
+        conseiller_id: conseillerId, // Utiliser le vrai ID du conseiller
         profiles: {
-          nom: 'Test',
-          prenom: 'Conseiller',
-          email: testEmail,
-          role: 'conseiller_cop'
+          nom: String(conseillerData.nom || ''),
+          prenom: String(conseillerData.prenom || ''),
+          email: String(conseillerData.email || ''), // Email du profil (sera remplacé par l'email configuré si disponible)
+          role: String(conseillerData.role || '')
         }
       }
 
       await sendAssistanceAssignmentNotification(demandeTest)
 
-      setMessage({ type: 'success', text: 'Email de test envoyé avec succès !' })
-    } catch (error) {
+      setMessage({ 
+        type: 'success', 
+        text: `Email de test envoyé avec succès à ${emailTest} !` 
+      })
+    } catch (error: any) {
       console.error('Erreur test:', error)
-      setMessage({ type: 'error', text: 'Erreur lors de l\'envoi de l\'email de test' })
+      setMessage({ 
+        type: 'error', 
+        text: `Erreur lors de l'envoi de l'email de test: ${error.message || 'Erreur inconnue'}` 
+      })
     } finally {
       setTesting(false)
     }

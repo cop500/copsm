@@ -92,18 +92,120 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      const rpcInsertData = rpcData[0]
+
+      // Envoyer une notification par email si un conseiller a été assigné
+      if (demandeData.conseiller_id && rpcInsertData?.id) {
+        try {
+          console.log('📧 Tentative d\'envoi de notification email pour nouvelle demande (RPC):', rpcInsertData.id)
+          console.log('📧 Conseiller assigné:', demandeData.conseiller_id)
+          
+          // Récupérer les données complètes avec les relations
+          const { data: demandeComplete, error: fetchError } = await supabase
+            .from('demandes_assistance_stagiaires')
+            .select(`
+              *,
+              poles(nom, code, couleur),
+              filieres(nom, code, color),
+              profiles!conseiller_id(nom, prenom, email, role)
+            `)
+            .eq('id', rpcInsertData.id)
+            .single()
+
+          if (!fetchError && demandeComplete) {
+            const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
+            const result = await sendAssistanceAssignmentNotification({
+              id: demandeComplete.id,
+              nom: demandeComplete.nom || '',
+              prenom: demandeComplete.prenom || '',
+              telephone: demandeComplete.telephone || '',
+              type_assistance: demandeComplete.type_assistance || '',
+              statut: demandeComplete.statut || 'en_attente',
+              conseiller_id: demandeComplete.conseiller_id || '',
+              profiles: demandeComplete.profiles,
+              poles: demandeComplete.poles,
+              filieres: demandeComplete.filieres
+            })
+            
+            if (result.success) {
+              console.log('✅ Email de notification envoyé avec succès pour nouvelle demande (RPC)')
+            } else {
+              console.warn('⚠️ Email non envoyé pour nouvelle demande (RPC), raison:', result.reason)
+            }
+          } else {
+            console.warn('⚠️ Impossible de récupérer les données complètes pour l\'envoi d\'email (RPC):', fetchError)
+          }
+        } catch (emailError: any) {
+          console.error('❌ Erreur envoi email notification pour nouvelle demande RPC (non bloquant):', {
+            message: emailError.message,
+            stack: emailError.stack
+          })
+          // On continue même si l'email échoue
+        }
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Votre demande d\'assistance a été soumise avec succès !',
         data: {
-          id: rpcData[0]?.id,
-          statut: rpcData[0]?.statut
+          id: rpcInsertData.id,
+          statut: rpcInsertData.statut
         }
       }, { status: 201 })
     }
 
     // Log pour le suivi
     console.log('Nouvelle demande d\'assistance créée:', insertData)
+
+    // Envoyer une notification par email si un conseiller a été assigné
+    if (demandeData.conseiller_id) {
+      try {
+        console.log('📧 Tentative d\'envoi de notification email pour nouvelle demande:', insertData.id)
+        console.log('📧 Conseiller assigné:', demandeData.conseiller_id)
+        
+        // Récupérer les données complètes avec les relations
+        const { data: demandeComplete, error: fetchError } = await supabase
+          .from('demandes_assistance_stagiaires')
+          .select(`
+            *,
+            poles(nom, code, couleur),
+            filieres(nom, code, color),
+            profiles!conseiller_id(nom, prenom, email, role)
+          `)
+          .eq('id', insertData.id)
+          .single()
+
+        if (!fetchError && demandeComplete) {
+          const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
+          const result = await sendAssistanceAssignmentNotification({
+            id: demandeComplete.id,
+            nom: demandeComplete.nom || '',
+            prenom: demandeComplete.prenom || '',
+            telephone: demandeComplete.telephone || '',
+            type_assistance: demandeComplete.type_assistance || '',
+            statut: demandeComplete.statut || 'en_attente',
+            conseiller_id: demandeComplete.conseiller_id || '',
+            profiles: demandeComplete.profiles,
+            poles: demandeComplete.poles,
+            filieres: demandeComplete.filieres
+          })
+          
+          if (result.success) {
+            console.log('✅ Email de notification envoyé avec succès pour nouvelle demande')
+          } else {
+            console.warn('⚠️ Email non envoyé pour nouvelle demande, raison:', result.reason)
+          }
+        } else {
+          console.warn('⚠️ Impossible de récupérer les données complètes pour l\'envoi d\'email:', fetchError)
+        }
+      } catch (emailError: any) {
+        console.error('❌ Erreur envoi email notification pour nouvelle demande (non bloquant):', {
+          message: emailError.message,
+          stack: emailError.stack
+        })
+        // On continue même si l'email échoue
+      }
+    }
 
     return NextResponse.json({
       success: true,
