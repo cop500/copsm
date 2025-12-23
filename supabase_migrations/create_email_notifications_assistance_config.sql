@@ -66,6 +66,9 @@ ON CONFLICT (id) DO NOTHING;
 -- Activer RLS
 ALTER TABLE email_notifications_assistance_config ENABLE ROW LEVEL SECURITY;
 
+-- Supprimer la politique si elle existe déjà (pour éviter les erreurs de réexécution)
+DROP POLICY IF EXISTS "Admins can manage assistance email config" ON email_notifications_assistance_config;
+
 -- Politique pour les admins
 CREATE POLICY "Admins can manage assistance email config" ON email_notifications_assistance_config
     FOR ALL
