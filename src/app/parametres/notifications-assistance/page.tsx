@@ -12,7 +12,9 @@ import {
   Loader2,
   ToggleLeft,
   ToggleRight,
-  ArrowLeft
+  ArrowLeft,
+  User,
+  X
 } from 'lucide-react'
 
 export default function NotificationsAssistancePage() {
@@ -38,11 +40,21 @@ Détails de la demande :
 Lien pour accéder à la demande : {lien}
 
 Cordialement,
-Notification automatique - Système COP`
+Notification automatique - Système COP`,
+    recipient_emails: {} as Record<string, string>
   })
+
+  const [conseillers, setConseillers] = useState<Array<{
+    id: string
+    nom: string
+    prenom: string
+    email: string
+    role: string
+  }>>([])
 
   useEffect(() => {
     loadConfig()
+    loadConseillers()
   }, [])
 
   const loadConfig = async () => {
@@ -64,7 +76,8 @@ Notification automatique - Système COP`
         setConfig({
           enabled: data.enabled,
           subject: data.subject,
-          message: data.message
+          message: data.message,
+          recipient_emails: (data.recipient_emails || {}) as Record<string, string>
         })
       }
     } catch (error) {
@@ -72,6 +85,44 @@ Notification automatique - Système COP`
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadConseillers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, nom, prenom, email, role')
+        .in('role', ['conseiller_cop', 'conseillere_carriere'])
+        .eq('actif', true)
+        .order('nom')
+
+      if (error) {
+        console.error('Erreur chargement conseillers:', error)
+      } else if (data) {
+        setConseillers(data)
+      }
+    } catch (error) {
+      console.error('Erreur chargement conseillers:', error)
+    }
+  }
+
+  const updateRecipientEmail = (conseillerId: string, email: string) => {
+    setConfig({
+      ...config,
+      recipient_emails: {
+        ...config.recipient_emails,
+        [conseillerId]: email.trim()
+      }
+    })
+  }
+
+  const removeRecipientEmail = (conseillerId: string) => {
+    const newRecipients = { ...config.recipient_emails }
+    delete newRecipients[conseillerId]
+    setConfig({
+      ...config,
+      recipient_emails: newRecipients
+    })
   }
 
   const handleSave = async () => {
@@ -86,6 +137,7 @@ Notification automatique - Système COP`
           enabled: config.enabled,
           subject: config.subject,
           message: config.message,
+          recipient_emails: config.recipient_emails,
           updated_at: new Date().toISOString()
         })
 
@@ -251,6 +303,95 @@ Notification automatique - Système COP`
           </p>
         </div>
 
+        {/* Configuration des emails des destinataires */}
+        <div className="border-t border-gray-200 pt-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Configuration des emails des destinataires</h3>
+            <p className="text-sm text-gray-600">
+              Configurez manuellement l'adresse email de chaque conseiller pour les notifications. 
+              Si aucun email n'est configuré, l'email du profil sera utilisé.
+            </p>
+          </div>
+
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {conseillers.map((conseiller) => {
+              const configuredEmail = config.recipient_emails[conseiller.id] || ''
+              const displayEmail = configuredEmail || conseiller.email || 'Non configuré'
+              const isConfigured = !!config.recipient_emails[conseiller.id]
+
+              return (
+                <div
+                  key={conseiller.id}
+                  className={`p-4 rounded-lg border ${
+                    isConfigured
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <User className="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">
+                            {conseiller.prenom} {conseiller.nom}
+                          </h4>
+                          <p className="text-xs text-gray-500 capitalize">
+                            {conseiller.role.replace('_', ' ')}
+                          </p>
+                        </div>
+                        {isConfigured && (
+                          <button
+                            onClick={() => removeRecipientEmail(conseiller.id)}
+                            className="text-red-600 hover:text-red-700 p-1"
+                            title="Supprimer l'email configuré"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Email du profil
+                          </label>
+                          <p className="text-sm text-gray-600 bg-white px-3 py-2 rounded border border-gray-200">
+                            {conseiller.email || 'Non défini'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Email configuré manuellement
+                          </label>
+                          <input
+                            type="email"
+                            value={configuredEmail}
+                            onChange={(e) => updateRecipientEmail(conseiller.id, e.target.value)}
+                            placeholder="Entrez l'email à utiliser pour les notifications"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          />
+                          {isConfigured && (
+                            <p className="mt-1 text-xs text-blue-600">
+                              ✓ Email personnalisé configuré
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {conseillers.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <User className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+              <p>Aucun conseiller trouvé</p>
+            </div>
+          )}
+        </div>
+
         {/* Info importante */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
@@ -258,8 +399,8 @@ Notification automatique - Système COP`
             <div>
               <h4 className="font-semibold text-blue-900 mb-1">Note importante</h4>
               <p className="text-sm text-blue-800">
-                Les emails sont envoyés automatiquement au conseiller assigné (l'email est récupéré depuis son profil). 
-                Vous n'avez pas besoin de configurer une liste de destinataires ici.
+                Si un email est configuré manuellement pour un conseiller, cet email sera utilisé pour les notifications. 
+                Sinon, l'email du profil du conseiller sera utilisé automatiquement.
               </p>
             </div>
           </div>

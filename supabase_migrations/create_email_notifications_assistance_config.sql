@@ -21,13 +21,16 @@ Lien pour accéder à la demande : {lien}
 Cordialement,
 Notification automatique - Système COP',
     
+    -- Emails des destinataires configurés manuellement (JSON: { "conseiller_id": "email@example.com" })
+    recipient_emails JSONB DEFAULT '{}'::jsonb,
+    
     -- Métadonnées
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Insérer la configuration par défaut
-INSERT INTO email_notifications_assistance_config (id, enabled, subject, message)
+INSERT INTO email_notifications_assistance_config (id, enabled, subject, message, recipient_emails)
 VALUES (
     '00000000-0000-0000-0000-000000000002',
     true,
@@ -45,7 +48,8 @@ Détails de la demande :
 Lien pour accéder à la demande : {lien}
 
 Cordialement,
-Notification automatique - Système COP'
+Notification automatique - Système COP',
+    '{}'::jsonb
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -62,4 +66,22 @@ CREATE POLICY "Admins can manage assistance email config" ON email_notifications
             AND profiles.role = 'business_developer'
         )
     );
+
+-- Ajouter la colonne recipient_emails si elle n'existe pas déjà (pour les migrations existantes)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'email_notifications_assistance_config' 
+        AND column_name = 'recipient_emails'
+    ) THEN
+        ALTER TABLE email_notifications_assistance_config 
+        ADD COLUMN recipient_emails JSONB DEFAULT '{}'::jsonb;
+        
+        -- Mettre à jour les enregistrements existants
+        UPDATE email_notifications_assistance_config 
+        SET recipient_emails = '{}'::jsonb 
+        WHERE recipient_emails IS NULL;
+    END IF;
+END $$;
 

@@ -72,6 +72,7 @@ export interface AssistanceEmailConfig {
   enabled: boolean
   subject: string
   message: string
+  recipient_emails: Record<string, string> // { "conseiller_id": "email@example.com" }
   created_at: string
   updated_at: string
 }

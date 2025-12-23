@@ -198,8 +198,15 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
       return { success: false, reason: 'notifications_disabled' }
     }
 
-    const conseillerEmail = demande.profiles.email
+    // Utiliser l'email configuré manuellement s'il existe, sinon utiliser l'email du profil
+    const conseillerEmail = config.recipient_emails?.[demande.conseiller_id] || demande.profiles.email
     const conseillerNom = `${demande.profiles.prenom} ${demande.profiles.nom}`
+    
+    // Vérifier que l'email est valide
+    if (!conseillerEmail || !conseillerEmail.includes('@')) {
+      console.error('❌ Email du conseiller invalide ou non configuré:', conseillerEmail)
+      return { success: false, reason: 'invalid_email' }
+    }
     
     // Construire le lien vers la demande d'assistance
     const demandeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/assistance-stagiaires/conseiller`
