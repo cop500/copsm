@@ -8,7 +8,9 @@ import { useRealTime } from './useRealTime';
 
 // Cache pour éviter les rechargements inutiles
 const cache = new Map();
-const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 heures de cache (augmenté pour éviter les timeouts)
+const CACHE_DURATION = 8 * 60 * 60 * 1000; // 8 heures de cache (augmenté pour éviter les timeouts)
+const CACHE_KEY = 'cop_app_evenements_cache';
+const REQUEST_TIMEOUT = 30000; // 30 secondes de timeout pour les requêtes
 
 export function useEvenements() {
   const [evenements, setEvenements] = useState<any[]>([]);
@@ -16,10 +18,52 @@ export function useEvenements() {
   const [error, setError] = useState<string | null>(null);
   const lastFetchRef = useRef<number>(0);
 
+  // Charger le cache depuis localStorage
+  const loadFromLocalStorage = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (!cached) return null;
+      const cacheData = JSON.parse(cached);
+      const now = Date.now();
+      if (now - cacheData.timestamp < CACHE_DURATION) {
+        return cacheData;
+      }
+      // Cache expiré, le supprimer
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    } catch (err) {
+      console.error('Erreur lecture cache localStorage:', err);
+      return null;
+    }
+  }, []);
+
+  // Sauvegarder dans localStorage
+  const saveToLocalStorage = useCallback((data: any[], timestamp: number) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp }));
+    } catch (err) {
+      console.error('Erreur sauvegarde cache localStorage:', err);
+    }
+  }, []);
+
   const fetchEvenements = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
     const cacheKey = 'evenements';
-    const cached = cache.get(cacheKey);
+    
+    // Vérifier d'abord le cache en mémoire
+    let cached = cache.get(cacheKey);
+    
+    // Si pas de cache en mémoire, vérifier localStorage
+    if (!cached) {
+      const localStorageCache = loadFromLocalStorage();
+      if (localStorageCache) {
+        cached = localStorageCache;
+        // Mettre aussi en cache mémoire
+        cache.set(cacheKey, cached);
+      }
+    }
 
     // Utiliser le cache si disponible et pas expiré
     if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
@@ -31,10 +75,6 @@ export function useEvenements() {
     
     console.log('🔄 Rechargement des données (cache expiré ou forceRefresh)');
 
-    // Ne pas vérifier la session ici car cela peut causer des problèmes
-    // La session sera vérifiée par Supabase lors de la requête
-    // Si la session est invalide, Supabase retournera une erreur qu'on gérera
-
     // Ne pas mettre loading à true si on a déjà des données (pour éviter le flash blanc)
     // Seulement mettre loading à true si on n'a pas de données
     if (evenements.length === 0) {
@@ -43,8 +83,13 @@ export function useEvenements() {
     setError(null);
 
     try {
+      // Créer une promesse avec timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout: La requête a pris trop de temps')), REQUEST_TIMEOUT);
+      });
+
       // Requête avec colonnes photos, type_evenement et capacités pour l'affichage
-      const { data, error } = await supabase
+      const queryPromise = supabase
         .from('evenements')
         .select(`
           id,
@@ -74,48 +119,90 @@ export function useEvenements() {
         `)
         .order('date_debut', { ascending: false });
 
+      // Race entre la requête et le timeout
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
       if (error) {
         console.error('❌ Erreur fetchEvenements:', error);
+        // Si erreur de session, utiliser cache si disponible
+        if (error.message?.includes('session') || error.message?.includes('auth') || error.message?.includes('JWT')) {
+          if (cached) {
+            console.log('⚠️ Erreur session, utilisation du cache');
+            setEvenements(cached.data);
+            setLoading(false);
+            return;
+          }
+        }
         throw error;
       }
 
       const evenementsData = data || [];
       console.log('📊 Événements récupérés:', evenementsData.length);
       
-      // Mettre en cache
-      cache.set(cacheKey, {
+      // Mettre en cache (mémoire et localStorage)
+      const cacheData = {
         data: evenementsData,
         timestamp: now
-      });
+      };
+      cache.set(cacheKey, cacheData);
+      saveToLocalStorage(evenementsData, now);
 
       console.log('🔍 Hook useEvenements - Données récupérées:', evenementsData.length, 'événements');
       
       setEvenements(evenementsData);
       lastFetchRef.current = now;
     } catch (err: any) {
-      setError(err.message);
+      console.error('❌ Erreur fetchEvenements:', err);
+      // En cas d'erreur, utiliser le cache si disponible
+      if (cached) {
+        console.log('⚠️ Erreur, utilisation du cache de secours');
+        setEvenements(cached.data);
+      } else {
+        setError(err.message || 'Erreur lors du chargement des données');
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [evenements.length, loadFromLocalStorage, saveToLocalStorage]);
 
   useEffect(() => {
     // Charger les données seulement si elles ne sont pas déjà en cache
     const cacheKey = 'evenements';
-    const cached = cache.get(cacheKey);
+    let cached = cache.get(cacheKey);
     const now = Date.now();
+    
+    // Si pas de cache en mémoire, vérifier localStorage
+    if (!cached) {
+      const localStorageCache = loadFromLocalStorage();
+      if (localStorageCache) {
+        cached = localStorageCache;
+        cache.set(cacheKey, cached);
+      }
+    }
     
     // Si le cache est valide, utiliser les données en cache
     if (cached && (now - cached.timestamp) < CACHE_DURATION) {
       console.log('📦 Utilisation du cache au montage:', cached.data.length, 'événements');
       setEvenements(cached.data);
       setLoading(false);
+      // Recharger en arrière-plan pour mettre à jour le cache
+      setTimeout(() => {
+        fetchEvenements(true).catch(err => {
+          console.error('Erreur rechargement arrière-plan:', err);
+        });
+      }, 1000);
     } else {
       // Sinon, charger les données
       fetchEvenements();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Seulement au montage, pas de dépendance sur fetchEvenements pour éviter les rechargements
+
+  // Sauvegarder dans localStorage (fonction réutilisable via ref)
+  const saveToLocalStorageRef = useRef(saveToLocalStorage);
+  useEffect(() => {
+    saveToLocalStorageRef.current = saveToLocalStorage;
+  }, [saveToLocalStorage]);
 
   // Optimisation du temps réel - mise à jour locale au lieu de recharger
   useRealTime('evenements', ({ eventType, new: newRow, old: oldRow }) => {
@@ -126,41 +213,47 @@ export function useEvenements() {
         return [];
       }
       
+      const cacheKey = 'evenements';
+      const cached = cache.get(cacheKey);
+      
       if (eventType === 'INSERT' && newRow) {
         // Mettre à jour le cache avec la nouvelle donnée
-        const cacheKey = 'evenements';
-        const cached = cache.get(cacheKey);
+        const newData = [...prev, newRow];
         if (cached) {
-          cache.set(cacheKey, {
-            data: [...prev, newRow],
+          const updatedCache = {
+            data: newData,
             timestamp: cached.timestamp
-          });
+          };
+          cache.set(cacheKey, updatedCache);
+          saveToLocalStorageRef.current(newData, cached.timestamp);
         }
-        return [...prev, newRow];
+        return newData;
       }
       if (eventType === 'UPDATE' && newRow) {
         // Mettre à jour le cache
-        const cacheKey = 'evenements';
-        const cached = cache.get(cacheKey);
+        const newData = prev.map((item) => (item.id === newRow.id ? newRow : item));
         if (cached) {
-          cache.set(cacheKey, {
-            data: prev.map((item) => (item.id === newRow.id ? newRow : item)),
+          const updatedCache = {
+            data: newData,
             timestamp: cached.timestamp
-          });
+          };
+          cache.set(cacheKey, updatedCache);
+          saveToLocalStorageRef.current(newData, cached.timestamp);
         }
-        return prev.map((item) => (item.id === newRow.id ? newRow : item));
+        return newData;
       }
       if (eventType === 'DELETE' && oldRow) {
         // Mettre à jour le cache
-        const cacheKey = 'evenements';
-        const cached = cache.get(cacheKey);
+        const newData = prev.filter((item) => item.id !== oldRow.id);
         if (cached) {
-          cache.set(cacheKey, {
-            data: prev.filter((item) => item.id !== oldRow.id),
+          const updatedCache = {
+            data: newData,
             timestamp: cached.timestamp
-          });
+          };
+          cache.set(cacheKey, updatedCache);
+          saveToLocalStorageRef.current(newData, cached.timestamp);
         }
-        return prev.filter((item) => item.id !== oldRow.id);
+        return newData;
       }
       return prev;
     });
@@ -192,6 +285,9 @@ export function useEvenements() {
       
       // Invalider le cache seulement - le rechargement se fera automatiquement
       cache.delete('evenements');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(CACHE_KEY);
+      }
       
       // Retourner un objet avec success: true
       return { success: true };
@@ -201,6 +297,9 @@ export function useEvenements() {
       // Si erreur de session, invalider le cache
       if (err.message?.includes('session') || err.message?.includes('auth')) {
         cache.delete('evenements');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(CACHE_KEY);
+        }
       }
       
       // Retourner un objet avec success: false et l'erreur

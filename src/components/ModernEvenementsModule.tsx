@@ -24,6 +24,47 @@ import { EspaceAmbassadeurs } from './EspaceAmbassadeurs'
 import { EnqueteSatisfactionDashboard } from './EnqueteSatisfactionDashboard'
 import CalendrierCollaboratif from './CalendrierCollaboratif'
 
+// Composant de chargement avec timeout
+const LoadingWithTimeout: React.FC<{ onTimeout?: () => void }> = ({ onTimeout }) => {
+  const [showTimeout, setShowTimeout] = useState(false);
+  
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setShowTimeout(true);
+      onTimeout?.();
+    }, 15000); // 15 secondes
+    
+    return () => clearTimeout(timeout);
+  }, [onTimeout]);
+  
+  if (showTimeout) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+        <div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Chargement prolongé</h3>
+          <p className="text-gray-600 mb-4">Le chargement prend plus de temps que prévu.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Actualiser la page
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-600">Chargement des données...</p>
+      </div>
+    </div>
+  );
+};
+
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
   const { evenements: allEvenements, loading: hookLoading, saveEvenement, ensureDataFresh, fetchEvenements } = useEvenements()
@@ -1510,13 +1551,13 @@ export const ModernEvenementsModule = () => {
       {/* Liste des éléments selon l'onglet actif */}
       {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' ? (
         hookLoading && evenementsData.length === 0 && ateliersData.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des données...</p>
-          </div>
-        </div>
-      ) : displayItems.length === 0 ? (
+          <LoadingWithTimeout 
+            onTimeout={() => {
+              console.warn('⚠️ Timeout de chargement, arrêt du loading');
+              // Le hook devrait gérer le timeout, mais on peut forcer ici aussi
+            }}
+          />
+        ) : displayItems.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             {activeTab === 'evenements' ? (

@@ -29,7 +29,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 // Clé pour le localStorage
 const USER_CACHE_KEY = 'cop_app_user_cache';
-const SESSION_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
+const SESSION_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes (raffraîchissement plus fréquent pour éviter l'expiration)
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
