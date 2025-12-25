@@ -105,6 +105,40 @@ export const EmployabilityDashboard: React.FC = () => {
   const { user: currentUser } = useAuth();
   const { isAdmin, isDirecteur, isManager, isConseiller } = useRole();
 
+  // Fonction pour filtrer les données selon la période sélectionnée
+  const filterByPeriod = <T extends Record<string, any>>(
+    items: T[],
+    dateField: 'date_debut' | 'created_at' | 'date_visite' = 'date_debut'
+  ): T[] => {
+    if (!items || items.length === 0) return [];
+    if (selectedPeriod === 'all_time') return items;
+
+    const now = new Date();
+    let startDate: Date;
+
+    if (selectedPeriod === 'current_month') {
+      // Ce mois : du 1er du mois actuel jusqu'à aujourd'hui
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (selectedPeriod === 'current_year') {
+      // Cette année : du 1er janvier jusqu'à aujourd'hui
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else {
+      return items;
+    }
+
+    return items.filter(item => {
+      const itemDate = item[dateField] as string | undefined;
+      if (!itemDate) return false;
+      
+      try {
+        const date = new Date(itemDate);
+        return date >= startDate && date <= now;
+      } catch {
+        return false;
+      }
+    });
+  };
+
   // Fonction pour calculer la luminosité d'une couleur (0-255)
   const getLuminance = (hex: string): number => {
     const rgb = hex.match(/[A-Za-z0-9]{2}/g)?.map(v => parseInt(v, 16)) || [0, 0, 0];
@@ -158,14 +192,17 @@ export const EmployabilityDashboard: React.FC = () => {
     return '#A8D0E0';
   };
 
-    // Calculer les métriques des événements
+    // Calculer les métriques des événements (filtrées par période)
   useEffect(() => {
     if (evenements) {
+      // Filtrer les événements selon la période sélectionnée
+      const filteredEvenements = filterByPeriod(evenements, 'date_debut');
+      
       const metrics: EventMetrics = {
-        totalEvents: evenements.length,
-        totalBeneficiaries: evenements.reduce((sum, event) => sum + (event.nombre_beneficiaires || 0), 0),
-        totalCandidates: evenements.reduce((sum, event) => sum + (event.nombre_candidats || 0), 0),
-        totalRetained: evenements.reduce((sum, event) => sum + (event.nombre_candidats_retenus || 0), 0),
+        totalEvents: filteredEvenements.length,
+        totalBeneficiaries: filteredEvenements.reduce((sum, event) => sum + (event.nombre_beneficiaires || 0), 0),
+        totalCandidates: filteredEvenements.reduce((sum, event) => sum + (event.nombre_candidats || 0), 0),
+        totalRetained: filteredEvenements.reduce((sum, event) => sum + (event.nombre_candidats_retenus || 0), 0),
         conversionRate: 0,
         eventsByVolet: {},
         eventsByType: {},
@@ -179,7 +216,7 @@ export const EmployabilityDashboard: React.FC = () => {
       }
 
       // Répartition par volet
-      evenements.forEach(event => {
+      filteredEvenements.forEach(event => {
         const volet = event.volet || 'non_defini';
         metrics.eventsByVolet[volet] = (metrics.eventsByVolet[volet] || 0) + 1;
       });
@@ -187,7 +224,7 @@ export const EmployabilityDashboard: React.FC = () => {
       // Répartition par pôle et calcul des taux de conversion
       const poleStats: { [key: string]: { count: number; candidates: number; retained: number } } = {};
       
-      evenements.forEach(event => {
+      filteredEvenements.forEach(event => {
         if (event.pole_id) {
           const pole = poles.find(p => p.id === event.pole_id);
           const poleName = pole ? pole.nom : `Pôle ID: ${event.pole_id} (à corriger)`;
@@ -215,17 +252,21 @@ export const EmployabilityDashboard: React.FC = () => {
 
       setEventMetrics(metrics);
     }
-  }, [evenements, poles]);
+  }, [evenements, poles, selectedPeriod]);
 
-  // Calculer les métriques des entreprises et des visites (pour tous les utilisateurs)
+  // Calculer les métriques des entreprises et des visites (filtrées par période)
   useEffect(() => {
     // S'assurer que visites est défini (peut être un tableau vide)
     const visitesArray = visites || [];
     
-    // Calculer les métriques des visites (toujours, même si entreprises n'est pas chargé)
+    // Filtrer les visites selon la période sélectionnée
+    const filteredVisites = filterByPeriod(visitesArray, 'date_visite');
+    
+    // Calculer les métriques des visites filtrées
     const visitesStats = getStats();
     
     // Déterminer le statut BD basé sur les visites planifiées (pour tous les utilisateurs)
+    // Note: Le statut BD utilise toutes les visites, pas seulement celles filtrées
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -294,30 +335,33 @@ export const EmployabilityDashboard: React.FC = () => {
       };
     }
     
+    // Filtrer les entreprises selon la période (basé sur created_at)
+    const filteredEntreprises = entreprises ? filterByPeriod(entreprises, 'created_at') : [];
+    
     // Créer les métriques (toujours, même si entreprises n'est pas chargé)
     const metrics: EnterpriseMetrics = {
-      totalEnterprises: entreprises?.length || 0,
-      prospects: entreprises?.filter(e => e.statut === 'prospect').length || 0,
-      partners: entreprises?.filter(e => e.statut === 'partenaire').length || 0,
+      totalEnterprises: filteredEntreprises.length,
+      prospects: filteredEntreprises.filter(e => e.statut === 'prospect').length,
+      partners: filteredEntreprises.filter(e => e.statut === 'partenaire').length,
       sectors: {},
-      // Métriques des visites (toujours affichées pour tous les utilisateurs)
-      totalVisites: visitesArray.length,
+      // Métriques des visites filtrées
+      totalVisites: filteredVisites.length,
       visitesPlanifiees: visitesStats.visitesPlanifiees || 0,
       statutBD
     };
 
     // Répartition par secteur (si entreprises est chargé)
-    if (entreprises) {
-      entreprises.forEach(entreprise => {
+    if (filteredEntreprises.length > 0) {
+      filteredEntreprises.forEach(entreprise => {
         const secteur = entreprise.secteur || 'Non défini';
         metrics.sectors[secteur] = (metrics.sectors[secteur] || 0) + 1;
       });
     }
 
     setEnterpriseMetrics(metrics);
-  }, [entreprises, visites, getStats]);
+  }, [entreprises, visites, getStats, selectedPeriod]);
 
-  // Calculer les métriques des demandes
+  // Calculer les métriques des demandes (filtrées par période)
   useEffect(() => {
     const fetchDemandMetrics = async () => {
       try {
@@ -328,18 +372,28 @@ export const EmployabilityDashboard: React.FC = () => {
             id,
             statut,
             entreprise_nom,
-            profils
+            profils,
+            created_at
           `);
 
         if (error) throw error;
 
-        console.log('📋 Demandes récupérées:', demandes);
-        console.log('📊 Statuts des demandes:', demandes?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprise_nom })));
+        // Filtrer les demandes selon la période sélectionnée
+        const filteredDemandes = filterByPeriod(demandes || [], 'created_at');
+
+        console.log('📋 Demandes récupérées:', filteredDemandes);
+        console.log('📊 Statuts des demandes:', filteredDemandes?.map(d => ({ id: d.id, statut: d.statut, entreprise: d.entreprise_nom })));
 
         const metrics: DemandMetrics = {
-          totalDemands: demandes?.length || 0,
-          activeDemands: demandes?.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours').length || 0,
-          totalProfiles: demandes?.reduce((sum, d) => sum + (d.profils?.length || 0), 0) || 0,
+          totalDemands: filteredDemandes.length,
+          activeDemands: filteredDemandes.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours').length,
+          totalProfiles: filteredDemandes.reduce((sum, d) => {
+            const profils = d.profils;
+            if (Array.isArray(profils)) {
+              return sum + profils.length;
+            }
+            return sum;
+          }, 0),
           topEnterprises: []
         };
 
@@ -349,8 +403,8 @@ export const EmployabilityDashboard: React.FC = () => {
 
         // Calculer les entreprises les plus actives
         const enterpriseDemands: { [key: string]: number } = {};
-        demandes?.forEach(demande => {
-          const entrepriseName = demande.entreprise_nom || 'Inconnue';
+        filteredDemandes.forEach(demande => {
+          const entrepriseName = (typeof demande.entreprise_nom === 'string' ? demande.entreprise_nom : 'Inconnue') || 'Inconnue';
           enterpriseDemands[entrepriseName] = (enterpriseDemands[entrepriseName] || 0) + 1;
         });
 
@@ -377,7 +431,7 @@ export const EmployabilityDashboard: React.FC = () => {
     };
 
     fetchDemandMetrics();
-  }, []);
+  }, [selectedPeriod]);
 
   useEffect(() => {
     // Arrêter le chargement quand toutes les données sont chargées
@@ -476,7 +530,7 @@ export const EmployabilityDashboard: React.FC = () => {
         ['ÉVÉNEMENTS DÉTAILLÉS - COP CMC SM'],
         [''],
         ['Nom de l\'événement', 'Date de début', 'Date de fin', 'Lieu', 'Volet', 'Pôle concerné', 'Filière concernée', 'Statut', 'Type d\'événement', 'Stagiaires bénéficiaires', 'Candidats reçus', 'Candidats retenus', 'Taux de conversion (%)', 'Description'],
-        ...evenements.map(event => {
+        ...(selectedPeriod === 'all_time' ? evenements : filterByPeriod(evenements, 'date_debut')).map(event => {
           const pole = poles.find(p => p.id === event.pole_id);
           const filiere = filieres.find(f => f.id === event.filiere_id);
           
@@ -555,8 +609,8 @@ export const EmployabilityDashboard: React.FC = () => {
           demande.entreprise_nom || 'N/A',
           demande.statut === 'active' ? 'Active' : 
           demande.statut === 'inactive' ? 'Inactive' : (demande.statut || 'N/A'),
-          demande.profils?.map((p: any) => p.titre).join(', ') || 'N/A',
-          demande.created_at ? new Date(demande.created_at).toLocaleDateString('fr-FR') : 'N/A'
+          (Array.isArray(demande.profils) ? demande.profils.map((p: any) => p.titre).join(', ') : 'N/A'),
+          (demande.created_at && typeof demande.created_at === 'string') ? new Date(demande.created_at).toLocaleDateString('fr-FR') : 'N/A'
         ])
       ];
 

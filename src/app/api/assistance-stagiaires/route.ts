@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validation du type d'assistance
-    const validTypes = ['orientation', 'strategie', 'entretiens', 'developpement']
+    const validTypes = ['orientation', 'strategie', 'entretiens', 'developpement', 'paraformations']
     if (!validTypes.includes(body.type_assistance)) {
       return NextResponse.json(
         { error: 'Type d\'assistance invalide' },

@@ -103,6 +103,9 @@ export const ModernEvenementsModule = () => {
   // Filtre par volet
   const [voletFilter, setVoletFilter] = useState('tous')
   
+  // Debounce pour la recherche (optimisation performance)
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
+  
   // Liste des volets
   const volets = [
     { value: 'information_communication', label: 'Information/Communication' },
@@ -1041,13 +1044,22 @@ export const ModernEvenementsModule = () => {
     return `${diffHours}h`
   }
 
-  // Filtrer selon l'onglet actif avec optimisation
+  // Debounce de la recherche pour améliorer les performances
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 300) // Attendre 300ms après la dernière frappe
+    
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+  
+  // Filtrer selon l'onglet actif avec optimisation (utilise debouncedSearchTerm)
   const filteredEvenements = React.useMemo(() => {
     return evenementsData.filter(event => {
-      const matchesSearch = searchTerm === '' || 
-        event.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (event.lieu && event.lieu.toLowerCase().includes(searchTerm.toLowerCase()))
+      const matchesSearch = debouncedSearchTerm === '' || 
+        event.titre.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (event.description && event.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+        (event.lieu && event.lieu.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
       
       const matchesStatus = statusFilter === 'tous' || event.statut === statusFilter
       const matchesType = typeFilter === 'tous' || event.type_evenement_id === typeFilter
@@ -1055,22 +1067,21 @@ export const ModernEvenementsModule = () => {
       
       return matchesSearch && matchesStatus && matchesType && matchesVolet
     })
-  }, [evenementsData, searchTerm, statusFilter, typeFilter, voletFilter])
+  }, [evenementsData, debouncedSearchTerm, statusFilter, typeFilter, voletFilter])
 
   const filteredAteliers = React.useMemo(() => {
     return ateliersData.filter(atelier => {
-      const matchesSearch = searchTerm === '' || 
-        atelier.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (atelier.description && atelier.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (atelier.lieu && atelier.lieu.toLowerCase().includes(searchTerm.toLowerCase()))
+      const matchesSearch = debouncedSearchTerm === '' || 
+        atelier.titre.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (atelier.description && atelier.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+        (atelier.lieu && atelier.lieu.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
       
       const matchesStatus = statusFilter === 'tous' || atelier.statut === statusFilter
       
-      // Pour les ateliers, on affiche toujours tous les ateliers (pas de filtre par type)
       return matchesSearch && matchesStatus
     })
-  }, [ateliersData, searchTerm, statusFilter])
-
+  }, [ateliersData, debouncedSearchTerm, statusFilter])
+  
   // Obtenir les éléments à afficher selon l'onglet actif avec optimisation
   const displayItems = React.useMemo(() => {
     if (activeTab === 'evenements') {

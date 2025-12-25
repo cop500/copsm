@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, memo } from 'react'
 import { 
   Calendar, MapPin, User, Clock, Image, Eye, 
   Edit3, Trash2, Plus, X, ChevronLeft, ChevronRight,
@@ -34,7 +34,7 @@ interface EventCardProps {
   onAddPhotos?: (event: any) => void
 }
 
-export const EventCard: React.FC<EventCardProps> = ({ 
+const EventCardComponent: React.FC<EventCardProps> = ({ 
   event, 
   onEdit, 
   onDelete, 
@@ -129,12 +129,13 @@ export const EventCard: React.FC<EventCardProps> = ({
         {/* Section photos */}
         {event.photos_urls && event.photos_urls.length > 0 ? (
           <div className="relative h-48 overflow-hidden">
-                         <img
-               src={event.photos_urls[currentPhotoIndex]}
-               alt={`Photo ${currentPhotoIndex + 1} - ${event.titre}`}
-               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-               
-             />
+            <img
+              src={event.photos_urls[currentPhotoIndex]}
+              alt={`Photo ${currentPhotoIndex + 1} - ${event.titre}`}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+              decoding="async"
+            />
             
             {/* Overlay avec informations */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
@@ -192,6 +193,8 @@ export const EventCard: React.FC<EventCardProps> = ({
               src="/photo_evenement_effet.jpg"
               alt="Photo par défaut - Événement"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+              decoding="async"
             />
             
             {/* Overlay avec informations */}
@@ -366,12 +369,13 @@ export const EventCard: React.FC<EventCardProps> = ({
           <div className="relative max-w-4xl max-h-[90vh] w-full">
             {/* Photo principale */}
             <div className="relative">
-                             <img
-                 src={event.photos_urls[currentPhotoIndex]}
-                 alt={`Photo ${currentPhotoIndex + 1} - ${event.titre}`}
-                 className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-                 
-               />
+              <img
+                src={event.photos_urls[currentPhotoIndex]}
+                alt={`Photo ${currentPhotoIndex + 1} - ${event.titre}`}
+                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                loading="lazy"
+                decoding="async"
+              />
               
               {/* Navigation */}
               {event.photos_urls.length > 1 && (
@@ -429,4 +433,17 @@ export const EventCard: React.FC<EventCardProps> = ({
       )}
     </>
   )
-} 
+}
+
+// Mémoriser le composant pour éviter les re-rendus inutiles
+export const EventCard = memo(EventCardComponent, (prevProps, nextProps) => {
+  // Comparaison personnalisée pour éviter les re-rendus inutiles
+  return (
+    prevProps.event.id === nextProps.event.id &&
+    prevProps.event.titre === nextProps.event.titre &&
+    prevProps.event.statut === nextProps.event.statut &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.showSelection === nextProps.showSelection &&
+    JSON.stringify(prevProps.event.photos_urls) === JSON.stringify(nextProps.event.photos_urls)
+  )
+}) 

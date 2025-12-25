@@ -51,7 +51,8 @@ const typesAssistance = {
   orientation: 'Orientation',
   strategie: 'Stratégie de recherche d\'emploi',
   entretiens: 'Préparation aux entretiens',
-  developpement: 'Développement personnel'
+  developpement: 'Développement personnel',
+  paraformations: 'Activités Paraformations'
 }
 
 const statuts = {

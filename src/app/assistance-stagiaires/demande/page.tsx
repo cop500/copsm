@@ -11,7 +11,8 @@ import {
   Users,
   Heart,
   Phone,
-  UserCheck
+  UserCheck,
+  GraduationCap
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
@@ -100,6 +101,19 @@ const typesAssistance = [
       'Coaching émotionnel et confiance en soi',
       'Soutien psychologique léger',
       'Coaching de décision'
+    ]
+  },
+  {
+    id: 'paraformations',
+    nom: 'Activités Paraformations',
+    description: 'Accompagnement dans les activités complémentaires à la formation',
+    icone: GraduationCap,
+    couleur: 'orange',
+    details: [
+      'Accompagnement dans les activités paraformations',
+      'Soutien aux projets extra-scolaires',
+      'Développement de compétences transversales',
+      'Participation aux activités associatives'
     ]
   }
 ]

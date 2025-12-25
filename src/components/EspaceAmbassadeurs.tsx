@@ -449,7 +449,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
   const { actions, loading: actionsLoading, error, deleteAction, fetchActions } = useActionsAmbassadeurs()
   const { poles, filieres } = useSettings()
   const { profile } = useAuth()
-  const isAdmin = profile?.role === 'business_developer' || profile?.role === 'manager_cop' || profile?.role === 'directeur'
+  const isAdmin = profile?.role === 'business_developer' || profile?.role === 'manager_cop' || profile?.role === 'directeur' || profile?.role === 'conseiller_cop'
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('tous')
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
