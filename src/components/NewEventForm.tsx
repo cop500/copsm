@@ -40,7 +40,7 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
   onCancel, 
   initialData 
 }) => {
-  const { eventTypes, poles, filieres } = useSettings()
+  const { eventTypes, poles, filieres, loading: settingsLoading, error: settingsError } = useSettings()
   
   // Liste des volets
   const volets = [
@@ -462,17 +462,23 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
               <select
                 value={formData.type_evenement_id}
                 onChange={(e) => handleInputChange('type_evenement_id', e.target.value)}
+                disabled={settingsLoading}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors ${
                   errors.type_evenement_id ? 'border-red-300' : 'border-gray-300'
-                }`}
+                } ${settingsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <option value="">Sélectionner un type</option>
+                <option value="">
+                  {settingsLoading ? 'Chargement...' : 'Sélectionner un type'}
+                </option>
                 {eventTypes.filter(t => t.actif).map(type => (
                   <option key={type.id} value={type.id}>
                     {type.nom}
                   </option>
                 ))}
               </select>
+              {settingsError && (
+                <p className="text-red-500 text-sm mt-1">Erreur de chargement des types d'événements</p>
+              )}
               {errors.type_evenement_id && (
                 <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />
@@ -507,9 +513,14 @@ export const NewEventForm: React.FC<NewEventFormProps> = ({
               <select
                 value={formData.pole_id}
                 onChange={(e) => handleInputChange('pole_id', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors"
+                disabled={settingsLoading}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors ${
+                  settingsLoading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                <option value="">Sélectionner un pôle</option>
+                <option value="">
+                  {settingsLoading ? 'Chargement...' : 'Sélectionner un pôle'}
+                </option>
                 {poles.filter(p => p.actif).map(pole => (
                   <option key={pole.id} value={pole.id}>
                     {pole.nom}

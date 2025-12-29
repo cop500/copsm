@@ -64,10 +64,22 @@ export const useAuth = () => {
 
   // Utiliser les données de UserContext au lieu de refaire des requêtes
   const authState = useMemo<AuthState>(() => {
-    // Si UserContext est en cours de chargement, on attend
-    if (userContextLoading) {
+    // Si on est en train de charger (signIn en cours), on attend
+    if (authLoading) {
       return {
         user: authUser,
+        profile: null,
+        permissions: null,
+        loading: true,
+        error: null
+      }
+    }
+
+    // Si UserContext est en cours de chargement ET qu'on n'a pas d'utilisateur, on attend
+    // Mais si on a déjà un utilisateur, on peut continuer
+    if (userContextLoading && !currentUser && !authUser) {
+      return {
+        user: null,
         profile: null,
         permissions: null,
         loading: true,
@@ -78,7 +90,7 @@ export const useAuth = () => {
     // Si pas d'utilisateur dans le contexte, pas d'authentification
     if (!currentUser) {
       return {
-        user: null,
+        user: authUser || null,
         profile: null,
         permissions: null,
         loading: false,
@@ -108,7 +120,7 @@ export const useAuth = () => {
       loading: false,
       error: null
     }
-  }, [currentUser, authUser, userContextLoading])
+  }, [currentUser, authUser, userContextLoading, authLoading])
 
   const signIn = async (email: string, password: string) => {
     setAuthLoading(true)
@@ -122,6 +134,9 @@ export const useAuth = () => {
 
       if (error) throw error
 
+      // Attendre un peu pour que la session soit bien établie
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
       // Rafraîchir l'utilisateur depuis UserContext
       await refreshUser()
 

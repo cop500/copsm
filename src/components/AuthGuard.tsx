@@ -22,7 +22,7 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname()
-  const { loading } = useAuth()
+  const { loading, user } = useAuth()
 
   // Mémoriser le calcul pour éviter les re-renders
   const isPublicPage = useMemo(() => {
@@ -35,7 +35,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }
 
   // Pour les pages privées, attendre l'authentification
-  if (loading) {
+  // Mais ne pas bloquer indéfiniment si on a un user (même si le profil n'est pas encore chargé)
+  if (loading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
