@@ -1,12 +1,13 @@
 // ========================================
-// src/hooks/useAuth.ts - Hook avec déconnexion corrigée
+// src/hooks/useAuth.ts - Hook optimisé utilisant UserContext
 // ========================================
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, getUserPermissions } from '@/lib/supabase'
+import { useUser } from '@/contexts/UserContext'
 import type { Profile, UserPermissions } from '@/types'
 
 interface AuthState {
@@ -18,80 +19,28 @@ interface AuthState {
 }
 
 export const useAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    profile: null,
-    permissions: null,
-    loading: true,
-    error: null
-  })
-
+  const { currentUser, isLoading: userContextLoading, refreshUser } = useUser()
   const router = useRouter()
+  const [authUser, setAuthUser] = useState<unknown | null>(null)
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
 
+  // Récupérer l'utilisateur Supabase une seule fois
   useEffect(() => {
     let mounted = true
 
-    // Récupérer l'utilisateur actuel
-    const getUser = async () => {
+    const getAuthUser = async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
-        if (!mounted) return
-        
-        if (userError) throw userError
-
-        if (user) {
-          // Récupérer le profil complet
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-
-          if (!mounted) return
-
-          if (profileError) {
-            setAuthState({
-              user,
-              profile: null,
-              permissions: null,
-              loading: false,
-              error: 'Profil non configuré. Contactez l\'administrateur.'
-            })
-            return
-          }
-
-          const permissions = getUserPermissions(profile.role)
-
-          setAuthState({
-            user,
-            profile,
-            permissions,
-            loading: false,
-            error: null
-          })
-        } else {
-          setAuthState({
-            user: null,
-            profile: null,
-            permissions: null,
-            loading: false,
-            error: null
-          })
+        const { data: { user } } = await supabase.auth.getUser()
+        if (mounted) {
+          setAuthUser(user)
         }
       } catch (error) {
-        if (!mounted) return
-        setAuthState({
-          user: null,
-          profile: null,
-          permissions: null,
-          loading: false,
-          error: error instanceof Error ? error.message : 'Erreur d\'authentification'
-        })
+        console.error('Erreur récupération user auth:', error)
       }
     }
 
-    getUser()
+    getAuthUser()
 
     // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -99,16 +48,9 @@ export const useAuth = () => {
         if (!mounted) return
         
         if (event === 'SIGNED_IN' && session?.user) {
-          getUser()
+          setAuthUser(session.user)
         } else if (event === 'SIGNED_OUT') {
-          setAuthState({
-            user: null,
-            profile: null,
-            permissions: null,
-            loading: false,
-            error: null
-          })
-          // Redirection immédiate vers login
+          setAuthUser(null)
           router.push('/login')
         }
       }
@@ -120,8 +62,57 @@ export const useAuth = () => {
     }
   }, [router])
 
+  // Utiliser les données de UserContext au lieu de refaire des requêtes
+  const authState = useMemo<AuthState>(() => {
+    // Si UserContext est en cours de chargement, on attend
+    if (userContextLoading) {
+      return {
+        user: authUser,
+        profile: null,
+        permissions: null,
+        loading: true,
+        error: null
+      }
+    }
+
+    // Si pas d'utilisateur dans le contexte, pas d'authentification
+    if (!currentUser) {
+      return {
+        user: null,
+        profile: null,
+        permissions: null,
+        loading: false,
+        error: null
+      }
+    }
+
+    // Convertir le profil UserContext en Profile
+    const profile: Profile = {
+      id: currentUser.id,
+      email: currentUser.email,
+      nom: currentUser.nom,
+      prenom: currentUser.prenom,
+      telephone: currentUser.telephone,
+      poste: currentUser.poste,
+      role: currentUser.role,
+      created_at: currentUser.created_at,
+      updated_at: currentUser.updated_at
+    }
+
+    const permissions = getUserPermissions(profile.role || '')
+
+    return {
+      user: authUser,
+      profile,
+      permissions,
+      loading: false,
+      error: null
+    }
+  }, [currentUser, authUser, userContextLoading])
+
   const signIn = async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }))
+    setAuthLoading(true)
+    setAuthError(null)
     
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -131,27 +122,19 @@ export const useAuth = () => {
 
       if (error) throw error
 
+      // Rafraîchir l'utilisateur depuis UserContext
+      await refreshUser()
+
     } catch (error) {
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Erreur de connexion'
-      }))
+      setAuthError(error instanceof Error ? error.message : 'Erreur de connexion')
       throw error
+    } finally {
+      setAuthLoading(false)
     }
   }
 
   const signOut = async () => {
     try {
-      // Effacer l'état local immédiatement
-      setAuthState({
-        user: null,
-        profile: null,
-        permissions: null,
-        loading: false,
-        error: null
-      })
-
       // Déconnexion Supabase
       await supabase.auth.signOut()
 
@@ -167,6 +150,8 @@ export const useAuth = () => {
 
   return {
     ...authState,
+    loading: authState.loading || authLoading,
+    error: authState.error || authError,
     signIn,
     signOut,
     isAuthenticated: !!authState.user && !!authState.profile,

@@ -29,7 +29,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 // Clé pour le localStorage
 const USER_CACHE_KEY = 'cop_app_user_cache';
-const SESSION_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes (raffraîchissement plus fréquent pour éviter l'expiration)
+const SESSION_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes (réduit pour améliorer les performances)
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
@@ -210,17 +210,35 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Rafraîchir la session périodiquement pour éviter l'expiration
-    refreshIntervalRef.current = setInterval(() => {
-      console.log('🔄 Rafraîchissement périodique de la session...');
-      loadUser(true);
-    }, SESSION_REFRESH_INTERVAL);
+    // Rafraîchir la session périodiquement seulement si l'utilisateur est actif
+    const setupRefreshInterval = () => {
+      refreshIntervalRef.current = setInterval(() => {
+        // Vérifier si la page est visible (utilisateur actif)
+        if (document.visibilityState === 'visible') {
+          console.log('🔄 Rafraîchissement périodique de la session...');
+          loadUser(true);
+        }
+      }, SESSION_REFRESH_INTERVAL);
+    };
+
+    setupRefreshInterval();
+
+    // Écouter les changements de visibilité pour optimiser le rafraîchissement
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Rafraîchir quand l'utilisateur revient sur la page
+        loadUser(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       subscription.unsubscribe();
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
