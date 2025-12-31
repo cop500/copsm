@@ -77,10 +77,12 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     date_fin: atelier?.date_fin || '',
     lieu: atelier?.lieu || '',
     capacite_max: atelier?.capacite_max || 20,
+    capacite_maximale: atelier?.capacite_maximale || atelier?.capacite_max || 20,
     statut: atelier?.statut || 'planifie',
     animateur_id: atelier?.animateur_id || '',
     animateur_nom: atelier?.animateur_nom || '',
     animateur_role: atelier?.animateur_role || '',
+    visible_inscription: atelier?.visible_inscription || false,
   })
 
   // Charger les utilisateurs pour le champ animateur
@@ -93,7 +95,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
         .order('nom')
 
       if (error) throw error
-      setUsers(data || [])
+      setUsers((data || []) as unknown as User[])
     } catch (err) {
       console.error('Erreur chargement utilisateurs:', err)
     }
@@ -153,6 +155,32 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
+
+  // Fonction helper pour convertir ISO string en format datetime-local
+  const convertISOToLocalDateTime = (isoString: string): string => {
+    if (!isoString) return ''
+    // Convertir l'ISO string en Date object
+    // Puis formater en "YYYY-MM-DDTHH:mm" pour datetime-local
+    const date = new Date(isoString)
+    // Récupérer les composants de date/heure en heure locale
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+
+  // Initialiser les dates au format datetime-local si on est en mode édition
+  useEffect(() => {
+    if (atelier) {
+      setFormData(prev => ({
+        ...prev,
+        date_debut: atelier.date_debut ? convertISOToLocalDateTime(atelier.date_debut) : prev.date_debut,
+        date_fin: atelier.date_fin ? convertISOToLocalDateTime(atelier.date_fin) : prev.date_fin,
+      }))
+    }
+  }, [atelier])
 
   // Initialiser le champ animateur si on est en mode édition
   useEffect(() => {
@@ -263,6 +291,16 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     }
   }
 
+  // Fonction helper pour convertir datetime-local en ISO string en préservant l'heure locale
+  const convertLocalDateTimeToISO = (dateTimeLocal: string): string => {
+    if (!dateTimeLocal) return ''
+    // datetime-local retourne "YYYY-MM-DDTHH:mm" (sans timezone)
+    // On crée un Date object en interprétant cette valeur comme locale
+    // Puis on la convertit en ISO string (qui sera en UTC)
+    const date = new Date(dateTimeLocal)
+    return date.toISOString()
+  }
+
   // Fonction pour gérer la sauvegarde finale
   const handleFinalSave = async () => {
     console.log('🔍 === DÉBUT handleFinalSave ===')
@@ -286,20 +324,24 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     setLoading(true)
     setAutosaveStatus('idle') // Arrêter l'autosave pendant la sauvegarde
     try {
+      // Convertir les dates datetime-local en ISO string pour la sauvegarde
+      const dateDebutISO = convertLocalDateTimeToISO(formData.date_debut)
+      const dateFinISO = formData.date_fin ? convertLocalDateTimeToISO(formData.date_fin) : null
+      
       // Nettoyer les données avant sauvegarde (retirer isDraft, lastSaved, etc.)
       const cleanData = {
         titre: formData.titre,
         description: formData.description,
-        date_debut: formData.date_debut,
-        date_fin: formData.date_fin,
+        date_debut: dateDebutISO,
+        date_fin: dateFinISO,
         lieu: formData.lieu,
-        capacite_maximale: formData.capacite_maximale || 20, // Valeur par défaut si non définie
+        capacite_maximale: (formData as any).capacite_maximale || formData.capacite_max || 20, // Valeur par défaut si non définie
         capacite_actuelle: 0, // Nouvel atelier = 0 inscrits
         statut: formData.statut,
         animateur_id: formData.animateur_id,
         animateur_nom: formData.animateur_nom,
         animateur_role: formData.animateur_role,
-        visible_inscription: formData.visible_inscription || false,
+        visible_inscription: (formData as any).visible_inscription || false,
         type_evenement: 'atelier' // Marquer comme atelier
       }
       
@@ -420,7 +462,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
                 type="number"
                 min="1"
                     max="100"
-                value={formData.capacite_maximale}
+                value={(formData as any).capacite_maximale || formData.capacite_max || 20}
                     onChange={(e) => handleFieldChange('capacite_maximale', parseInt(e.target.value))}
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                       errors.capacite_maximale ? 'border-red-300 bg-red-50' : 'border-gray-300'
@@ -459,7 +501,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
               <input
                 type="checkbox"
                       id="visible_inscription"
-                      checked={formData.visible_inscription || false}
+                      checked={(formData as any).visible_inscription || false}
                       onChange={(e) => handleFieldChange('visible_inscription', e.target.checked)}
                       className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
