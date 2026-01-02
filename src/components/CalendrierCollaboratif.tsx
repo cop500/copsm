@@ -119,47 +119,43 @@ const CalendrierCollaboratif: React.FC = () => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
     const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDayOfWeek = firstDay.getDay()
+    
+    // Trouver le premier lundi avant ou égal au premier jour ouvrable du mois
+    // Si le 1er est un lundi-vendredi, on commence à ce jour
+    // Sinon, on remonte au lundi de la semaine précédente
+    let startDate = new Date(firstDay)
+    const firstDayOfWeek = firstDay.getDay()
+    
+    // Si le premier jour est samedi (6) ou dimanche (0), avancer jusqu'au lundi suivant
+    if (firstDayOfWeek === 0) { // Dimanche
+      startDate.setDate(firstDay.getDate() + 1) // Passer au lundi
+    } else if (firstDayOfWeek === 6) { // Samedi
+      startDate.setDate(firstDay.getDate() + 2) // Passer au lundi
+    } else {
+      // Le premier jour est lundi-vendredi, trouver le lundi de cette semaine
+      const daysFromMonday = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1
+      startDate.setDate(firstDay.getDate() - daysFromMonday)
+    }
 
     const days = []
-    
-    // Jours du mois précédent pour compléter la première semaine (seulement lundi-vendredi)
-    const prevMonth = new Date(year, month - 1, 0)
-    let prevDaysToAdd = startingDayOfWeek === 0 ? 5 : startingDayOfWeek - 1 // Si dimanche, on commence lundi
-    for (let i = prevDaysToAdd - 1; i >= 0; i--) {
-      const date = new Date(year, month - 1, prevMonth.getDate() - i)
-      if (date.getDay() !== 0 && date.getDay() !== 6) { // Exclure samedi et dimanche
-        days.push({
-          date,
-          isCurrentMonth: false
-        })
-      }
-    }
+    let currentDay = new Date(startDate)
+    let daysAdded = 0
+    const targetDays = 25 // 5 semaines * 5 jours
 
-    // Jours du mois actuel (seulement lundi-vendredi)
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day)
-      if (date.getDay() !== 0 && date.getDay() !== 6) { // Exclure samedi et dimanche
+    // Générer les jours jusqu'à avoir 25 jours ouvrables
+    while (daysAdded < targetDays) {
+      const dayOfWeek = currentDay.getDay()
+      // Exclure samedi (6) et dimanche (0)
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        const isCurrentMonth = currentDay.getMonth() === month && currentDay.getFullYear() === year
         days.push({
-          date,
-          isCurrentMonth: true
+          date: new Date(currentDay),
+          isCurrentMonth
         })
+        daysAdded++
       }
-    }
-
-    // Jours du mois suivant pour compléter (seulement lundi-vendredi)
-    let nextDay = 1
-    while (days.length < 25) { // Environ 5 semaines * 5 jours
-      const date = new Date(year, month + 1, nextDay)
-      if (date.getDay() !== 0 && date.getDay() !== 6) {
-        days.push({
-          date,
-          isCurrentMonth: false
-        })
-      }
-      nextDay++
+      // Passer au jour suivant
+      currentDay.setDate(currentDay.getDate() + 1)
     }
 
     return days
