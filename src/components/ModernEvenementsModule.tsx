@@ -23,47 +23,7 @@ import { useRole } from '@/hooks/useRole'
 import { EspaceAmbassadeurs } from './EspaceAmbassadeurs'
 import { EnqueteSatisfactionDashboard } from './EnqueteSatisfactionDashboard'
 import CalendrierCollaboratif from './CalendrierCollaboratif'
-
-// Composant de chargement avec timeout
-const LoadingWithTimeout: React.FC<{ onTimeout?: () => void }> = ({ onTimeout }) => {
-  const [showTimeout, setShowTimeout] = useState(false);
-  
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setShowTimeout(true);
-      onTimeout?.();
-    }, 15000); // 15 secondes
-    
-    return () => clearTimeout(timeout);
-  }, [onTimeout]);
-  
-  if (showTimeout) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-        <div className="text-center">
-          <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Chargement prolongé</h3>
-          <p className="text-gray-600 mb-4">Le chargement prend plus de temps que prévu.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Actualiser la page
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-      <div className="text-center">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-600">Chargement des données...</p>
-      </div>
-    </div>
-  );
-};
+import { AffichesModule } from './AffichesModule'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -124,7 +84,7 @@ export const ModernEvenementsModule = () => {
   const [showEventDetail, setShowEventDetail] = useState(false)
   const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
-  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'planning' | 'enquete' | 'ambassadeurs' | 'satisfaction'>('evenements')
+  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'planning' | 'enquete' | 'ambassadeurs' | 'satisfaction' | 'affiches'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
@@ -170,7 +130,7 @@ export const ModernEvenementsModule = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('cop_app_active_tab');
-      if (savedTab && ['evenements', 'ateliers', 'planning', 'enquete', 'ambassadeurs', 'satisfaction'].includes(savedTab)) {
+      if (savedTab && ['evenements', 'ateliers', 'planning', 'enquete', 'ambassadeurs', 'satisfaction', 'affiches'].includes(savedTab)) {
         setActiveTab(savedTab as any);
       }
     }
@@ -1217,7 +1177,7 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            {!stableIsDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
+            {!stableIsDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && (
             <button
               onClick={() => {
                 if (activeTab === 'evenements') {
@@ -1329,12 +1289,25 @@ export const ModernEvenementsModule = () => {
                 Espace Ambassadeurs
               </button>
             )}
+            {(stableIsAdmin || stableIsManager || stableIsCarriere || stableIsConseillerCop) && (
+              <button
+                onClick={() => setActiveTab('affiches')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'affiches'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Affiches
+              </button>
+            )}
           </nav>
         </div>
       </div>
 
       {/* Statistiques */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && (
         <>
           {activeTab === 'evenements' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1442,7 +1415,7 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Filtres et recherche */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Recherche */}
@@ -1549,15 +1522,15 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Liste des éléments selon l'onglet actif */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' ? (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' ? (
         hookLoading && evenementsData.length === 0 && ateliersData.length === 0 ? (
-          <LoadingWithTimeout 
-            onTimeout={() => {
-              console.warn('⚠️ Timeout de chargement, arrêt du loading');
-              // Le hook devrait gérer le timeout, mais on peut forcer ici aussi
-            }}
-          />
-        ) : displayItems.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement des données...</p>
+          </div>
+        </div>
+      ) : displayItems.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
             {activeTab === 'evenements' ? (
@@ -2385,6 +2358,13 @@ export const ModernEvenementsModule = () => {
       {activeTab === 'planning' && (
         <div className="p-6">
           <CalendrierCollaboratif />
+        </div>
+      )}
+
+      {/* Onglet Affiches */}
+      {activeTab === 'affiches' && (
+        <div className="p-6">
+          <AffichesModule />
         </div>
       )}
 
