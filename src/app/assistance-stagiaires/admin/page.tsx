@@ -33,6 +33,7 @@ interface DemandeAssistance {
   created_at: string
   updated_at: string
   conseiller_id: string
+  notes?: string
   poles?: {
     nom: string
     code: string
@@ -79,6 +80,8 @@ export default function InterfaceAdmin() {
   })
   const [selectedDemande, setSelectedDemande] = useState<DemandeAssistance | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [notes, setNotes] = useState<string>('')
+  const [savingNotes, setSavingNotes] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
   const [poles, setPoles] = useState<any[]>([])
   const [filieres, setFilieres] = useState<any[]>([])
@@ -544,6 +547,7 @@ export default function InterfaceAdmin() {
                           <button
                             onClick={() => {
                               setSelectedDemande(demande)
+                              setNotes(demande.notes || '')
                               setShowModal(true)
                             }}
                             className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
@@ -646,6 +650,51 @@ export default function InterfaceAdmin() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Date de création</label>
                     <p className="mt-1 text-sm text-gray-900">{formatDate(selectedDemande.created_at)}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes du conseiller</label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Ajoutez vos notes ici..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                      rows={4}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!selectedDemande) return
+                        setSavingNotes(true)
+                        try {
+                          const response = await fetch(`/api/assistance-stagiaires/${selectedDemande.id}`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ notes })
+                          })
+                          const result = await response.json()
+                          if (result.success) {
+                            // Mettre à jour la demande locale
+                            setSelectedDemande({ ...selectedDemande, notes })
+                            // Mettre à jour dans la liste
+                            setDemandes(demandes.map(d => d.id === selectedDemande.id ? { ...d, notes } : d))
+                            alert('Notes sauvegardées avec succès')
+                          } else {
+                            alert('Erreur lors de la sauvegarde des notes')
+                          }
+                        } catch (error) {
+                          console.error('Erreur sauvegarde notes:', error)
+                          alert('Erreur lors de la sauvegarde des notes')
+                        } finally {
+                          setSavingNotes(false)
+                        }
+                      }}
+                      disabled={savingNotes}
+                      className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingNotes ? 'Sauvegarde...' : 'Enregistrer les notes'}
+                    </button>
                   </div>
                 </div>
 

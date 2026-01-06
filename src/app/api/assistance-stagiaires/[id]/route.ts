@@ -118,16 +118,21 @@ export async function PUT(
     }
     
     if (body.note_conseiller) updateData.note_conseiller = body.note_conseiller
+    if (body.notes !== undefined) updateData.notes = body.notes
 
     // Nettoyer updateData pour supprimer toute valeur undefined
+    // Note: accepter les chaînes vides pour les notes
     const cleanedUpdateData: any = {}
     for (const [key, value] of Object.entries(updateData)) {
       if (value !== undefined && value !== null && value !== 'undefined' && value !== 'null') {
         cleanedUpdateData[key] = value
+      } else if (key === 'notes' && value === '') {
+        // Accepter les chaînes vides pour les notes
+        cleanedUpdateData[key] = ''
       }
     }
 
-    // Vérifier qu'il y a au moins un champ à mettre à jour
+    // Vérifier qu'il y a au moins un champ à mettre à jour (sauf si on met à jour uniquement notes avec chaîne vide)
     if (Object.keys(cleanedUpdateData).length === 0) {
       return NextResponse.json(
         { error: 'Aucune donnée à mettre à jour' },
