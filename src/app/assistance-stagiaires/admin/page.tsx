@@ -19,9 +19,11 @@ import {
   BarChart3,
   Users,
   TrendingUp,
-  Trash2
+  Trash2,
+  Download
 } from 'lucide-react'
 import Link from 'next/link'
+import * as XLSX from 'xlsx'
 
 interface DemandeAssistance {
   id: string
@@ -196,6 +198,73 @@ export default function InterfaceAdmin() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  // Fonction d'export Excel
+  const handleExportExcel = () => {
+    try {
+      // Préparer les données pour l'export
+      const exportData = filteredDemandes.map(demande => ({
+        'ID': demande.id,
+        'Nom': demande.nom,
+        'Prénom': demande.prenom,
+        'Téléphone': demande.telephone,
+        'Pôle': demande.poles?.nom || 'N/A',
+        'Filière': demande.filieres?.nom || 'N/A',
+        'Type d\'assistance': typesAssistance[demande.type_assistance as keyof typeof typesAssistance] || demande.type_assistance,
+        'Conseiller assigné': demande.profiles ? `${demande.profiles.prenom} ${demande.profiles.nom}` : 'Non assigné',
+        'Rôle conseiller': demande.profiles?.role || 'N/A',
+        'Statut': statuts[demande.statut].label,
+        'Date de création': new Date(demande.created_at).toLocaleString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        'Date de mise à jour': new Date(demande.updated_at).toLocaleString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        'Notes': demande.notes || ''
+      }))
+
+      // Créer un workbook et une feuille
+      const ws = XLSX.utils.json_to_sheet(exportData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Demandes d\'assistance')
+
+      // Ajuster la largeur des colonnes
+      const colWidths = [
+        { wch: 36 }, // ID
+        { wch: 15 }, // Nom
+        { wch: 15 }, // Prénom
+        { wch: 15 }, // Téléphone
+        { wch: 20 }, // Pôle
+        { wch: 20 }, // Filière
+        { wch: 30 }, // Type d'assistance
+        { wch: 25 }, // Conseiller assigné
+        { wch: 20 }, // Rôle conseiller
+        { wch: 15 }, // Statut
+        { wch: 20 }, // Date de création
+        { wch: 20 }, // Date de mise à jour
+        { wch: 40 }  // Notes
+      ]
+      ws['!cols'] = colWidths
+
+      // Générer le nom du fichier avec la date actuelle
+      const dateStr = new Date().toISOString().split('T')[0]
+      const fileName = `demandes_assistance_${dateStr}.xlsx`
+
+      // Télécharger le fichier
+      XLSX.writeFile(wb, fileName)
+    } catch (error) {
+      console.error('Erreur lors de l\'export Excel:', error)
+      alert('Erreur lors de l\'export Excel. Veuillez réessayer.')
+    }
   }
 
   // Statistiques
@@ -438,10 +507,19 @@ export default function InterfaceAdmin() {
 
         {/* Liste des demandes */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">
               Toutes les demandes d'assistance ({filteredDemandes.length})
             </h2>
+            <button
+              onClick={handleExportExcel}
+              disabled={filteredDemandes.length === 0}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Exporter les demandes filtrées en Excel"
+            >
+              <Download className="w-4 h-4" />
+              Exporter en Excel
+            </button>
           </div>
 
           {loading ? (
