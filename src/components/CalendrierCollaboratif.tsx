@@ -262,22 +262,39 @@ const CalendrierCollaboratif: React.FC = () => {
       return
     }
 
-    // Vérifier les conflits de réservation si une salle COP est sélectionnée
-    if (formData.salle && (formData.salle === 'Salle de formation COP' || formData.salle === 'Salle séminaire COP')) {
+    // Vérifier les conflits de réservation uniquement pour la MÊME salle
+    // Permettre deux événements simultanés sur des salles différentes
+    if (formData.salle && formData.salle.trim() !== '') {
       try {
-        // Vérifier dans calendrier_collaboratif
-        const { data: calendrierEvents, error: calendrierError } = await supabase
+        console.log('🔍 Vérification conflit pour salle:', formData.salle)
+        console.log('🔍 Créneau demandé:', dateDebut, '→', dateFin)
+        
+        // Vérifier dans calendrier_collaboratif - TOUS les événements de TOUS les utilisateurs
+        let queryCalendrier = supabase
           .from('calendrier_collaboratif')
-          .select('id, titre, date_debut, date_fin')
+          .select('id, titre, date_debut, date_fin, salle')
           .eq('salle', formData.salle)
-          .neq('id', editingEvent?.id || '')
+        
+        // Ne pas exclure l'événement en cours d'édition si on est en mode édition
+        if (editingEvent && editingEvent.id) {
+          queryCalendrier = queryCalendrier.neq('id', editingEvent.id)
+        }
+        
+        const { data: calendrierEvents, error: calendrierError } = await queryCalendrier
+
+        console.log('🔍 Événements trouvés dans calendrier_collaboratif:', calendrierEvents?.length || 0, calendrierEvents)
 
         if (calendrierError) {
-          console.error('Erreur vérification calendrier:', calendrierError)
-        } else if (calendrierEvents) {
+          console.error('❌ Erreur vérification calendrier:', calendrierError)
+          alert(`Erreur lors de la vérification des conflits: ${calendrierError.message}`)
+          return
+        } else if (calendrierEvents && calendrierEvents.length > 0) {
           for (const event of calendrierEvents) {
             const eventStart = new Date(event.date_debut)
             const eventEnd = new Date(event.date_fin)
+            
+            console.log('🔍 Comparaison avec événement:', event.titre, eventStart, '→', eventEnd)
+            console.log('🔍 Chevauchement?', dateDebut < eventEnd, '&&', dateFin > eventStart)
             
             // Vérifier si les créneaux se chevauchent
             if (dateDebut < eventEnd && dateFin > eventStart) {
@@ -295,7 +312,8 @@ const CalendrierCollaboratif: React.FC = () => {
                 hour: '2-digit',
                 minute: '2-digit'
               })
-              alert(`⚠️ La salle "${formData.salle}" est déjà réservée pour l'événement "${event.titre}" du ${conflictStart} au ${conflictEnd}. Veuillez choisir une autre salle ou un autre créneau horaire.`)
+              console.log('⚠️ CONFLIT DÉTECTÉ!')
+              alert(`⚠️ Conflit de réservation : Il y a déjà un événement planifié sur le même créneau horaire et la même salle.\n\nSalle : "${formData.salle}"\nÉvénement existant : "${event.titre}"\nCréneau : ${conflictStart} - ${conflictEnd}\n\nVeuillez choisir une autre salle ou un autre créneau horaire.`)
               return
             }
           }
@@ -308,12 +326,19 @@ const CalendrierCollaboratif: React.FC = () => {
           .eq('lieu', formData.salle)
           .neq('statut', 'annule')
 
+        console.log('🔍 Événements trouvés dans evenements:', evenementsEvents?.length || 0, evenementsEvents)
+
         if (evenementsError) {
-          console.error('Erreur vérification evenements:', evenementsError)
-        } else if (evenementsEvents) {
+          console.error('❌ Erreur vérification evenements:', evenementsError)
+          alert(`Erreur lors de la vérification des conflits: ${evenementsError.message}`)
+          return
+        } else if (evenementsEvents && evenementsEvents.length > 0) {
           for (const event of evenementsEvents) {
             const eventStart = new Date(event.date_debut)
             const eventEnd = event.date_fin ? new Date(event.date_fin) : new Date(eventStart.getTime() + 2 * 60 * 60 * 1000)
+            
+            console.log('🔍 Comparaison avec événement evenements:', event.titre, eventStart, '→', eventEnd)
+            console.log('🔍 Chevauchement?', dateDebut < eventEnd, '&&', dateFin > eventStart)
             
             // Vérifier si les créneaux se chevauchent
             if (dateDebut < eventEnd && dateFin > eventStart) {
@@ -333,7 +358,7 @@ const CalendrierCollaboratif: React.FC = () => {
                     minute: '2-digit'
                   })
                 : 'Non spécifiée'
-              alert(`⚠️ La salle "${formData.salle}" est déjà réservée pour l'événement "${event.titre}" du ${conflictStart} au ${conflictEnd}. Veuillez choisir une autre salle ou un autre créneau horaire.`)
+              alert(`⚠️ Conflit de réservation : Il y a déjà un événement planifié sur le même créneau horaire et la même salle.\n\nSalle : "${formData.salle}"\nÉvénement existant : "${event.titre}"\nCréneau : ${conflictStart} - ${conflictEnd}\n\nVeuillez choisir une autre salle ou un autre créneau horaire.`)
               return
             }
           }
@@ -753,6 +778,7 @@ const CalendrierCollaboratif: React.FC = () => {
                   <option value="">Sélectionner une salle</option>
                   <option value="Salle de formation COP">Salle de formation COP</option>
                   <option value="Salle séminaire COP">Salle séminaire COP</option>
+                  <option value="salle de conférence">salle de conférence</option>
                 </select>
               </div>
 

@@ -24,7 +24,6 @@ interface AfficheFormData {
   workshopNumber: string
   includeQRCode: boolean
   qrCodeUrl: string
-  logoUrl: string // URL ou base64 de l'image du logo
 }
 
 export const AffichesModule: React.FC = () => {
@@ -38,33 +37,34 @@ export const AffichesModule: React.FC = () => {
     animateur: '',
     workshopNumber: '',
     includeQRCode: true,
-    qrCodeUrl: 'https://copsm.space/inscription-ateliers/',
-    logoUrl: ''
+    qrCodeUrl: 'https://copsm.space/inscription-ateliers/'
   })
   const [generating, setGenerating] = useState(false)
   const [qrCodePreview, setQrCodePreview] = useState<string>('')
+  const [afficheSrc, setAfficheSrc] = useState<string>('/affiche.jpg')
 
-  // Gérer l'upload du logo
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // Vérifier que c'est une image
-      if (!file.type.startsWith('image/')) {
-        alert('Veuillez sélectionner un fichier image')
-        return
-      }
-      
-      // Lire le fichier en base64
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const result = event.target?.result
-        if (typeof result === 'string') {
-          setFormData(prev => ({ ...prev, logoUrl: result }))
+  // Déterminer la source de l'image d'affiche depuis le dossier public
+  useEffect(() => {
+    // Essayer plusieurs extensions courantes
+    const candidates = ['/affiche.jpg', '/affiche.jpeg', '/affiche.png', '/affiche.webp']
+    let mounted = true
+    ;(async () => {
+      for (const src of candidates) {
+        try {
+          const res = await fetch(src, { method: 'HEAD' })
+          if (res.ok) {
+            if (mounted) setAfficheSrc(src)
+            break
+          }
+        } catch {
+          // ignore
         }
       }
-      reader.readAsDataURL(file)
+    })()
+    return () => {
+      mounted = false
     }
-  }
+  }, [])
 
   const handleChange = (field: keyof AfficheFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -130,7 +130,39 @@ export const AffichesModule: React.FC = () => {
       const pageWidth = 270 // 27cm
       const pageHeight = 150 // 15cm
 
-      // ===== GRILLE PROFESSIONNELLE NETTOYÉE =====
+      // ===== IMAGE D'ARrière-PLAN (PHOTO DANS /public/affiche.*) =====
+      const tryLoadAffiche = async (): Promise<{ dataUrl: string; format: 'PNG' | 'JPEG' } | null> => {
+        const candidates = [
+          { src: '/affiche.jpg', format: 'JPEG' as const },
+          { src: '/affiche.jpeg', format: 'JPEG' as const },
+          { src: '/affiche.png', format: 'PNG' as const }
+        ]
+        for (const c of candidates) {
+          try {
+            const res = await fetch(c.src)
+            if (!res.ok) continue
+            const blob = await res.blob()
+            const reader = new FileReader()
+            const dataUrl: string = await new Promise((resolve, reject) => {
+              reader.onload = () => resolve(String(reader.result))
+              reader.onerror = reject
+              reader.readAsDataURL(blob)
+            })
+            return { dataUrl, format: c.format }
+          } catch {
+            // essayer suivant
+          }
+        }
+        return null
+      }
+
+      const affiche = await tryLoadAffiche()
+      if (affiche) {
+        // Couvrir toute la page (cover)
+        pdf.addImage(affiche.dataUrl, affiche.format, 0, 0, pageWidth, pageHeight)
+      }
+
+      // ===== GRILLE PROFESSIONNELLE =====
       const margin = 15 // Marges optimisées
       
       // SÉPARATION CLAIRE : Zone gauche (contenu) vs Zone droite (QR Code)
@@ -150,23 +182,6 @@ export const AffichesModule: React.FC = () => {
       const accentRgb = { r: 255, g: 140, b: 0 } // Orange accent
       const white = { r: 255, g: 255, b: 255 }
 
-      // ===== ARRIÈRE-PLAN NETTOYÉ - GRADIENT SIMPLE =====
-      // Gradient horizontal simple : bleu foncé vers bleu-vert
-      const gradientSteps = 6
-      const stepWidth = pageWidth / gradientSteps
-      const darkBlue = { r: 25, g: 118, b: 210 }
-      const tealBlue = { r: 20, g: 140, b: 160 }
-      
-      for (let i = 0; i < gradientSteps; i++) {
-        const x = i * stepWidth
-        const ratio = i / (gradientSteps - 1)
-        const r = Math.round(darkBlue.r + (tealBlue.r - darkBlue.r) * ratio)
-        const g = Math.round(darkBlue.g + (tealBlue.g - darkBlue.g) * ratio)
-        const b = Math.round(darkBlue.b + (tealBlue.b - darkBlue.b) * ratio)
-        pdf.setFillColor(r, g, b)
-        pdf.rect(x, 0, stepWidth + 1, pageHeight, 'F')
-      }
-
       // ===== 1. BADGE WORKSHOP (EN HAUT À DROITE) =====
       if (formData.workshopNumber && formData.workshopNumber.trim() !== '') {
         const badgeText = `Workshop ${formData.workshopNumber}`
@@ -185,55 +200,22 @@ export const AffichesModule: React.FC = () => {
         pdf.text(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2 + 1.5, { align: 'center' })
       }
 
-      // ===== 2. LOGO (CENTRÉ EN HAUT) =====
-      const logoBoxWidth = 100
-      const logoBoxHeight = 12
-      const logoX = (pageWidth - logoBoxWidth) / 2 // CENTRÉ
-      const logoY = margin
-      
-      if (formData.logoUrl && formData.logoUrl.trim() !== '') {
-        // Si un logo est uploadé, l'utiliser
-        try {
-          pdf.addImage(formData.logoUrl, 'PNG', logoX, logoY, logoBoxWidth, logoBoxHeight)
-        } catch (error) {
-          console.error('Erreur lors de l\'ajout du logo:', error)
-          // Fallback sur le texte si l'image échoue
-          pdf.setFillColor(white.r, white.g, white.b)
-          pdf.roundedRect(logoX, logoY, logoBoxWidth, logoBoxHeight, 2, 2, 'F')
-          pdf.setFontSize(6.5)
-          pdf.setFont('helvetica', 'normal')
-          pdf.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b)
-          pdf.text('Centre d\'Orientation Professionnelle', logoX + 3, logoY + 6, { align: 'center' })
-          pdf.setFont('helvetica', 'bold')
-          pdf.setFontSize(7.5)
-          pdf.text('COP', logoX + logoBoxWidth / 2, logoY + 10.5, { align: 'center' })
-        }
-      } else {
-        // Logo par défaut (texte centré)
-        pdf.setFillColor(white.r, white.g, white.b)
-        pdf.roundedRect(logoX, logoY, logoBoxWidth, logoBoxHeight, 2, 2, 'F')
-        
-        pdf.setFontSize(6.5)
-        pdf.setFont('helvetica', 'normal')
-        pdf.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b)
-        const orgText = 'Centre d\'Orientation Professionnelle'
-        const orgTextWidth = pdf.getTextWidth(orgText)
-        pdf.text(orgText, logoX + (logoBoxWidth - orgTextWidth) / 2, logoY + 6)
-        
-        pdf.setFont('helvetica', 'bold')
-        pdf.setFontSize(7.5)
-        const copText = 'COP'
-        const copTextWidth = pdf.getTextWidth(copText)
-        pdf.text(copText, logoX + (logoBoxWidth - copTextWidth) / 2, logoY + 10.5)
-      }
+      // (Logo supprimé - la photo d'arrière-plan contient déjà l'identité)
 
       // ===== 3. TITRE PRINCIPAL (Taille et espacement encore réduits pour tout afficher) =====
       const titreStartY = mainContentStartY + 12 // Réduit de 15 à 12
       const titreMaxWidth = contentZoneWidth - 5 // ZONE ÉLARGIE (réduit marge de 10 à 5)
       
-      pdf.setFontSize(34) // Taille réduite de 40 à 34 pour plus de place
+      pdf.setFontSize(30) // Taille réduite de 34 à 30 pour plus de place
       pdf.setFont('helvetica', 'bold')
       pdf.setTextColor(white.r, white.g, white.b)
+      // Ombre légère pour lisibilité sur photo
+      const drawTextShadow = (text: string, x: number, y: number, opts?: any) => {
+        pdf.setTextColor(0, 0, 0)
+        pdf.text(text, x + 0.6, y + 0.6, opts)
+        pdf.setTextColor(white.r, white.g, white.b)
+        pdf.text(text, x, y, opts)
+      }
       
       const titre = formData.titre.trim()
       let titreLines: string[] = []
@@ -242,34 +224,44 @@ export const AffichesModule: React.FC = () => {
         let titreY = titreStartY
         titreLines.forEach((line: string, index: number) => {
           if (index < 3) { // Permet jusqu'à 3 lignes maintenant
-            pdf.text(line, contentZoneStartX + 2, titreY)
-            titreY += 18 // Interligne réduit de 22 à 18
+            drawTextShadow(line, contentZoneStartX + 2, titreY)
+            titreY += 16 // Interligne réduit de 18 à 16 (correspond à la taille de police réduite)
           }
         })
       }
 
       // ===== 4. SOUS-TITRE (Juste après le titre, avec espacement) =====
-      const titreHeight = Math.min(titreLines.length, 3) * 18 // Ajusté pour le nouvel interligne
+      const titreHeight = Math.min(titreLines.length, 3) * 16 // Ajusté pour le nouvel interligne réduit
       let sousTitreY = titreStartY + titreHeight + 3 // Espacement réduit de 4 à 3
       let sousTitreEndY = sousTitreY // Pour calculer où se termine le sous-titre
       
       if (formData.sousTitre && formData.sousTitre.trim() !== '') {
-        pdf.setFontSize(18) // Réduit de 20 à 18
+        pdf.setFontSize(16) // Réduit de 18 à 16
         pdf.setFont('helvetica', 'normal')
         pdf.setTextColor(white.r, white.g, white.b)
         
         const sousTitre = formData.sousTitre.trim()
         const sousTitreLines = pdf.splitTextToSize(sousTitre, titreMaxWidth)
-        if (sousTitreLines.length > 0) {
-          pdf.text(sousTitreLines[0], contentZoneStartX + 2, sousTitreY)
-          sousTitreEndY = sousTitreY + 15 // Hauteur du sous-titre réduite (taille police + espacement)
-        }
+        // Permettre jusqu'à 2 lignes pour le sous-titre
+        let currentSousTitreY = sousTitreY
+        sousTitreLines.forEach((line: string, index: number) => {
+          if (index < 2) { // Permet jusqu'à 2 lignes
+            // Ombre légère pour lisibilité
+            pdf.setTextColor(0, 0, 0)
+            pdf.text(line, contentZoneStartX + 2 + 0.5, currentSousTitreY + 0.5)
+            pdf.setTextColor(white.r, white.g, white.b)
+            pdf.text(line, contentZoneStartX + 2, currentSousTitreY)
+            currentSousTitreY += 10 // Interligne pour le sous-titre (taille police 16)
+          }
+        })
+        sousTitreEndY = sousTitreY + (Math.min(sousTitreLines.length, 2) * 10) // Hauteur ajustée selon le nombre de lignes
       }
 
       // ===== 5. INFORMATIONS PRATIQUES (Bas gauche, disposition horizontale) =====
-      // Calculer la position en s'assurant qu'il y a au moins 12mm d'espace après le sous-titre
-      const minInfoY = sousTitreEndY + 12 // Minimum 12mm après la fin du sous-titre (réduit de 15)
-      const fixedInfoY = pageHeight - 48 // Position fixe depuis le bas (48mm depuis le bas, réduit de 50)
+      // Remonter légèrement les infos pour laisser la place à "Animé par" sous le bloc
+      // Calculer la position en s'assurant qu'il y a un espace minimal après le sous-titre
+      const minInfoY = sousTitreEndY + 2 // Réduit de 4 -> 2 (moins d'espace sous-titre → infos)
+      const fixedInfoY = pageHeight - 55 // Remonte le bloc infos (était 60mm depuis le bas, maintenant 55mm)
       const infoY = Math.max(minInfoY, fixedInfoY) // Prendre la position la plus basse pour éviter le chevauchement
       const infoBlockX = contentZoneStartX + 2
       let currentX = infoBlockX
@@ -345,23 +337,29 @@ export const AffichesModule: React.FC = () => {
       }
 
       // ===== 6. INTERVENANT (Après les informations pratiques) =====
-      // Positionner l'animateur après les infos pratiques (date/heure/lieu occupent environ 15mm de hauteur)
-      const intervenantY = infoY + 18
+      // Positionner l'animateur après les infos pratiques avec un espace pour meilleure lisibilité
+      const intervenantY = infoY + 20 // Augmenté de 16 à 20 pour créer un espace entre infos et animateur
       
       if (formData.animateur && formData.animateur.trim() !== '') {
-        pdf.setFontSize(14)
+        pdf.setFontSize(12) // Réduit de 14 à 12
         pdf.setFont('helvetica', 'italic')
+        // Ombre pour "Animé par"
+        pdf.setTextColor(0, 0, 0)
+        pdf.text('Animé par', contentZoneStartX + 2 + 0.5, intervenantY + 0.5)
         pdf.setTextColor(white.r, white.g, white.b)
         pdf.text('Animé par', contentZoneStartX + 2, intervenantY)
         
         const animateurName = formData.animateur.trim().toUpperCase()
-        pdf.setFontSize(18)
+        pdf.setFontSize(16) // Réduit de 18 à 16 pour que le nom soit visible en totalité
         pdf.setFont('helvetica', 'bold')
-        pdf.setTextColor(white.r, white.g, white.b)
         
         const maxNameWidth = contentZoneWidth - 5
         const nameLines = pdf.splitTextToSize(animateurName, maxNameWidth)
-        pdf.text(nameLines[0], contentZoneStartX + 2, intervenantY + 9)
+        // Ombre pour le nom de l'animateur
+        pdf.setTextColor(0, 0, 0)
+        pdf.text(nameLines[0], contentZoneStartX + 2 + 0.5, intervenantY + 7 + 0.5)
+        pdf.setTextColor(white.r, white.g, white.b)
+        pdf.text(nameLines[0], contentZoneStartX + 2, intervenantY + 7) // Réduit de 8 à 7 pour correspondre à la taille réduite
       }
 
       // ===== 7. QR CODE + CTA (Zone droite) =====
@@ -424,14 +422,17 @@ export const AffichesModule: React.FC = () => {
     
     return (
       <div className="relative" style={{ aspectRatio: '270/150', maxWidth: '100%' }}>
-        {/* Container avec fond gradient nettoyé */}
+        {/* Arrière-plan photo + overlay pour lisibilité */}
         <div 
           className="relative w-full h-full rounded-lg overflow-hidden shadow-2xl"
-          style={{
-            background: `linear-gradient(90deg, ${primaryColor} 0%, ${tealColor} 100%)`,
-            minHeight: '400px'
-          }}
+          style={{ minHeight: '400px' }}
         >
+          {/* Image d'affiche */}
+          <img
+            src={afficheSrc}
+            alt="Affiche background"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
           {/* Contenu */}
           <div className="relative z-10 h-full p-4 flex flex-col">
             {/* Badge Workshop en haut à droite (si fourni) */}
@@ -446,26 +447,6 @@ export const AffichesModule: React.FC = () => {
               </div>
             )}
 
-            {/* Logo centré en haut */}
-            <div className="flex justify-center mb-4">
-              {formData.logoUrl && formData.logoUrl.trim() ? (
-                <img 
-                  src={formData.logoUrl} 
-                  alt="Logo" 
-                  className="h-12 object-contain"
-                />
-              ) : (
-                <div className="bg-white rounded-md px-3 py-1.5">
-                  <div className="text-[6.5px] text-blue-700 font-normal text-center">
-                    Centre d'Orientation Professionnelle
-                  </div>
-                  <div className="text-[7.5px] text-blue-700 font-bold text-center">
-                    COP
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Contenu principal */}
             <div className="flex-1 grid grid-cols-12 gap-4">
               {/* Zone gauche (contenu élargi) */}
@@ -473,7 +454,10 @@ export const AffichesModule: React.FC = () => {
                 <div>
                   {/* Titre (zone élargie, jusqu'à 3 lignes) */}
                   {formData.titre && (
-                    <h1 className="text-2xl md:text-3xl font-bold mb-1 leading-tight max-w-full">
+                    <h1
+                      className="text-xl md:text-2xl font-bold mb-1 leading-tight max-w-full"
+                      style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)' }}
+                    >
                       {formData.titre.split('\n').slice(0, 3).map((line, i) => (
                         <div key={i}>{line}</div>
                       ))}
@@ -482,61 +466,75 @@ export const AffichesModule: React.FC = () => {
 
                   {/* Sous-titre */}
                   {formData.sousTitre && formData.sousTitre.trim() && (
-                    <p className="text-lg md:text-xl mb-2 font-normal">
+                    <p
+                      className="text-base md:text-lg mb-0.5 font-normal break-words"
+                      style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)', maxWidth: '100%' }}
+                    >
                       {formData.sousTitre}
                     </p>
                   )}
                 </div>
 
-                {/* Informations pratiques en bas (disposition horizontale) */}
-                <div className="flex flex-wrap items-start gap-4 mt-auto">
-                  {formData.date && (
-                    <div className="flex flex-col">
-                      <div className="text-sm font-bold">
-                        {(() => {
-                          const date = new Date(formData.date)
-                          const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-                          const months = ['Janv.', 'Fév.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
-                          return (
-                            <>
-                              <div>{days[date.getDay()]}</div>
-                              <div>{date.getDate()} {months[date.getMonth()]}</div>
-                              <div>{date.getFullYear()}</div>
-                            </>
-                          )
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                  {formData.heureDebut && (
-                    <div className="flex flex-col items-start">
-                      <div className="flex items-center gap-1.5">
-                        {/* Icône horloge */}
-                        <div className="w-4 h-4 border-2 border-white rounded-full relative flex items-center justify-center">
-                          <div className="w-1 h-1 bg-white rounded-full"></div>
-                          <div className="absolute w-0.5 h-1 bg-white" style={{ top: '2px', left: '50%', transform: 'translateX(-50%)' }}></div>
-                          <div className="absolute w-1 h-0.5 bg-white" style={{ top: '50%', right: '2px', transform: 'translateY(-50%)' }}></div>
-                        </div>
-                        <div className="text-base font-bold">
-                          {formatTime(formData.heureDebut)}
+                {/* Bloc bas : infos pratiques + animateur (espace réduit) */}
+                <div className="mt-0.5">
+                  {/* Informations pratiques (disposition horizontale) */}
+                  <div className="flex flex-wrap items-start gap-4">
+                    {formData.date && (
+                      <div className="flex flex-col">
+                        <div className="text-sm font-bold" style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)' }}>
+                          {(() => {
+                            const date = new Date(formData.date)
+                            const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+                            const months = ['Janv.', 'Fév.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
+                            return (
+                              <>
+                                <div>{days[date.getDay()]}</div>
+                                <div>{date.getDate()} {months[date.getMonth()]}</div>
+                                <div>{date.getFullYear()}</div>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
-                      {formData.heureFin && formData.heureFin.trim() && (
-                        <>
-                          <div className="text-xs ml-5">→</div>
-                          <div className="text-base font-bold ml-5">{formatTime(formData.heureFin)}</div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {formData.lieu && formData.lieu.trim() && (
-                    <div className="flex items-center gap-1.5">
-                      {/* Icône pin */}
-                      <div className="w-4 h-4 relative">
-                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[6px] border-transparent border-t-white"></div>
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-white rounded-full"></div>
+                    )}
+                    {formData.heureDebut && (
+                      <div className="flex flex-col items-start" style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)' }}>
+                        <div className="flex items-center gap-1.5">
+                          {/* Icône horloge */}
+                          <div className="w-4 h-4 border-2 border-white rounded-full relative flex items-center justify-center">
+                            <div className="w-1 h-1 bg-white rounded-full"></div>
+                            <div className="absolute w-0.5 h-1 bg-white" style={{ top: '2px', left: '50%', transform: 'translateX(-50%)' }}></div>
+                            <div className="absolute w-1 h-0.5 bg-white" style={{ top: '50%', right: '2px', transform: 'translateY(-50%)' }}></div>
+                          </div>
+                          <div className="text-base font-bold">
+                            {formatTime(formData.heureDebut)}
+                          </div>
+                        </div>
+                        {formData.heureFin && formData.heureFin.trim() && (
+                          <>
+                            <div className="text-xs ml-5">→</div>
+                            <div className="text-base font-bold ml-5">{formatTime(formData.heureFin)}</div>
+                          </>
+                        )}
                       </div>
-                      <span className="text-sm">{formData.lieu}</span>
+                    )}
+                    {formData.lieu && formData.lieu.trim() && (
+                      <div className="flex items-center gap-1.5" style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)' }}>
+                        {/* Icône pin */}
+                        <div className="w-4 h-4 relative">
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[6px] border-transparent border-t-white"></div>
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-white rounded-full"></div>
+                        </div>
+                        <span className="text-sm">{formData.lieu}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Animateur (avec espace après les infos pour meilleure lisibilité) */}
+                  {formData.animateur && formData.animateur.trim() && (
+                    <div className="mt-3" style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)' }}>
+                      <div className="text-xs italic">Animé par</div>
+                      <div className="text-base font-bold uppercase mt-0.5">{formData.animateur}</div>
                     </div>
                   )}
                 </div>
@@ -614,34 +612,7 @@ export const AffichesModule: React.FC = () => {
             <p className="text-xs text-gray-500 mt-1">Texte principal de l'événement, très visible sur l'affiche</p>
           </div>
 
-          {/* Logo Upload */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Logo de l'organisation (optionnel)
-            </label>
-            <div className="space-y-3">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500">Si aucun logo n'est fourni, le texte par défaut sera affiché</p>
-              {formData.logoUrl && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-600 mb-2">Aperçu du logo :</p>
-                  <img src={formData.logoUrl} alt="Logo preview" className="h-16 object-contain" />
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, logoUrl: '' }))}
-                    className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
-                  >
-                    Supprimer le logo
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* (Rubrique logo supprimée - l'image d'arrière-plan inclut déjà le logo) */}
 
           {/* Sous-titre */}
           <div className="md:col-span-2">
@@ -800,3 +771,4 @@ export const AffichesModule: React.FC = () => {
     </div>
   )
 }
+

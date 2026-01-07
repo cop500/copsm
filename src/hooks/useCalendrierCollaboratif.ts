@@ -110,25 +110,29 @@ export const useCalendrierCollaboratif = () => {
     try {
       if (!user?.id) throw new Error('Utilisateur non authentifié')
 
-      // Vérifier les chevauchements pour le même utilisateur
-      const { data: existingEvents } = await supabase
-        .from('calendrier_collaboratif')
-        .select('id, date_debut, date_fin')
-        .eq('user_id', user.id)
+      // Vérifier les chevauchements uniquement si c'est la MÊME salle
+      // Permettre deux événements simultanés sur des salles différentes
+      if (event.salle) {
+        const { data: existingEvents } = await supabase
+          .from('calendrier_collaboratif')
+          .select('id, date_debut, date_fin, salle')
+          .eq('user_id', user.id)
+          .eq('salle', event.salle) // Vérifier uniquement pour la même salle
 
-      if (existingEvents) {
-        const hasOverlap = existingEvents.some((existing) => {
-          const existingStart = new Date(existing.date_debut)
-          const existingEnd = new Date(existing.date_fin)
-          const newStart = new Date(event.date_debut)
-          const newEnd = new Date(event.date_fin)
-          
-          // Vérifier si les créneaux se chevauchent
-          return (newStart < existingEnd && newEnd > existingStart)
-        })
+        if (existingEvents) {
+          const hasOverlap = existingEvents.some((existing) => {
+            const existingStart = new Date(existing.date_debut)
+            const existingEnd = new Date(existing.date_fin)
+            const newStart = new Date(event.date_debut)
+            const newEnd = new Date(event.date_fin)
+            
+            // Vérifier si les créneaux se chevauchent (même salle)
+            return (newStart < existingEnd && newEnd > existingStart)
+          })
 
-        if (hasOverlap) {
-          throw new Error('Vous avez déjà un événement à ce créneau horaire')
+          if (hasOverlap) {
+            throw new Error(`Vous avez déjà un événement dans la salle "${event.salle}" à ce créneau horaire`)
+          }
         }
       }
 
