@@ -160,6 +160,21 @@ export const AffichesModule: React.FC = () => {
       if (affiche) {
         // Couvrir toute la page (cover)
         pdf.addImage(affiche.dataUrl, affiche.format, 0, 0, pageWidth, pageHeight)
+      } else {
+        // Fallback : gradient si l'image n'est pas disponible
+        const darkBlue = { r: 25, g: 118, b: 210 }
+        const tealBlue = { r: 20, g: 140, b: 160 }
+        const gradientSteps = 6
+        const stepWidth = pageWidth / gradientSteps
+        for (let i = 0; i < gradientSteps; i++) {
+          const x = i * stepWidth
+          const ratio = i / (gradientSteps - 1)
+          const r = Math.round(darkBlue.r + (tealBlue.r - darkBlue.r) * ratio)
+          const g = Math.round(darkBlue.g + (tealBlue.g - darkBlue.g) * ratio)
+          const b = Math.round(darkBlue.b + (tealBlue.b - darkBlue.b) * ratio)
+          pdf.setFillColor(r, g, b)
+          pdf.rect(x, 0, stepWidth + 1, pageHeight, 'F')
+        }
       }
 
       // ===== GRILLE PROFESSIONNELLE =====
@@ -419,20 +434,28 @@ export const AffichesModule: React.FC = () => {
     const primaryColor = 'rgb(25, 118, 210)'
     const accentColor = 'rgb(255, 140, 0)'
     const tealColor = 'rgb(20, 140, 160)'
+    const [imageError, setImageError] = useState(false)
     
     return (
       <div className="relative" style={{ aspectRatio: '270/150', maxWidth: '100%' }}>
         {/* Arrière-plan photo + overlay pour lisibilité */}
         <div 
           className="relative w-full h-full rounded-lg overflow-hidden shadow-2xl"
-          style={{ minHeight: '400px' }}
+          style={{ 
+            minHeight: '400px',
+            backgroundImage: imageError ? `linear-gradient(90deg, ${primaryColor} 0%, ${tealColor} 100%)` : 'none',
+            backgroundColor: imageError ? 'transparent' : 'transparent'
+          }}
         >
           {/* Image d'affiche */}
-          <img
-            src={afficheSrc}
-            alt="Affiche background"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          {!imageError && (
+            <img
+              src={afficheSrc}
+              alt="Affiche background"
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
+          )}
           {/* Contenu */}
           <div className="relative z-10 h-full p-4 flex flex-col">
             {/* Badge Workshop en haut à droite (si fourni) */}
