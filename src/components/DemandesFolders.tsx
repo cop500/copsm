@@ -5,8 +5,9 @@ import {
   Archive, ArchiveRestore, Building2, Users, Calendar, 
   ChevronRight, ChevronDown, FileText, Eye, Edit3, 
   Trash2, CheckCircle, AlertTriangle, Clock, XCircle,
-  MapPin, Phone, Mail, Briefcase, TrendingUp
+  MapPin, Phone, Mail, Briefcase, TrendingUp, Download
 } from 'lucide-react'
+import JSZip from 'jszip'
 
 interface DemandeEntreprise {
   id: string
@@ -51,6 +52,7 @@ interface DemandesFoldersProps {
   onSelectDemande: (demande: DemandeEntreprise) => void
   onUpdateStatut: (candidatureId: string, newStatut: string, notes?: string) => Promise<{success: boolean}>
   onDeleteCandidature: (candidatureId: string) => Promise<{success: boolean}>
+  isAdmin?: boolean
 }
 
 export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
@@ -58,13 +60,15 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   loading,
   onSelectDemande,
   onUpdateStatut,
-  onDeleteCandidature
+  onDeleteCandidature,
+  isAdmin = false
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [expandedPostes, setExpandedPostes] = useState<Set<string>>(new Set())
   const [selectedCandidature, setSelectedCandidature] = useState<Candidature | null>(null)
   const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
   const [candidatureNotes, setCandidatureNotes] = useState('')
+  const [downloadingCVs, setDownloadingCVs] = useState<string | null>(null)
 
   const toggleFolder = (demandeId: string) => {
     const newExpanded = new Set(expandedFolders)
@@ -195,6 +199,94 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
         setShowCandidatureDetail(false)
         setSelectedCandidature(null)
       }
+    }
+  }
+
+  // Fonction pour télécharger tous les CV d'une demande dans un ZIP
+  const handleDownloadAllCVs = async (demande: DemandeEntreprise) => {
+    if (!demande.candidatures || demande.candidatures.length === 0) {
+      alert('Aucune candidature avec CV disponible pour cette demande.')
+      return
+    }
+
+    // Filtrer les candidatures qui ont un CV
+    const candidaturesWithCV = demande.candidatures.filter(c => c.cv_url)
+    
+    if (candidaturesWithCV.length === 0) {
+      alert('Aucun CV disponible pour téléchargement.')
+      return
+    }
+
+    setDownloadingCVs(demande.id)
+    
+    try {
+      const zip = new JSZip()
+      let downloadedCount = 0
+      let failedCount = 0
+
+      // Télécharger chaque CV et l'ajouter au ZIP
+      await Promise.all(
+        candidaturesWithCV.map(async (candidature) => {
+          try {
+            if (!candidature.cv_url) return
+
+            // Télécharger le fichier
+            const response = await fetch(candidature.cv_url)
+            if (!response.ok) {
+              throw new Error(`Erreur HTTP: ${response.status}`)
+            }
+            
+            const blob = await response.blob()
+            
+            // Déterminer l'extension du fichier
+            const urlParts = candidature.cv_url.split('.')
+            const extension = urlParts[urlParts.length - 1].split('?')[0] || 'pdf'
+            
+            // Créer un nom de fichier unique
+            const nomCandidat = `${candidature.nom || 'Nom'}_${candidature.prenom || 'Prenom'}`.replace(/[^a-zA-Z0-9_-]/g, '_')
+            const poste = candidature.poste ? candidature.poste.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Poste'
+            const fileName = `${nomCandidat}_${poste}.${extension}`
+            
+            // Ajouter le fichier au ZIP
+            zip.file(fileName, blob)
+            downloadedCount++
+          } catch (error) {
+            console.error(`Erreur lors du téléchargement du CV de ${candidature.nom} ${candidature.prenom}:`, error)
+            failedCount++
+          }
+        })
+      )
+
+      if (downloadedCount === 0) {
+        alert('Aucun CV n\'a pu être téléchargé.')
+        setDownloadingCVs(null)
+        return
+      }
+
+      // Générer le fichier ZIP
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      
+      // Télécharger le ZIP
+      const url = window.URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      const entrepriseName = demande.entreprise_nom.replace(/[^a-zA-Z0-9_-]/g, '_')
+      a.download = `CV_${entrepriseName}_${new Date().toISOString().split('T')[0]}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      if (failedCount > 0) {
+        alert(`${downloadedCount} CV téléchargé(s) avec succès. ${failedCount} CV n'ont pas pu être téléchargés.`)
+      } else {
+        alert(`${downloadedCount} CV téléchargé(s) avec succès dans le fichier ZIP.`)
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création du ZIP:', error)
+      alert('Erreur lors de la création du fichier ZIP. Veuillez réessayer.')
+    } finally {
+      setDownloadingCVs(null)
     }
   }
 
@@ -341,6 +433,26 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                 </div>
                 
                 <div className="flex items-center space-x-2">
+                  {isAdmin && demande.candidatures && demande.candidatures.some(c => c.cv_url) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDownloadAllCVs(demande)
+                      }}
+                      disabled={downloadingCVs === demande.id}
+                      className={`p-2 text-gray-400 hover:text-green-600 transition-colors ${
+                        downloadingCVs === demande.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      title="Télécharger tous les CV"
+                    >
+                      {downloadingCVs === demande.id ? (
+                        <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Download className="w-5 h-5" />
+                      )}
+                    </button>
+                  )}
+                  
                   <button
                     onClick={(e) => {
                       e.stopPropagation()

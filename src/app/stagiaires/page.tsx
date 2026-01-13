@@ -1345,6 +1345,7 @@ export default function StagiairesPage() {
               }}
               onUpdateStatut={updateStatutDemande}
               onDeleteCandidature={deleteCandidatureDemande}
+              isAdmin={isAdmin}
             />
           </div>
         )}
