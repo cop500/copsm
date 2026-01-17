@@ -51,16 +51,31 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   const loadInscriptions = async () => {
     try {
       setLoading(true)
+      console.log('🔍 Chargement inscriptions pour atelier:', atelier.id, 'Statut:', atelier.statut)
+      
       const { data, error } = await supabase
             .from('inscriptions_ateliers')
             .select('*')
             .eq('atelier_id', atelier.id)
             .order('date_inscription', { ascending: false })
 
-      if (error) throw error
-      setInscriptions((data || []) as unknown as Inscription[])
+      if (error) {
+        console.error('❌ Erreur Supabase:', error)
+        throw error
+      }
+      
+      console.log('✅ Inscriptions chargées:', data?.length || 0, 'inscription(s)')
+      console.log('📋 Données brutes:', data)
+      
+      // Filtrer les inscriptions annulées AVANT de les stocker
+      const inscriptionsValides = (data || []).filter((inscription: any) => inscription.statut !== 'annule')
+      console.log('✅ Inscriptions valides (non annulées):', inscriptionsValides.length)
+      
+      setInscriptions(inscriptionsValides as unknown as Inscription[])
     } catch (error) {
-      console.error('Erreur chargement inscriptions:', error)
+      console.error('❌ Erreur chargement inscriptions:', error)
+      // Afficher l'erreur à l'utilisateur
+      alert('Erreur lors du chargement des inscriptions. Veuillez réessayer.')
     } finally {
       setLoading(false)
     }
@@ -68,7 +83,8 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
   // Filtrer les inscriptions (seulement par recherche, plus de filtre par statut)
   const filteredInscriptions = inscriptions.filter(inscription => {
-    // Exclure les inscriptions annulées de l'affichage
+    // Exclure uniquement les inscriptions annulées (statut === 'annule')
+    // Les inscriptions avec statut null, undefined ou autre sont considérées comme actives
     if (inscription.statut === 'annule') return false
     
     const matchesSearch = searchTerm === '' || 
@@ -81,10 +97,11 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   })
   
   // Compter uniquement les inscriptions actives (non annulées)
-  const inscriptionsActives = inscriptions.filter(i => i.statut !== 'annule')
+  // Une inscription est active si statut est null, undefined, ou différent de 'annule'
+  const inscriptionsActives = inscriptions.filter(i => !i.statut || i.statut !== 'annule')
   
-  // Compter les présences validées
-  const presencesValidees = inscriptions.filter(i => i.statut !== 'annule' && i.present === true).length
+  // Compter les présences validées (inscriptions actives avec présence validée)
+  const presencesValidees = inscriptionsActives.filter(i => i.present === true).length
 
   // Obtenir le statut en français (seulement pour les annulées)
   const getStatusLabel = (status?: string) => {
