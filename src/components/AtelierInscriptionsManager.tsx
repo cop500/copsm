@@ -44,8 +44,8 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   const [selectedInscriptions, setSelectedInscriptions] = useState<string[]>([])
   const [validating, setValidating] = useState(false)
   
-  // Vérifier si l'atelier est terminé (statut === 'termine')
-  const isAtelierTermine = atelier.statut === 'termine'
+  // La validation de présence est disponible pour tous les statuts d'atelier
+  // (planifié, en_cours, termine) pour plus de flexibilité
 
   // Charger les inscriptions de l'atelier
   const loadInscriptions = async () => {
@@ -442,10 +442,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
   // Valider/dévalider la présence d'un stagiaire individuellement
   const handleTogglePresence = async (inscriptionId: string, present: boolean) => {
-    if (!isAtelierTermine) {
-      alert('L\'atelier doit être terminé pour valider les présences')
-      return
-    }
+    // La validation de présence est maintenant disponible pour tous les statuts
 
     try {
       setValidating(true)
@@ -485,10 +482,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
   // Valider les présences en lot (pour les inscriptions sélectionnées)
   const handleValidatePresencesBatch = async () => {
-    if (!isAtelierTermine) {
-      alert('L\'atelier doit être terminé pour valider les présences')
-      return
-    }
+    // La validation de présence est maintenant disponible pour tous les statuts
 
     if (selectedInscriptions.length === 0) {
       alert('Veuillez sélectionner au moins une inscription à valider')
@@ -567,7 +561,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
         {/* Statistiques simplifiées */}
         <div className="p-6 bg-gray-50 border-b border-gray-200">
-        <div className={`grid grid-cols-1 ${isAtelierTermine ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="flex items-center">
                 <div className="p-2 bg-blue-100 rounded-lg">
@@ -594,22 +588,20 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             </div>
           </div>
           
-          {/* Afficher les présences validées si l'atelier est terminé */}
-          {isAtelierTermine && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Présences validées</p>
-                  <p className="text-xl font-bold text-green-600">
-                    {presencesValidees}/{inscriptionsActives.length}
-                  </p>
-                </div>
+          {/* Afficher les présences validées pour tous les ateliers */}
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Présences validées</p>
+                <p className="text-xl font-bold text-green-600">
+                  {presencesValidees}/{inscriptionsActives.length}
+                </p>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -630,17 +622,15 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
           </div>
 
             <div className="flex gap-2">
-              {/* Bouton valider présences si l'atelier est terminé */}
-              {isAtelierTermine && (
-                <button
-                  onClick={handleValidatePresencesBatch}
-                  disabled={validating || selectedInscriptions.length === 0}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  <CheckCircle2 className={`w-4 h-4 ${validating ? 'animate-spin' : ''}`} />
-                  {validating ? 'Validation...' : `Valider présences (${selectedInscriptions.length})`}
-                </button>
-              )}
+              {/* Bouton valider présences disponible pour tous les statuts */}
+              <button
+                onClick={handleValidatePresencesBatch}
+                disabled={validating || selectedInscriptions.length === 0}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                <CheckCircle2 className={`w-4 h-4 ${validating ? 'animate-spin' : ''}`} />
+                {validating ? 'Validation...' : `Valider présences (${selectedInscriptions.length})`}
+              </button>
               
               <button
                 onClick={exportToExcel}
@@ -683,23 +673,21 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {/* Case à cocher pour sélection multiple si atelier terminé */}
-                    {isAtelierTermine && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
-                        <input
-                          type="checkbox"
-                          checked={selectedInscriptions.length === filteredInscriptions.length && filteredInscriptions.length > 0}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedInscriptions(filteredInscriptions.map(i => i.id))
-                            } else {
-                              setSelectedInscriptions([])
-                            }
-                          }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      </th>
-                    )}
+                    {/* Case à cocher pour sélection multiple - disponible pour tous les statuts */}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedInscriptions.length === filteredInscriptions.length && filteredInscriptions.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedInscriptions(filteredInscriptions.map(i => i.id))
+                          } else {
+                            setSelectedInscriptions([])
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Stagiaire
                     </th>
@@ -709,11 +697,9 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Formation
                     </th>
-                    {isAtelierTermine && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Présent
-                      </th>
-                    )}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Présent
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date inscription
                     </th>
@@ -728,23 +714,21 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                       key={inscription.id} 
                       className={`hover:bg-gray-50 ${inscription.present ? 'bg-green-50' : ''}`}
                     >
-                      {/* Case à cocher pour sélection si atelier terminé */}
-                      {isAtelierTermine && (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <input
-                            type="checkbox"
-                            checked={selectedInscriptions.includes(inscription.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedInscriptions([...selectedInscriptions, inscription.id])
-                              } else {
-                                setSelectedInscriptions(selectedInscriptions.filter(id => id !== inscription.id))
-                              }
-                            }}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                        </td>
-                      )}
+                      {/* Case à cocher pour sélection - disponible pour tous les statuts */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedInscriptions.includes(inscription.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedInscriptions([...selectedInscriptions, inscription.id])
+                            } else {
+                              setSelectedInscriptions(selectedInscriptions.filter(id => id !== inscription.id))
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {inscription.stagiaire_nom}
@@ -767,28 +751,26 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                           {inscription.pole} - {inscription.filliere}
                             </div>
                       </td>
-                      {/* Colonne Présent avec checkbox si atelier terminé */}
-                      {isAtelierTermine && (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <input
-                            type="checkbox"
-                            checked={inscription.present === true}
-                            onChange={(e) => handleTogglePresence(inscription.id, e.target.checked)}
-                            disabled={validating}
-                            className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={inscription.present ? "Cliquer pour retirer la validation" : "Cliquer pour valider la présence"}
-                          />
-                          {inscription.date_validation_presence && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {new Date(inscription.date_validation_presence).toLocaleDateString('fr-FR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric'
-                              })}
-                            </div>
-                          )}
-                        </td>
-                      )}
+                      {/* Colonne Présent avec checkbox - disponible pour tous les statuts */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={inscription.present === true}
+                          onChange={(e) => handleTogglePresence(inscription.id, e.target.checked)}
+                          disabled={validating}
+                          className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={inscription.present ? "Cliquer pour retirer la validation" : "Cliquer pour valider la présence"}
+                        />
+                        {inscription.date_validation_presence && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {new Date(inscription.date_validation_presence).toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {
                                 day: '2-digit',

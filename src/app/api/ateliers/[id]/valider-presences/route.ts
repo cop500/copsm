@@ -28,7 +28,7 @@ export async function POST(
       )
     }
 
-    // Vérifier que l'atelier existe et est terminé
+    // Vérifier que l'atelier existe (tous les statuts sont acceptés)
     const { data: atelier, error: atelierError } = await supabase
       .from('evenements')
       .select('id, statut, animateur_id')
@@ -43,12 +43,7 @@ export async function POST(
       )
     }
 
-    if (atelier.statut !== 'termine') {
-      return NextResponse.json(
-        { error: 'L\'atelier doit être terminé pour valider les présences' },
-        { status: 400 }
-      )
-    }
+    // La validation de présence est maintenant disponible pour tous les statuts
 
     // Vérifier que les inscriptions appartiennent bien à cet atelier
     const { data: inscriptions, error: inscriptionsError } = await supabase
@@ -160,7 +155,7 @@ export async function PUT(
       )
     }
 
-    // Vérifier que l'atelier existe et est terminé
+    // Vérifier que l'atelier existe (tous les statuts sont acceptés)
     const { data: atelier, error: atelierError } = await supabase
       .from('evenements')
       .select('id, statut')
@@ -175,12 +170,7 @@ export async function PUT(
       )
     }
 
-    if (atelier.statut !== 'termine') {
-      return NextResponse.json(
-        { error: 'L\'atelier doit être terminé pour valider les présences' },
-        { status: 400 }
-      )
-    }
+    // La validation de présence est maintenant disponible pour tous les statuts
 
     // Vérifier que l'inscription appartient à cet atelier
     const { data: inscription, error: inscriptionError } = await supabase
