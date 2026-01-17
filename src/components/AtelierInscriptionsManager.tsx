@@ -15,7 +15,7 @@ declare module 'jspdf' {
 }
 import { 
   Users, X, Download, Trash2, Search,
-  GraduationCap, FileText, XCircle, CheckCircle2, Mail, Check
+  GraduationCap, FileText, XCircle, CheckCircle2, Mail, Check, Send, RefreshCw
 } from 'lucide-react'
 
 interface AtelierInscriptionsManagerProps {
@@ -43,6 +43,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedInscriptions, setSelectedInscriptions] = useState<string[]>([])
   const [validating, setValidating] = useState(false)
+  // Pour mailto:, on n'a pas besoin d'état "sending" car c'est instantané
   
   // La validation de présence est disponible pour tous les statuts d'atelier
   // (planifié, en_cours, termine) pour plus de flexibilité
@@ -531,6 +532,113 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     }
   }
 
+  // Générer le lien mailto: pour ouvrir Outlook avec l'email pré-rempli
+  const generateMailtoLink = (inscription: Inscription): string => {
+    if (!inscription.present || !inscription.certificat_token) {
+      return ''
+    }
+
+    // Construire l'URL du certificat
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://copsm.space'
+    const certificatUrl = `${baseUrl}/certificat/${inscription.certificat_token}`
+
+    // Formater la date de l'atelier
+    const dateAtelier = atelier.date_debut
+      ? new Date(atelier.date_debut).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        })
+      : ''
+
+    // Sujet de l'email
+    const subject = encodeURIComponent(`Votre certificat de participation - ${atelier.titre}`)
+
+    // Corps de l'email
+    const body = encodeURIComponent(`Bonjour ${inscription.stagiaire_nom},
+
+Félicitations ! Vous avez participé avec succès à l'atelier :
+
+${atelier.titre}
+${dateAtelier ? `Date : ${dateAtelier}` : ''}
+${atelier.animateur_nom ? `Animateur : ${atelier.animateur_nom}` : ''}
+
+Votre certificat de participation est maintenant disponible. Vous pouvez le télécharger en cliquant sur le lien ci-dessous :
+
+${certificatUrl}
+
+Vous pourrez télécharger votre certificat autant de fois que nécessaire en utilisant ce lien.
+
+Cordialement,
+L'équipe du Centre d'Orientation Professionnelle CMC SM`)
+
+    return `mailto:${inscription.stagiaire_email}?subject=${subject}&body=${body}`
+  }
+
+  // Ouvrir Outlook pour envoyer le certificat à un seul stagiaire
+  const handleSendCertificatEmail = (inscriptionId: string) => {
+    const inscription = inscriptions.find(i => i.id === inscriptionId)
+    if (!inscription) return
+
+    if (!inscription.present) {
+      alert('La présence doit être validée avant d\'envoyer le certificat')
+      return
+    }
+
+    if (!inscription.certificat_token) {
+      alert('Aucun token de certificat trouvé. Veuillez d\'abord valider la présence.')
+      return
+    }
+
+    // Générer le lien mailto: et ouvrir le client email (Outlook)
+    const mailtoLink = generateMailtoLink(inscription)
+    // Utiliser window.open pour éviter de quitter la page
+    window.open(mailtoLink, '_blank')
+  }
+
+  // Ouvrir Outlook pour envoyer les certificats en lot
+  const handleSendCertificatsBatch = () => {
+    // Filtrer seulement les inscriptions avec présence validée
+    const inscriptionsAvecPresence = selectedInscriptions
+      .map(id => inscriptions.find(i => i.id === id))
+      .filter((inscription): inscription is Inscription => 
+        inscription !== undefined && 
+        inscription.present === true && 
+        inscription.certificat_token !== undefined
+      )
+
+    if (inscriptionsAvecPresence.length === 0) {
+      alert('Veuillez sélectionner des inscriptions avec présence validée et token de certificat')
+      return
+    }
+
+    // Si une seule inscription, utiliser la fonction individuelle
+    if (inscriptionsAvecPresence.length === 1) {
+      handleSendCertificatEmail(inscriptionsAvecPresence[0].id)
+      return
+    }
+
+    // Pour plusieurs inscriptions, on ouvre plusieurs fenêtres (ou on informe l'utilisateur)
+    // Option 1: Ouvrir le premier email et informer
+    const firstInscription = inscriptionsAvecPresence[0]
+    const mailtoLink = generateMailtoLink(firstInscription)
+    
+    // Pour plusieurs inscriptions, ouvrir chaque email une par une
+    // (les navigateurs peuvent bloquer plusieurs fenêtres, donc on informe l'utilisateur)
+    if (inscriptionsAvecPresence.length > 1) {
+      // Ouvrir le premier email
+      window.open(mailtoLink, '_blank')
+      
+      // Informer l'utilisateur
+      setTimeout(() => {
+        alert(`Outlook ouvert pour ${firstInscription.stagiaire_email}.\n\nPour les ${inscriptionsAvecPresence.length - 1} autres stagiaire(s), cliquez individuellement sur "Envoyer" dans chaque ligne.`)
+      }, 500)
+    } else {
+      // Une seule inscription, ouvrir directement
+      window.open(mailtoLink, '_blank')
+    }
+  }
+
   useEffect(() => {
     loadInscriptions()
   }, [atelier.id])
@@ -621,7 +729,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             </div>
           </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {/* Bouton valider présences disponible pour tous les statuts */}
               <button
                 onClick={handleValidatePresencesBatch}
@@ -631,6 +739,28 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                 <CheckCircle2 className={`w-4 h-4 ${validating ? 'animate-spin' : ''}`} />
                 {validating ? 'Validation...' : `Valider présences (${selectedInscriptions.length})`}
               </button>
+              
+              {/* Bouton ouvrir Outlook pour envoyer certificats */}
+              {(() => {
+                const inscriptionsValidees = selectedInscriptions.filter(id => {
+                  const ins = inscriptions.find(i => i.id === id)
+                  return ins?.present && ins?.certificat_token
+                })
+                return (
+                  <button
+                    onClick={handleSendCertificatsBatch}
+                    disabled={inscriptionsValidees.length === 0}
+                    className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    title="Ouvre Outlook avec l'email pré-rempli contenant le lien du certificat"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {inscriptionsValidees.length > 0 
+                      ? `Envoyer certificats (${inscriptionsValidees.length})`
+                      : 'Envoyer certificats'
+                    }
+                  </button>
+                )
+              })()}
               
               <button
                 onClick={exportToExcel}
@@ -702,6 +832,9 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date inscription
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -779,6 +912,21 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                                 hour: '2-digit',
                                 minute: '2-digit'
                         })}
+                      </td>
+                      {/* Colonne Email - Bouton ouvrir Outlook */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {inscription.present && inscription.certificat_token ? (
+                          <button
+                            onClick={() => handleSendCertificatEmail(inscription.id)}
+                            className="flex items-center gap-2 px-3 py-1 rounded-lg transition-colors bg-orange-100 text-orange-700 hover:bg-orange-200"
+                            title="Ouvre Outlook avec l'email pré-rempli pour envoyer le certificat"
+                          >
+                            <Mail className="w-3 h-3" />
+                            <span className="text-xs">Ouvrir Outlook</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400">Présence requise</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
