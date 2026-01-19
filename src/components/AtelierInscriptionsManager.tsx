@@ -551,28 +551,30 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
         })
       : ''
 
-    // Sujet de l'email
+    // Construire le corps de l'email avec des sauts de ligne corrects
+    let emailBody = `Bonjour ${inscription.stagiaire_nom},\n\n`
+    emailBody += `Félicitations ! Vous avez participé avec succès à l'atelier :\n\n`
+    emailBody += `${atelier.titre}\n`
+    if (dateAtelier) {
+      emailBody += `Date : ${dateAtelier}\n`
+    }
+    if (atelier.animateur_nom) {
+      emailBody += `Animateur : ${atelier.animateur_nom}\n`
+    }
+    emailBody += `\nVotre certificat de participation est maintenant disponible. Vous pouvez le télécharger en cliquant sur le lien ci-dessous :\n\n`
+    emailBody += `${certificatUrl}\n\n`
+    emailBody += `Vous pourrez télécharger votre certificat autant de fois que nécessaire en utilisant ce lien.\n\n`
+    emailBody += `Cordialement,\n`
+    emailBody += `L'équipe du Centre d'Orientation Professionnelle CMC SM`
+
+    // Encoder les paramètres URL
     const subject = encodeURIComponent(`Votre certificat de participation - ${atelier.titre}`)
+    const body = encodeURIComponent(emailBody)
 
-    // Corps de l'email
-    const body = encodeURIComponent(`Bonjour ${inscription.stagiaire_nom},
-
-Félicitations ! Vous avez participé avec succès à l'atelier :
-
-${atelier.titre}
-${dateAtelier ? `Date : ${dateAtelier}` : ''}
-${atelier.animateur_nom ? `Animateur : ${atelier.animateur_nom}` : ''}
-
-Votre certificat de participation est maintenant disponible. Vous pouvez le télécharger en cliquant sur le lien ci-dessous :
-
-${certificatUrl}
-
-Vous pourrez télécharger votre certificat autant de fois que nécessaire en utilisant ce lien.
-
-Cordialement,
-L'équipe du Centre d'Orientation Professionnelle CMC SM`)
-
-    return `mailto:${inscription.stagiaire_email}?subject=${subject}&body=${body}`
+    // Construire le lien mailto
+    const mailtoLink = `mailto:${encodeURIComponent(inscription.stagiaire_email || '')}?subject=${subject}&body=${body}`
+    
+    return mailtoLink
   }
 
   // Ouvrir Outlook pour envoyer le certificat à un seul stagiaire
