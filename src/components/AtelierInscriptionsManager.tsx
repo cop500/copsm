@@ -594,8 +594,21 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
     // Générer le lien mailto: et ouvrir le client email (Outlook)
     const mailtoLink = generateMailtoLink(inscription)
-    // Utiliser window.open pour éviter de quitter la page
-    window.open(mailtoLink, '_blank')
+    
+    if (!mailtoLink) {
+      alert('Impossible de générer le lien email. Vérifiez que la présence est validée.')
+      return
+    }
+    
+    // Utiliser window.location.href pour forcer l'ouverture du client email avec les paramètres
+    // Certains navigateurs/clients email ne remplissent pas correctement avec window.open
+    try {
+      window.location.href = mailtoLink
+    } catch (error) {
+      console.error('Erreur ouverture mailto:', error)
+      // Fallback: essayer window.open
+      window.open(mailtoLink, '_self')
+    }
   }
 
   // Ouvrir Outlook pour envoyer les certificats en lot
@@ -628,16 +641,26 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     // Pour plusieurs inscriptions, ouvrir chaque email une par une
     // (les navigateurs peuvent bloquer plusieurs fenêtres, donc on informe l'utilisateur)
     if (inscriptionsAvecPresence.length > 1) {
-      // Ouvrir le premier email
-      window.open(mailtoLink, '_blank')
+      // Ouvrir le premier email avec window.location.href pour forcer le pré-remplissage
+      try {
+        window.location.href = mailtoLink
+      } catch (error) {
+        console.error('Erreur ouverture mailto:', error)
+        window.open(mailtoLink, '_self')
+      }
       
       // Informer l'utilisateur
       setTimeout(() => {
-        alert(`Outlook ouvert pour ${firstInscription.stagiaire_email}.\n\nPour les ${inscriptionsAvecPresence.length - 1} autres stagiaire(s), cliquez individuellement sur "Envoyer" dans chaque ligne.`)
+        alert(`Outlook ouvert pour ${firstInscription.stagiaire_email}.\n\nPour les ${inscriptionsAvecPresence.length - 1} autres stagiaire(s), cliquez individuellement sur "Ouvrir Outlook" dans chaque ligne.`)
       }, 500)
     } else {
       // Une seule inscription, ouvrir directement
-      window.open(mailtoLink, '_blank')
+      try {
+        window.location.href = mailtoLink
+      } catch (error) {
+        console.error('Erreur ouverture mailto:', error)
+        window.open(mailtoLink, '_self')
+      }
     }
   }
 
