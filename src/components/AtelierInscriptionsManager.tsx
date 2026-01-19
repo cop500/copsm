@@ -592,7 +592,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
       return
     }
 
-    // Générer le lien mailto: et ouvrir le client email (Outlook)
+    // Générer le lien mailto: et ouvrir le client email (Outlook) dans un nouvel onglet
     const mailtoLink = generateMailtoLink(inscription)
     
     if (!mailtoLink) {
@@ -600,15 +600,14 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
       return
     }
     
-    // Utiliser window.location.href pour forcer l'ouverture du client email avec les paramètres
-    // Certains navigateurs/clients email ne remplissent pas correctement avec window.open
-    try {
-      window.location.href = mailtoLink
-    } catch (error) {
-      console.error('Erreur ouverture mailto:', error)
-      // Fallback: essayer window.open
-      window.open(mailtoLink, '_self')
-    }
+    // Créer un élément <a> temporaire pour ouvrir dans un nouvel onglet
+    const link = document.createElement('a')
+    link.href = mailtoLink
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   // Ouvrir Outlook pour envoyer les certificats en lot
@@ -641,26 +640,28 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     // Pour plusieurs inscriptions, ouvrir chaque email une par une
     // (les navigateurs peuvent bloquer plusieurs fenêtres, donc on informe l'utilisateur)
     if (inscriptionsAvecPresence.length > 1) {
-      // Ouvrir le premier email avec window.location.href pour forcer le pré-remplissage
-      try {
-        window.location.href = mailtoLink
-      } catch (error) {
-        console.error('Erreur ouverture mailto:', error)
-        window.open(mailtoLink, '_self')
-      }
+      // Ouvrir le premier email dans un nouvel onglet via un élément <a>
+      const link = document.createElement('a')
+      link.href = mailtoLink
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       
       // Informer l'utilisateur
       setTimeout(() => {
         alert(`Outlook ouvert pour ${firstInscription.stagiaire_email}.\n\nPour les ${inscriptionsAvecPresence.length - 1} autres stagiaire(s), cliquez individuellement sur "Ouvrir Outlook" dans chaque ligne.`)
       }, 500)
     } else {
-      // Une seule inscription, ouvrir directement
-      try {
-        window.location.href = mailtoLink
-      } catch (error) {
-        console.error('Erreur ouverture mailto:', error)
-        window.open(mailtoLink, '_self')
-      }
+      // Une seule inscription, ouvrir directement dans un nouvel onglet
+      const link = document.createElement('a')
+      link.href = mailtoLink
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     }
   }
 
