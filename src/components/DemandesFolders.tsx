@@ -5,9 +5,10 @@ import {
   Archive, ArchiveRestore, Building2, Users, Calendar, 
   ChevronRight, ChevronDown, FileText, Eye, Edit3, 
   Trash2, CheckCircle, AlertTriangle, Clock, XCircle,
-  MapPin, Phone, Mail, Briefcase, TrendingUp, Download
+  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet
 } from 'lucide-react'
 import JSZip from 'jszip'
+import * as XLSX from 'xlsx'
 
 interface DemandeEntreprise {
   id: string
@@ -290,6 +291,28 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     }
   }
 
+  // Fonction pour exporter les candidatures (nom, prénom, email, téléphone) en Excel
+  const handleExportExcel = (demande: DemandeEntreprise) => {
+    if (!demande.candidatures || demande.candidatures.length === 0) {
+      alert('Aucune candidature à exporter pour cette demande.')
+      return
+    }
+
+    const data = demande.candidatures.map((c) => ({
+      Nom: c.nom || '',
+      Prénom: c.prenom || '',
+      Email: c.email || '',
+      'Téléphone': c.telephone || ''
+    }))
+
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Candidatures')
+    const entrepriseName = demande.entreprise_nom.replace(/[^a-zA-Z0-9_-]/g, '_')
+    const fileName = `Candidatures_${entrepriseName}_${new Date().toISOString().split('T')[0]}.xlsx`
+    XLSX.writeFile(wb, fileName)
+  }
+
   // Fonction pour rendre une carte de candidature
   const renderCandidatureCard = (candidature: Candidature) => (
     <div className="flex items-center justify-between">
@@ -433,6 +456,18 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                 </div>
                 
                 <div className="flex items-center space-x-2">
+                  {isAdmin && demande.candidatures && demande.candidatures.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleExportExcel(demande)
+                      }}
+                      className="p-2 text-gray-400 hover:text-emerald-600 transition-colors"
+                      title="Exporter la liste (Excel)"
+                    >
+                      <FileSpreadsheet className="w-5 h-5" />
+                    </button>
+                  )}
                   {isAdmin && demande.candidatures && demande.candidatures.some(c => c.cv_url) && (
                     <button
                       onClick={(e) => {

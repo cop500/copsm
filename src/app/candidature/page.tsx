@@ -347,19 +347,27 @@ export default function CandidaturePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* En-tête */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-between mb-4">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background uniforme et doux inspiré de l'image */}
+      <div className="absolute inset-0 bg-[#F5F7FA]"></div>
+      
+      {/* Légère texture très subtile */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.01)_1px,transparent_1px)] bg-[size:40px_40px] opacity-30"></div>
+      
+      {/* Contenu principal */}
+      <div className="relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* En-tête avec fond blanc simple */}
+          <div className="text-center mb-10 pb-10 pt-8 px-6 bg-white rounded-b-2xl shadow-sm border-b-2 border-[#0f3d6c]/20 relative overflow-hidden">
+          <div className="flex items-center justify-between mb-6 relative z-10">
             <div className="flex-1"></div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-[#0f3d6c]">
               Candidature aux offres d'emploi
             </h1>
             <div className="flex-1 flex justify-end">
               <button
                 onClick={loadDemandes}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 border border-gray-200/80 text-gray-700 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white hover:border-gray-300 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
                 title="Actualiser les offres"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -369,23 +377,23 @@ export default function CandidaturePage() {
               </button>
             </div>
           </div>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p className="text-gray-600 max-w-2xl mx-auto text-base">
             Découvrez les offres d'emploi et de stage disponibles et déposez votre candidature.
           </p>
           <p className="text-sm text-gray-500 mt-2">
             Les offres se mettent à jour automatiquement toutes les 30 secondes
           </p>
-      </div>
+          </div>
     
-        {/* Liste des offres */}
-        <div className="space-y-6">
+          {/* Liste des offres */}
+          <div className="space-y-8">
           {loading ? (
-            <div className="text-center py-12">
+            <div className="text-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
               <p className="text-gray-600">Chargement des offres...</p>
                 </div>
           ) : demandes.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-16 px-12 bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)] border border-[#0f3d6c]/15">
               <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune offre disponible</h3>
               <p className="text-gray-500">
@@ -394,106 +402,123 @@ export default function CandidaturePage() {
                 </div>
           ) : (
             demandes.map((demande) => (
-              <div key={demande.id} className="bg-white rounded-lg shadow-sm border p-6">
-                <div className="space-y-4">
+              <div key={demande.id} className="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_6px_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.08)] transition-all duration-300 p-10 mb-6 border-2 border-[#0f3d6c]/12 hover:border-[#0f3d6c]/25 relative overflow-hidden group">
+                {/* Contour accent en haut */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-[#0f3d6c]/25 group-hover:bg-[#0f3d6c]/40 transition-colors duration-300 rounded-t-xl"></div>
+                
+                {/* Contenu avec espacement interne */}
+                <div className="relative z-10 space-y-6 pt-2">
                   {demande.source === 'entreprises' && demande.profils ? (
                     // Demandes avec profils détaillés
                     demande.profils.map((profil, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
+                      <div key={index} className="pb-8 pt-6 px-4 -mx-4 rounded-lg bg-[#F8F9FA] border border-[#0f3d6c]/8 relative last:pb-0 last:mb-0 mb-6 last:mb-0">
+                        {/* Ligne de séparation décorative élégante */}
+                        <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#0f3d6c]/15 to-transparent last:opacity-0"></div>
+                        <div className="flex items-start justify-between gap-6">
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                  <Building2 className="w-5 h-5 text-blue-600" />
+                                <h3 className="text-xl font-bold text-[#0f3d6c] flex items-center gap-2 mb-2">
+                                  <Building2 className="w-5 h-5 text-[#0f3d6c]" />
                                   {demande.entreprise_nom}
                                 </h3>
                                 {demande.reference && (
-                                  <div className="mt-1 flex items-center gap-2">
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-mono font-semibold">
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-mono font-semibold border border-blue-100">
                                       {demande.reference}
                                     </span>
                                     <span className="text-xs text-gray-500">Référence de l'offre</span>
                                   </div>
                                 )}
                               </div>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                demande.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
-                                demande.statut === 'en_cours' ? 'bg-blue-100 text-blue-800' :
-                                demande.statut === 'terminee' ? 'bg-green-100 text-green-800' :
-                                'bg-gray-100 text-gray-800'
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 ${
+                                demande.statut === 'en_attente' ? 'bg-[#0f3d6c] text-white' :
+                                demande.statut === 'en_cours' ? 'bg-[#0f3d6c]/10 text-[#0f3d6c] border border-[#0f3d6c]/20' :
+                                demande.statut === 'terminee' ? 'bg-green-50 text-green-700 border border-green-200' :
+                                'bg-gray-100 text-gray-700 border border-gray-200'
                               }`}>
+                                {demande.statut === 'en_attente' && (
+                                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                )}
                                 {demande.statut || 'Sans statut'}
-                  </span>
-                </div>
-                            <h4 className="font-medium text-gray-800 mt-1">{profil.poste_intitule}</h4>
-                            <p className="text-sm text-gray-600 mt-1">
-                              <strong>Pôle:</strong> {getPoleName(profil.pole_id)} • <strong>Filière:</strong> {getFiliereName(profil.filiere_id)}
+                              </span>
+                            </div>
+                            <h4 className="text-lg font-semibold text-gray-800 mt-3">{profil.poste_intitule}</h4>
+                            <p className="text-sm text-gray-500 mt-2">
+                              <span className="font-medium text-gray-600">Pôle:</span> {getPoleName(profil.pole_id)} • <span className="font-medium text-gray-600">Filière:</span> {getFiliereName(profil.filiere_id)}
                             </p>
-                </div>
+                          </div>
                           <button
                             onClick={() => handleSelectDemande(demande, index)}
-                            className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="px-8 py-3 bg-[#0f3d6c] text-white rounded-lg font-semibold text-base whitespace-nowrap transition-all duration-300 hover:bg-[#0a2d52] hover:shadow-md active:bg-[#081f3a]"
                           >
                             Postuler
                           </button>
-              </div>
-            </div>
+                        </div>
+                      </div>
                     ))
                   ) : (
                     // Demandes CV simples
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
+                    <div className="pb-8 pt-6 px-4 -mx-4 rounded-lg bg-[#F8F9FA] border border-[#0f3d6c]/8 relative">
+                      <div className="flex items-start justify-between gap-6">
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-start justify-between gap-4">
                             <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <Building2 className="w-5 h-5 text-blue-600" />
+                              <h3 className="text-xl font-bold text-[#0f3d6c] flex items-center gap-2 mb-2">
+                                <Building2 className="w-5 h-5 text-[#0f3d6c]" />
                                 {demande.nom_entreprise || demande.entreprise_nom}
                               </h3>
                               {demande.reference && (
-                                <div className="mt-1 flex items-center gap-2">
-                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-mono font-semibold">
+                                <div className="mt-2 flex items-center gap-2">
+                                  <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-mono font-semibold border border-blue-100">
                                     {demande.reference}
                                   </span>
                                   <span className="text-xs text-gray-500">Référence de l'offre</span>
                                 </div>
                               )}
                             </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              demande.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
-                              demande.statut === 'en_cours' ? 'bg-blue-100 text-blue-800' :
-                              demande.statut === 'nouvelle' ? 'bg-green-100 text-green-800' :
-                              demande.statut === 'terminee' ? 'bg-green-100 text-green-800' :
-                              'bg-gray-100 text-gray-800'
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 ${
+                              demande.statut === 'en_attente' ? 'bg-[#0f3d6c] text-white' :
+                              demande.statut === 'en_cours' ? 'bg-[#0f3d6c]/10 text-[#0f3d6c] border border-[#0f3d6c]/20' :
+                              demande.statut === 'nouvelle' ? 'bg-green-50 text-green-700 border border-green-200' :
+                              demande.statut === 'terminee' ? 'bg-green-50 text-green-700 border border-green-200' :
+                              'bg-gray-100 text-gray-700 border border-gray-200'
                             }`}>
+                              {demande.statut === 'en_attente' && (
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                </svg>
+                              )}
                               {demande.statut || 'Sans statut'}
                             </span>
-          </div>
-                          <h4 className="font-medium text-gray-800 mt-1">{demande.poste_recherche || 'Poste à définir'}</h4>
-                          <p className="text-sm text-gray-600 mt-1">
-                            <strong>Contact:</strong> {demande.contact_nom} • <strong>Email:</strong> {demande.contact_email}
+                          </div>
+                          <h4 className="text-lg font-semibold text-gray-800 mt-3">{demande.poste_recherche || 'Poste à définir'}</h4>
+                          <p className="text-sm text-gray-500 mt-2">
+                            <span className="font-medium text-gray-600">Contact:</span> {demande.contact_nom} • <span className="font-medium text-gray-600">Email:</span> {demande.contact_email}
                           </p>
                           {demande.description && (
-                            <p className="text-sm text-gray-500 mt-2">{demande.description}</p>
+                            <p className="text-sm text-gray-500 mt-3 leading-relaxed">{demande.description}</p>
                           )}
-                </div>
+                        </div>
                         <button
                           onClick={() => handleSelectDemande(demande, 0)}
-                          className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="px-8 py-3 bg-[#0f3d6c] text-white rounded-lg font-semibold text-base whitespace-nowrap transition-all duration-300 hover:bg-[#0a2d52] hover:shadow-md active:bg-[#081f3a]"
                         >
                           Postuler
                         </button>
                       </div>
-                        </div>
-                      )}
                     </div>
-                    </div>
+                  )}
+                </div>
+              </div>
             ))
           )}
-            </div>
-      
-            {/* Formulaire de candidature amélioré */}
+          </div>
+        </div>
+        
+        {/* Formulaire de candidature amélioré */}
         {formData.demande_id && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-10 mx-auto p-6 border w-full max-w-3xl shadow-2xl rounded-xl bg-white relative overflow-hidden">
