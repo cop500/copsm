@@ -55,6 +55,16 @@ interface StyleConfig {
   cachetImage: string | null
   alignementSignature: string // 'left', 'center', 'right'
   backgroundPattern: string | null // 'none', 'dots', 'lines', 'grid', 'waves', 'diagonal'
+  // Personnalisation avancée
+  interligne: number // line-height
+  afficherLigneNom: boolean // sous-ligne sous le nom
+  afficherIntro: boolean // "Le Centre d'Orientation Professionnelle"
+  afficherCertifie: boolean // "certifie que"
+  afficherDescription: boolean // "a participé avec succès à l'atelier"
+  afficherAnimateur: boolean // "Animé par"
+  afficherDateAtelier: boolean // "le {{date}}"
+  afficherDateEmission: boolean // "Date d'émission"
+  policeSignataire: string // 'serif' | 'sans-serif'
 }
 
 export const CertificatsModule: React.FC = () => {
@@ -112,6 +122,15 @@ export const CertificatsModule: React.FC = () => {
       cachetImage: null,
       alignementSignature: 'center',
       backgroundPattern: null,
+      interligne: 1.8,
+      afficherLigneNom: true,
+      afficherIntro: true,
+      afficherCertifie: true,
+      afficherDescription: true,
+      afficherAnimateur: true,
+      afficherDateAtelier: true,
+      afficherDateEmission: true,
+      policeSignataire: 'serif',
     }
   })
 
@@ -211,9 +230,6 @@ export const CertificatsModule: React.FC = () => {
       <!-- Logo (optionnel) -->
       ${logoHtml}
       
-      <!-- Numéro de certificat (optionnel) -->
-      ${numeroHtml}
-      
       <!-- En-tête avec titre -->
       <div class="header">
         <h1>CERTIFICAT DE PARTICIPATION</h1>
@@ -221,25 +237,24 @@ export const CertificatsModule: React.FC = () => {
       
       <!-- Contenu principal -->
       <div class="content">
-        <p class="intro">Le Centre d'Orientation Professionnelle</p>
-        <p class="certifie">certifie que</p>
+        ${style.afficherIntro !== false ? '<p class="intro">Le Centre d\'Orientation Professionnelle</p>' : ''}
+        ${style.afficherCertifie !== false ? '<p class="certifie">certifie que</p>' : ''}
         <p class="nom">{{nom}}</p>
-        <p class="description">a participé avec succès à l'atelier</p>
+        ${style.afficherDescription !== false ? '<p class="description">a participé avec succès à l\'atelier</p>' : ''}
         <p class="atelier">{{atelier}}</p>
-        <p class="animateur-info">
-          <span class="animateur-label">Animé par</span> 
-          <span class="animateur-nom">{{animateur}}</span>
-        </p>
-        <p class="date-info">le {{date}}</p>
+        ${style.afficherAnimateur !== false ? `<p class="animateur-info"><span class="animateur-label">Animé par</span> <span class="animateur-nom">{{animateur}}</span></p>` : ''}
+        ${style.afficherDateAtelier !== false ? '<p class="date-info">le {{date}}</p>' : ''}
       </div>
       
       <!-- Pied de page avec cachet et signature -->
       <div class="footer">
         ${cachetHtml}
-        <p class="date-emission">Date d'émission : {{date_certificat}}</p>
+        ${style.afficherDateEmission !== false ? '<p class="date-emission">Date d\'émission : {{date_certificat}}</p>' : ''}
         ${signatureHtml}
       </div>
     </div>
+    <!-- Numéro de certificat en bas à gauche -->
+    ${numeroHtml}
   </div>
 </div>`
   }
@@ -349,7 +364,7 @@ export const CertificatsModule: React.FC = () => {
 
 .certificat-content {
   position: relative;
-  background-color: #ffffff;
+  background-color: transparent;
   flex: 1;
   padding: 0 ${(style.largeurBordureGauche || style.epaisseurBordure) + 15}px;
   display: flex;
@@ -380,14 +395,16 @@ export const CertificatsModule: React.FC = () => {
   display: inline-block;
 }
 
-/* Numéro de certificat */
+/* Numéro de certificat - coin inférieur gauche */
 .numero-certificat {
-  text-align: ${textAlign};
+  position: absolute;
+  bottom: ${(style.hauteurBordureBas || style.epaisseurBordure) + 12}px;
+  left: ${(style.largeurBordureGauche || style.epaisseurBordure) + 20}px;
   font-size: ${style.tailleFooter}px;
   color: ${style.couleurGris};
   font-family: 'Courier New', monospace;
-  margin-bottom: ${style.espacementHeader * 0.3}px;
   letter-spacing: 1px;
+  margin: 0;
 }
 
 .header {
@@ -408,7 +425,7 @@ export const CertificatsModule: React.FC = () => {
 
 .content {
   margin: ${style.espacementContent}px 0;
-  line-height: 1.9;
+  line-height: ${style.interligne ?? 1.8};
   text-align: ${textAlign};
   flex: 1;
   display: flex;
@@ -453,7 +470,7 @@ export const CertificatsModule: React.FC = () => {
   letter-spacing: 2px;
   text-align: ${textAlign};
   line-height: 1.3;
-  border-bottom: 2px solid ${style.couleurOrange};
+  ${style.afficherLigneNom !== false ? `border-bottom: 2px solid ${style.couleurOrange};` : 'border-bottom: none;'}
   display: inline-block;
   padding-bottom: 8px;
 }
@@ -522,7 +539,7 @@ export const CertificatsModule: React.FC = () => {
   color: ${style.couleurGris};
   font-style: italic;
   margin-top: 15px;
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${(style.policeSignataire || style.policeTexte) === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
   text-align: ${style.alignementSignature || 'center'};
 }
 
@@ -545,7 +562,7 @@ export const CertificatsModule: React.FC = () => {
   color: ${style.couleurGris};
   font-style: italic;
   margin-top: 5px;
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${(style.policeSignataire || style.policeTexte) === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
   text-align: ${style.alignementSignature || 'center'};
 }`
   }
@@ -754,20 +771,29 @@ export const CertificatsModule: React.FC = () => {
       cachetImage: null,
       alignementSignature: 'center',
       backgroundPattern: null,
+      interligne: 1.8,
+      afficherLigneNom: true,
+      afficherIntro: true,
+      afficherCertifie: true,
+      afficherDescription: true,
+      afficherAnimateur: true,
+      afficherDateAtelier: true,
+      afficherDateEmission: true,
+      policeSignataire: 'serif',
     }
 
     // Extraire les valeurs du CSS et HTML existant
     const html = template.template_html || ''
     const css = template.styles_css || ''
     
-    // Extraire le signataire du HTML
-    const signataireMatch = html.match(/\{\{signataire\}\}/)
-    if (signataireMatch) {
-      // Chercher le texte du signataire dans le template
-      const signataireTextMatch = html.match(/signature[^>]*>([^<]+)<\/p>/)
-      if (signataireTextMatch && !signataireTextMatch[1].includes('{{')) {
-        signataire = signataireTextMatch[1].trim()
-      }
+    // Extraire le signataire du HTML (cibler signature-text ou signature pour éviter signature-image)
+    const signataireTextMatch = html.match(/class="(?:signature-text|signature)"[^>]*>([^<]+)<\/p>/)
+    if (signataireTextMatch && signataireTextMatch[1] && !signataireTextMatch[1].includes('{{')) {
+      signataire = signataireTextMatch[1].trim()
+    }
+    // Fallback: si le template contient encore le placeholder
+    if (html.includes('{{signataire}}') && signataire === 'Le Directeur') {
+      // Garder la valeur par défaut
     }
     
     // Extraire l'image de signature si présente (gérer les guillemets simples et doubles)
@@ -878,6 +904,22 @@ export const CertificatsModule: React.FC = () => {
     
     const lineMatch = css.match(/\.title-accent::after[^}]*height:\s*(\d+)px/)
     if (lineMatch) style.epaisseurLigne = parseInt(lineMatch[1])
+    
+    // Extraire interligne
+    const lineHeightMatch = css.match(/\.content[^}]*line-height:\s*([\d.]+)/)
+    if (lineHeightMatch) style.interligne = parseFloat(lineHeightMatch[1])
+    
+    // Extraire afficherLigneNom (si .nom a border-bottom: none alors false)
+    const nomBorderMatch = css.match(/\.nom\s*\{[^}]*border-bottom:\s*none/)
+    style.afficherLigneNom = !nomBorderMatch
+    
+    // Extraire visibilité des lignes depuis le HTML
+    style.afficherIntro = html.includes("Centre d'Orientation Professionnelle")
+    style.afficherCertifie = html.includes('certifie que')
+    style.afficherDescription = html.includes("participé avec succès")
+    style.afficherAnimateur = html.includes('Animé par') || html.includes('animateur')
+    style.afficherDateAtelier = html.includes('date-info') || html.includes('le {{date}}')
+    style.afficherDateEmission = html.includes('Date d\'émission') || html.includes('date_certificat')
 
     setFormData({
       nom: template.nom,
@@ -899,12 +941,21 @@ export const CertificatsModule: React.FC = () => {
       setSaving(true)
       setError(null)
 
-      // Utiliser les previews si disponibles pour le style
-      const styleForSave = {
+      // Utiliser les previews si disponibles pour le style + valeurs par défaut
+      const styleForSave: StyleConfig = {
         ...formData.style,
         backgroundImage: formData.style.backgroundImage || backgroundPreview || null,
         logoImage: formData.style.logoImage || logoPreview || null,
-        cachetImage: formData.style.cachetImage || cachetPreview || null
+        cachetImage: formData.style.cachetImage || cachetPreview || null,
+        interligne: formData.style.interligne ?? 1.8,
+        afficherLigneNom: formData.style.afficherLigneNom !== false,
+        afficherIntro: formData.style.afficherIntro !== false,
+        afficherCertifie: formData.style.afficherCertifie !== false,
+        afficherDescription: formData.style.afficherDescription !== false,
+        afficherAnimateur: formData.style.afficherAnimateur !== false,
+        afficherDateAtelier: formData.style.afficherDateAtelier !== false,
+        afficherDateEmission: formData.style.afficherDateEmission !== false,
+        policeSignataire: formData.style.policeSignataire || 'serif'
       }
       
       // Utiliser signaturePreview si disponible, sinon formData.signatureImage
@@ -1522,6 +1573,64 @@ export const CertificatsModule: React.FC = () => {
                       max="10"
                     />
                   </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-2">Police du signataire</label>
+                    <select
+                      value={formData.style.policeSignataire || 'serif'}
+                      onChange={(e) => updateStyle('policeSignataire', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="serif">Serif (élégante)</option>
+                      <option value="sans-serif">Sans-serif (moderne)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Interligne (hauteur de ligne)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.style.interligne ?? 1.8}
+                      onChange={(e) => updateStyle('interligne', parseFloat(e.target.value) || 1.8)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      min="1"
+                      max="3"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section Visibilité des lignes */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h4 className="font-semibold text-amber-900 mb-4">👁️ Affichage des éléments</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.style.afficherLigneNom !== false} onChange={(e) => updateStyle('afficherLigneNom', e.target.checked)} className="rounded" />
+                    <span className="text-sm">Ligne sous le nom</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.style.afficherIntro !== false} onChange={(e) => updateStyle('afficherIntro', e.target.checked)} className="rounded" />
+                    <span className="text-sm">Intro (COP)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.style.afficherCertifie !== false} onChange={(e) => updateStyle('afficherCertifie', e.target.checked)} className="rounded" />
+                    <span className="text-sm">« certifie que »</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.style.afficherDescription !== false} onChange={(e) => updateStyle('afficherDescription', e.target.checked)} className="rounded" />
+                    <span className="text-sm">Description atelier</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.style.afficherAnimateur !== false} onChange={(e) => updateStyle('afficherAnimateur', e.target.checked)} className="rounded" />
+                    <span className="text-sm">Ligne animateur</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.style.afficherDateAtelier !== false} onChange={(e) => updateStyle('afficherDateAtelier', e.target.checked)} className="rounded" />
+                    <span className="text-sm">Date atelier</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={formData.style.afficherDateEmission !== false} onChange={(e) => updateStyle('afficherDateEmission', e.target.checked)} className="rounded" />
+                    <span className="text-sm">Date d'émission</span>
+                  </label>
                 </div>
               </div>
 
