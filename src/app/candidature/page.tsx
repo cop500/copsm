@@ -414,12 +414,12 @@ export default function CandidaturePage() {
                       <div key={index} className="pb-8 pt-6 px-4 -mx-4 rounded-lg bg-[#F8F9FA] border border-[#0f3d6c]/8 relative last:pb-0 last:mb-0 mb-6 last:mb-0">
                         {/* Ligne de séparation décorative élégante */}
                         <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#0f3d6c]/15 to-transparent last:opacity-0"></div>
-                        <div className="flex items-start justify-between gap-6">
-                          <div className="flex-1 space-y-3">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6">
+                          <div className="flex-1 min-w-0 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                              <div className="flex-1 min-w-0">
                                 <h3 className="text-xl font-bold text-[#0f3d6c] flex items-center gap-2 mb-2">
-                                  <Building2 className="w-5 h-5 text-[#0f3d6c]" />
+                                  <Building2 className="w-5 h-5 text-[#0f3d6c] flex-shrink-0" />
                                   {demande.entreprise_nom}
                                 </h3>
                                 {demande.reference && (
@@ -452,7 +452,7 @@ export default function CandidaturePage() {
                           </div>
                           <button
                             onClick={() => handleSelectDemande(demande, index)}
-                            className="px-8 py-3 bg-[#0f3d6c] text-white rounded-lg font-semibold text-base whitespace-nowrap transition-all duration-300 hover:bg-[#0a2d52] hover:shadow-md active:bg-[#081f3a]"
+                            className="w-full md:w-auto flex-shrink-0 px-6 py-3 md:px-8 md:py-3 bg-[#0f3d6c] text-white rounded-lg font-semibold text-base whitespace-nowrap transition-all duration-300 hover:bg-[#0a2d52] hover:shadow-md active:bg-[#081f3a] flex items-center justify-center self-center md:self-start mt-2 md:mt-0"
                           >
                             Postuler
                           </button>
@@ -462,10 +462,10 @@ export default function CandidaturePage() {
                   ) : (
                     // Demandes CV simples
                     <div className="pb-8 pt-6 px-4 -mx-4 rounded-lg bg-[#F8F9FA] border border-[#0f3d6c]/8 relative">
-                      <div className="flex items-start justify-between gap-6">
-                        <div className="flex-1 space-y-3">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6">
+                        <div className="flex-1 min-w-0 space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div className="flex-1 min-w-0">
                               <h3 className="text-xl font-bold text-[#0f3d6c] flex items-center gap-2 mb-2">
                                 <Building2 className="w-5 h-5 text-[#0f3d6c]" />
                                 {demande.nom_entreprise || demande.entreprise_nom}
@@ -504,7 +504,7 @@ export default function CandidaturePage() {
                         </div>
                         <button
                           onClick={() => handleSelectDemande(demande, 0)}
-                          className="px-8 py-3 bg-[#0f3d6c] text-white rounded-lg font-semibold text-base whitespace-nowrap transition-all duration-300 hover:bg-[#0a2d52] hover:shadow-md active:bg-[#081f3a]"
+                          className="w-full md:w-auto flex-shrink-0 px-6 py-3 md:px-8 md:py-3 bg-[#0f3d6c] text-white rounded-lg font-semibold text-base whitespace-nowrap transition-all duration-300 hover:bg-[#0a2d52] hover:shadow-md active:bg-[#081f3a] flex items-center justify-center self-center md:self-start mt-2 md:mt-0"
                         >
                           Postuler
                         </button>
