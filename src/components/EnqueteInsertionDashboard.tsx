@@ -79,6 +79,7 @@ interface Stats {
   
   // Répartition
   parGenre: Record<string, number>
+  parPromotion: Record<string, number>
   parPole: Record<string, number>
   parFiliere: Record<string, number>
   
@@ -113,6 +114,7 @@ export default function EnqueteInsertionDashboard() {
     pole: '',
     filiere: '',
     genre: '',
+    promotion: '',
     search: '',
     periode: 'all', // 'all', 'month', 'year'
   })
@@ -229,6 +231,12 @@ export default function EnqueteInsertionDashboard() {
       return acc
     }, {} as Record<string, number>)
 
+    const parPromotion = data.reduce((acc, r) => {
+      const p = r.promotion || 'Non spécifié'
+      acc[p] = (acc[p] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
     // Situations combinées
     const etudesEtActivite = data.filter(r => r.poursuite_etudes && r.en_activite).length
     const etudesSeulement = data.filter(r => r.poursuite_etudes && !r.en_activite).length
@@ -251,6 +259,7 @@ export default function EnqueteInsertionDashboard() {
       postes,
       typesStage,
       parGenre,
+      parPromotion,
       parPole,
       parFiliere,
       etudesEtActivite,
@@ -284,6 +293,9 @@ export default function EnqueteInsertionDashboard() {
     }
     if (filters.genre) {
       filtered = filtered.filter(r => r.genre === filters.genre)
+    }
+    if (filters.promotion) {
+      filtered = filtered.filter(r => r.promotion === filters.promotion)
     }
     if (filters.search) {
       const search = filters.search.toLowerCase()
@@ -432,6 +444,15 @@ export default function EnqueteInsertionDashboard() {
     name: name.charAt(0).toUpperCase() + name.slice(1),
     value,
   }))
+
+  const promotionLabels: Record<string, string> = {
+    '2022-2024': 'Promotion 2022-2024 (janv. 2025)',
+    '2023-2025': 'Promotion 2023-2025 (janv. 2026)',
+    '2024-2026': 'Promotion 2024-2026 (janv. 2027)',
+  }
+  const parPromotionData = Object.entries(stats?.parPromotion ?? {})
+    .map(([key, value]) => ({ name: promotionLabels[key] || key, value }))
+    .sort((a, b) => b.value - a.value)
 
   const totalPages = Math.ceil(filteredReponses.length / itemsPerPage)
   const paginatedReponses = filteredReponses.slice(
@@ -780,6 +801,30 @@ export default function EnqueteInsertionDashboard() {
                   <p className="text-gray-500 text-center py-8">Aucune donnée disponible</p>
                 )}
               </div>
+
+              {/* Répartition par promotion */}
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-teal-600" />
+                  Répartition par Promotion
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Nombre de réponses par promotion (année de sortie)
+                </p>
+                {parPromotionData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={parPromotionData} margin={{ bottom: 80 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-25} textAnchor="end" height={80} tick={{ fontSize: 12 }} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill={COLORS.teal} name="Réponses" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">Aucune donnée disponible</p>
+                )}
+              </div>
             </div>
 
             {/* Top entreprises et postes */}
@@ -849,6 +894,27 @@ export default function EnqueteInsertionDashboard() {
                     <YAxis dataKey="name" type="category" width={150} />
                     <Tooltip />
                     <Bar dataKey="value" fill={COLORS.primary} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-gray-500 text-center py-8">Aucune donnée disponible</p>
+              )}
+            </div>
+
+            {/* Répartition par promotion */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-teal-600" />
+                Répartition par Promotion
+              </h3>
+              {parPromotionData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={parPromotionData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={220} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill={COLORS.teal} name="Réponses" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -992,6 +1058,16 @@ export default function EnqueteInsertionDashboard() {
                   <option value="">Tous les genres</option>
                   <option value="homme">Homme</option>
                   <option value="femme">Femme</option>
+                </select>
+                <select
+                  value={filters.promotion}
+                  onChange={(e) => setFilters({ ...filters, promotion: e.target.value })}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Toutes les promotions</option>
+                  <option value="2022-2024">2022-2024 (janv. 2025)</option>
+                  <option value="2023-2025">2023-2025 (janv. 2026)</option>
+                  <option value="2024-2026">2024-2026 (janv. 2027)</option>
                 </select>
               </div>
 
