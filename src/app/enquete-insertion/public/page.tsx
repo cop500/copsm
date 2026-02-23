@@ -13,10 +13,17 @@ export default function EnqueteInsertionPublic() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
+  const PROMOTIONS = [
+    { value: '2022-2024', label: 'Promotion 2022-2024 (janvier 2025)' },
+    { value: '2023-2025', label: 'Promotion 2023-2025 (janvier 2026)' },
+    { value: '2024-2026', label: 'Promotion 2024-2026 (janvier 2027)' },
+  ] as const
+
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
     genre: '',
+    promotion: '',
     pole_id: '',
     filiere_id: '',
     poursuite_etudes: false,
@@ -64,8 +71,8 @@ export default function EnqueteInsertionPublic() {
     try {
       const startTime = Date.now()
 
-      if (!formData.nom || !formData.prenom || !formData.genre) {
-        throw new Error('Veuillez remplir tous les champs obligatoires')
+      if (!formData.nom || !formData.prenom || !formData.genre || !formData.promotion) {
+        throw new Error('Veuillez remplir tous les champs obligatoires (nom, prénom, genre, promotion)')
       }
 
       if (!formData.pole_id || !formData.filiere_id) {
@@ -112,6 +119,7 @@ export default function EnqueteInsertionPublic() {
           nom: formData.nom,
           prenom: formData.prenom,
           genre: formData.genre,
+          promotion: formData.promotion,
           pole_id: formData.pole_id,
           pole_nom: pole?.nom,
           filiere_id: formData.filiere_id,
@@ -248,6 +256,25 @@ export default function EnqueteInsertionPublic() {
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Promotion * <span className="text-red-500">*</span>
+            </label>
+            <select
+              required
+              value={formData.promotion}
+              onChange={(e) => setFormData({ ...formData, promotion: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white text-gray-900"
+            >
+              <option value="">Sélectionner votre promotion</option>
+              {PROMOTIONS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

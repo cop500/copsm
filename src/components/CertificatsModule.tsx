@@ -1,12 +1,54 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRole } from '@/hooks/useRole'
 import { 
   FileText, Plus, Edit2, Trash2, Check, X, 
-  RefreshCw, Save, AlertCircle, CheckCircle2, Upload, Image as ImageIcon
+  RefreshCw, Save, AlertCircle, CheckCircle2, Upload, Image as ImageIcon,
+  ChevronDown, ChevronRight, ZoomIn, ZoomOut, Maximize2
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+
+// Polices disponibles pour les certificats (compatibles PDF)
+const FONT_OPTIONS: { value: string; label: string; preview: string }[] = [
+  { value: 'georgia', label: 'Georgia (Serif élégante)', preview: 'Aa' },
+  { value: 'times', label: 'Times New Roman (Classique)', preview: 'Aa' },
+  { value: 'palatino', label: 'Palatino (Serif raffinée)', preview: 'Aa' },
+  { value: 'arial', label: 'Arial (Sans-serif moderne)', preview: 'Aa' },
+  { value: 'helvetica', label: 'Helvetica (Sans-serif épurée)', preview: 'Aa' },
+  { value: 'verdana', label: 'Verdana (Lisible)', preview: 'Aa' },
+  { value: 'trebuchet', label: 'Trebuchet MS (Contemporaine)', preview: 'Aa' },
+  { value: 'courier', label: 'Courier New (Monospace)', preview: 'Aa' },
+  { value: 'impact', label: 'Impact (Display fort)', preview: 'Aa' },
+]
+
+const FONT_FAMILY_MAP: Record<string, string> = {
+  georgia: "'Georgia', 'Times New Roman', serif",
+  times: "'Times New Roman', Times, serif",
+  palatino: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+  arial: "'Arial', 'Helvetica Neue', Helvetica, sans-serif",
+  helvetica: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  verdana: "Verdana, Geneva, sans-serif",
+  trebuchet: "'Trebuchet MS', 'Helvetica Neue', sans-serif",
+  courier: "'Courier New', Courier, monospace",
+  impact: "Impact, 'Charcoal', sans-serif",
+}
+
+// Mapper font-family CSS vers nos clés (pour édition de templates existants)
+const parseFontFromCSS = (fontFamily: string): string => {
+  if (!fontFamily) return 'arial'
+  const s = fontFamily.toLowerCase()
+  if (s.includes('georgia')) return 'georgia'
+  if (s.includes('times')) return 'times'
+  if (s.includes('palatino') || s.includes('book antiqua')) return 'palatino'
+  if (s.includes('impact')) return 'impact'
+  if (s.includes('courier')) return 'courier'
+  if (s.includes('verdana')) return 'verdana'
+  if (s.includes('trebuchet')) return 'trebuchet'
+  if (s.includes('helvetica')) return 'helvetica'
+  if (s.includes('arial')) return 'arial'
+  return 'arial'
+}
 
 interface CertificatTemplate {
   id: string
@@ -48,8 +90,10 @@ interface StyleConfig {
   hauteurBordureHaut: number
   hauteurBordureBas: number
   espacementLettre: number // Letter spacing pour le titre
-  policeTitre: string // 'serif' ou 'sans-serif'
+  policeTitre: string // georgia, times, arial, impact, etc.
   policeTexte: string
+  policeNom: string
+  policeAtelier: string
   numeroCertificat: string | null
   logoImage: string | null
   cachetImage: string | null
@@ -64,7 +108,7 @@ interface StyleConfig {
   afficherAnimateur: boolean // "Animé par"
   afficherDateAtelier: boolean // "le {{date}}"
   afficherDateEmission: boolean // "Date d'émission"
-  policeSignataire: string // 'serif' | 'sans-serif'
+  policeSignataire: string
 }
 
 export const CertificatsModule: React.FC = () => {
@@ -115,8 +159,10 @@ export const CertificatsModule: React.FC = () => {
       hauteurBordureHaut: 6,
       hauteurBordureBas: 6,
       espacementLettre: 4,
-      policeTitre: 'serif',
-      policeTexte: 'sans-serif',
+      policeTitre: 'georgia',
+      policeTexte: 'arial',
+      policeNom: 'georgia',
+      policeAtelier: 'arial',
       numeroCertificat: null,
       logoImage: null,
       cachetImage: null,
@@ -130,7 +176,7 @@ export const CertificatsModule: React.FC = () => {
       afficherAnimateur: true,
       afficherDateAtelier: true,
       afficherDateEmission: true,
-      policeSignataire: 'serif',
+      policeSignataire: 'georgia',
     }
   })
 
@@ -142,6 +188,50 @@ export const CertificatsModule: React.FC = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [uploadingCachet, setUploadingCachet] = useState(false)
   const [cachetPreview, setCachetPreview] = useState<string | null>(null)
+  const CERT_PREVIEW_W = 1122
+  const CERT_PREVIEW_H = 794
+  const [previewScale, setPreviewScale] = useState(0.9)
+  const [previewFitToScreen, setPreviewFitToScreen] = useState(true)
+  const [previewContainerSize, setPreviewContainerSize] = useState({ w: 400, h: 500 })
+  const previewContainerRef = useRef<HTMLDivElement>(null)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    general: true,
+    fond: true,
+    couleurs: true,
+    typographie: true,
+    espacements: true,
+    bordures: true,
+    elements: true,
+    medias: true,
+  })
+
+  const toggleSection = (key: string) => {
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  // Mesurer le conteneur de prévisualisation pour affichage "comme à l'impression"
+  useEffect(() => {
+    const el = previewContainerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      if (el.offsetWidth && el.offsetHeight) {
+        setPreviewContainerSize({ w: el.offsetWidth, h: el.offsetHeight })
+      }
+    })
+    ro.observe(el)
+    setPreviewContainerSize({ w: el.offsetWidth || 400, h: el.offsetHeight || 500 })
+    return () => ro.disconnect()
+  }, [showCreateForm])
+
+  const previewScaleToUse = useMemo(() => {
+    if (!previewFitToScreen) return previewScale
+    const pad = 24
+    const maxW = previewContainerSize.w - pad
+    const maxH = previewContainerSize.h - pad
+    const scaleW = maxW / CERT_PREVIEW_W
+    const scaleH = maxH / CERT_PREVIEW_H
+    return Math.min(scaleW, scaleH, 1.2)
+  }, [previewFitToScreen, previewScale, previewContainerSize.w, previewContainerSize.h])
 
   // Données de prévisualisation
   const previewData = {
@@ -258,6 +348,8 @@ export const CertificatsModule: React.FC = () => {
   </div>
 </div>`
   }
+
+  const getFontFamily = (key: string) => FONT_FAMILY_MAP[key] || FONT_FAMILY_MAP.arial
 
   // Générer le CSS à partir des paramètres de style
   const generateCSS = (style: StyleConfig) => {
@@ -402,7 +494,7 @@ export const CertificatsModule: React.FC = () => {
   left: ${(style.largeurBordureGauche || style.epaisseurBordure) + 20}px;
   font-size: ${style.tailleFooter}px;
   color: ${style.couleurGris};
-  font-family: 'Courier New', monospace;
+  font-family: ${getFontFamily('courier')};
   letter-spacing: 1px;
   margin: 0;
 }
@@ -413,7 +505,7 @@ export const CertificatsModule: React.FC = () => {
 }
 
 .header h1 {
-  font-family: ${style.policeTitre === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeTitre || 'georgia')};
   font-size: ${style.tailleTitre}px;
   font-weight: bold;
   color: ${style.couleurBleue};
@@ -434,7 +526,7 @@ export const CertificatsModule: React.FC = () => {
 }
 
 .intro {
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeTexte || 'arial')};
   font-size: ${style.tailleTexte}px;
   color: ${style.couleurGrisFonce};
   margin: 20px 0 10px 0;
@@ -443,7 +535,7 @@ export const CertificatsModule: React.FC = () => {
 }
 
 .certifie {
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeTexte || 'arial')};
   font-size: ${style.tailleTexte}px;
   color: ${style.couleurGrisFonce};
   margin: 10px 0 ${style.espacementNom}px 0;
@@ -452,7 +544,7 @@ export const CertificatsModule: React.FC = () => {
 }
 
 .description, .date-info {
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeTexte || 'arial')};
   font-size: ${style.tailleTexte}px;
   color: ${style.couleurGrisFonce};
   margin: 15px 0;
@@ -461,7 +553,7 @@ export const CertificatsModule: React.FC = () => {
 }
 
 .nom {
-  font-family: ${style.policeTitre === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeNom || style.policeTitre || 'georgia')};
   font-size: ${style.tailleNom}px;
   font-weight: bold;
   color: ${style.couleurOrange};
@@ -476,7 +568,7 @@ export const CertificatsModule: React.FC = () => {
 }
 
 .atelier {
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeAtelier || style.policeTexte || 'arial')};
   font-size: ${style.tailleAtelier}px;
   font-weight: 600;
   color: ${style.couleurBleue};
@@ -486,7 +578,7 @@ export const CertificatsModule: React.FC = () => {
 }
 
 .animateur-info {
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeTexte || 'arial')};
   font-size: ${style.tailleTexte}px;
   color: ${style.couleurGrisFonce};
   margin: 25px 0 15px 0;
@@ -508,7 +600,7 @@ export const CertificatsModule: React.FC = () => {
 
 .footer {
   margin-top: ${style.espacementFooter}px;
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeTexte || 'arial')};
   text-align: ${textAlign};
   border-top: 1px solid ${style.couleurGris}20;
   padding-top: 20px;
@@ -531,7 +623,7 @@ export const CertificatsModule: React.FC = () => {
   font-size: ${style.tailleFooter}px;
   color: ${style.couleurGris};
   margin-bottom: 20px;
-  font-family: ${style.policeTexte === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeTexte || 'arial')};
 }
 
 .signature {
@@ -539,7 +631,7 @@ export const CertificatsModule: React.FC = () => {
   color: ${style.couleurGris};
   font-style: italic;
   margin-top: 15px;
-  font-family: ${(style.policeSignataire || style.policeTexte) === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeSignataire || style.policeTexte || 'georgia')};
   text-align: ${style.alignementSignature || 'center'};
 }
 
@@ -562,7 +654,7 @@ export const CertificatsModule: React.FC = () => {
   color: ${style.couleurGris};
   font-style: italic;
   margin-top: 5px;
-  font-family: ${(style.policeSignataire || style.policeTexte) === 'serif' ? "'Georgia', 'Times New Roman', serif" : "'Arial', 'Helvetica', sans-serif"};
+  font-family: ${getFontFamily(style.policeSignataire || style.policeTexte || 'georgia')};
   text-align: ${style.alignementSignature || 'center'};
 }`
   }
@@ -627,13 +719,24 @@ export const CertificatsModule: React.FC = () => {
         hauteurBordureHaut: 6,
         hauteurBordureBas: 6,
         espacementLettre: 4,
-        policeTitre: 'serif',
-        policeTexte: 'sans-serif',
+        policeTitre: 'georgia',
+        policeTexte: 'arial',
+        policeNom: 'georgia',
+        policeAtelier: 'arial',
         numeroCertificat: null,
         logoImage: null,
         cachetImage: null,
         alignementSignature: 'center',
         backgroundPattern: null,
+        interligne: 1.8,
+        afficherLigneNom: true,
+        afficherIntro: true,
+        afficherCertifie: true,
+        afficherDescription: true,
+        afficherAnimateur: true,
+        afficherDateAtelier: true,
+        afficherDateEmission: true,
+        policeSignataire: 'georgia',
       }
     })
     setSignaturePreview(null)
@@ -764,8 +867,10 @@ export const CertificatsModule: React.FC = () => {
       hauteurBordureHaut: 6,
       hauteurBordureBas: 6,
       espacementLettre: 4,
-      policeTitre: 'serif',
-      policeTexte: 'sans-serif',
+      policeTitre: 'georgia',
+      policeTexte: 'arial',
+      policeNom: 'georgia',
+      policeAtelier: 'arial',
       numeroCertificat: null,
       logoImage: null,
       cachetImage: null,
@@ -779,7 +884,7 @@ export const CertificatsModule: React.FC = () => {
       afficherAnimateur: true,
       afficherDateAtelier: true,
       afficherDateEmission: true,
-      policeSignataire: 'serif',
+      policeSignataire: 'georgia',
     }
 
     // Extraire les valeurs du CSS et HTML existant
@@ -873,6 +978,9 @@ export const CertificatsModule: React.FC = () => {
     const titreMatch = css.match(/\.header h1[^}]*font-size:\s*(\d+)px/)
     if (titreMatch) style.tailleTitre = parseInt(titreMatch[1])
     
+    const titreFontMatch = css.match(/\.header h1[^}]*font-family:\s*([^;]+)/)
+    if (titreFontMatch) style.policeTitre = parseFontFromCSS(titreFontMatch[1])
+    
     const nomMatch = css.match(/\.nom[^}]*font-size:\s*(\d+)px/)
     if (nomMatch) style.tailleNom = parseInt(nomMatch[1])
     
@@ -881,6 +989,18 @@ export const CertificatsModule: React.FC = () => {
     
     const texteMatch = css.match(/\.intro[^}]*font-size:\s*(\d+)px/)
     if (texteMatch) style.tailleTexte = parseInt(texteMatch[1])
+    
+    const introFontMatch = css.match(/\.intro[^}]*font-family:\s*([^;]+)/)
+    if (introFontMatch) style.policeTexte = parseFontFromCSS(introFontMatch[1])
+    
+    const nomFontMatch = css.match(/\.nom[^}]*font-family:\s*([^;]+)/)
+    if (nomFontMatch) style.policeNom = parseFontFromCSS(nomFontMatch[1])
+    
+    const atelierFontMatch = css.match(/\.atelier[^}]*font-family:\s*([^;]+)/)
+    if (atelierFontMatch) style.policeAtelier = parseFontFromCSS(atelierFontMatch[1])
+    
+    const sigFontMatch = css.match(/\.signature[^}]*font-family:\s*([^;]+)/)
+    if (sigFontMatch) style.policeSignataire = parseFontFromCSS(sigFontMatch[1])
     
     const footerMatch = css.match(/\.date-emission[^}]*font-size:\s*(\d+)px/)
     if (footerMatch) style.tailleFooter = parseInt(footerMatch[1])
@@ -1174,9 +1294,9 @@ export const CertificatsModule: React.FC = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Colonne gauche : Paramètres */}
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:gap-8">
+            {/* Colonne gauche : Paramètres (2 colonnes sur xl) */}
+            <div className="xl:col-span-2 space-y-6">
               {/* Nom du template */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1193,8 +1313,16 @@ export const CertificatsModule: React.FC = () => {
 
               {/* Section Background */}
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-                <h4 className="font-semibold text-purple-900 mb-4">🖼️ Background du certificat</h4>
-                <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('fond')}
+                  className="w-full flex items-center justify-between font-semibold text-purple-900 mb-2"
+                >
+                  🖼️ Background du certificat
+                  {expandedSections.fond ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                </button>
+                {expandedSections.fond && (
+                <div className="space-y-4 pt-2">
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Couleur de fond</label>
                     <div className="flex gap-2">
@@ -1293,12 +1421,21 @@ export const CertificatsModule: React.FC = () => {
                     )}
                   </div>
                 </div>
+                )}
               </div>
 
               {/* Section Couleurs */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-4">🎨 Couleurs</h4>
-                <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('couleurs')}
+                  className="w-full flex items-center justify-between font-semibold text-blue-900 mb-2"
+                >
+                  🎨 Couleurs
+                  {expandedSections.couleurs ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                </button>
+                {expandedSections.couleurs && (
+                <div className="grid grid-cols-2 gap-4 pt-2">
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Bleu</label>
                     <div className="flex gap-2">
@@ -1368,6 +1505,7 @@ export const CertificatsModule: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                )}
               </div>
 
               {/* Section Tailles de police */}
@@ -1536,56 +1674,91 @@ export const CertificatsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Section Typographie */}
+              {/* Section Typographie - polices détaillées */}
               <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                <h4 className="font-semibold text-teal-900 mb-4">🔤 Typographie</h4>
-                <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('typographie')}
+                  className="w-full flex items-center justify-between font-semibold text-teal-900 mb-2"
+                >
+                  🔤 Typographie et polices
+                  {expandedSections.typographie ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                </button>
+                {expandedSections.typographie && (
+                <div className="grid grid-cols-2 gap-4 pt-2">
                   <div>
-                    <label className="block text-xs text-gray-600 mb-2">Police du titre</label>
+                    <label className="block text-xs text-gray-600 mb-1">Titre (CERTIFICAT DE PARTICIPATION)</label>
                     <select
-                      value={formData.style.policeTitre}
+                      value={formData.style.policeTitre || 'georgia'}
                       onChange={(e) => updateStyle('policeTitre', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                     >
-                      <option value="serif">Serif (élégante - ex: Georgia, Times)</option>
-                      <option value="sans-serif">Sans-serif (moderne - ex: Arial, Helvetica)</option>
+                      {FONT_OPTIONS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-600 mb-2">Police du texte</label>
+                    <label className="block text-xs text-gray-600 mb-1">Nom du participant</label>
                     <select
-                      value={formData.style.policeTexte}
+                      value={formData.style.policeNom || 'georgia'}
+                      onChange={(e) => updateStyle('policeNom', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    >
+                      {FONT_OPTIONS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Texte général (intro, certifie, etc.)</label>
+                    <select
+                      value={formData.style.policeTexte || 'arial'}
                       onChange={(e) => updateStyle('policeTexte', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                     >
-                      <option value="serif">Serif (élégante)</option>
-                      <option value="sans-serif">Sans-serif (propre)</option>
+                      {FONT_OPTIONS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Espacement des lettres (titre)</label>
+                    <label className="block text-xs text-gray-600 mb-1">Nom de l'atelier</label>
+                    <select
+                      value={formData.style.policeAtelier || 'arial'}
+                      onChange={(e) => updateStyle('policeAtelier', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    >
+                      {FONT_OPTIONS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Signataire (pied de page)</label>
+                    <select
+                      value={formData.style.policeSignataire || 'georgia'}
+                      onChange={(e) => updateStyle('policeSignataire', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    >
+                      {FONT_OPTIONS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Espacement lettres (titre)</label>
                     <input
                       type="number"
                       value={formData.style.espacementLettre}
                       onChange={(e) => updateStyle('espacementLettre', parseInt(e.target.value) || 4)}
                       className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                       min="0"
-                      max="10"
+                      max="12"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-2">Police du signataire</label>
-                    <select
-                      value={formData.style.policeSignataire || 'serif'}
-                      onChange={(e) => updateStyle('policeSignataire', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="serif">Serif (élégante)</option>
-                      <option value="sans-serif">Sans-serif (moderne)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Interligne (hauteur de ligne)</label>
+                  <div className="col-span-2">
+                    <label className="block text-xs text-gray-600 mb-1">Interligne (hauteur de ligne du contenu)</label>
                     <input
                       type="number"
                       step="0.1"
@@ -1597,6 +1770,7 @@ export const CertificatsModule: React.FC = () => {
                     />
                   </div>
                 </div>
+                )}
               </div>
 
               {/* Section Visibilité des lignes */}
@@ -1966,41 +2140,87 @@ export const CertificatsModule: React.FC = () => {
               </div>
             </div>
 
-            {/* Colonne droite : Prévisualisation */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Prévisualisation en temps réel (Format A4 Paysage)
-              </label>
-              <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-100 overflow-auto sticky top-6" style={{ maxHeight: 'calc(100vh - 150px)' }}>
-                <div className="flex justify-center items-center min-h-[calc(100vh-250px)]">
-                  <div className="relative">
-                    {/* Format A4 paysage : 297mm x 210mm (1122px x 794px à 96 DPI) */}
-                    <div 
-                      className="preview-container bg-white shadow-2xl"
-                      style={{ 
-                        width: '1122px',
-                        height: '794px',
-                        transform: 'scale(0.9)',
-                        transformOrigin: 'center center',
-                        margin: '0 auto',
-                        overflow: 'visible',
-                        border: '1px solid #e5e7eb'
+            {/* Colonne droite : Prévisualisation comme à l'impression (affichage total du certificat) */}
+            <div className="xl:col-span-1 xl:sticky xl:top-6">
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-semibold text-gray-800">
+                  Comme à l&apos;impression (A4 paysage)
+                </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => { setPreviewFitToScreen(true) }}
+                    className={`px-2 py-1.5 rounded text-xs font-medium border ${previewFitToScreen ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-100'}`}
+                    title="Afficher le certificat en entier"
+                  >
+                    Tout afficher
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPreviewFitToScreen(false); setPreviewScale(s => Math.max(0.25, s - 0.1)) }}
+                    className="p-1.5 rounded border border-gray-300 hover:bg-gray-100"
+                    title="Réduire"
+                  >
+                    <ZoomOut className="w-4 h-4 text-gray-600" />
+                  </button>
+                  <span className="text-xs text-gray-500 min-w-[2.5rem] text-center">
+                    {Math.round(previewScaleToUse * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setPreviewFitToScreen(false); setPreviewScale(s => Math.min(1.5, s + 0.1)) }}
+                    className="p-1.5 rounded border border-gray-300 hover:bg-gray-100"
+                    title="Agrandir"
+                  >
+                    <ZoomIn className="w-4 h-4 text-gray-600" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPreviewFitToScreen(false); setPreviewScale(1) }}
+                    className="p-1.5 rounded border border-gray-300 hover:bg-gray-100"
+                    title="Taille réelle 100%"
+                  >
+                    <Maximize2 className="w-4 h-4 text-gray-600" />
+                  </button>
+                </div>
+              </div>
+              <div
+                ref={previewContainerRef}
+                className="rounded-xl overflow-hidden bg-[#6b7280] flex items-center justify-center min-h-[420px]"
+                style={{ maxHeight: 'calc(100vh - 180px)', minHeight: '420px' }}
+              >
+                {/* Simule la feuille imprimée : marge blanche + ombre */}
+                <div
+                  className="flex items-center justify-center p-4 w-full h-full"
+                  style={{ boxSizing: 'border-box' }}
+                >
+                  <div
+                    className="bg-white shadow-2xl flex-shrink-0"
+                    style={{
+                      width: CERT_PREVIEW_W,
+                      height: CERT_PREVIEW_H,
+                      transform: `scale(${previewScaleToUse})`,
+                      transformOrigin: 'center center',
+                      boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+                    }}
+                  >
+                    <style dangerouslySetInnerHTML={{ __html: getPreviewCSS() }} />
+                    <div
+                      className="certificat-preview"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
                       }}
-                    >
-                      <style dangerouslySetInnerHTML={{ __html: getPreviewCSS() }} />
-                      <div 
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column'
-                        }}
-                        dangerouslySetInnerHTML={{ __html: getPreviewHTML() }} 
-                      />
-                    </div>
+                      dangerouslySetInnerHTML={{ __html: getPreviewHTML() }}
+                    />
                   </div>
                 </div>
               </div>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Affichage total du certificat · Format impression A4 paysage (297 × 210 mm)
+              </p>
             </div>
           </div>
         </div>

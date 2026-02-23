@@ -37,6 +37,7 @@ interface EnqueteReponse {
   nom: string
   prenom: string
   genre: string
+  promotion?: string
   pole_id: string
   pole_nom?: string
   filiere_id: string
@@ -299,7 +300,7 @@ export default function EnqueteInsertionDashboard() {
 
   const exportCSV = () => {
     const headers = [
-      'Nom', 'Prénom', 'Genre', 'Pôle', 'Filière',
+      'Nom', 'Prénom', 'Genre', 'Promotion', 'Pôle', 'Filière',
       'Poursuite études', 'Type formation', 'Option/Spécialité', 'Ville formation', 'Établissement',
       'En activité', 'Type activité', 'Entreprise', 'Poste', 'Brand activité', 'Type stage', 'Organisme',
       'Date soumission'
@@ -309,6 +310,7 @@ export default function EnqueteInsertionDashboard() {
       r.nom,
       r.prenom,
       r.genre,
+      r.promotion || '',
       r.pole_nom || '',
       r.filiere_nom || '',
       r.poursuite_etudes ? 'Oui' : 'Non',
@@ -1015,6 +1017,7 @@ export default function EnqueteInsertionDashboard() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Genre</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promotion</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pôle</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filière</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Études</th>
@@ -1032,6 +1035,9 @@ export default function EnqueteInsertionDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
                           {reponse.genre}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {reponse.promotion || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {reponse.pole_nom || '-'}
