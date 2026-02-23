@@ -102,11 +102,7 @@ export default function WhatsAppModule() {
   const [heure, setHeure] = useState('')
   const [pole, setPole] = useState('')
   const [filiere, setFiliere] = useState('')
-  const [variations, setVariations] = useState<string[]>([
-    'Merci de nous envoyer votre CV à l\'adresse indiquée.',
-    'N\'hésitez pas à nous transmettre votre CV mis à jour.',
-    'Nous restons à votre disposition pour toute information.',
-  ])
+  const [variations, setVariations] = useState<string[]>(['Merci de nous envoyer votre CV à l\'adresse indiquée.'])
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1)
   const [pastedNumbersText, setPastedNumbersText] = useState('')
   const [numberOfLots, setNumberOfLots] = useState(3)
@@ -142,8 +138,9 @@ export default function WhatsAppModule() {
       .replace(/\{\{lieu\}\}/g, lieu || '(à compléter)')
       .replace(/\{\{heure\}\}/g, heure || '(à compléter)')
     const variation = getVariation(lotIndex)
-    if (variations.length > 0 && msg.includes(variations[0])) {
-      msg = msg.replace(variations[0], variation)
+    const toReplace = variations.find((v) => v && msg.includes(v))
+    if (toReplace) {
+      msg = msg.replace(toReplace, variation)
     }
     return msg.replace(/\s+/g, ' ').trim()
   }
@@ -186,9 +183,8 @@ export default function WhatsAppModule() {
       .replace(/\{\{lieu\}\}/g, lieu || '(à compléter)')
       .replace(/\{\{heure\}\}/g, heure || '(à compléter)')
     const variation = getVariation(variationIndex)
-    if (variations.length > 0 && msg.includes(variations[0])) {
-      msg = msg.replace(variations[0], variation)
-    }
+    const toReplace = variations.find((v) => v && msg.includes(v))
+    if (toReplace) msg = msg.replace(toReplace, variation)
     return msg
   }
 
@@ -205,6 +201,7 @@ export default function WhatsAppModule() {
       const lotIndex = getLotIndex(i)
       const message = buildMessageForLot(lotIndex)
       return {
+        Lot: lotIndex + 1,
         Numéro: DEFAULT_COUNTRY_CODE + r.numero,
         Message: message,
       }
@@ -253,7 +250,7 @@ export default function WhatsAppModule() {
           >
             {step === 1 && '1. Importer l\'Excel (numéros)'}
             {step === 2 && '2. Message et répartition'}
-            {step === 3 && '3. Télécharger l\'Excel (numéro + message)'}
+            {step === 3 && '3. Générer l\'Excel (Lot, Numéro, Message)'}
           </button>
         ))}
       </div>
@@ -405,54 +402,77 @@ export default function WhatsAppModule() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-green-600" />
-              Modifier le message
+              Message
             </h3>
             <p className="text-sm text-gray-600 mb-2">
-              Personne : <code className="bg-gray-100 px-1 rounded">{VARIABLES_PERSONNE.join(' ')}</code> — Offre : <code className="bg-gray-100 px-1 rounded">{VARIABLES_OFFRE.join(' ')}</code>
+              Saisissez le message. Utilisez les variables : <code className="bg-gray-100 px-1 rounded">{VARIABLES_OFFRE.join(' ')}</code> (et optionnellement {VARIABLES_PERSONNE.join(' ')}). Une phrase du message sera remplacée par la variante selon le lot.
             </p>
             <textarea
               value={messageTemplate}
               onChange={(e) => setMessageTemplate(e.target.value)}
-              rows={10}
+              rows={8}
               className="w-full border border-gray-300 rounded-lg p-4 text-sm font-mono"
-              placeholder="Bonjour {{prenom}}, ..."
+              placeholder="Bonjour, Le COP vous invite à postuler..."
             />
           </div>
+
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
               <Shuffle className="w-5 h-5 text-green-600" />
-              Répartition en lots (un message par lot)
+              Variantes (une par lot)
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Les numéros sont répartis en lots. Chaque lot reçoit une variation du message (rotation 1, 2, 3…). Cela limite le risque de blocage WhatsApp.
+            <p className="text-sm text-gray-600 mb-3">
+              Chaque lot reçoit une variante différente. Ajoutez des variantes puis cliquez sur <strong>Variante</strong> pour en ajouter une autre. La première phrase du message qui correspond à la variante 1 sera remplacée par la variante du lot.
             </p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de lots</label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={numberOfLots}
-                onChange={(e) => setNumberOfLots(Math.max(1, Math.min(20, parseInt(e.target.value, 10) || 1)))}
-                className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
-              <p className="text-xs text-gray-500 mt-1">Répartition : lot 1, 2, …, {numberOfLots}, puis répété.</p>
-            </div>
-            <div className="space-y-2">
+            <div className="space-y-2 mb-3">
               {variations.map((v, i) => (
-                <input
-                  key={i}
-                  value={v}
-                  onChange={(e) => {
-                    const next = [...variations]
-                    next[i] = e.target.value
-                    setVariations(next)
-                  }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  placeholder={`Variation ${i + 1}`}
-                />
+                <div key={i} className="flex gap-2 items-center">
+                  <input
+                    value={v}
+                    onChange={(e) => {
+                      const next = [...variations]
+                      next[i] = e.target.value
+                      setVariations(next)
+                    }}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    placeholder={`Variante ${i + 1}`}
+                  />
+                  {variations.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setVariations(variations.filter((_, j) => j !== i))}
+                      className="text-red-600 hover:underline text-sm"
+                    >
+                      Supprimer
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => setVariations([...variations, ''])}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+            >
+              <Shuffle className="w-4 h-4" />
+              Ajouter une variante
+            </button>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Répartition en lots</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Les numéros sont répartis en lots (rotation 1, 2, …, {numberOfLots}). Chaque lot reçoit une variante du message.
+            </p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de lots</label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={numberOfLots}
+              onChange={(e) => setNumberOfLots(Math.max(1, Math.min(20, parseInt(e.target.value, 10) || 1)))}
+              className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            />
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -489,16 +509,16 @@ export default function WhatsAppModule() {
         </div>
       )}
 
-      {/* Étape 3: Télécharger l'Excel (numéro + message) */}
+      {/* Étape 3: Génération Excel (Lot, Numéro, Message) */}
       {activeStep === 3 && (
         <div className="space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5 text-green-600" />
-              Fichier Excel prêt pour l&apos;envoi
+              Génération du fichier Excel
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              L&apos;Excel contient pour chaque ligne : <strong>Numéro</strong> et <strong>Message</strong> (le message exact à envoyer à ce numéro, déjà personnalisé et varié). Chaque lot de numéros reçoit une variation différente pour éviter le blocage.
+              L&apos;Excel contient <strong>3 colonnes</strong> : <strong>Lot</strong>, <strong>Numéro</strong>, <strong>Message</strong>. Vous pouvez copier-coller le message par lot dans WhatsApp Sender.
             </p>
             <button
               onClick={exportExcel}
@@ -506,14 +526,14 @@ export default function WhatsAppModule() {
               className="inline-flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="w-5 h-5" />
-              Télécharger l&apos;Excel (numéro + message)
+              Télécharger l&apos;Excel (Lot, Numéro, Message)
             </button>
           </div>
 
           <div className="bg-green-50 border border-green-200 rounded-xl p-4">
             <p className="text-sm text-green-900 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Importez cet Excel dans <strong>Premium Sender</strong> et paramétrez le temps entre les envois dans l&apos;outil (délai recommandé pour éviter le blocage du numéro).</span>
+              <span>Importez cet Excel dans <strong>WhatsApp Sender</strong> : colonne Lot, Numéro et le texte du message à copier-coller.</span>
             </p>
           </div>
         </div>
