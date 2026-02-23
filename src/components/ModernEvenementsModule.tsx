@@ -1317,7 +1317,7 @@ export const ModernEvenementsModule = () => {
                 Certificats
               </button>
             )}
-            {(stableIsAdmin || isAdmin) && (
+            {(stableIsAdmin || isAdmin || stableIsConseillerCop) && (
               <button
                 onClick={() => setActiveTab('whatsapp')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${

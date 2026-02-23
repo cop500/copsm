@@ -88,7 +88,7 @@ function parseExcelFile(file: File, countryCode: string): Promise<WhatsAppRecipi
 }
 
 export default function WhatsAppModule() {
-  const { isAdmin } = useRole()
+  const { isAdmin, isConseiller } = useRole()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [recipientsFromExcel, setRecipientsFromExcel] = useState<WhatsAppRecipient[] | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -212,12 +212,12 @@ export default function WhatsAppModule() {
     XLSX.writeFile(wb, `COP_WhatsApp_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !isConseiller) {
     return (
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-gray-900 mb-2">Accès refusé</h2>
-        <p className="text-gray-600">Cette fonctionnalité est réservée aux administrateurs.</p>
+        <p className="text-gray-600">Cette fonctionnalité est réservée aux administrateurs et conseillers COP.</p>
       </div>
     )
   }
