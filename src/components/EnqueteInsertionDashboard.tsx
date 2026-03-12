@@ -311,30 +311,31 @@ export default function EnqueteInsertionDashboard() {
   }, [reponses, filters])
 
   const exportCSV = () => {
+    // Noms de colonnes sans accents pour éviter les problèmes d'encodage dans Excel
     const headers = [
-      'ID réponse',
-      'Date de soumission',
+      'ID_reponse',
+      'Date_soumission',
       'Nom',
-      'Prénom',
+      'Prenom',
       'Genre',
       'Promotion',
-      'Pôle (id)',
-      'Pôle',
-      'Filière (id)',
-      'Filière',
-      'Poursuite études (Oui/Non)',
-      'Type de formation',
-      'Option / Spécialité',
-      'Ville de formation',
-      'Établissement',
-      'En activité (Oui/Non)',
-      'Situation globale (Études / Activité)',
-      'Type d’activité',
+      'Pole_id',
+      'Pole',
+      'Filiere_id',
+      'Filiere',
+      'Poursuite_etudes_Oui_Non',
+      'Type_formation',
+      'Option_Specialite',
+      'Ville_formation',
+      'Etablissement',
+      'En_activite_Oui_Non',
+      'Situation_globale',
+      'Type_activite',
       'Entreprise',
-      'Poste occupé',
-      'Secteur / branche d’activité',
-      'Type de stage',
-      'Organisme de stage',
+      'Poste_occupe',
+      'Secteur_branche_activite',
+      'Type_stage',
+      'Organisme_stage',
     ]
 
     const rows = filteredReponses.map(r => {
@@ -376,9 +377,14 @@ export default function EnqueteInsertionDashboard() {
       ]
     })
 
-    const csv = [headers, ...rows].map(row =>
-      row.map(cell => `"${(cell ?? '').toString().replace(/"/g, '""')}"`).join(',')
+    // Utiliser le point-virgule comme séparateur (plus compatible avec Excel FR)
+    const body = [headers, ...rows].map(row =>
+      row.map(cell => `"${(cell ?? '').toString().replace(/"/g, '""')}"`).join(';')
     ).join('\n')
+
+    // Préfixer avec BOM pour forcer l'ouverture en UTF-8 dans Excel
+    const csv = '\uFEFF' + body
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
