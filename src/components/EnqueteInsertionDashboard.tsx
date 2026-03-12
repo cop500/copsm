@@ -312,35 +312,73 @@ export default function EnqueteInsertionDashboard() {
 
   const exportCSV = () => {
     const headers = [
-      'Nom', 'Prénom', 'Genre', 'Promotion', 'Pôle', 'Filière',
-      'Poursuite études', 'Type formation', 'Option/Spécialité', 'Ville formation', 'Établissement',
-      'En activité', 'Type activité', 'Entreprise', 'Poste', 'Brand activité', 'Type stage', 'Organisme',
-      'Date soumission'
+      'ID réponse',
+      'Date de soumission',
+      'Nom',
+      'Prénom',
+      'Genre',
+      'Promotion',
+      'Pôle (id)',
+      'Pôle',
+      'Filière (id)',
+      'Filière',
+      'Poursuite études (Oui/Non)',
+      'Type de formation',
+      'Option / Spécialité',
+      'Ville de formation',
+      'Établissement',
+      'En activité (Oui/Non)',
+      'Situation globale (Études / Activité)',
+      'Type d’activité',
+      'Entreprise',
+      'Poste occupé',
+      'Secteur / branche d’activité',
+      'Type de stage',
+      'Organisme de stage',
     ]
-    
-    const rows = filteredReponses.map(r => [
-      r.nom,
-      r.prenom,
-      r.genre,
-      r.promotion || '',
-      r.pole_nom || '',
-      r.filiere_nom || '',
-      r.poursuite_etudes ? 'Oui' : 'Non',
-      r.type_formation || '',
-      r.option_specialite || '',
-      r.ville_formation || '',
-      r.etablissement || '',
-      r.en_activite ? 'Oui' : 'Non',
-      r.type_activite || '',
-      r.entreprise_nom || '',
-      r.poste_occupe || '',
-      r.brand_activite || '',
-      r.type_stage || '',
-      r.organisme_nom || '',
-      new Date(r.date_soumission).toLocaleDateString('fr-FR'),
-    ])
 
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
+    const rows = filteredReponses.map(r => {
+      let situationGlobale = ''
+      if (r.poursuite_etudes && r.en_activite) {
+        situationGlobale = 'Études + activité'
+      } else if (r.poursuite_etudes && !r.en_activite) {
+        situationGlobale = 'Études uniquement'
+      } else if (!r.poursuite_etudes && r.en_activite) {
+        situationGlobale = 'Activité uniquement'
+      } else {
+        situationGlobale = 'Ni études ni activité'
+      }
+
+      return [
+        r.id,
+        new Date(r.date_soumission).toLocaleString('fr-FR'),
+        r.nom,
+        r.prenom,
+        r.genre,
+        r.promotion || '',
+        r.pole_id,
+        r.pole_nom || '',
+        r.filiere_id,
+        r.filiere_nom || '',
+        r.poursuite_etudes ? 'Oui' : 'Non',
+        r.type_formation || '',
+        r.option_specialite || '',
+        r.ville_formation || '',
+        r.etablissement || '',
+        r.en_activite ? 'Oui' : 'Non',
+        situationGlobale,
+        r.type_activite || '',
+        r.entreprise_nom || '',
+        r.poste_occupe || '',
+        r.brand_activite || '',
+        r.type_stage || '',
+        r.organisme_nom || '',
+      ]
+    })
+
+    const csv = [headers, ...rows].map(row =>
+      row.map(cell => `"${(cell ?? '').toString().replace(/"/g, '""')}"`).join(',')
+    ).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
