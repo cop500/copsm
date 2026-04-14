@@ -54,6 +54,7 @@ interface DemandesFoldersProps {
   onUpdateStatut: (candidatureId: string, newStatut: string, notes?: string) => Promise<{success: boolean}>
   onDeleteCandidature: (candidatureId: string) => Promise<{success: boolean}>
   isAdmin?: boolean
+  canDownloadAllCVs?: boolean
 }
 
 export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
@@ -62,7 +63,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   onSelectDemande,
   onUpdateStatut,
   onDeleteCandidature,
-  isAdmin = false
+  isAdmin = false,
+  canDownloadAllCVs = false
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [expandedPostes, setExpandedPostes] = useState<Set<string>>(new Set())
@@ -468,7 +470,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       <FileSpreadsheet className="w-5 h-5" />
                     </button>
                   )}
-                  {isAdmin && demande.candidatures && demande.candidatures.some(c => c.cv_url) && (
+                  {canDownloadAllCVs && demande.candidatures && demande.candidatures.some(c => c.cv_url) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()

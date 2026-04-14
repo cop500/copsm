@@ -48,6 +48,7 @@ export default function StagiairesPage() {
   
   // Vérifier si l'utilisateur est business_developer (admin)
   const isAdmin = profile?.role === 'business_developer'
+  const canDownloadAllDemandesCV = isAdmin || profile?.role === 'conseillere_carriere'
   
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState('candidatures')
@@ -1346,6 +1347,7 @@ export default function StagiairesPage() {
               onUpdateStatut={updateStatutDemande}
               onDeleteCandidature={deleteCandidatureDemande}
               isAdmin={isAdmin}
+              canDownloadAllCVs={canDownloadAllDemandesCV}
             />
           </div>
         )}
