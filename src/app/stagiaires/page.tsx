@@ -52,6 +52,8 @@ export default function StagiairesPage() {
   
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState('candidatures')
+  const [showAcceptedInMainList, setShowAcceptedInMainList] = useState(false)
+  const [showAcceptedArchive, setShowAcceptedArchive] = useState(false)
   
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
@@ -86,8 +88,6 @@ export default function StagiairesPage() {
   const [posteFilter, setPosteFilter] = useState('')
   const [poleFilter, setPoleFilter] = useState('')
   const [filiereFilter, setFiliereFilter] = useState('')
-  const [showAcceptedInMainList, setShowAcceptedInMainList] = useState(false)
-  const [showAcceptedArchive, setShowAcceptedArchive] = useState(false)
   const [selectedCandidature, setSelectedCandidature] = useState<any>(null)
   const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
   const [candidatureNotes, setCandidatureNotes] = useState('')
