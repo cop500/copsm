@@ -63,6 +63,20 @@ export default function StagiairesPage() {
       setActiveTab('candidatures')
     }
   }, [isAdmin, isDirecteur, activeTab])
+
+  // Conserver le mode d'affichage des candidatures acceptées pendant toute la session
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+    const saved = window.sessionStorage.getItem('stagiaires_showAcceptedInMainList')
+    if (saved !== null) {
+      setShowAcceptedInMainList(saved === 'true')
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.sessionStorage.setItem('stagiaires_showAcceptedInMainList', String(showAcceptedInMainList))
+  }, [showAcceptedInMainList])
   
   // États pour les filtres et actions
   const [candidatureFilter, setCandidatureFilter] = useState('tous')
@@ -701,14 +715,21 @@ export default function StagiairesPage() {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowAcceptedInMainList((prev) => !prev)}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm border transition-colors ${
                 showAcceptedInMainList
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                  : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
               }`}
-              title="Afficher ou masquer les candidatures acceptées dans la liste principale"
+              title="Le choix est conservé pendant votre session"
             >
-              {showAcceptedInMainList ? 'Masquer les acceptées' : 'Afficher les acceptées'}
+              {showAcceptedInMainList ? (
+                <Eye className="w-4 h-4" />
+              ) : (
+                <EyeOff className="w-4 h-4" />
+              )}
+              <span className="font-medium">
+                {showAcceptedInMainList ? 'Acceptées affichées' : 'Acceptées masquées'}
+              </span>
             </button>
             <button
               onClick={() => {
