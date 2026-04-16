@@ -72,6 +72,8 @@ export default function StagiairesPage() {
   const [posteFilter, setPosteFilter] = useState('')
   const [poleFilter, setPoleFilter] = useState('')
   const [filiereFilter, setFiliereFilter] = useState('')
+  const [showAcceptedInMainList, setShowAcceptedInMainList] = useState(false)
+  const [showAcceptedArchive, setShowAcceptedArchive] = useState(false)
   const [selectedCandidature, setSelectedCandidature] = useState<any>(null)
   const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
   const [candidatureNotes, setCandidatureNotes] = useState('')
@@ -348,7 +350,7 @@ export default function StagiairesPage() {
   }
 
   // Filtrage des candidatures
-  const filteredCandidatures = candidaturesStagiaires.filter(candidature => {
+  const baseFilteredCandidatures = candidaturesStagiaires.filter(candidature => {
     const matchesSearch = candidatureSearch === '' || 
       candidature.entreprise_nom.toLowerCase().includes(candidatureSearch.toLowerCase()) ||
       candidature.poste.toLowerCase().includes(candidatureSearch.toLowerCase()) ||
@@ -381,6 +383,17 @@ export default function StagiairesPage() {
 
     return matchesSearch && matchesFilter && matchesEntreprise && matchesDate && matchesPoste && matchesPole && matchesFiliere
   })
+
+  const filteredCandidatures = baseFilteredCandidatures.filter((candidature) => {
+    if (showAcceptedInMainList) return true
+    // En mode "Tous les statuts", on masque les candidatures déjà acceptées.
+    if (candidatureFilter === 'tous') return candidature.statut_candidature !== 'acceptee'
+    return true
+  })
+
+  const acceptedArchiveCandidatures = baseFilteredCandidatures.filter(
+    (candidature) => candidature.statut_candidature === 'acceptee'
+  )
 
   // Filtres pour les filières selon le pôle sélectionné
   const filteredFilieres = filieres.filter(f => f.pole_id === poleFilter)
@@ -687,6 +700,17 @@ export default function StagiairesPage() {
           </div>
           <div className="flex items-center space-x-2">
             <button
+              onClick={() => setShowAcceptedInMainList((prev) => !prev)}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                showAcceptedInMainList
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              title="Afficher ou masquer les candidatures acceptées dans la liste principale"
+            >
+              {showAcceptedInMainList ? 'Masquer les acceptées' : 'Afficher les acceptées'}
+            </button>
+            <button
               onClick={() => {
                 refreshCandidatures()
                 clearNewCandidatureCount()
@@ -716,7 +740,13 @@ export default function StagiairesPage() {
             <div className="p-8 text-center text-gray-500">
               <Send className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>Aucune candidature trouvée</p>
-              <p className="text-sm mt-2">Ajustez vos filtres pour voir plus de résultats</p>
+              {acceptedArchiveCandidatures.length > 0 && !showAcceptedInMainList && candidatureFilter === 'tous' ? (
+                <p className="text-sm mt-2">
+                  {acceptedArchiveCandidatures.length} candidature(s) acceptée(s) sont masquées dans la liste principale.
+                </p>
+              ) : (
+                <p className="text-sm mt-2">Ajustez vos filtres pour voir plus de résultats</p>
+              )}
                 </div>
               ) : (
             filteredCandidatures.map((candidature) => {
@@ -938,6 +968,66 @@ export default function StagiairesPage() {
              )}
            </div>
          </div>
+
+        {!showAcceptedInMainList && acceptedArchiveCandidatures.length > 0 && (
+          <div className="mt-6 bg-white rounded-lg shadow-sm border border-green-200">
+            <div className="p-4 border-b border-green-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-md font-semibold text-green-800">
+                  Candidatures acceptées (archive) ({acceptedArchiveCandidatures.length})
+                </h3>
+                <p className="text-xs text-green-700 mt-1">
+                  Ces candidatures sont masquées de la liste principale pour faciliter le traitement.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAcceptedArchive((prev) => !prev)}
+                className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm hover:bg-green-200"
+              >
+                {showAcceptedArchive ? 'Masquer' : 'Afficher'}
+              </button>
+            </div>
+            {showAcceptedArchive && (
+              <div className="divide-y divide-gray-100">
+                {acceptedArchiveCandidatures.map((candidature) => (
+                  <div key={`archive-${candidature.id}`} className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {candidature.nom} {candidature.prenom} - {candidature.entreprise_nom}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Poste: {candidature.poste} | Reçue le {new Date(candidature.created_at).toLocaleDateString('fr-FR')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleCandidatureDetail(candidature)}
+                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                      >
+                        Détails
+                      </button>
+                      {candidature.cv_url && (
+                        <button
+                          onClick={() =>
+                            handleViewPdf(
+                              candidature.cv_url,
+                              `${candidature.nom} ${candidature.prenom}`,
+                              candidature.entreprise_nom,
+                              candidature
+                            )
+                          }
+                          className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm hover:bg-green-200"
+                        >
+                          Voir CV
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
       {/* Modal de détails de candidature */}
       {showCandidatureDetail && selectedCandidature && (
