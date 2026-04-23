@@ -25,6 +25,7 @@ import { EnqueteSatisfactionDashboard } from './EnqueteSatisfactionDashboard'
 import CalendrierCollaboratif from './CalendrierCollaboratif'
 import { AffichesModule } from './AffichesModule'
 import { CertificatsModule } from './CertificatsModule'
+import RegistreVisiteursModule from './RegistreVisiteursModule'
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -85,7 +86,7 @@ export const ModernEvenementsModule = () => {
   const [showEventDetail, setShowEventDetail] = useState(false)
   const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
-  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'planning' | 'enquete' | 'ambassadeurs' | 'satisfaction' | 'affiches' | 'certificats'>('evenements')
+  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'planning' | 'enquete' | 'ambassadeurs' | 'satisfaction' | 'affiches' | 'certificats' | 'registre-visiteurs'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
@@ -131,7 +132,7 @@ export const ModernEvenementsModule = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('cop_app_active_tab');
-      if (savedTab && ['evenements', 'ateliers', 'planning', 'enquete', 'ambassadeurs', 'satisfaction', 'affiches', 'certificats'].includes(savedTab)) {
+      if (savedTab && ['evenements', 'ateliers', 'planning', 'enquete', 'ambassadeurs', 'satisfaction', 'affiches', 'certificats', 'registre-visiteurs'].includes(savedTab)) {
         setActiveTab(savedTab as any);
       }
     }
@@ -1178,7 +1179,7 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            {!stableIsDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && (
+            {!stableIsDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && activeTab !== 'registre-visiteurs' && (
             <button
               onClick={() => {
                 if (activeTab === 'evenements') {
@@ -1316,12 +1317,25 @@ export const ModernEvenementsModule = () => {
                 Certificats
               </button>
             )}
+            {(stableIsAdmin || isAdmin) && (
+              <button
+                onClick={() => setActiveTab('registre-visiteurs')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'registre-visiteurs'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Registre des visiteurs
+              </button>
+            )}
           </nav>
         </div>
       </div>
 
       {/* Statistiques */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && activeTab !== 'registre-visiteurs' && (
         <>
           {activeTab === 'evenements' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1429,7 +1443,7 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Filtres et recherche */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && activeTab !== 'registre-visiteurs' && (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Recherche */}
@@ -1536,7 +1550,7 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Liste des éléments selon l'onglet actif */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' ? (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'satisfaction' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && activeTab !== 'registre-visiteurs' ? (
         hookLoading && evenementsData.length === 0 && ateliersData.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
@@ -2386,6 +2400,13 @@ export const ModernEvenementsModule = () => {
       {activeTab === 'certificats' && (
         <div className="p-6">
           <CertificatsModule />
+        </div>
+      )}
+
+      {/* Onglet Registre des visiteurs */}
+      {activeTab === 'registre-visiteurs' && (
+        <div className="p-6">
+          <RegistreVisiteursModule />
         </div>
       )}
 
