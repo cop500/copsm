@@ -11,6 +11,7 @@ import {
   CircleHelp,
   GraduationCap,
   ArrowRight,
+  UserRound,
 } from 'lucide-react'
 
 type TypeVisite = 'orientation' | 'entreprise' | 'autre'
@@ -53,6 +54,7 @@ const VISIT_OPTIONS = [
 export default function RegistreVisiteursPublicPage() {
   const [nom, setNom] = useState('')
   const [prenom, setPrenom] = useState('')
+  const [genre, setGenre] = useState<'homme' | 'femme' | ''>('')
   const [telephone, setTelephone] = useState('')
   const [typeVisite, setTypeVisite] = useState<TypeVisite | null>(null)
   const [poleId, setPoleId] = useState('')
@@ -84,7 +86,7 @@ export default function RegistreVisiteursPublicPage() {
     e.preventDefault()
     setError('')
 
-    if (!nom.trim() || !prenom.trim() || !normalizedPhone.trim() || !typeVisite) {
+    if (!nom.trim() || !prenom.trim() || !genre || !normalizedPhone.trim() || !typeVisite) {
       setError('Veuillez remplir les champs obligatoires.')
       return
     }
@@ -128,6 +130,7 @@ export default function RegistreVisiteursPublicPage() {
       const { error: insertError } = await supabase.from('registre_visiteurs').insert({
         nom: nom.trim(),
         prenom: prenom.trim(),
+        genre,
         telephone: normalizedPhone,
         type_visite: typeVisite,
         pole_id: typeVisite === 'orientation' ? poleId : null,
@@ -157,19 +160,19 @@ export default function RegistreVisiteursPublicPage() {
   }
 
   return (
-    <div className="min-h-screen py-10 px-4 relative overflow-hidden">
+    <div className="min-h-screen py-6 md:py-10 px-3 md:px-4 relative overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/registre des visiteurs.jpg')" }}
       />
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/16 via-blue-900/10 to-indigo-900/14" />
       <div className="absolute inset-0 bg-white/6" />
-      <div className="relative max-w-2xl mx-auto bg-white/68 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/70 p-6 md:p-8 animate-fade-slide">
-        <div className="text-center mb-7">
+      <div className="relative max-w-2xl mx-auto bg-white/68 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/70 p-4 md:p-8 animate-fade-slide">
+        <div className="text-center mb-5 md:mb-7">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-200 mb-3">
             <User className="w-6 h-6" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900">Registre des visiteurs COP</h1>
+          <h1 className="text-2xl md:text-4xl font-bold text-slate-900">Registre des visiteurs COP</h1>
         </div>
 
         <form onSubmit={submit} className="space-y-6">
@@ -198,6 +201,30 @@ export default function RegistreVisiteursPublicPage() {
           </div>
 
           <div>
+            <label className="text-sm font-semibold text-slate-700 mb-2 block">Genre</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'homme', label: 'Homme' },
+                { id: 'femme', label: 'Femme' },
+              ].map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => setGenre(g.id as 'homme' | 'femme')}
+                  className={`inline-flex items-center justify-center gap-1.5 border rounded-xl py-2.5 text-sm font-medium transition-all ${
+                    genre === g.id
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <UserRound className="w-4 h-4" />
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <label className="text-sm font-semibold text-slate-700 mb-1 block">Téléphone</label>
             <div className="relative">
               <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
@@ -212,7 +239,7 @@ export default function RegistreVisiteursPublicPage() {
 
           <div>
             <label className="text-sm font-semibold text-slate-700 mb-2 block">Objet de visite</label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {VISIT_OPTIONS.map((option) => {
                 const Icon = option.icon
                 const isActive = typeVisite === option.id

@@ -23,6 +23,7 @@ interface RegistreVisiteur {
   id: string
   nom: string
   prenom: string
+  genre?: 'homme' | 'femme' | null
   telephone: string
   type_visite: TypeVisite
   pole_nom?: string | null
@@ -105,6 +106,7 @@ export default function RegistreVisiteursModule() {
       Date: new Date(v.created_at).toLocaleString('fr-FR'),
       Nom: v.nom,
       Prenom: v.prenom,
+      Genre: v.genre || '',
       Telephone: v.telephone,
       Type_visite: TYPE_LABEL[v.type_visite],
       Pole_interet: v.pole_nom || '',
@@ -259,6 +261,7 @@ export default function RegistreVisiteursModule() {
                     {v.nom} {v.prenom}
                   </p>
                   <p className="text-sm text-gray-600 flex items-center gap-3 flex-wrap">
+                    {v.genre && <span className="capitalize">Genre: {v.genre}</span>}
                     <span className="inline-flex items-center gap-1">
                       <Phone className="w-4 h-4" />
                       {v.telephone}
