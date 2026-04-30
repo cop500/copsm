@@ -336,16 +336,22 @@ export default function DemandeEntreprisePage() {
       // 3. Envoyer la notification par email
       if (insertedData && insertedData[0]) {
         try {
-          await sendNewDemandeNotification({
-            id: insertedData[0].id,
-            nom_entreprise: form.entreprise_nom,
-            nom_contact: form.contact_nom,
-            email: form.contact_email,
-            telephone: form.contact_tel,
-            type_demande: form.evenement_type === 'jobday' ? 'Événement' : 'CV',
-            message: `Demande de ${form.evenement_type === 'jobday' ? 'Job Day' : 'CV'}`
-          });
-          console.log('✅ Email de notification envoyé avec succès');
+          // L'email ne doit jamais bloquer la validation de la demande.
+          await Promise.race([
+            sendNewDemandeNotification({
+              id: insertedData[0].id,
+              nom_entreprise: form.entreprise_nom,
+              nom_contact: form.contact_nom,
+              email: form.contact_email,
+              telephone: form.contact_tel,
+              type_demande: form.evenement_type === 'jobday' ? 'Événement' : 'CV',
+              message: `Demande de ${form.evenement_type === 'jobday' ? 'Job Day' : 'CV'}`
+            }),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("Timeout envoi email")), 8000)
+            )
+          ]);
+          console.log('✅ Email de notification traité');
         } catch (emailError) {
           console.error('⚠️ Erreur envoi email (non bloquant):', emailError);
           // On continue même si l'email échoue
