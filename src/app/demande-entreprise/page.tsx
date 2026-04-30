@@ -185,6 +185,14 @@ export default function DemandeEntreprisePage() {
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   // Gestion multi-profils optimisée
   const addProfil = useCallback(() => {
     setProfils(prev => [...prev, { ...defaultProfil }]);
@@ -296,6 +304,14 @@ export default function DemandeEntreprisePage() {
     setSending(true);
     setSuccess("");
     setErrorMsg("");
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    // Garde-fou global: ne jamais laisser l'UI bloquée indéfiniment.
+    timeoutRef.current = setTimeout(() => {
+      setSending(false);
+      setErrorMsg("Le traitement prend trop de temps. Merci de vérifier si la demande a été enregistrée puis de réessayer.");
+    }, 20000);
     let fichier_url = null;
     
     try {
@@ -335,9 +351,8 @@ export default function DemandeEntreprisePage() {
 
       // 3. Envoyer la notification par email
       if (insertedData && insertedData[0]) {
-        try {
-          // L'email ne doit jamais bloquer la validation de la demande.
-          await Promise.race([
+        // L'email ne doit jamais bloquer la validation de la demande.
+        void Promise.race([
             sendNewDemandeNotification({
               id: insertedData[0].id,
               nom_entreprise: form.entreprise_nom,
@@ -350,12 +365,13 @@ export default function DemandeEntreprisePage() {
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error("Timeout envoi email")), 8000)
             )
-          ]);
-          console.log('✅ Email de notification traité');
-        } catch (emailError) {
-          console.error('⚠️ Erreur envoi email (non bloquant):', emailError);
-          // On continue même si l'email échoue
-        }
+          ])
+          .then(() => {
+            console.log('✅ Email de notification traité');
+          })
+          .catch((emailError) => {
+            console.error('⚠️ Erreur envoi email (non bloquant):', emailError);
+          });
       }
 
       setSuccess("Votre demande a bien été envoyée !");
@@ -365,6 +381,10 @@ export default function DemandeEntreprisePage() {
     } catch (err: unknown) {
       setErrorMsg((err as Error).message || "Erreur inconnue");
     } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setSending(false);
     }
   }, [form, profils, handleReset]);
