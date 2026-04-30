@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function GET() {
   try {
-    const { data: poles, error } = await supabase
+    const db = supabaseAdmin ?? supabase
+    const { data: poles, error } = await db
       .from('poles')
       .select('*')
       .order('nom', { ascending: true })

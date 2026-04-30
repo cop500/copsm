@@ -1,6 +1,5 @@
 "use client";
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/lib/supabase';
 import { sendNewDemandeNotification } from '@/lib/email';
 
@@ -44,6 +43,17 @@ type FormData = {
   fichier: File | null;
 };
 
+type Pole = {
+  id: string;
+  nom: string;
+};
+
+type Filiere = {
+  id: string;
+  nom: string;
+  pole_id: string;
+};
+
 const defaultProfil = {
   pole_id: "",
   filiere_id: "",
@@ -75,7 +85,10 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function DemandeEntreprisePage() {
-  const { poles, filieres, loading, error } = useSettings();
+  const [poles, setPoles] = useState<Pole[]>([]);
+  const [filieres, setFilieres] = useState<Filiere[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>({
     secteur: "",
@@ -105,6 +118,40 @@ export default function DemandeEntreprisePage() {
   // Refs pour éviter les re-renders inutiles
   const formRef = useRef<HTMLFormElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Chargement dédié pour cette page (évite les dépendances inutiles)
+  useEffect(() => {
+    const loadPolesAndFilieres = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [polesRes, filieresRes] = await Promise.all([
+          fetch('/api/poles'),
+          fetch('/api/filieres'),
+        ]);
+
+        if (!polesRes.ok) {
+          throw new Error('Impossible de charger les pôles');
+        }
+        if (!filieresRes.ok) {
+          throw new Error('Impossible de charger les filières');
+        }
+
+        const polesData = await polesRes.json();
+        const filieresData = await filieresRes.json();
+
+        setPoles(Array.isArray(polesData) ? polesData : []);
+        setFilieres(Array.isArray(filieresData) ? filieresData : []);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Erreur de chargement';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPolesAndFilieres();
+  }, []);
 
   // Sauvegarde automatique dans localStorage
   useEffect(() => {
