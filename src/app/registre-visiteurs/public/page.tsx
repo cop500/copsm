@@ -12,9 +12,13 @@ import {
   GraduationCap,
   ArrowRight,
   UserRound,
+  School,
+  BadgeCheck,
 } from 'lucide-react'
 
 type TypeVisite = 'orientation' | 'entreprise' | 'autre'
+type NiveauScolaire = 'primaire' | 'college' | 'lycee' | 'bachelier' | 'universitaire'
+type NiveauSouhaite = 'technicien_specialise' | 'technicien' | 'qualification' | 'formation_qualifiante'
 
 interface Pole {
   id: string
@@ -51,11 +55,28 @@ const VISIT_OPTIONS = [
   },
 ]
 
+const NIVEAUX_SCOLAIRES: { id: NiveauScolaire; label: string }[] = [
+  { id: 'primaire', label: 'Niveau primaire' },
+  { id: 'college', label: 'Collegien' },
+  { id: 'lycee', label: 'Lyceen' },
+  { id: 'bachelier', label: 'Bachelier' },
+  { id: 'universitaire', label: 'Universitaire' },
+]
+
+const NIVEAUX_SOUHAITES: { id: NiveauSouhaite; label: string }[] = [
+  { id: 'technicien_specialise', label: 'Technicien specialise' },
+  { id: 'technicien', label: 'Technicien' },
+  { id: 'qualification', label: 'Qualification' },
+  { id: 'formation_qualifiante', label: 'Formation qualifiante' },
+]
+
 export default function RegistreVisiteursPublicPage() {
   const [nom, setNom] = useState('')
   const [prenom, setPrenom] = useState('')
   const [genre, setGenre] = useState<'homme' | 'femme' | ''>('')
   const [telephone, setTelephone] = useState('')
+  const [niveauScolaire, setNiveauScolaire] = useState<NiveauScolaire | ''>('')
+  const [niveauSouhaite, setNiveauSouhaite] = useState<NiveauSouhaite | ''>('')
   const [typeVisite, setTypeVisite] = useState<TypeVisite | null>(null)
   const [poleId, setPoleId] = useState('')
   const [motifAutre, setMotifAutre] = useState('')
@@ -80,13 +101,21 @@ export default function RegistreVisiteursPublicPage() {
   useEffect(() => {
     setConfirmDuplicate(false)
     setDuplicateWarning('')
-  }, [nom, prenom, telephone, typeVisite, poleId, motifAutre])
+  }, [nom, prenom, telephone, niveauScolaire, niveauSouhaite, typeVisite, poleId, motifAutre])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (!nom.trim() || !prenom.trim() || !genre || !normalizedPhone.trim() || !typeVisite) {
+    if (
+      !nom.trim() ||
+      !prenom.trim() ||
+      !genre ||
+      !normalizedPhone.trim() ||
+      !niveauScolaire ||
+      !niveauSouhaite ||
+      !typeVisite
+    ) {
       setError('Veuillez remplir les champs obligatoires.')
       return
     }
@@ -132,6 +161,8 @@ export default function RegistreVisiteursPublicPage() {
         prenom: prenom.trim(),
         genre,
         telephone: normalizedPhone,
+        niveau_scolaire: niveauScolaire,
+        niveau_souhaite: niveauSouhaite,
         type_visite: typeVisite,
         pole_id: typeVisite === 'orientation' ? poleId : null,
         pole_nom: typeVisite === 'orientation' ? selectedPole?.nom || null : null,
@@ -234,6 +265,48 @@ export default function RegistreVisiteursPublicPage() {
                 className="w-full border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
                 placeholder="06XXXXXXXX"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-slate-700 mb-2 block">Niveau scolaire</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {NIVEAUX_SCOLAIRES.map((niveau) => (
+                <button
+                  key={niveau.id}
+                  type="button"
+                  onClick={() => setNiveauScolaire(niveau.id)}
+                  className={`inline-flex items-center gap-2 border rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
+                    niveauScolaire === niveau.id
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <School className="w-4 h-4" />
+                  {niveau.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-slate-700 mb-2 block">Niveau souhaite</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {NIVEAUX_SOUHAITES.map((niveau) => (
+                <button
+                  key={niveau.id}
+                  type="button"
+                  onClick={() => setNiveauSouhaite(niveau.id)}
+                  className={`inline-flex items-center gap-2 border rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
+                    niveauSouhaite === niveau.id
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <BadgeCheck className="w-4 h-4" />
+                  {niveau.label}
+                </button>
+              ))}
             </div>
           </div>
 

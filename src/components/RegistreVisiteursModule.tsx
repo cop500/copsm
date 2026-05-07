@@ -14,6 +14,8 @@ import {
   CircleHelp,
   Calendar,
   Phone,
+  School,
+  BadgeCheck,
 } from 'lucide-react'
 import { BarChart, Bar, ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 
@@ -25,6 +27,13 @@ interface RegistreVisiteur {
   prenom: string
   genre?: 'homme' | 'femme' | null
   telephone: string
+  niveau_scolaire?: 'primaire' | 'college' | 'lycee' | 'bachelier' | 'universitaire' | null
+  niveau_souhaite?:
+    | 'technicien_specialise'
+    | 'technicien'
+    | 'qualification'
+    | 'formation_qualifiante'
+    | null
   type_visite: TypeVisite
   pole_nom?: string | null
   motif_autre?: string | null
@@ -35,6 +44,21 @@ const TYPE_LABEL: Record<TypeVisite, string> = {
   orientation: 'Orientation',
   entreprise: 'Entreprise',
   autre: 'Autre',
+}
+
+const NIVEAU_SCOLAIRE_LABEL: Record<NonNullable<RegistreVisiteur['niveau_scolaire']>, string> = {
+  primaire: 'Niveau primaire',
+  college: 'Collegien',
+  lycee: 'Lyceen',
+  bachelier: 'Bachelier',
+  universitaire: 'Universitaire',
+}
+
+const NIVEAU_SOUHAITE_LABEL: Record<NonNullable<RegistreVisiteur['niveau_souhaite']>, string> = {
+  technicien_specialise: 'Technicien specialise',
+  technicien: 'Technicien',
+  qualification: 'Qualification',
+  formation_qualifiante: 'Formation qualifiante',
 }
 
 export default function RegistreVisiteursModule() {
@@ -77,7 +101,9 @@ export default function RegistreVisiteursModule() {
         `${v.nom} ${v.prenom}`.toLowerCase().includes(q) ||
         v.telephone.toLowerCase().includes(q) ||
         (v.pole_nom || '').toLowerCase().includes(q) ||
-        (v.motif_autre || '').toLowerCase().includes(q)
+        (v.motif_autre || '').toLowerCase().includes(q) ||
+        (v.niveau_scolaire ? NIVEAU_SCOLAIRE_LABEL[v.niveau_scolaire].toLowerCase().includes(q) : false) ||
+        (v.niveau_souhaite ? NIVEAU_SOUHAITE_LABEL[v.niveau_souhaite].toLowerCase().includes(q) : false)
 
       const createdAt = new Date(v.created_at)
       const matchesFrom = dateFrom ? createdAt >= new Date(`${dateFrom}T00:00:00`) : true
@@ -108,6 +134,8 @@ export default function RegistreVisiteursModule() {
       Prenom: v.prenom,
       Genre: v.genre || '',
       Telephone: v.telephone,
+      Niveau_scolaire: v.niveau_scolaire ? NIVEAU_SCOLAIRE_LABEL[v.niveau_scolaire] : '',
+      Niveau_souhaite: v.niveau_souhaite ? NIVEAU_SOUHAITE_LABEL[v.niveau_souhaite] : '',
       Type_visite: TYPE_LABEL[v.type_visite],
       Pole_interet: v.pole_nom || '',
       Motif_autre: v.motif_autre || '',
@@ -262,6 +290,18 @@ export default function RegistreVisiteursModule() {
                   </p>
                   <p className="text-sm text-gray-600 flex items-center gap-3 flex-wrap">
                     {v.genre && <span className="capitalize">Genre: {v.genre}</span>}
+                    {v.niveau_scolaire && (
+                      <span className="inline-flex items-center gap-1">
+                        <School className="w-4 h-4" />
+                        Niveau scolaire: {NIVEAU_SCOLAIRE_LABEL[v.niveau_scolaire]}
+                      </span>
+                    )}
+                    {v.niveau_souhaite && (
+                      <span className="inline-flex items-center gap-1">
+                        <BadgeCheck className="w-4 h-4" />
+                        Niveau souhaite: {NIVEAU_SOUHAITE_LABEL[v.niveau_souhaite]}
+                      </span>
+                    )}
                     <span className="inline-flex items-center gap-1">
                       <Phone className="w-4 h-4" />
                       {v.telephone}
