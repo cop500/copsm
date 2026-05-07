@@ -194,14 +194,20 @@ export default function RegistreVisiteursPublicPage() {
   }
 
   return (
-    <div className="min-h-screen py-6 md:py-10 px-3 md:px-4 relative overflow-hidden">
+    <div
+      className="min-h-screen py-6 md:py-10 px-3 md:px-4 relative overflow-hidden"
+      style={{ backgroundColor: '#e2e8f0' }}
+    >
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/registre des visiteurs.jpg')" }}
+        style={{ backgroundImage: "url('/registre%20des%20visiteurs.jpg')" }}
       />
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/16 via-blue-900/10 to-indigo-900/14" />
       <div className="absolute inset-0 bg-white/6" />
-      <div className="relative max-w-2xl mx-auto bg-white/68 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/70 p-4 md:p-8 animate-fade-slide">
+      <div
+        className="relative max-w-2xl mx-auto bg-white/68 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/70 p-4 md:p-8 animate-fade-slide"
+        style={{ backgroundColor: 'rgba(255,255,255,0.92)' }}
+      >
         <div className="text-center mb-5 md:mb-7">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-200 mb-3">
             <User className="w-6 h-6" />
