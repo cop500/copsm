@@ -210,6 +210,10 @@ export default function RegistreVisiteursPublicPage() {
         </div>
 
         <form onSubmit={submit} className="space-y-6">
+          <div className="rounded-xl border border-blue-200 bg-blue-50/80 px-4 py-3 text-sm text-blue-900">
+            Vos donnees sont traitees de maniere confidentielle et utilisees uniquement pour le suivi des visites et l'amelioration des services du COP.
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-semibold text-slate-700 mb-1 block">Nom</label>
