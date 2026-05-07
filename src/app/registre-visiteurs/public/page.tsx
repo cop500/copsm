@@ -195,8 +195,8 @@ export default function RegistreVisiteursPublicPage() {
 
   return (
     <div
-      className="min-h-screen py-6 md:py-10 px-3 md:px-4 relative overflow-hidden"
-      style={{ backgroundColor: '#e2e8f0' }}
+      className="kiosk-safe min-h-screen py-6 md:py-10 px-3 md:px-4 relative overflow-hidden"
+      style={{ backgroundColor: '#e2e8f0', backgroundImage: 'linear-gradient(135deg, #e2e8f0 0%, #dbeafe 50%, #e0e7ff 100%)' }}
     >
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -205,7 +205,7 @@ export default function RegistreVisiteursPublicPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/16 via-blue-900/10 to-indigo-900/14" />
       <div className="absolute inset-0 bg-white/6" />
       <div
-        className="relative max-w-2xl mx-auto bg-white/68 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/70 p-4 md:p-8 animate-fade-slide"
+        className="relative max-w-2xl mx-auto bg-white/68 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/70 p-4 md:p-8 animate-fade-slide kiosk-card"
         style={{ backgroundColor: 'rgba(255,255,255,0.92)' }}
       >
         <div className="text-center mb-5 md:mb-7">
@@ -217,7 +217,7 @@ export default function RegistreVisiteursPublicPage() {
 
         <form onSubmit={submit} className="space-y-6">
           <div className="rounded-xl border border-blue-200 bg-blue-50/80 px-4 py-3 text-sm text-blue-900">
-            Vos donnees sont traitees de maniere confidentielle et utilisees uniquement pour le suivi des visites et l'amelioration des services du COP.
+            Vos données sont traitées de manière confidentielle et utilisées uniquement pour le suivi des visites et l'amélioration des services du COP.
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -412,6 +412,26 @@ export default function RegistreVisiteursPublicPage() {
         </form>
       </div>
       <style jsx>{`
+        .kiosk-card {
+          border-radius: 20px;
+          border: 1px solid #dbeafe;
+          box-shadow: 0 10px 30px rgba(30, 64, 175, 0.12);
+        }
+        .kiosk-safe input,
+        .kiosk-safe textarea,
+        .kiosk-safe select {
+          border: 1px solid #cbd5e1 !important;
+          border-radius: 12px !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+        }
+        .kiosk-safe button {
+          border-radius: 12px;
+        }
+        .kiosk-safe button[type='submit'] {
+          background: linear-gradient(90deg, #2563eb, #1d4ed8) !important;
+          color: white !important;
+        }
         .animate-fade-slide {
           animation: fadeSlide 350ms ease-out;
         }
