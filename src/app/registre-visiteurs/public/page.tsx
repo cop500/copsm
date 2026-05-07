@@ -112,8 +112,6 @@ export default function RegistreVisiteursPublicPage() {
       !prenom.trim() ||
       !genre ||
       !normalizedPhone.trim() ||
-      !niveauScolaire ||
-      !niveauSouhaite ||
       !typeVisite
     ) {
       setError('Veuillez remplir les champs obligatoires.')
@@ -122,6 +120,11 @@ export default function RegistreVisiteursPublicPage() {
 
     if (typeVisite === 'orientation' && !poleId) {
       setError("Veuillez choisir un pole d'interet.")
+      return
+    }
+
+    if (typeVisite === 'orientation' && (!niveauScolaire || !niveauSouhaite)) {
+      setError('Pour une visite orientation, veuillez renseigner le niveau scolaire et le niveau souhaite.')
       return
     }
 
@@ -161,8 +164,8 @@ export default function RegistreVisiteursPublicPage() {
         prenom: prenom.trim(),
         genre,
         telephone: normalizedPhone,
-        niveau_scolaire: niveauScolaire,
-        niveau_souhaite: niveauSouhaite,
+        niveau_scolaire: typeVisite === 'orientation' ? niveauScolaire || null : null,
+        niveau_souhaite: typeVisite === 'orientation' ? niveauSouhaite || null : null,
         type_visite: typeVisite,
         pole_id: typeVisite === 'orientation' ? poleId : null,
         pole_nom: typeVisite === 'orientation' ? selectedPole?.nom || null : null,
@@ -269,48 +272,6 @@ export default function RegistreVisiteursPublicPage() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700 mb-2 block">Niveau scolaire</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {NIVEAUX_SCOLAIRES.map((niveau) => (
-                <button
-                  key={niveau.id}
-                  type="button"
-                  onClick={() => setNiveauScolaire(niveau.id)}
-                  className={`inline-flex items-center gap-2 border rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
-                    niveauScolaire === niveau.id
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <School className="w-4 h-4" />
-                  {niveau.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-semibold text-slate-700 mb-2 block">Niveau souhaite</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {NIVEAUX_SOUHAITES.map((niveau) => (
-                <button
-                  key={niveau.id}
-                  type="button"
-                  onClick={() => setNiveauSouhaite(niveau.id)}
-                  className={`inline-flex items-center gap-2 border rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
-                    niveauSouhaite === niveau.id
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <BadgeCheck className="w-4 h-4" />
-                  {niveau.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
             <label className="text-sm font-semibold text-slate-700 mb-2 block">Objet de visite</label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {VISIT_OPTIONS.map((option) => {
@@ -337,6 +298,52 @@ export default function RegistreVisiteursPublicPage() {
               })}
             </div>
           </div>
+
+          {typeVisite === 'orientation' && (
+            <>
+              <div>
+                <label className="text-sm font-semibold text-slate-700 mb-2 block">Niveau scolaire</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {NIVEAUX_SCOLAIRES.map((niveau) => (
+                    <button
+                      key={niveau.id}
+                      type="button"
+                      onClick={() => setNiveauScolaire(niveau.id)}
+                      className={`inline-flex items-center gap-2 border rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
+                        niveauScolaire === niveau.id
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <School className="w-4 h-4" />
+                      {niveau.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-slate-700 mb-2 block">Niveau souhaite</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {NIVEAUX_SOUHAITES.map((niveau) => (
+                    <button
+                      key={niveau.id}
+                      type="button"
+                      onClick={() => setNiveauSouhaite(niveau.id)}
+                      className={`inline-flex items-center gap-2 border rounded-xl py-2.5 px-3 text-sm font-medium transition-all ${
+                        niveauSouhaite === niveau.id
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <BadgeCheck className="w-4 h-4" />
+                      {niveau.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           {typeVisite === 'orientation' && (
             <div>
