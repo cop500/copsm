@@ -13,7 +13,6 @@ import {
   Download,
   Eye,
   X,
-  Calendar,
   Trash2,
   ExternalLink,
   Pencil,
@@ -65,8 +64,20 @@ const STATUT_LABEL: Record<ConventionStatut, string> = {
   renouvelee: 'Renouvelée',
 }
 
+const STATUT_BADGE: Record<ConventionStatut, string> = {
+  brouillon: 'bg-slate-100 text-slate-800 border border-slate-200',
+  en_vigueur: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+  suspendue: 'bg-amber-100 text-amber-900 border border-amber-200',
+  expiree: 'bg-gray-200 text-gray-700 border border-gray-300',
+  renouvelee: 'bg-blue-100 text-blue-800 border border-blue-200',
+}
+
 function getTypeLabel(t: string): string {
   return TYPE_LABEL[t as ConventionType] ?? t
+}
+
+function getStatutLabel(s: string): string {
+  return STATUT_LABEL[s as ConventionStatut] ?? s
 }
 
 export default function PartenariatsConventionsModule() {
@@ -80,6 +91,7 @@ export default function PartenariatsConventionsModule() {
   const [showEntrepriseForm, setShowEntrepriseForm] = useState(false)
   const [editingEntrepriseId, setEditingEntrepriseId] = useState<string | null>(null)
   const [showConventionForm, setShowConventionForm] = useState(false)
+  const [editingConventionId, setEditingConventionId] = useState<string | null>(null)
   const [detailConvention, setDetailConvention] = useState<ConventionRow | null>(null)
 
   const [eNom, setENom] = useState('')
@@ -136,7 +148,8 @@ export default function PartenariatsConventionsModule() {
         q === '' ||
         nomE.includes(q) ||
         ref.includes(q) ||
-        getTypeLabel(c.type_convention).toLowerCase().includes(q)
+        getTypeLabel(c.type_convention).toLowerCase().includes(q) ||
+        getStatutLabel(c.statut).toLowerCase().includes(q)
       return matchEnt && matchQ
     })
   }, [conventions, search, filterEntrepriseId])
@@ -163,6 +176,7 @@ export default function PartenariatsConventionsModule() {
   }
 
   const resetConventionForm = () => {
+    setEditingConventionId(null)
     setCEntrepriseId(entreprises[0]?.id || '')
     setCRef('')
     setCType('stage')
@@ -172,6 +186,20 @@ export default function PartenariatsConventionsModule() {
     setCDateFin('')
     setCNotes('')
     setCFile(null)
+  }
+
+  const openEditConvention = (c: ConventionRow) => {
+    setEditingConventionId(c.id)
+    setCEntrepriseId(c.entreprise_id)
+    setCRef(c.reference_interne || '')
+    setCType((c.type_convention as ConventionType) || 'stage')
+    setCStatut((c.statut as ConventionStatut) || 'brouillon')
+    setCDateSig(c.date_signature || '')
+    setCDateDebut(c.date_debut || '')
+    setCDateFin(c.date_fin || '')
+    setCNotes(c.notes_internes || '')
+    setCFile(null)
+    setShowConventionForm(true)
   }
 
   useEffect(() => {
@@ -234,9 +262,7 @@ export default function PartenariatsConventionsModule() {
         fichier_url = pub.data.publicUrl
       }
 
-      const { data: userData } = await supabase.auth.getUser()
-
-      const { error } = await supabase.from('conventions_partenariat').insert({
+      const basePayload = {
         entreprise_id: cEntrepriseId,
         reference_interne: cRef.trim() || null,
         type_convention: cType,
@@ -245,11 +271,31 @@ export default function PartenariatsConventionsModule() {
         date_debut: cDateDebut || null,
         date_fin: cDateFin || null,
         notes_internes: cNotes.trim() || null,
-        fichier_url,
-        fichier_path,
-        created_by: userData.user?.id ?? null,
-      })
-      if (error) throw error
+        updated_at: new Date().toISOString(),
+      }
+
+      if (editingConventionId) {
+        const updatePayload: Record<string, unknown> = { ...basePayload }
+        if (fichier_url && fichier_path) {
+          updatePayload.fichier_url = fichier_url
+          updatePayload.fichier_path = fichier_path
+        }
+        const { error } = await supabase
+          .from('conventions_partenariat')
+          .update(updatePayload)
+          .eq('id', editingConventionId)
+        if (error) throw error
+      } else {
+        const { data: userData } = await supabase.auth.getUser()
+        const { error } = await supabase.from('conventions_partenariat').insert({
+          ...basePayload,
+          fichier_url,
+          fichier_path,
+          created_by: userData.user?.id ?? null,
+        })
+        if (error) throw error
+      }
+
       setShowConventionForm(false)
       resetConventionForm()
       await loadData()
@@ -288,7 +334,7 @@ export default function PartenariatsConventionsModule() {
       Entreprise: c.partenaires_entreprises?.nom || '',
       Reference: c.reference_interne || '',
       Type: getTypeLabel(c.type_convention),
-      Statut: STATUT_LABEL[c.statut],
+      Statut: getStatutLabel(c.statut),
       Date_signature: c.date_signature || '',
       Date_debut: c.date_debut || '',
       Date_fin: c.date_fin || '',
@@ -440,21 +486,41 @@ export default function PartenariatsConventionsModule() {
             <ul className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
               {filteredConventions.map((c) => (
                 <li key={c.id} className="py-2 flex justify-between gap-2 items-center">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-gray-900">{c.partenaires_entreprises?.nom || '—'}</p>
-                    <p className="text-xs text-gray-600">
-                      {getTypeLabel(c.type_convention)} · {STATUT_LABEL[c.statut]}
-                      {c.reference_interne ? ` · Ref. ${c.reference_interne}` : ''}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <span className="text-xs text-gray-600">{getTypeLabel(c.type_convention)}</span>
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          STATUT_BADGE[c.statut as ConventionStatut] ?? 'bg-gray-100 text-gray-700 border border-gray-200'
+                        }`}
+                      >
+                        {getStatutLabel(c.statut)}
+                      </span>
+                      {c.reference_interne && (
+                        <span className="text-xs text-gray-500">Ref. {c.reference_interne}</span>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setDetailConvention(c)}
-                    className="inline-flex items-center gap-1 text-blue-600 text-sm hover:underline"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Voir
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openEditConvention(c)}
+                      className="inline-flex items-center gap-1 text-gray-700 text-sm px-2 py-1 rounded-lg hover:bg-gray-100"
+                      title="Modifier"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span className="hidden sm:inline">Modifier</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDetailConvention(c)}
+                      className="inline-flex items-center gap-1 text-blue-600 text-sm px-2 py-1 rounded-lg hover:bg-blue-50"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Voir
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -528,11 +594,16 @@ export default function PartenariatsConventionsModule() {
             <button
               type="button"
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
-              onClick={() => setShowConventionForm(false)}
+              onClick={() => {
+                setShowConventionForm(false)
+                resetConventionForm()
+              }}
             >
               <X className="w-5 h-5" />
             </button>
-            <h4 className="text-lg font-semibold mb-4">Nouvelle convention</h4>
+            <h4 className="text-lg font-semibold mb-4">
+              {editingConventionId ? 'Modifier la convention' : 'Nouvelle convention'}
+            </h4>
             <form onSubmit={saveConvention} className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-gray-700">Entreprise *</label>
@@ -597,6 +668,9 @@ export default function PartenariatsConventionsModule() {
                   onChange={(e) => setCFile(e.target.files?.[0] || null)}
                   className="w-full text-sm mt-1"
                 />
+                {editingConventionId && (
+                  <p className="text-xs text-gray-500 mt-1">Laisser vide pour conserver le fichier actuel.</p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Notes internes</label>
@@ -607,7 +681,7 @@ export default function PartenariatsConventionsModule() {
                 disabled={saving || entreprises.length === 0}
                 className="w-full py-2 bg-emerald-600 text-white rounded-lg font-medium disabled:opacity-50"
               >
-                {saving ? 'Enregistrement...' : 'Enregistrer la convention'}
+                {saving ? 'Enregistrement...' : editingConventionId ? 'Mettre a jour' : 'Enregistrer la convention'}
               </button>
             </form>
           </div>
@@ -624,18 +698,33 @@ export default function PartenariatsConventionsModule() {
             >
               <X className="w-5 h-5" />
             </button>
-            <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
+            <h4 className="text-lg font-semibold mb-2 flex flex-wrap items-center gap-2">
               <FileText className="w-5 h-5 text-blue-600" />
               {detailConvention.partenaires_entreprises?.nom} — {getTypeLabel(detailConvention.type_convention)}
+              <span
+                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  STATUT_BADGE[detailConvention.statut as ConventionStatut] ?? 'bg-gray-100 text-gray-700 border border-gray-200'
+                }`}
+              >
+                {getStatutLabel(detailConvention.statut)}
+              </span>
             </h4>
             <p className="text-sm text-gray-600 mb-4 flex flex-wrap gap-3">
-              <span className="inline-flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {STATUT_LABEL[detailConvention.statut]}
-              </span>
               {detailConvention.reference_interne && <span>Ref. {detailConvention.reference_interne}</span>}
             </p>
             <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  const row = detailConvention
+                  setDetailConvention(null)
+                  openEditConvention(row)
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-800 rounded-lg text-sm hover:bg-gray-200"
+              >
+                <Pencil className="w-4 h-4" />
+                Modifier
+              </button>
               {detailConvention.fichier_url && (
                 <a
                   href={detailConvention.fichier_url}
