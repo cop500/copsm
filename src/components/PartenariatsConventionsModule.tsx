@@ -13,6 +13,7 @@ import {
   Download,
   Eye,
   X,
+  Calendar,
   Trash2,
   ExternalLink,
   Pencil,
@@ -98,6 +99,23 @@ function getTypeLabel(t: string): string {
 
 function getStatutLabel(s: string): string {
   return STATUT_LABEL[s as ConventionStatut] ?? s
+}
+
+function formatDateFr(isoDate: string): string {
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(isoDate) ? new Date(`${isoDate}T12:00:00`) : new Date(isoDate)
+  if (Number.isNaN(d.getTime())) return isoDate
+  return d.toLocaleDateString('fr-FR')
+}
+
+/** Date affichée sur la carte liste : signature > début > création */
+function getConventionListDate(c: ConventionRow): { text: string; title: string } {
+  if (c.date_signature) {
+    return { text: formatDateFr(c.date_signature), title: 'Date de signature' }
+  }
+  if (c.date_debut) {
+    return { text: formatDateFr(c.date_debut), title: 'Date de début' }
+  }
+  return { text: formatDateFr(c.created_at), title: 'Date de création' }
 }
 
 export default function PartenariatsConventionsModule() {
@@ -516,6 +534,13 @@ export default function PartenariatsConventionsModule() {
                         }`}
                       >
                         {getStatutLabel(c.statut)}
+                      </span>
+                      <span
+                        className="inline-flex items-center gap-0.5 text-xs text-gray-500"
+                        title={getConventionListDate(c).title}
+                      >
+                        <Calendar className="w-3.5 h-3.5 shrink-0 text-gray-400" aria-hidden />
+                        {getConventionListDate(c).text}
                       </span>
                       {c.reference_interne && (
                         <span className="text-xs text-gray-500">Ref. {c.reference_interne}</span>
