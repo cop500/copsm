@@ -24,7 +24,20 @@ create table if not exists public.conventions_partenariat (
   date_debut date null,
   date_fin date null,
   statut text not null default 'brouillon'
-    check (statut in ('brouillon', 'en_vigueur', 'suspendue', 'expiree', 'renouvelee')),
+    check (
+      statut in (
+        'brouillon',
+        'en_negociation',
+        'retour_entreprise',
+        'en_attente_signature',
+        'validee_cop',
+        'en_vigueur',
+        'suspendue',
+        'expiree',
+        'renouvelee',
+        'archivee'
+      )
+    ),
   fichier_url text null,
   fichier_path text null,
   notes_internes text null,

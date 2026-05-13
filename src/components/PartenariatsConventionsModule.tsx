@@ -19,7 +19,17 @@ import {
 } from 'lucide-react'
 
 type ConventionType = 'stage' | 'alternance' | 'recrutement' | 'convention_cadre' | 'autre'
-type ConventionStatut = 'brouillon' | 'en_vigueur' | 'suspendue' | 'expiree' | 'renouvelee'
+type ConventionStatut =
+  | 'brouillon'
+  | 'en_negociation'
+  | 'retour_entreprise'
+  | 'en_attente_signature'
+  | 'validee_cop'
+  | 'en_vigueur'
+  | 'suspendue'
+  | 'expiree'
+  | 'renouvelee'
+  | 'archivee'
 
 interface PartenaireEntreprise {
   id: string
@@ -58,18 +68,28 @@ const TYPE_LABEL: Record<ConventionType, string> = {
 
 const STATUT_LABEL: Record<ConventionStatut, string> = {
   brouillon: 'Brouillon',
+  en_negociation: 'En négociation',
+  retour_entreprise: 'Retour entreprise',
+  en_attente_signature: 'En attente de signature',
+  validee_cop: 'Validée COP',
   en_vigueur: 'En vigueur',
   suspendue: 'Suspendue',
   expiree: 'Expirée',
   renouvelee: 'Renouvelée',
+  archivee: 'Archivée',
 }
 
 const STATUT_BADGE: Record<ConventionStatut, string> = {
   brouillon: 'bg-slate-100 text-slate-800 border border-slate-200',
+  en_negociation: 'bg-violet-100 text-violet-900 border border-violet-200',
+  retour_entreprise: 'bg-orange-100 text-orange-900 border border-orange-200',
+  en_attente_signature: 'bg-sky-100 text-sky-900 border border-sky-200',
+  validee_cop: 'bg-teal-100 text-teal-900 border border-teal-200',
   en_vigueur: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
   suspendue: 'bg-amber-100 text-amber-900 border border-amber-200',
   expiree: 'bg-gray-200 text-gray-700 border border-gray-300',
   renouvelee: 'bg-blue-100 text-blue-800 border border-blue-200',
+  archivee: 'bg-neutral-200 text-neutral-700 border border-neutral-300',
 }
 
 function getTypeLabel(t: string): string {
