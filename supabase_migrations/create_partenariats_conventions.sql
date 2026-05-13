@@ -19,7 +19,7 @@ create table if not exists public.conventions_partenariat (
   entreprise_id uuid not null references public.partenaires_entreprises(id) on delete cascade,
   reference_interne text null,
   type_convention text not null
-    check (type_convention in ('stage', 'alternance', 'recrutement', 'autre')),
+    check (type_convention in ('stage', 'alternance', 'recrutement', 'convention_cadre', 'autre')),
   date_signature date null,
   date_debut date null,
   date_fin date null,

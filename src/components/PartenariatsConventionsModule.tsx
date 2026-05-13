@@ -16,9 +16,10 @@ import {
   Calendar,
   Trash2,
   ExternalLink,
+  Pencil,
 } from 'lucide-react'
 
-type ConventionType = 'stage' | 'alternance' | 'recrutement' | 'autre'
+type ConventionType = 'stage' | 'alternance' | 'recrutement' | 'convention_cadre' | 'autre'
 type ConventionStatut = 'brouillon' | 'en_vigueur' | 'suspendue' | 'expiree' | 'renouvelee'
 
 interface PartenaireEntreprise {
@@ -52,6 +53,7 @@ const TYPE_LABEL: Record<ConventionType, string> = {
   stage: 'Stage',
   alternance: 'Alternance',
   recrutement: 'Recrutement',
+  convention_cadre: 'Convention cadre',
   autre: 'Autre',
 }
 
@@ -63,6 +65,10 @@ const STATUT_LABEL: Record<ConventionStatut, string> = {
   renouvelee: 'Renouvelée',
 }
 
+function getTypeLabel(t: string): string {
+  return TYPE_LABEL[t as ConventionType] ?? t
+}
+
 export default function PartenariatsConventionsModule() {
   const { isAdmin } = useRole()
   const [loading, setLoading] = useState(true)
@@ -72,6 +78,7 @@ export default function PartenariatsConventionsModule() {
   const [filterEntrepriseId, setFilterEntrepriseId] = useState<string>('tous')
 
   const [showEntrepriseForm, setShowEntrepriseForm] = useState(false)
+  const [editingEntrepriseId, setEditingEntrepriseId] = useState<string | null>(null)
   const [showConventionForm, setShowConventionForm] = useState(false)
   const [detailConvention, setDetailConvention] = useState<ConventionRow | null>(null)
 
@@ -129,18 +136,30 @@ export default function PartenariatsConventionsModule() {
         q === '' ||
         nomE.includes(q) ||
         ref.includes(q) ||
-        TYPE_LABEL[c.type_convention].toLowerCase().includes(q)
+        getTypeLabel(c.type_convention).toLowerCase().includes(q)
       return matchEnt && matchQ
     })
   }, [conventions, search, filterEntrepriseId])
 
   const resetEntrepriseForm = () => {
+    setEditingEntrepriseId(null)
     setENom('')
     setESecteur('')
     setEContact('')
     setEEmail('')
     setETel('')
     setENotes('')
+  }
+
+  const openEditEntreprise = (en: PartenaireEntreprise) => {
+    setEditingEntrepriseId(en.id)
+    setENom(en.nom)
+    setESecteur(en.secteur || '')
+    setEContact(en.contact_nom || '')
+    setEEmail(en.contact_email || '')
+    setETel(en.contact_telephone || '')
+    setENotes(en.notes || '')
+    setShowEntrepriseForm(true)
   }
 
   const resetConventionForm = () => {
@@ -169,15 +188,22 @@ export default function PartenariatsConventionsModule() {
     }
     setSaving(true)
     try {
-      const { error } = await supabase.from('partenaires_entreprises').insert({
+      const payload = {
         nom: eNom.trim(),
         secteur: eSecteur.trim() || null,
         contact_nom: eContact.trim() || null,
         contact_email: eEmail.trim() || null,
         contact_telephone: eTel.trim() || null,
         notes: eNotes.trim() || null,
-      })
-      if (error) throw error
+        updated_at: new Date().toISOString(),
+      }
+      if (editingEntrepriseId) {
+        const { error } = await supabase.from('partenaires_entreprises').update(payload).eq('id', editingEntrepriseId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('partenaires_entreprises').insert(payload)
+        if (error) throw error
+      }
       setShowEntrepriseForm(false)
       resetEntrepriseForm()
       await loadData()
@@ -261,7 +287,7 @@ export default function PartenariatsConventionsModule() {
       Date_creation: new Date(c.created_at).toLocaleString('fr-FR'),
       Entreprise: c.partenaires_entreprises?.nom || '',
       Reference: c.reference_interne || '',
-      Type: TYPE_LABEL[c.type_convention],
+      Type: getTypeLabel(c.type_convention),
       Statut: STATUT_LABEL[c.statut],
       Date_signature: c.date_signature || '',
       Date_debut: c.date_debut || '',
@@ -356,14 +382,24 @@ export default function PartenariatsConventionsModule() {
                     <p className="font-medium text-gray-900">{en.nom}</p>
                     {en.secteur && <p className="text-xs text-gray-500">{en.secteur}</p>}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => deleteEntreprise(en.id, en.nom)}
-                    className="text-red-600 p-1 hover:bg-red-50 rounded"
-                    title="Supprimer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openEditEntreprise(en)}
+                      className="text-blue-600 p-1 hover:bg-blue-50 rounded"
+                      title="Modifier"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteEntreprise(en.id, en.nom)}
+                      className="text-red-600 p-1 hover:bg-red-50 rounded"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -407,7 +443,7 @@ export default function PartenariatsConventionsModule() {
                   <div>
                     <p className="font-medium text-gray-900">{c.partenaires_entreprises?.nom || '—'}</p>
                     <p className="text-xs text-gray-600">
-                      {TYPE_LABEL[c.type_convention]} · {STATUT_LABEL[c.statut]}
+                      {getTypeLabel(c.type_convention)} · {STATUT_LABEL[c.statut]}
                       {c.reference_interne ? ` · Ref. ${c.reference_interne}` : ''}
                     </p>
                   </div>
@@ -432,11 +468,16 @@ export default function PartenariatsConventionsModule() {
             <button
               type="button"
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
-              onClick={() => setShowEntrepriseForm(false)}
+              onClick={() => {
+                setShowEntrepriseForm(false)
+                resetEntrepriseForm()
+              }}
             >
               <X className="w-5 h-5" />
             </button>
-            <h4 className="text-lg font-semibold mb-4">Nouvelle entreprise partenaire</h4>
+            <h4 className="text-lg font-semibold mb-4">
+              {editingEntrepriseId ? 'Modifier l\'entreprise partenaire' : 'Nouvelle entreprise partenaire'}
+            </h4>
             <form onSubmit={saveEntreprise} className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-gray-700">Nom *</label>
@@ -474,7 +515,7 @@ export default function PartenariatsConventionsModule() {
                 disabled={saving}
                 className="w-full py-2 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
               >
-                {saving ? 'Enregistrement...' : 'Enregistrer'}
+                {saving ? 'Enregistrement...' : editingEntrepriseId ? 'Mettre a jour' : 'Enregistrer'}
               </button>
             </form>
           </div>
@@ -585,7 +626,7 @@ export default function PartenariatsConventionsModule() {
             </button>
             <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-600" />
-              {detailConvention.partenaires_entreprises?.nom} — {TYPE_LABEL[detailConvention.type_convention]}
+              {detailConvention.partenaires_entreprises?.nom} — {getTypeLabel(detailConvention.type_convention)}
             </h4>
             <p className="text-sm text-gray-600 mb-4 flex flex-wrap gap-3">
               <span className="inline-flex items-center gap-1">
