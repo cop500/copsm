@@ -1,6 +1,6 @@
 -- Partenariats CMC : entreprises et conventions (plusieurs conventions par entreprise)
--- PDF conventions (app) : upload Storage sous fiches_poste/conventions_partenariat_* (bucket fichiers),
--- même famille de chemins que demande-entreprise. Politiques Storage = supabase_migrations/storage_fichiers_partenariats_conventions.sql si besoin.
+-- PDF / fichiers : créer d’abord le bucket Storage `fichiers` → supabase_migrations/create_storage_bucket_fichiers.sql
+-- (sinon erreur « Bucket not found »). Politiques fines optionnelles : storage_fichiers_partenariats_conventions.sql
 
 create table if not exists public.partenaires_entreprises (
   id uuid primary key default gen_random_uuid(),
