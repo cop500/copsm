@@ -1,0 +1,636 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import * as XLSX from 'xlsx'
+import { supabase } from '@/lib/supabase'
+import { useRole } from '@/hooks/useRole'
+import {
+  Building2,
+  FileText,
+  Handshake,
+  Plus,
+  RefreshCw,
+  Download,
+  Eye,
+  X,
+  Calendar,
+  Trash2,
+  ExternalLink,
+} from 'lucide-react'
+
+type ConventionType = 'stage' | 'alternance' | 'recrutement' | 'autre'
+type ConventionStatut = 'brouillon' | 'en_vigueur' | 'suspendue' | 'expiree' | 'renouvelee'
+
+interface PartenaireEntreprise {
+  id: string
+  nom: string
+  secteur?: string | null
+  contact_nom?: string | null
+  contact_email?: string | null
+  contact_telephone?: string | null
+  notes?: string | null
+  created_at: string
+}
+
+interface ConventionRow {
+  id: string
+  entreprise_id: string
+  reference_interne?: string | null
+  type_convention: ConventionType
+  date_signature?: string | null
+  date_debut?: string | null
+  date_fin?: string | null
+  statut: ConventionStatut
+  fichier_url?: string | null
+  fichier_path?: string | null
+  notes_internes?: string | null
+  created_at: string
+  partenaires_entreprises?: { nom: string } | null
+}
+
+const TYPE_LABEL: Record<ConventionType, string> = {
+  stage: 'Stage',
+  alternance: 'Alternance',
+  recrutement: 'Recrutement',
+  autre: 'Autre',
+}
+
+const STATUT_LABEL: Record<ConventionStatut, string> = {
+  brouillon: 'Brouillon',
+  en_vigueur: 'En vigueur',
+  suspendue: 'Suspendue',
+  expiree: 'Expirée',
+  renouvelee: 'Renouvelée',
+}
+
+export default function PartenariatsConventionsModule() {
+  const { isAdmin } = useRole()
+  const [loading, setLoading] = useState(true)
+  const [entreprises, setEntreprises] = useState<PartenaireEntreprise[]>([])
+  const [conventions, setConventions] = useState<ConventionRow[]>([])
+  const [search, setSearch] = useState('')
+  const [filterEntrepriseId, setFilterEntrepriseId] = useState<string>('tous')
+
+  const [showEntrepriseForm, setShowEntrepriseForm] = useState(false)
+  const [showConventionForm, setShowConventionForm] = useState(false)
+  const [detailConvention, setDetailConvention] = useState<ConventionRow | null>(null)
+
+  const [eNom, setENom] = useState('')
+  const [eSecteur, setESecteur] = useState('')
+  const [eContact, setEContact] = useState('')
+  const [eEmail, setEEmail] = useState('')
+  const [eTel, setETel] = useState('')
+  const [eNotes, setENotes] = useState('')
+
+  const [cEntrepriseId, setCEntrepriseId] = useState('')
+  const [cRef, setCRef] = useState('')
+  const [cType, setCType] = useState<ConventionType>('stage')
+  const [cStatut, setCStatut] = useState<ConventionStatut>('brouillon')
+  const [cDateSig, setCDateSig] = useState('')
+  const [cDateDebut, setCDateDebut] = useState('')
+  const [cDateFin, setCDateFin] = useState('')
+  const [cNotes, setCNotes] = useState('')
+  const [cFile, setCFile] = useState<File | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [eRes, cRes] = await Promise.all([
+        supabase.from('partenaires_entreprises').select('*').order('nom'),
+        supabase
+          .from('conventions_partenariat')
+          .select('*, partenaires_entreprises ( nom )')
+          .order('created_at', { ascending: false }),
+      ])
+      if (eRes.error) throw eRes.error
+      if (cRes.error) throw cRes.error
+      setEntreprises((eRes.data as PartenaireEntreprise[]) || [])
+      setConventions((cRes.data as ConventionRow[]) || [])
+    } catch (err) {
+      console.error('Erreur chargement partenariats:', err)
+      alert('Erreur lors du chargement. Verifiez que les tables SQL ont ete creees sur Supabase.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const filteredConventions = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return conventions.filter((c) => {
+      const nomE = (c.partenaires_entreprises?.nom || '').toLowerCase()
+      const ref = (c.reference_interne || '').toLowerCase()
+      const matchEnt = filterEntrepriseId === 'tous' || c.entreprise_id === filterEntrepriseId
+      const matchQ =
+        q === '' ||
+        nomE.includes(q) ||
+        ref.includes(q) ||
+        TYPE_LABEL[c.type_convention].toLowerCase().includes(q)
+      return matchEnt && matchQ
+    })
+  }, [conventions, search, filterEntrepriseId])
+
+  const resetEntrepriseForm = () => {
+    setENom('')
+    setESecteur('')
+    setEContact('')
+    setEEmail('')
+    setETel('')
+    setENotes('')
+  }
+
+  const resetConventionForm = () => {
+    setCEntrepriseId(entreprises[0]?.id || '')
+    setCRef('')
+    setCType('stage')
+    setCStatut('brouillon')
+    setCDateSig('')
+    setCDateDebut('')
+    setCDateFin('')
+    setCNotes('')
+    setCFile(null)
+  }
+
+  useEffect(() => {
+    if (showConventionForm && entreprises.length && !cEntrepriseId) {
+      setCEntrepriseId(entreprises[0].id)
+    }
+  }, [showConventionForm, entreprises, cEntrepriseId])
+
+  const saveEntreprise = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!eNom.trim()) {
+      alert('Le nom de l\'entreprise est obligatoire.')
+      return
+    }
+    setSaving(true)
+    try {
+      const { error } = await supabase.from('partenaires_entreprises').insert({
+        nom: eNom.trim(),
+        secteur: eSecteur.trim() || null,
+        contact_nom: eContact.trim() || null,
+        contact_email: eEmail.trim() || null,
+        contact_telephone: eTel.trim() || null,
+        notes: eNotes.trim() || null,
+      })
+      if (error) throw error
+      setShowEntrepriseForm(false)
+      resetEntrepriseForm()
+      await loadData()
+    } catch (err) {
+      console.error(err)
+      alert('Erreur lors de l\'enregistrement de l\'entreprise.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveConvention = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!cEntrepriseId) {
+      alert('Veuillez creer au moins une entreprise partenaire avant d\'ajouter une convention.')
+      return
+    }
+    setSaving(true)
+    let fichier_url: string | null = null
+    let fichier_path: string | null = null
+    try {
+      if (cFile) {
+        const safeName = cFile.name.replace(/[^\w.\-]+/g, '_')
+        fichier_path = `conventions_partenariat/${Date.now()}_${safeName}`
+        const up = await supabase.storage.from('fichiers').upload(fichier_path, cFile)
+        if (up.error) throw up.error
+        const pub = supabase.storage.from('fichiers').getPublicUrl(fichier_path)
+        fichier_url = pub.data.publicUrl
+      }
+
+      const { data: userData } = await supabase.auth.getUser()
+
+      const { error } = await supabase.from('conventions_partenariat').insert({
+        entreprise_id: cEntrepriseId,
+        reference_interne: cRef.trim() || null,
+        type_convention: cType,
+        statut: cStatut,
+        date_signature: cDateSig || null,
+        date_debut: cDateDebut || null,
+        date_fin: cDateFin || null,
+        notes_internes: cNotes.trim() || null,
+        fichier_url,
+        fichier_path,
+        created_by: userData.user?.id ?? null,
+      })
+      if (error) throw error
+      setShowConventionForm(false)
+      resetConventionForm()
+      await loadData()
+    } catch (err) {
+      console.error(err)
+      alert('Erreur lors de l\'enregistrement de la convention (fichier ou base de donnees).')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteEntreprise = async (id: string, nom: string) => {
+    if (!confirm(`Supprimer l'entreprise "${nom}" et toutes ses conventions ?`)) return
+    const { error } = await supabase.from('partenaires_entreprises').delete().eq('id', id)
+    if (error) {
+      alert('Suppression impossible.')
+      return
+    }
+    await loadData()
+  }
+
+  const deleteConvention = async (id: string) => {
+    if (!confirm('Supprimer cette convention ?')) return
+    const { error } = await supabase.from('conventions_partenariat').delete().eq('id', id)
+    if (error) {
+      alert('Suppression impossible.')
+      return
+    }
+    setDetailConvention(null)
+    await loadData()
+  }
+
+  const exportExcel = () => {
+    const rows = filteredConventions.map((c) => ({
+      Date_creation: new Date(c.created_at).toLocaleString('fr-FR'),
+      Entreprise: c.partenaires_entreprises?.nom || '',
+      Reference: c.reference_interne || '',
+      Type: TYPE_LABEL[c.type_convention],
+      Statut: STATUT_LABEL[c.statut],
+      Date_signature: c.date_signature || '',
+      Date_debut: c.date_debut || '',
+      Date_fin: c.date_fin || '',
+      Fichier: c.fichier_url || '',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Conventions')
+    XLSX.writeFile(wb, `conventions_partenariat_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+        <p className="text-gray-700 font-medium">Acces reserve aux administrateurs.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <Handshake className="w-6 h-6 text-blue-600" />
+              Partenariats et conventions
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Suivi des conventions signees entre le CMC et les entreprises (plusieurs conventions par entreprise).
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                resetEntrepriseForm()
+                setShowEntrepriseForm(true)
+              }}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+            >
+              <Building2 className="w-4 h-4" />
+              Nouvelle entreprise
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetConventionForm()
+                setShowConventionForm(true)
+              }}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Nouvelle convention
+            </button>
+            <button
+              type="button"
+              onClick={exportExcel}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 text-sm"
+            >
+              <Download className="w-4 h-4" />
+              Export Excel
+            </button>
+            <button
+              type="button"
+              onClick={loadData}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualiser
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-blue-600" />
+            Entreprises partenaires ({entreprises.length})
+          </h4>
+          {loading ? (
+            <p className="text-gray-500 text-sm">Chargement...</p>
+          ) : entreprises.length === 0 ? (
+            <p className="text-gray-500 text-sm">Aucune entreprise. Ajoutez-en une pour commencer.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+              {entreprises.map((en) => (
+                <li key={en.id} className="py-2 flex justify-between gap-2 items-start">
+                  <div>
+                    <p className="font-medium text-gray-900">{en.nom}</p>
+                    {en.secteur && <p className="text-xs text-gray-500">{en.secteur}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => deleteEntreprise(en.id, en.nom)}
+                    className="text-red-600 p-1 hover:bg-red-50 rounded"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-emerald-600" />
+            Conventions ({filteredConventions.length})
+          </h4>
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher..."
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            />
+            <select
+              value={filterEntrepriseId}
+              onChange={(e) => setFilterEntrepriseId(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="tous">Toutes les entreprises</option>
+              {entreprises.map((en) => (
+                <option key={en.id} value={en.id}>
+                  {en.nom}
+                </option>
+              ))}
+            </select>
+          </div>
+          {loading ? (
+            <p className="text-gray-500 text-sm">Chargement...</p>
+          ) : filteredConventions.length === 0 ? (
+            <p className="text-gray-500 text-sm">Aucune convention pour ces filtres.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+              {filteredConventions.map((c) => (
+                <li key={c.id} className="py-2 flex justify-between gap-2 items-center">
+                  <div>
+                    <p className="font-medium text-gray-900">{c.partenaires_entreprises?.nom || '—'}</p>
+                    <p className="text-xs text-gray-600">
+                      {TYPE_LABEL[c.type_convention]} · {STATUT_LABEL[c.statut]}
+                      {c.reference_interne ? ` · Ref. ${c.reference_interne}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDetailConvention(c)}
+                    className="inline-flex items-center gap-1 text-blue-600 text-sm hover:underline"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Voir
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {showEntrepriseForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative">
+            <button
+              type="button"
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              onClick={() => setShowEntrepriseForm(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h4 className="text-lg font-semibold mb-4">Nouvelle entreprise partenaire</h4>
+            <form onSubmit={saveEntreprise} className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Nom *</label>
+                <input
+                  required
+                  value={eNom}
+                  onChange={(e) => setENom(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Secteur</label>
+                <input value={eSecteur} onChange={(e) => setESecteur(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Contact</label>
+                  <input value={eContact} onChange={(e) => setEContact(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Telephone</label>
+                  <input value={eTel} onChange={(e) => setETel(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Email</label>
+                <input type="email" value={eEmail} onChange={(e) => setEEmail(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Notes</label>
+                <textarea value={eNotes} onChange={(e) => setENotes(e.target.value)} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              </div>
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full py-2 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showConventionForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative my-8">
+            <button
+              type="button"
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              onClick={() => setShowConventionForm(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h4 className="text-lg font-semibold mb-4">Nouvelle convention</h4>
+            <form onSubmit={saveConvention} className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Entreprise *</label>
+                <select
+                  required
+                  value={cEntrepriseId}
+                  onChange={(e) => setCEntrepriseId(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                >
+                  {entreprises.map((en) => (
+                    <option key={en.id} value={en.id}>
+                      {en.nom}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Reference interne</label>
+                <input value={cRef} onChange={(e) => setCRef(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Type</label>
+                  <select value={cType} onChange={(e) => setCType(e.target.value as ConventionType)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+                    {(Object.keys(TYPE_LABEL) as ConventionType[]).map((k) => (
+                      <option key={k} value={k}>
+                        {TYPE_LABEL[k]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Statut</label>
+                  <select value={cStatut} onChange={(e) => setCStatut(e.target.value as ConventionStatut)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+                    {(Object.keys(STATUT_LABEL) as ConventionStatut[]).map((k) => (
+                      <option key={k} value={k}>
+                        {STATUT_LABEL[k]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Signature</label>
+                  <input type="date" value={cDateSig} onChange={(e) => setCDateSig(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Debut</label>
+                  <input type="date" value={cDateDebut} onChange={(e) => setCDateDebut(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Fin</label>
+                  <input type="date" value={cDateFin} onChange={(e) => setCDateFin(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Fichier convention (PDF)</label>
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={(e) => setCFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Notes internes</label>
+                <textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+              </div>
+              <button
+                type="submit"
+                disabled={saving || entreprises.length === 0}
+                className="w-full py-2 bg-emerald-600 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {saving ? 'Enregistrement...' : 'Enregistrer la convention'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {detailConvention && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full p-6 relative my-8">
+            <button
+              type="button"
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              onClick={() => setDetailConvention(null)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              {detailConvention.partenaires_entreprises?.nom} — {TYPE_LABEL[detailConvention.type_convention]}
+            </h4>
+            <p className="text-sm text-gray-600 mb-4 flex flex-wrap gap-3">
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                {STATUT_LABEL[detailConvention.statut]}
+              </span>
+              {detailConvention.reference_interne && <span>Ref. {detailConvention.reference_interne}</span>}
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {detailConvention.fichier_url && (
+                <a
+                  href={detailConvention.fichier_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm hover:bg-blue-200"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Ouvrir le PDF
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => deleteConvention(detailConvention.id)}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm hover:bg-red-100"
+              >
+                <Trash2 className="w-4 h-4" />
+                Supprimer
+              </button>
+            </div>
+            {detailConvention.fichier_url ? (
+              <div className="border rounded-lg overflow-hidden h-[70vh] min-h-[400px]">
+                <iframe title="Convention PDF" src={detailConvention.fichier_url} className="w-full h-full" />
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">Aucun fichier joint.</p>
+            )}
+            {detailConvention.notes_internes && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
+                <p className="font-medium text-gray-800 mb-1">Notes internes</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{detailConvention.notes_internes}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
