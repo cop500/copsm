@@ -579,14 +579,8 @@ export default function PartenariatsConventionsModule() {
               Partenariats et conventions
             </h3>
             <p className="text-sm text-gray-600 mt-1">
-              Suivi des conventions signees entre le CMC et les entreprises (plusieurs conventions par entreprise).
+              Suivi des partenariat et convention signé entre la CMC SM et le secteur privé VIA le COP
             </p>
-            {!canEdit && (
-              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
-                Consultation seule : la création ou la modification des fiches est réservée à
-                l&apos;administration.
-              </p>
-            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {canEdit && (
