@@ -58,6 +58,15 @@ export const ModernEvenementsModule = () => {
   const stableIsCarriere = memoizedRoles.isCarriere || isCarriere;
   const stableIsConseillerCop = memoizedRoles.isConseillerCop;
 
+  /** Admin + équipe métier ; le directeur ne voit pas l’onglet pour l’instant */
+  const canViewPartenariats =
+    !stableIsDirecteur &&
+    (stableIsAdmin ||
+      isAdmin ||
+      stableIsManager ||
+      stableIsCarriere ||
+      stableIsConseillerCop)
+
   // Utiliser directement les données du hook sans synchronisation complexe
   // Protection contre les données invalides
   const evenementsData = useMemo(() => {
@@ -152,6 +161,14 @@ export const ModernEvenementsModule = () => {
       setActiveTab('evenements')
     }
   }, [stableIsDirecteur, activeTab])
+
+  // Éviter un onglet Partenariats restauré alors que le rôle n’y a pas accès
+  useEffect(() => {
+    if (userLoading) return
+    if (activeTab === 'partenariats-conventions' && !canViewPartenariats) {
+      setActiveTab('evenements')
+    }
+  }, [userLoading, activeTab, canViewPartenariats])
 
   // Le hook useEvenements gère déjà le chargement initial
   // Pas besoin de useEffect supplémentaires qui pourraient causer des rechargements multiples
@@ -1318,7 +1335,7 @@ export const ModernEvenementsModule = () => {
                 Certificats
               </button>
             )}
-            {(stableIsAdmin || isAdmin) && (
+            {canViewPartenariats && (
               <button
                 onClick={() => setActiveTab('partenariats-conventions')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${

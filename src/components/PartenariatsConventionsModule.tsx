@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabase'
 import { useRole } from '@/hooks/useRole'
@@ -17,6 +17,7 @@ import {
   Trash2,
   ExternalLink,
   Pencil,
+  Upload,
 } from 'lucide-react'
 
 type ConventionType = 'stage' | 'alternance' | 'recrutement' | 'convention_cadre' | 'autre'
@@ -118,8 +119,91 @@ function getConventionListDate(c: ConventionRow): { text: string; title: string 
   return { text: formatDateFr(c.created_at), title: 'Date de création' }
 }
 
+function slugifyHeaderCell(h: unknown): string {
+  return String(h ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+type EntrepriseImportField = 'nom' | 'secteur' | 'contact_nom' | 'contact_email' | 'contact_telephone' | 'notes'
+
+const HEADER_TO_ENTREPRISE_FIELD: Record<string, EntrepriseImportField> = {
+  nom: 'nom',
+  entreprise: 'nom',
+  'raison sociale': 'nom',
+  secteur: 'secteur',
+  contact: 'contact_nom',
+  'contact nom': 'contact_nom',
+  'nom du contact': 'contact_nom',
+  email: 'contact_email',
+  mail: 'contact_email',
+  courriel: 'contact_email',
+  'e-mail': 'contact_email',
+  telephone: 'contact_telephone',
+  tel: 'contact_telephone',
+  notes: 'notes',
+}
+
+function cellStr(row: unknown[], i: number | undefined): string {
+  if (i === undefined || i < 0) return ''
+  const v = row[i]
+  if (v == null) return ''
+  if (typeof v === 'string') return v.trim()
+  if (typeof v === 'number') return String(v).trim()
+  return String(v).trim()
+}
+
+function buildEntrepriseImportColumnMap(headerRow: unknown[]): Partial<Record<EntrepriseImportField, number>> {
+  const map: Partial<Record<EntrepriseImportField, number>> = {}
+  headerRow.forEach((cell, idx) => {
+    const slug = slugifyHeaderCell(cell)
+    const field = HEADER_TO_ENTREPRISE_FIELD[slug]
+    if (field && map[field] === undefined) map[field] = idx
+  })
+  return map
+}
+
+function conventionPdfFilename(c: ConventionRow): string {
+  const raw = (c.reference_interne || `${getTypeLabel(c.type_convention)}_${c.partenaires_entreprises?.nom || 'convention'}`)
+    .replace(/[^\w.\-]+/g, '_')
+    .replace(/_+/g, '_')
+    .slice(0, 120)
+  const base = raw || 'convention'
+  return base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`
+}
+
+/** Téléchargement local du PDF (évite l’ouverture seule dans un nouvel onglet selon le navigateur). */
+async function downloadConventionPdfFile(c: ConventionRow): Promise<void> {
+  const url = c.fichier_url
+  if (!url) return
+  const name = conventionPdfFilename(c)
+  try {
+    const res = await fetch(url, { mode: 'cors' })
+    if (!res.ok) throw new Error(String(res.status))
+    const blob = await res.blob()
+    const href = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = href
+    a.download = name
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(href)
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+}
+
 export default function PartenariatsConventionsModule() {
-  const { isAdmin } = useRole()
+  const { isAdmin, isDirecteur, isManager, isConseiller, isCarriere } = useRole()
+  /** Le directeur n’a pas accès pour l’instant ; manager / conseillers / carrière : lecture seule */
+  const canView =
+    !isDirecteur && (isAdmin || isManager || isConseiller || isCarriere)
+  /** Tous les droits réservés au rôle admin métier (business_developer) */
+  const canEdit = isAdmin
   const [loading, setLoading] = useState(true)
   const [entreprises, setEntreprises] = useState<PartenaireEntreprise[]>([])
   const [conventions, setConventions] = useState<ConventionRow[]>([])
@@ -149,6 +233,9 @@ export default function PartenariatsConventionsModule() {
   const [cNotes, setCNotes] = useState('')
   const [cFile, setCFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+  const [downloadingConvId, setDownloadingConvId] = useState<string | null>(null)
+  const [entrepriseImporting, setEntrepriseImporting] = useState(false)
+  const entrepriseImportInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -384,10 +471,100 @@ export default function PartenariatsConventionsModule() {
     XLSX.writeFile(wb, `conventions_partenariat_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
-  if (!isAdmin) {
+  const downloadEntrepriseImportTemplate = useCallback(() => {
+    const headers = ['Nom', 'Secteur', 'Contact', 'Email', 'Téléphone', 'Notes']
+    const example = [
+      'Exemple SARL',
+      'Services',
+      'Prénom Nom',
+      'contact@exemple.ma',
+      '+212612345678',
+      'Supprimez cette ligne exemple avant import',
+    ]
+    const ws = XLSX.utils.aoa_to_sheet([headers, example])
+    ws['!cols'] = [{ wch: 28 }, { wch: 18 }, { wch: 22 }, { wch: 28 }, { wch: 16 }, { wch: 42 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Entreprises')
+    XLSX.writeFile(wb, 'modele_import_entreprises_partenariat.xlsx')
+  }, [])
+
+  const parseAndImportEntreprisesFile = async (file: File) => {
+    setEntrepriseImporting(true)
+    try {
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array' })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' }) as unknown[][]
+      if (!matrix.length) {
+        alert('Fichier vide.')
+        return
+      }
+      const colMap = buildEntrepriseImportColumnMap(matrix[0])
+      if (colMap.nom === undefined) {
+        alert(
+          'Colonne « Nom » introuvable. Téléchargez le modèle Excel (bouton « Modèle import ») : la première ligne doit contenir les en-têtes.',
+        )
+        return
+      }
+      const payloads: Array<{
+        nom: string
+        secteur: string | null
+        contact_nom: string | null
+        contact_email: string | null
+        contact_telephone: string | null
+        notes: string | null
+        updated_at: string
+      }> = []
+      for (let r = 1; r < matrix.length; r++) {
+        const row = matrix[r] as unknown[]
+        if (!row?.length) continue
+        const nom = cellStr(row, colMap.nom)
+        if (!nom) continue
+        payloads.push({
+          nom,
+          secteur: cellStr(row, colMap.secteur) || null,
+          contact_nom: cellStr(row, colMap.contact_nom) || null,
+          contact_email: cellStr(row, colMap.contact_email) || null,
+          contact_telephone: cellStr(row, colMap.contact_telephone) || null,
+          notes: cellStr(row, colMap.notes) || null,
+          updated_at: new Date().toISOString(),
+        })
+      }
+      if (!payloads.length) {
+        alert('Aucune ligne à importer : renseignez au moins une colonne « Nom » par ligne.')
+        return
+      }
+      const CHUNK = 50
+      for (let i = 0; i < payloads.length; i += CHUNK) {
+        const chunk = payloads.slice(i, i + CHUNK)
+        const { error } = await supabase.from('partenaires_entreprises').insert(chunk)
+        if (error) throw error
+      }
+      await loadData()
+      alert(`Import terminé : ${payloads.length} entreprise(s) ajoutée(s).`)
+    } catch (e) {
+      console.error(e)
+      alert("Erreur lors de l'import. Vérifiez le fichier ou les droits sur la table partenaires_entreprises.")
+    } finally {
+      setEntrepriseImporting(false)
+      if (entrepriseImportInputRef.current) entrepriseImportInputRef.current.value = ''
+    }
+  }
+
+  const handleDownloadConvention = async (c: ConventionRow) => {
+    if (!c.fichier_url) return
+    setDownloadingConvId(c.id)
+    try {
+      await downloadConventionPdfFile(c)
+    } finally {
+      setDownloadingConvId(null)
+    }
+  }
+
+  if (!canView) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <p className="text-gray-700 font-medium">Acces reserve aux administrateurs.</p>
+        <p className="text-gray-700 font-medium">Accès réservé à l&apos;équipe CMC.</p>
       </div>
     )
   }
@@ -404,38 +581,79 @@ export default function PartenariatsConventionsModule() {
             <p className="text-sm text-gray-600 mt-1">
               Suivi des conventions signees entre le CMC et les entreprises (plusieurs conventions par entreprise).
             </p>
+            {!canEdit && (
+              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                Consultation seule : la création ou la modification des fiches est réservée à
+                l&apos;administration.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                resetEntrepriseForm()
-                setShowEntrepriseForm(true)
-              }}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-            >
-              <Building2 className="w-4 h-4" />
-              Nouvelle entreprise
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                resetConventionForm()
-                setShowConventionForm(true)
-              }}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Nouvelle convention
-            </button>
-            <button
-              type="button"
-              onClick={exportExcel}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 text-sm"
-            >
-              <Download className="w-4 h-4" />
-              Export Excel
-            </button>
+            {canEdit && (
+              <>
+                <input
+                  ref={entrepriseImportInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) void parseAndImportEntreprisesFile(f)
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={downloadEntrepriseImportTemplate}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-blue-200 text-blue-800 rounded-lg hover:bg-blue-50 text-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  Modèle import
+                </button>
+                <button
+                  type="button"
+                  disabled={entrepriseImporting}
+                  onClick={() => entrepriseImportInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm disabled:opacity-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  {entrepriseImporting ? 'Import...' : 'Importer entreprises'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetEntrepriseForm()
+                    setShowEntrepriseForm(true)
+                  }}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  <Building2 className="w-4 h-4" />
+                  Nouvelle entreprise
+                </button>
+              </>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  resetConventionForm()
+                  setShowConventionForm(true)
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Nouvelle convention
+              </button>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={exportExcel}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 text-sm"
+              >
+                <Download className="w-4 h-4" />
+                Export Excel
+              </button>
+            )}
             <button
               type="button"
               onClick={loadData}
@@ -457,7 +675,9 @@ export default function PartenariatsConventionsModule() {
           {loading ? (
             <p className="text-gray-500 text-sm">Chargement...</p>
           ) : entreprises.length === 0 ? (
-            <p className="text-gray-500 text-sm">Aucune entreprise. Ajoutez-en une pour commencer.</p>
+            <p className="text-gray-500 text-sm">
+              {canEdit ? 'Aucune entreprise. Ajoutez-en une pour commencer.' : 'Aucune entreprise enregistrée.'}
+            </p>
           ) : (
             <ul className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
               {entreprises.map((en) => (
@@ -466,24 +686,26 @@ export default function PartenariatsConventionsModule() {
                     <p className="font-medium text-gray-900">{en.nom}</p>
                     {en.secteur && <p className="text-xs text-gray-500">{en.secteur}</p>}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => openEditEntreprise(en)}
-                      className="text-blue-600 p-1 hover:bg-blue-50 rounded"
-                      title="Modifier"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteEntreprise(en.id, en.nom)}
-                      className="text-red-600 p-1 hover:bg-red-50 rounded"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openEditEntreprise(en)}
+                        className="text-blue-600 p-1 hover:bg-blue-50 rounded"
+                        title="Modifier"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteEntreprise(en.id, en.nom)}
+                        className="text-red-600 p-1 hover:bg-red-50 rounded"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -548,15 +770,17 @@ export default function PartenariatsConventionsModule() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => openEditConvention(c)}
-                      className="inline-flex items-center gap-1 text-gray-700 text-sm px-2 py-1 rounded-lg hover:bg-gray-100"
-                      title="Modifier"
-                    >
-                      <Pencil className="w-4 h-4" />
-                      <span className="hidden sm:inline">Modifier</span>
-                    </button>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => openEditConvention(c)}
+                        className="inline-flex items-center gap-1 text-gray-700 text-sm px-2 py-1 rounded-lg hover:bg-gray-100"
+                        title="Modifier"
+                      >
+                        <Pencil className="w-4 h-4" />
+                        <span className="hidden sm:inline">Modifier</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setDetailConvention(c)}
@@ -565,6 +789,18 @@ export default function PartenariatsConventionsModule() {
                       <Eye className="w-4 h-4" />
                       Voir
                     </button>
+                    {c.fichier_url && (
+                      <button
+                        type="button"
+                        title="Télécharger le PDF"
+                        disabled={downloadingConvId === c.id}
+                        onClick={() => void handleDownloadConvention(c)}
+                        className="inline-flex items-center gap-1 text-gray-700 text-sm px-2 py-1 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">PDF</span>
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
@@ -758,37 +994,52 @@ export default function PartenariatsConventionsModule() {
               {detailConvention.reference_interne && <span>Ref. {detailConvention.reference_interne}</span>}
             </p>
             <div className="flex flex-wrap gap-2 mb-4">
-              <button
-                type="button"
-                onClick={() => {
-                  const row = detailConvention
-                  setDetailConvention(null)
-                  openEditConvention(row)
-                }}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-800 rounded-lg text-sm hover:bg-gray-200"
-              >
-                <Pencil className="w-4 h-4" />
-                Modifier
-              </button>
-              {detailConvention.fichier_url && (
-                <a
-                  href={detailConvention.fichier_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm hover:bg-blue-200"
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const row = detailConvention
+                    setDetailConvention(null)
+                    openEditConvention(row)
+                  }}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-800 rounded-lg text-sm hover:bg-gray-200"
                 >
-                  <ExternalLink className="w-4 h-4" />
-                  Ouvrir le PDF
-                </a>
+                  <Pencil className="w-4 h-4" />
+                  Modifier
+                </button>
               )}
-              <button
-                type="button"
-                onClick={() => deleteConvention(detailConvention.id)}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm hover:bg-red-100"
-              >
-                <Trash2 className="w-4 h-4" />
-                Supprimer
-              </button>
+              {detailConvention.fichier_url && (
+                <>
+                  <button
+                    type="button"
+                    disabled={downloadingConvId === detailConvention.id}
+                    onClick={() => void handleDownloadConvention(detailConvention)}
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-100 text-emerald-900 rounded-lg text-sm hover:bg-emerald-200 disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4" />
+                    Télécharger le PDF
+                  </button>
+                  <a
+                    href={detailConvention.fichier_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm hover:bg-blue-200"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Ouvrir le PDF
+                  </a>
+                </>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => deleteConvention(detailConvention.id)}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm hover:bg-red-100"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer
+                </button>
+              )}
             </div>
             {detailConvention.fichier_url ? (
               <div className="border rounded-lg overflow-hidden h-[70vh] min-h-[400px]">
