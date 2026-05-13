@@ -379,9 +379,15 @@ export default function PartenariatsConventionsModule() {
     let fichier_path: string | null = null
     try {
       if (cFile) {
-        const safeName = cFile.name.replace(/[^\w.\-]+/g, '_')
-        fichier_path = `conventions_partenariat/${Date.now()}_${safeName}`
-        const up = await supabase.storage.from('fichiers').upload(fichier_path, cFile)
+        const safeName = cFile.name.replace(/[^\w.\-]+/g, '_') || 'convention.pdf'
+        // Même préfixe que les demandes entreprise (`fiches_poste/`) : beaucoup de projets
+        // n’ont pas de politique Storage pour `conventions_partenariat/` seul → RLS à l’upload.
+        fichier_path = `fiches_poste/conventions_partenariat_${Date.now()}_${safeName}`
+        const up = await supabase.storage.from('fichiers').upload(fichier_path, cFile, {
+          upsert: true,
+          contentType: cFile.type || 'application/pdf',
+          cacheControl: '3600',
+        })
         if (up.error) throw up.error
         const pub = supabase.storage.from('fichiers').getPublicUrl(fichier_path)
         fichier_url = pub.data.publicUrl
@@ -426,7 +432,15 @@ export default function PartenariatsConventionsModule() {
       await loadData()
     } catch (err) {
       console.error(err)
-      alert('Erreur lors de l\'enregistrement de la convention (fichier ou base de donnees).')
+      const raw =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message: string }).message)
+          : String(err)
+      const rlsHint =
+        /row-level security|violates|RLS|403|not authorized|Unauthorized/i.test(raw)
+          ? '\n\nSi le blocage vient du fichier : dans Supabase → Storage → bucket « fichiers », ajoutez une politique d’upload pour les chemins utilisés (ex. préfixe fiches_poste/).'
+          : ''
+      alert(`Erreur lors de l'enregistrement de la convention.\n\n${raw}${rlsHint}`)
     } finally {
       setSaving(false)
     }
