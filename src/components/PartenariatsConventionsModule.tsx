@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabase'
 import { useRole } from '@/hooks/useRole'
+import { useSettings } from '@/hooks/useSettings'
 import {
   Building2,
   FileText,
@@ -18,6 +19,7 @@ import {
   ExternalLink,
   Pencil,
   Upload,
+  Layers,
 } from 'lucide-react'
 
 type ConventionType = 'stage' | 'alternance' | 'recrutement' | 'convention_cadre' | 'autre'
@@ -56,8 +58,10 @@ interface ConventionRow {
   fichier_url?: string | null
   fichier_path?: string | null
   notes_internes?: string | null
+  pole_id?: string | null
   created_at: string
   partenaires_entreprises?: { nom: string } | null
+  poles?: { nom: string } | null
 }
 
 const TYPE_LABEL: Record<ConventionType, string> = {
@@ -199,6 +203,7 @@ async function downloadConventionPdfFile(c: ConventionRow): Promise<void> {
 
 export default function PartenariatsConventionsModule() {
   const { isAdmin, isDirecteur, isManager, isConseiller, isCarriere } = useRole()
+  const { poles } = useSettings()
   /** Le directeur n’a pas accès pour l’instant ; manager / conseillers / carrière : lecture seule */
   const canView =
     !isDirecteur && (isAdmin || isManager || isConseiller || isCarriere)
@@ -232,6 +237,7 @@ export default function PartenariatsConventionsModule() {
   const [cDateFin, setCDateFin] = useState('')
   const [cNotes, setCNotes] = useState('')
   const [cFile, setCFile] = useState<File | null>(null)
+  const [cPoleId, setCPoleId] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [downloadingConvId, setDownloadingConvId] = useState<string | null>(null)
   const [entrepriseImporting, setEntrepriseImporting] = useState(false)
@@ -244,7 +250,7 @@ export default function PartenariatsConventionsModule() {
         supabase.from('partenaires_entreprises').select('*').order('nom'),
         supabase
           .from('conventions_partenariat')
-          .select('*, partenaires_entreprises ( nom )')
+          .select('*, partenaires_entreprises ( nom ), poles ( nom )')
           .order('created_at', { ascending: false }),
       ])
       if (eRes.error) throw eRes.error
@@ -263,15 +269,22 @@ export default function PartenariatsConventionsModule() {
     loadData()
   }, [loadData])
 
+  const polesList = useMemo(
+    () => [...poles].sort((a, b) => a.nom.localeCompare(b.nom, 'fr')),
+    [poles],
+  )
+
   const filteredConventions = useMemo(() => {
     const q = search.trim().toLowerCase()
     return conventions.filter((c) => {
       const nomE = (c.partenaires_entreprises?.nom || '').toLowerCase()
+      const nomPole = (c.poles?.nom || '').toLowerCase()
       const ref = (c.reference_interne || '').toLowerCase()
       const matchEnt = filterEntrepriseId === 'tous' || c.entreprise_id === filterEntrepriseId
       const matchQ =
         q === '' ||
         nomE.includes(q) ||
+        nomPole.includes(q) ||
         ref.includes(q) ||
         getTypeLabel(c.type_convention).toLowerCase().includes(q) ||
         getStatutLabel(c.statut).toLowerCase().includes(q)
@@ -311,6 +324,7 @@ export default function PartenariatsConventionsModule() {
     setCDateFin('')
     setCNotes('')
     setCFile(null)
+    setCPoleId('')
   }
 
   const openEditConvention = (c: ConventionRow) => {
@@ -323,6 +337,7 @@ export default function PartenariatsConventionsModule() {
     setCDateDebut(c.date_debut || '')
     setCDateFin(c.date_fin || '')
     setCNotes(c.notes_internes || '')
+    setCPoleId(c.pole_id || '')
     setCFile(null)
     setShowConventionForm(true)
   }
@@ -402,6 +417,7 @@ export default function PartenariatsConventionsModule() {
         date_debut: cDateDebut || null,
         date_fin: cDateFin || null,
         notes_internes: cNotes.trim() || null,
+        pole_id: cPoleId.trim() || null,
         updated_at: new Date().toISOString(),
       }
 
@@ -471,6 +487,7 @@ export default function PartenariatsConventionsModule() {
     const rows = filteredConventions.map((c) => ({
       Date_creation: new Date(c.created_at).toLocaleString('fr-FR'),
       Entreprise: c.partenaires_entreprises?.nom || '',
+      Pole: c.poles?.nom || '',
       Reference: c.reference_interne || '',
       Type: getTypeLabel(c.type_convention),
       Statut: getStatutLabel(c.statut),
@@ -758,6 +775,15 @@ export default function PartenariatsConventionsModule() {
                     <p className="font-medium text-gray-900">{c.partenaires_entreprises?.nom || '—'}</p>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       <span className="text-xs text-gray-600">{getTypeLabel(c.type_convention)}</span>
+                      {c.poles?.nom && (
+                        <span
+                          className="inline-flex items-center gap-0.5 text-xs text-indigo-900 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md max-w-[200px] sm:max-w-[240px]"
+                          title={`Pôle : ${c.poles.nom}`}
+                        >
+                          <Layers className="w-3.5 h-3.5 shrink-0 text-indigo-600" aria-hidden />
+                          <span className="truncate">{c.poles.nom}</span>
+                        </span>
+                      )}
                       <span
                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                           STATUT_BADGE[c.statut as ConventionStatut] ?? 'bg-gray-100 text-gray-700 border border-gray-200'
@@ -913,6 +939,21 @@ export default function PartenariatsConventionsModule() {
                 <label className="text-sm font-medium text-gray-700">Reference interne</label>
                 <input value={cRef} onChange={(e) => setCRef(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
               </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Pôle concerné</label>
+                <select
+                  value={cPoleId}
+                  onChange={(e) => setCPoleId(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm mt-1"
+                >
+                  <option value="">— Non renseigné</option>
+                  {polesList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nom}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Type</label>
@@ -998,8 +1039,14 @@ export default function PartenariatsConventionsModule() {
                 {getStatutLabel(detailConvention.statut)}
               </span>
             </h4>
-            <p className="text-sm text-gray-600 mb-4 flex flex-wrap gap-3">
+            <p className="text-sm text-gray-600 mb-4 flex flex-wrap gap-x-3 gap-y-1">
               {detailConvention.reference_interne && <span>Ref. {detailConvention.reference_interne}</span>}
+              {detailConvention.poles?.nom && (
+                <span className="inline-flex items-center gap-1 text-indigo-800">
+                  <Layers className="w-4 h-4 shrink-0" aria-hidden />
+                  Pôle : {detailConvention.poles.nom}
+                </span>
+              )}
             </p>
             <div className="flex flex-wrap gap-2 mb-4">
               {canEdit && (

@@ -1,6 +1,7 @@
 -- Partenariats CMC : entreprises et conventions (plusieurs conventions par entreprise)
 -- PDF / fichiers : créer d’abord le bucket Storage `fichiers` → supabase_migrations/create_storage_bucket_fichiers.sql
 -- (sinon erreur « Bucket not found »). Politiques fines optionnelles : storage_fichiers_partenariats_conventions.sql
+-- Bases déjà créées sans pole_id : exécuter extend_conventions_partenariat_pole.sql
 
 create table if not exists public.partenaires_entreprises (
   id uuid primary key default gen_random_uuid(),
@@ -41,6 +42,7 @@ create table if not exists public.conventions_partenariat (
   fichier_url text null,
   fichier_path text null,
   notes_internes text null,
+  pole_id uuid null references public.poles(id) on delete set null,
   created_by uuid null references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -51,6 +53,9 @@ create index if not exists idx_conventions_partenariat_entreprise
 
 create index if not exists idx_conventions_partenariat_created_at
   on public.conventions_partenariat(created_at desc);
+
+create index if not exists idx_conventions_partenariat_pole_id
+  on public.conventions_partenariat(pole_id);
 
 create index if not exists idx_partenaires_entreprises_nom
   on public.partenaires_entreprises(nom);
