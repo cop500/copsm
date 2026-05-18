@@ -51,6 +51,7 @@ interface EventMetrics {
 interface EnterpriseMetrics {
   totalEnterprises: number;
   prospects: number;
+  /** Nombre d’entreprises du module Partenariats (table partenaires_entreprises) */
   partners: number;
   sectors: { [key: string]: number };
   // Métriques des visites
@@ -256,6 +257,9 @@ export const EmployabilityDashboard: React.FC = () => {
 
   // Calculer les métriques des entreprises et des visites (filtrées par période)
   useEffect(() => {
+    let cancelled = false;
+
+    const loadEnterpriseMetrics = async () => {
     // S'assurer que visites est défini (peut être un tableau vide)
     const visitesArray = visites || [];
     
@@ -337,12 +341,27 @@ export const EmployabilityDashboard: React.FC = () => {
     
     // Filtrer les entreprises selon la période (basé sur created_at)
     const filteredEntreprises = entreprises ? filterByPeriod(entreprises, 'created_at') : [];
+
+    // Partenaires = référentiel onglet Partenariats (pas le statut CRM « partenaire »)
+    let partnersCount = 0;
+    try {
+      const { data: partenairesRows, error: partenairesError } = await supabase
+        .from('partenaires_entreprises')
+        .select('id, created_at');
+      if (partenairesError) {
+        console.error('Erreur chargement partenaires_entreprises:', partenairesError);
+      } else {
+        partnersCount = filterByPeriod(partenairesRows || [], 'created_at').length;
+      }
+    } catch (err) {
+      console.error('Erreur partenaires_entreprises:', err);
+    }
     
     // Créer les métriques (toujours, même si entreprises n'est pas chargé)
     const metrics: EnterpriseMetrics = {
       totalEnterprises: filteredEntreprises.length,
       prospects: filteredEntreprises.filter(e => e.statut === 'prospect').length,
-      partners: filteredEntreprises.filter(e => e.statut === 'partenaire').length,
+      partners: partnersCount,
       sectors: {},
       // Métriques des visites filtrées
       totalVisites: filteredVisites.length,
@@ -358,7 +377,13 @@ export const EmployabilityDashboard: React.FC = () => {
       });
     }
 
-    setEnterpriseMetrics(metrics);
+    if (!cancelled) setEnterpriseMetrics(metrics);
+    };
+
+    void loadEnterpriseMetrics();
+    return () => {
+      cancelled = true;
+    };
   }, [entreprises, visites, getStats, selectedPeriod]);
 
   // Calculer les métriques des demandes (filtrées par période)
@@ -502,7 +527,7 @@ export const EmployabilityDashboard: React.FC = () => {
         ['Indicateur', 'Valeur', 'Description'],
         ['Taux d\'insertion global', `${eventMetrics.conversionRate}%`, 'Pourcentage de candidats retenus sur le total des candidats'],
         ['Stagiaires bénéficiaires', eventMetrics.totalBeneficiaries, 'Nombre total de stagiaires ayant participé aux événements'],
-        ['Entreprises partenaires', enterpriseMetrics.partners, 'Nombre d\'entreprises avec statut partenaire'],
+        ['Entreprises partenaires', enterpriseMetrics.partners, 'Nombre d\'entreprises enregistrées dans l\'onglet Partenariats (conventions)'],
         ['Demandes actives', finalDemandMetrics.activeDemands, 'Nombre de demandes de stages actuellement actives'],
         [''],
         ['Répartition par volet'],
@@ -634,8 +659,12 @@ export const EmployabilityDashboard: React.FC = () => {
         ['Métriques Entreprises'],
         ['Total entreprises', enterpriseMetrics.totalEnterprises],
         ['Entreprises prospects', enterpriseMetrics.prospects],
-        ['Entreprises partenaires', enterpriseMetrics.partners],
-        ['Taux de partenariat', `${Math.round((enterpriseMetrics.partners / enterpriseMetrics.totalEnterprises) * 100)}%`],
+        ['Entreprises partenaires (onglet Partenariats)', enterpriseMetrics.partners],
+        [
+          'Entreprises référencées (visites / CRM)',
+          enterpriseMetrics.totalEnterprises,
+          'Total fiches entreprises hors module Partenariats',
+        ],
         [''],
         ['Métriques Visites Entreprises'],
         ['Total visites', enterpriseMetrics.totalVisites],
@@ -829,10 +858,10 @@ export const EmployabilityDashboard: React.FC = () => {
       icon: Users
     },
     {
-      label: 'Entreprises partenaires',
+      label: 'Entreprises partenaires (Partenariats)',
       value: enterpriseMetrics?.partners || 0,
-      trend: '+3 cette semaine',
-      trendValue: 3,
+      trend: 'Onglet Partenariats',
+      trendValue: 0,
       color: 'purple',
       icon: Building2
     },
@@ -1191,14 +1220,10 @@ export const EmployabilityDashboard: React.FC = () => {
               <span className="text-sm font-semibold text-orange-600">{enterpriseMetrics?.prospects}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Partenaires</span>
-              <span className="text-sm font-semibold text-green-600">{enterpriseMetrics?.partners}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Taux partenariat</span>
-              <span className="text-sm font-semibold">
-                {enterpriseMetrics ? Math.round((enterpriseMetrics.partners / enterpriseMetrics.totalEnterprises) * 100) : 0}%
+              <span className="text-xs text-gray-600" title="Référentiel onglet Partenariats">
+                Partenaires (conventions)
               </span>
+              <span className="text-sm font-semibold text-green-600">{enterpriseMetrics?.partners}</span>
             </div>
             {/* Séparateur pour les métriques de visites */}
             <div className="border-t border-gray-300 my-2"></div>

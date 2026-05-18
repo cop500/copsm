@@ -177,7 +177,7 @@ const generateExecutiveSummarySlide = (pptx: any, data: PPTXData) => {
     [
       'Entreprises partenaires',
       data.enterpriseMetrics?.partners || 0,
-      'Partenariats actifs'
+      'Onglet Partenariats (partenaires_entreprises)'
     ],
     [
       'Demandes actives',
@@ -427,7 +427,7 @@ const generateConclusionSlide = (pptx: any, data: PPTXData) => {
     '',
     `Avec un taux de conversion global de ${data.eventMetrics?.conversionRate || 0}%, les activités d'employabilité montrent des résultats prometteurs.`,
     '',
-    `Le partenariat avec ${data.enterpriseMetrics?.partners || 0} entreprises démontre l'engagement du secteur privé dans l'insertion professionnelle.`,
+    `${data.enterpriseMetrics?.partners || 0} entreprises partenaires (onglet Partenariats) témoignent de l'engagement du secteur privé.`,
     '',
     'Recommandations :',
     '• Maintenir la diversification des volets d\'activité',
