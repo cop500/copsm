@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { fetchAllPages } from '@/lib/supabaseFetchAll'
 import { useRealTime } from './useRealTime'
 
 interface DemandeEntreprise {
@@ -75,13 +76,14 @@ export const useDemandesEntreprises = () => {
       
       if (demandesError) throw demandesError
 
-      // Charger les candidatures
-      const { data: candidaturesData, error: candidaturesError } = await supabase
-        .from('candidatures_stagiaires')
-        .select('*')
-        .order('created_at', { ascending: false })
-      
-      if (candidaturesError) throw candidaturesError
+      // Charger les candidatures (pagination pour dépasser la limite Supabase de 1000)
+      const candidaturesData = await fetchAllPages<Candidature>((from, to) =>
+        supabase
+          .from('candidatures_stagiaires')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, to)
+      )
 
       // Grouper les candidatures par demande_entreprise_id (nouveau) ou par entreprise_nom (fallback)
       const candidaturesByDemande = candidaturesData?.reduce((acc, candidature) => {

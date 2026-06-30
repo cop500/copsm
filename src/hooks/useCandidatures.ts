@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { fetchAllPages } from '@/lib/supabaseFetchAll'
 import { useRealTime } from './useRealTime'
 
 interface Candidature {
@@ -107,14 +108,14 @@ export const useCandidatures = () => {
       }
       setError(null)
       
-      const { data, error } = await supabase
-        .from('candidatures_stagiaires')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const candidaturesData = await fetchAllPages<Candidature>((from, to) =>
+        supabase
+          .from('candidatures_stagiaires')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, to)
+      )
       
-      if (error) throw error
-      
-      const candidaturesData = data || []
       setCandidatures(candidaturesData)
       saveToCache(candidaturesData)
     } catch (err: any) {
