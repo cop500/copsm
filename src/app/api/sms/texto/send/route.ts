@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server'
 import { isTextoConfigured, sendTextoSms, sleep } from '@/lib/texto'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { verifyAdminFromRequest } from '@/lib/verifyAdminRequest'
 
 interface SendItem {
   numero: string
   message: string
-  lot?: number
+}
+
+interface CampaignMeta {
+  libelle: string
+  entreprise?: string
+  reference_offre?: string
+  pole?: string
+  filiere?: string
+  lieu?: string
+  message: string
 }
 
 export async function POST(request: Request) {
@@ -19,7 +29,12 @@ export async function POST(request: Request) {
     )
   }
 
-  let body: { messages?: SendItem[]; delayMs?: number; dryRun?: boolean }
+  let body: {
+    messages?: SendItem[]
+    delayMs?: number
+    dryRun?: boolean
+    campaign?: CampaignMeta
+  }
   try {
     body = await request.json()
   } catch {
@@ -52,7 +67,6 @@ export async function POST(request: Request) {
   const results: Array<{
     index: number
     numero: string
-    lot?: number
     success: boolean
     status: number
     response: unknown
@@ -68,7 +82,6 @@ export async function POST(request: Request) {
       results.push({
         index: i,
         numero: item.numero || '',
-        lot: item.lot,
         success: false,
         status: 400,
         response: { error: 'Numéro ou message vide' },
@@ -83,7 +96,6 @@ export async function POST(request: Request) {
     results.push({
       index: i,
       numero: item.numero,
-      lot: item.lot,
       success: result.ok,
       status: result.status,
       response: result.data,
@@ -94,11 +106,47 @@ export async function POST(request: Request) {
     }
   }
 
+  let campaignId: string | null = null
+
+  if (body.campaign && supabaseAdmin && auth.user) {
+    const meta = body.campaign
+    const { data: campaign, error: insertError } = await supabaseAdmin
+      .from('sms_campaigns')
+      .insert({
+        libelle: meta.libelle,
+        entreprise: meta.entreprise || null,
+        reference_offre: meta.reference_offre || null,
+        pole: meta.pole || null,
+        filiere: meta.filiere || null,
+        lieu: meta.lieu || null,
+        message: meta.message,
+        total_count: messages.length,
+        sent_count: sent,
+        failed_count: failed,
+        created_by: auth.user.id,
+      })
+      .select('id')
+      .single()
+
+    if (!insertError && campaign) {
+      campaignId = campaign.id
+      const envois = results.map((r) => ({
+        campaign_id: campaign.id,
+        numero: r.numero,
+        success: r.success,
+        provider_status: r.status,
+        provider_response: r.response,
+      }))
+      await supabaseAdmin.from('sms_campaign_envois').insert(envois)
+    }
+  }
+
   return NextResponse.json({
     total: messages.length,
     sent,
     failed,
     delayMs,
+    campaignId,
     results,
   })
 }
