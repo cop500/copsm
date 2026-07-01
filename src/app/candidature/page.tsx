@@ -30,6 +30,9 @@ interface DemandeEntreprise {
   }>
   poste_recherche?: string
   description?: string
+  description_poste?: string
+  competences_requises?: string
+  type_contrat?: string
   statut?: string
   source?: 'entreprises' | 'cv'
   created_at?: string
@@ -47,6 +50,54 @@ interface FormData {
   demande_id: string
   profil_selectionne: string
   cv_file: File | null
+}
+
+function OfferDetails({
+  typeContrat,
+  description,
+  competences,
+}: {
+  typeContrat?: string | null
+  description?: string | null
+  competences?: string | null
+}) {
+  const desc = description?.trim()
+  const comp = competences?.trim()
+  const contrat = typeContrat?.trim()
+  if (!contrat && !desc && !comp) return null
+
+  return (
+    <div className="mt-4 space-y-3 rounded-lg border border-[#0f3d6c]/10 bg-white/90 p-4">
+      {contrat && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Type de contrat
+          </span>
+          <span className="inline-flex items-center rounded-full bg-[#0f3d6c]/10 px-3 py-1 text-sm font-medium text-[#0f3d6c]">
+            {contrat}
+          </span>
+        </div>
+      )}
+      {desc && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
+            <FileText className="w-3.5 h-3.5" />
+            Description du poste
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{desc}</p>
+        </div>
+      )}
+      {comp && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
+            <Target className="w-3.5 h-3.5" />
+            Compétences requises
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">{comp}</p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function CandidaturePage() {
@@ -474,6 +525,11 @@ export default function CandidaturePage() {
                             <p className="text-sm text-gray-500 mt-2">
                               <span className="font-medium text-gray-600">Pôle:</span> {getPoleName(profil.pole_id)} • <span className="font-medium text-gray-600">Filière:</span> {getFiliereName(profil.filiere_id)}
                             </p>
+                            <OfferDetails
+                              typeContrat={profil.type_contrat}
+                              description={profil.poste_description}
+                              competences={profil.competences}
+                            />
                           </div>
                           <button
                             onClick={() => handleSelectDemande(demande, index)}
@@ -523,9 +579,11 @@ export default function CandidaturePage() {
                           <p className="text-sm text-gray-500 mt-2">
                             <span className="font-medium text-gray-600">Contact:</span> {demande.contact_nom} • <span className="font-medium text-gray-600">Email:</span> {demande.contact_email}
                           </p>
-                          {demande.description && (
-                            <p className="text-sm text-gray-500 mt-3 leading-relaxed">{demande.description}</p>
-                          )}
+                          <OfferDetails
+                            typeContrat={demande.type_contrat}
+                            description={demande.description_poste || demande.description}
+                            competences={demande.competences_requises}
+                          />
                         </div>
                         <button
                           onClick={() => handleSelectDemande(demande, 0)}
