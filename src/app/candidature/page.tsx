@@ -8,35 +8,7 @@ import {
   Building2, Briefcase, Calendar, Send, CheckCircle,
   AlertCircle, AlertTriangle, Loader2, Target, GraduationCap
 } from 'lucide-react'
-
-interface DemandeEntreprise {
-  id: string
-  entreprise_nom?: string
-  nom_entreprise?: string
-  secteur?: string
-  entreprise_ville?: string
-  contact_nom?: string
-  contact_email?: string
-  reference?: string
-  profils?: Array<{
-    pole_id: string
-    filiere_id: string
-    poste_intitule: string
-    poste_description: string
-    competences: string
-    type_contrat: string
-    salaire: string
-    duree: string
-  }>
-  poste_recherche?: string
-  description?: string
-  description_poste?: string
-  competences_requises?: string
-  type_contrat?: string
-  statut?: string
-  source?: 'entreprises' | 'cv'
-  created_at?: string
-}
+import type { OffrePublique } from '@/lib/candidatureOffres'
 
 interface FormData {
   nom: string
@@ -102,7 +74,7 @@ function OfferDetails({
 
 export default function CandidaturePage() {
   const { poles, filieres } = useSettings()
-  const [demandes, setDemandes] = useState<DemandeEntreprise[]>([])
+  const [demandes, setDemandes] = useState<OffrePublique[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -126,45 +98,16 @@ export default function CandidaturePage() {
   const loadDemandes = useCallback(async () => {
     try {
       setLoading(true)
-      
-      // Charger les demandes_entreprises avec filtre de statut plus permissif
-      const { data: dataEntreprises, error: errorEntreprises } = await supabase
-        .from('demandes_entreprises')
-        .select('*')
-        .in('type_demande', ['cv', 'evenement']) // Inclure les demandes CV et événements
-        .in('statut', ['en_cours', 'en_attente'])
-        .order('created_at', { ascending: false })
-      
-      // Charger aussi les demandes_cv
-      const { data: dataCV, error: errorCV } = await supabase
-        .from('demandes_cv')
-        .select('*')
-        .in('statut', ['en_cours', 'en_attente', 'nouvelle'])
-        .order('created_at', { ascending: false })
 
-      if (errorEntreprises) {
-        console.error('Erreur demandes_entreprises:', errorEntreprises)
-      }
-      if (errorCV) {
-        console.error('Erreur demandes_cv:', errorCV)
+      const res = await fetch('/api/candidature/offres', { cache: 'no-store' })
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors du chargement des offres')
       }
 
-      // Combiner les deux sources de données
-      const allDemandes: DemandeEntreprise[] = [
-        ...(dataEntreprises || []).map(d => ({ ...d, source: 'entreprises' as const } as DemandeEntreprise)),
-        ...(dataCV || []).map(d => ({ ...d, source: 'cv' as const } as DemandeEntreprise))
-      ]
-      
-      console.log('Demandes trouvées:', {
-        entreprises: dataEntreprises?.length || 0,
-        cv: dataCV?.length || 0,
-        total: allDemandes.length,
-        statuts_entreprises: dataEntreprises?.map(d => d.statut) || [],
-        statuts_cv: dataCV?.map(d => d.statut) || []
-      })
-      
-      setDemandes(allDemandes)
-    } catch (err: any) {
+      setDemandes(data.offres ?? [])
+    } catch (err: unknown) {
       console.error('Erreur chargement demandes:', err)
       setError('Erreur lors du chargement des offres')
     } finally {
@@ -198,7 +141,7 @@ export default function CandidaturePage() {
   }
 
   // Gérer la sélection d'une demande
-  const handleSelectDemande = (demande: DemandeEntreprise, profilIndex: number) => {
+  const handleSelectDemande = (demande: OffrePublique, profilIndex: number) => {
     setFormData(prev => ({
       ...prev,
       demande_id: demande.id,
@@ -277,7 +220,7 @@ export default function CandidaturePage() {
         // created_at et updated_at sont gérés automatiquement par Supabase
       }
 
-      if (demande.source === 'entreprises' && demande.profils) {
+      if (demande.source === 'entreprises' && demande.profils.length > 0) {
         // Demande avec profils détaillés
         const profilIndexNum = parseInt(profilIndex)
         const profil = demande.profils[profilIndexNum]
@@ -484,7 +427,7 @@ export default function CandidaturePage() {
                 
                 {/* Contenu avec espacement interne */}
                 <div className="relative z-10 space-y-6 pt-2">
-                  {demande.source === 'entreprises' && demande.profils ? (
+                  {demande.source === 'entreprises' && demande.profils.length > 0 ? (
                     // Demandes avec profils détaillés
                     demande.profils.map((profil, index) => (
                       <div key={index} className="pb-8 pt-6 px-4 -mx-4 rounded-lg bg-[#F8F9FA] border border-[#0f3d6c]/8 relative last:pb-0 last:mb-0 mb-6 last:mb-0">
