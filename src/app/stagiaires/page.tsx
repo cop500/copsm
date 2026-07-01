@@ -16,9 +16,10 @@ import {
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
   ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
-  Upload, HelpCircle, Settings
+  Upload, HelpCircle, Settings, Smartphone
 } from 'lucide-react'
 import Link from 'next/link'
+import SmsModule from '@/components/SmsModule'
 
 // Types pour les nouveaux statuts
 type CandidatureStatus = 
@@ -43,11 +44,9 @@ export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
   const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, deleteCandidature: deleteCandidatureDemande } = useDemandesEntreprises()
   const { poles, filieres, loading: settingsLoading } = useSettings()
-  const { isDirecteur } = useRole()
+  const { isAdmin, isDirecteur } = useRole()
   const { profile } = useAuth()
   
-  // Vérifier si l'utilisateur est business_developer (admin)
-  const isAdmin = profile?.role === 'business_developer'
   const canDownloadAllDemandesCV = isAdmin || profile?.role === 'conseillere_carriere'
   
   // État pour l'onglet actif
@@ -58,7 +57,7 @@ export default function StagiairesPage() {
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
   React.useEffect(() => {
-    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin')) {
+    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms')) {
       setActiveTab('candidatures')
     }
     if (isDirecteur && activeTab === 'assistance-conseiller') {
@@ -447,8 +446,8 @@ export default function StagiairesPage() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="-mb-px flex space-x-8">
+          <div className="border-b border-gray-200 mb-6 -mx-1 px-1 overflow-x-auto">
+            <nav className="-mb-px flex flex-nowrap sm:flex-wrap gap-x-6 gap-y-1 min-w-max sm:min-w-0">
               <button
                 onClick={() => setActiveTab('candidatures')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -480,7 +479,7 @@ export default function StagiairesPage() {
               {isAdmin && (
                 <button
                   onClick={() => setActiveTab('cv-connect')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                     activeTab === 'cv-connect'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -496,11 +495,31 @@ export default function StagiairesPage() {
                 </button>
               )}
 
+              {/* Onglet SMS - Visible seulement pour les admins */}
+              {isAdmin && (
+                <button
+                  onClick={() => setActiveTab('sms')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                    activeTab === 'sms'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Smartphone className="w-5 h-5" />
+                    <span>SMS</span>
+                    <span className="px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">
+                      Beta
+                    </span>
+                  </div>
+                </button>
+              )}
+
               {/* Onglet Assistance Conseiller - Masqué pour le directeur */}
               {!isDirecteur && (
                 <button
                   onClick={() => setActiveTab('assistance-conseiller')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                     activeTab === 'assistance-conseiller'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -517,7 +536,7 @@ export default function StagiairesPage() {
               {isAdmin && (
                 <button
                   onClick={() => setActiveTab('assistance-admin')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                     activeTab === 'assistance-admin'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1571,6 +1590,11 @@ export default function StagiairesPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* SMS Tab - Visible seulement pour les admins */}
+        {activeTab === 'sms' && isAdmin && (
+          <SmsModule />
         )}
 
         {/* Assistance Admin Tab - Visible seulement pour les admins */}
