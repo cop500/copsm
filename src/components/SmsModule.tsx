@@ -51,7 +51,8 @@ interface SmsEnvois {
 
 const DEFAULT_COUNTRY_CODE = '+212'
 const SMS_MAX_LENGTH = 160
-const SMS_SIGNATURE = ' COPSM'
+const DEFAULT_SMS_SIGNATURE = 'COPSM'
+const SMS_SIGNATURE_MAX = 24
 
 function composeSmsBody(
   poste: string,
@@ -63,11 +64,17 @@ function composeSmsBody(
   return `Votre profil peut correspondre : ${poste || '…'} (${typeContrat || '…'}). Début ${dateDebut || '…'}. Postulez : ${lien || '…'} – Réf ${reference || '…'}`
 }
 
-function buildFinalSmsMessage(body: string): string {
+function buildFinalSmsMessage(
+  body: string,
+  signatureEnabled: boolean,
+  signatureText: string
+): string {
   const trimmed = body.trim()
-  if (!trimmed) return SMS_SIGNATURE.trim()
-  if (trimmed.endsWith('COPSM')) return trimmed
-  return `${trimmed}${SMS_SIGNATURE}`
+  const sig = signatureText.trim()
+  if (!signatureEnabled || !sig) return trimmed
+  if (trimmed.endsWith(sig)) return trimmed
+  const suffix = ` ${sig}`
+  return trimmed ? `${trimmed}${suffix}` : sig
 }
 
 function normalizeNumero(raw: string): string {
@@ -172,6 +179,8 @@ export default function SmsModule() {
   const [messageBody, setMessageBody] = useState(() =>
     composeSmsBody('Technicien de Laboratoire', 'CDI', '01/07/2026', 'copsm.space/candidature', 'COP-0116')
   )
+  const [signatureEnabled, setSignatureEnabled] = useState(true)
+  const [signatureText, setSignatureText] = useState(DEFAULT_SMS_SIGNATURE)
   const [textoConfigured, setTextoConfigured] = useState(false)
   const [textoLoading, setTextoLoading] = useState(true)
   const [testNumber, setTestNumber] = useState('')
@@ -199,19 +208,42 @@ export default function SmsModule() {
     return { Authorization: `Bearer ${session.access_token}` }
   }, [])
 
-  const syncMessageFromFields = useCallback(() => {
-    setMessageBody(composeSmsBody(poste, typeContrat, dateDebut, lien, reference))
-  }, [poste, typeContrat, dateDebut, lien, reference])
-
   const buildMessage = useCallback(() => {
-    return buildFinalSmsMessage(messageBody)
-  }, [messageBody])
+    return buildFinalSmsMessage(messageBody, signatureEnabled, signatureText)
+  }, [messageBody, signatureEnabled, signatureText])
+
+  const signatureSuffix = useMemo(() => {
+    if (!signatureEnabled) return ''
+    const sig = signatureText.trim()
+    return sig ? ` ${sig}` : ''
+  }, [signatureEnabled, signatureText])
+
+  const maxBodyLength = SMS_MAX_LENGTH - signatureSuffix.length
+
+  const handleSignatureToggle = (enabled: boolean) => {
+    setSignatureEnabled(enabled)
+    if (enabled) {
+      const suffix = signatureText.trim() ? ` ${signatureText.trim()}` : ''
+      setMessageBody((prev) => prev.slice(0, SMS_MAX_LENGTH - suffix.length))
+    }
+  }
+
+  const handleSignatureTextChange = (value: string) => {
+    const cleaned = value.slice(0, SMS_SIGNATURE_MAX)
+    setSignatureText(cleaned)
+    const suffix = signatureEnabled && cleaned.trim() ? ` ${cleaned.trim()}` : ''
+    setMessageBody((prev) => prev.slice(0, SMS_MAX_LENGTH - suffix.length))
+  }
 
   const previewMessage = buildMessage()
   const charCount = previewMessage.length
   const segmentCount = smsSegments(previewMessage)
   const isOverLimit = charCount > SMS_MAX_LENGTH
-  const maxBodyLength = SMS_MAX_LENGTH - SMS_SIGNATURE.length
+
+  const syncMessageFromFields = useCallback(() => {
+    const body = composeSmsBody(poste, typeContrat, dateDebut, lien, reference)
+    setMessageBody(body.slice(0, maxBodyLength))
+  }, [poste, typeContrat, dateDebut, lien, reference, maxBodyLength])
 
   const pastedRecipients = useMemo(() => parsePastedNumbers(pastedText), [pastedText])
   const recipients = useMemo(
@@ -552,7 +584,10 @@ export default function SmsModule() {
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-lg font-semibold text-gray-900">Message SMS</h3>
                 <span className={`text-xs font-medium ${isOverLimit ? 'text-red-600' : charCount > SMS_MAX_LENGTH - 20 ? 'text-amber-600' : 'text-gray-400'}`}>
-                  {charCount}/{SMS_MAX_LENGTH} car. · signature COPSM incluse
+                  {charCount}/{SMS_MAX_LENGTH} car.
+                  {signatureEnabled && signatureText.trim()
+                    ? ` · signature « ${signatureText.trim()} » incluse`
+                    : ' · sans signature'}
                 </span>
               </div>
               <textarea
@@ -564,8 +599,37 @@ export default function SmsModule() {
                   isOverLimit ? 'border-red-300 bg-red-50' : 'border-gray-200'
                 }`}
               />
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={signatureEnabled}
+                    onChange={(e) => handleSignatureToggle(e.target.checked)}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  Ajouter une signature
+                </label>
+                {signatureEnabled && (
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-xs text-gray-500 shrink-0">Texte :</span>
+                    <input
+                      value={signatureText}
+                      onChange={(e) => handleSignatureTextChange(e.target.value)}
+                      placeholder={DEFAULT_SMS_SIGNATURE}
+                      maxLength={SMS_SIGNATURE_MAX}
+                      className="flex-1 min-w-0 rounded-md border border-gray-200 px-2 py-1 text-sm bg-white"
+                    />
+                    <span className="text-xs text-gray-400 shrink-0 hidden sm:inline">
+                      ({signatureSuffix.length} car. réservés)
+                    </span>
+                  </div>
+                )}
+              </div>
               <p className="mt-2 text-xs text-gray-500">
-                Format : « Votre profil peut correspondre : [poste] ([contrat]). Début [date]. Postulez : [lien] – Réf [réf] » + signature <strong>COPSM</strong> (ajoutée automatiquement).
+                Format suggéré : « Votre profil peut correspondre : [poste] ([contrat]). Début [date]. Postulez : [lien] – Réf [réf] »
+                {signatureEnabled && signatureText.trim()
+                  ? ` — la signature « ${signatureText.trim()} » est ajoutée automatiquement à la fin.`
+                  : ' — aucune signature ne sera ajoutée.'}
               </p>
               {isOverLimit && (
                 <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
