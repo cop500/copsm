@@ -30,6 +30,8 @@ interface Candidature {
   prenom?: string
   email?: string
   telephone?: string
+  demande_entreprise_id?: string | null
+  poste_index?: number | null
   created_at: string
   updated_at?: string
 }

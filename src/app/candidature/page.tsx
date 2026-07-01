@@ -6,7 +6,7 @@ import { useSettings } from '@/hooks/useSettings'
 import { 
   User, Mail, Phone, MapPin, FileText, Upload, 
   Building2, Briefcase, Calendar, Send, CheckCircle,
-  AlertCircle, Loader2, Target, GraduationCap
+  AlertCircle, AlertTriangle, Loader2, Target, GraduationCap
 } from 'lucide-react'
 
 interface DemandeEntreprise {
@@ -55,6 +55,7 @@ export default function CandidaturePage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [alreadyAppliedMessage, setAlreadyAppliedMessage] = useState<string | null>(null)
   const [error, setError] = useState('')
   
   const [formData, setFormData] = useState<FormData>({
@@ -265,11 +266,17 @@ export default function CandidaturePage() {
 
       if (!response.ok) {
         const errorData = await response.json()
+        if (response.status === 409 && errorData.message) {
+          setAlreadyAppliedMessage(errorData.message)
+          setSuccess(true)
+          return
+        }
         throw new Error(errorData.error || 'Erreur lors de l\'enregistrement')
       }
 
       const result = await response.json()
       
+      setAlreadyAppliedMessage(null)
       setSuccess(true)
       setFormData({
         nom: '',
@@ -314,21 +321,39 @@ export default function CandidaturePage() {
           <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,0.02)_25%,rgba(0,0,0,0.02)_50%,transparent_50%,transparent_75%,rgba(0,0,0,0.02)_75%)] bg-[length:20px_20px]"></div>
           
           <div className="relative z-10">
-            <CheckCircle className="w-20 h-20 text-green-600 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Candidature transmise au COP !</h2>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <p className="text-blue-800 font-medium mb-2 text-lg">
-                ✅ Votre candidature a été transmise au Centre d'Orientation Professionnelle
-              </p>
-              <p className="text-blue-700 text-sm">
-                Notre équipe COP examinera votre profil et vous contactera dans les plus brefs délais pour la suite du processus.
-              </p>
-        </div>
+            {alreadyAppliedMessage ? (
+              <>
+                <AlertTriangle className="w-20 h-20 text-amber-500 mx-auto mb-6" />
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">Candidature déjà enregistrée</h2>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                  <p className="text-amber-900 font-medium text-lg">{alreadyAppliedMessage}</p>
+                  <p className="text-amber-800 text-sm mt-2">
+                    Inutile de renvoyer votre CV pour cette offre. Notre équipe COP dispose déjà de votre dossier.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-20 h-20 text-green-600 mx-auto mb-6" />
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">Candidature transmise au COP !</h2>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-blue-800 font-medium mb-2 text-lg">
+                    ✅ Votre candidature a été transmise au Centre d'Orientation Professionnelle
+                  </p>
+                  <p className="text-blue-700 text-sm">
+                    Notre équipe COP examinera votre profil et vous contactera dans les plus brefs délais pour la suite du processus.
+                  </p>
+                </div>
+              </>
+            )}
         
             <div className="space-y-3">
               <button 
-                onClick={() => setSuccess(false)}
+                onClick={() => {
+                  setSuccess(false)
+                  setAlreadyAppliedMessage(null)
+                }}
                 className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
               >
                 Déposer une autre candidature

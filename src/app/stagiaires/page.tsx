@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useCandidatures } from '@/hooks/useCandidatures'
 import { useDemandesEntreprises } from '@/hooks/useDemandesEntreprises'
 import { DemandesFolders } from '@/components/DemandesFolders'
 import { useSettings } from '@/hooks/useSettings'
 import { useRole } from '@/hooks/useRole'
 import { useAuth } from '@/hooks/useAuth'
+import { buildDuplicateMap, countHiddenDuplicates } from '@/lib/candidaturesDuplicates'
 import { 
   X, Save, Trash2, Eye, Clock, CheckCircle, AlertTriangle,
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
@@ -100,6 +101,7 @@ export default function StagiairesPage() {
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null)
   const [selectedCandidatures, setSelectedCandidatures] = useState<string[]>([])
   const [showBulkActions, setShowBulkActions] = useState(false)
+  const [hideDuplicateCandidatures, setHideDuplicateCandidatures] = useState(true)
 
   // États pour le visualiseur PDF
   const [showPdfViewer, setShowPdfViewer] = useState(false)
@@ -362,6 +364,16 @@ export default function StagiairesPage() {
     }
   }
 
+  // Doublons : même email/tél. + même offre
+  const duplicateMap = useMemo(
+    () => buildDuplicateMap(candidaturesStagiaires),
+    [candidaturesStagiaires]
+  )
+  const hiddenDuplicateCount = useMemo(
+    () => countHiddenDuplicates(duplicateMap),
+    [duplicateMap]
+  )
+
   // Filtrage des candidatures
   const baseFilteredCandidatures = candidaturesStagiaires.filter(candidature => {
     const matchesSearch = candidatureSearch === '' || 
@@ -398,6 +410,10 @@ export default function StagiairesPage() {
   })
 
   const filteredCandidatures = baseFilteredCandidatures.filter((candidature) => {
+    if (hideDuplicateCandidatures) {
+      const dup = duplicateMap.get(candidature.id)
+      if (dup?.isDuplicate && !dup.isNewest) return false
+    }
     if (showAcceptedInMainList) return true
     // En mode "Tous les statuts", on masque les candidatures déjà acceptées.
     if (candidatureFilter === 'tous') return candidature.statut_candidature !== 'acceptee'
@@ -441,6 +457,11 @@ export default function StagiairesPage() {
           <div className="text-right">
             <div className="text-2xl font-bold text-blue-600">{candidaturesStagiaires.length}</div>
             <div className="text-sm text-gray-600">Candidatures</div>
+            {hiddenDuplicateCount > 0 && hideDuplicateCandidatures && (
+              <div className="text-xs text-amber-600 mt-0.5">
+                {hiddenDuplicateCount} doublon(s) masqué(s)
+              </div>
+            )}
           </div>
             </div>
           </div>
@@ -715,6 +736,15 @@ export default function StagiairesPage() {
             </select>
               </div>
             </div>
+            <label className="mt-3 flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={hideDuplicateCandidatures}
+                onChange={(e) => setHideDuplicateCandidatures(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Masquer les doublons (même personne, même offre — garder la plus récente)
+            </label>
           </div>
 
       {/* Liste des candidatures */}
@@ -780,7 +810,11 @@ export default function StagiairesPage() {
             <div className="p-8 text-center text-gray-500">
               <Send className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>Aucune candidature trouvée</p>
-              {acceptedArchiveCandidatures.length > 0 && !showAcceptedInMainList && candidatureFilter === 'tous' ? (
+              {hiddenDuplicateCount > 0 && hideDuplicateCandidatures && candidatureFilter === 'tous' ? (
+                <p className="text-sm mt-2">
+                  {hiddenDuplicateCount} doublon(s) masqué(s) (même personne, même offre).
+                </p>
+              ) : acceptedArchiveCandidatures.length > 0 && !showAcceptedInMainList && candidatureFilter === 'tous' ? (
                 <p className="text-sm mt-2">
                   {acceptedArchiveCandidatures.length} candidature(s) acceptée(s) sont masquées dans la liste principale.
                 </p>
@@ -793,6 +827,7 @@ export default function StagiairesPage() {
               const statusInfo = statusConfig[candidature.statut_candidature as CandidatureStatus] || statusConfig.envoye
               const StatusIcon = statusInfo.icon
               const candidatName = `${candidature.nom} ${candidature.prenom}`
+              const dupInfo = duplicateMap.get(candidature.id)
                     
                     return (
                 <div key={candidature.id} className="p-6 hover:bg-gray-50 transition-colors">
@@ -829,6 +864,20 @@ export default function StagiairesPage() {
                           <StatusIcon className="w-3 h-3 mr-1" />
                           {statusInfo.label}
                                 </span>
+                        {dupInfo?.isDuplicate && (
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              dupInfo.isNewest
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-orange-100 text-orange-800'
+                            }`}
+                            title="Même email/téléphone sur la même offre"
+                          >
+                            {dupInfo.isNewest
+                              ? `${dupInfo.groupSize} envois · plus récent`
+                              : `Doublon · ${dupInfo.positionInGroup}e envoi`}
+                          </span>
+                        )}
                               </div>
                               
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
