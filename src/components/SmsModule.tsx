@@ -50,16 +50,25 @@ interface SmsEnvois {
 }
 
 const DEFAULT_COUNTRY_CODE = '+212'
+const SMS_MAX_LENGTH = 160
+const SMS_SIGNATURE = ' COPSM'
 
-const DEFAULT_TEMPLATE = `Bonjour,
+function composeSmsBody(
+  poste: string,
+  typeContrat: string,
+  dateDebut: string,
+  lien: string,
+  reference: string
+) {
+  return `Votre profil peut correspondre : ${poste || '…'} (${typeContrat || '…'}). Début ${dateDebut || '…'}. Postulez : ${lien || '…'} – Réf ${reference || '…'}`
+}
 
-Le COP vous informe d'une opportunité professionnelle ({{pole}} — {{filiere}}) chez {{entreprise}}.
-
-{{instruction_date}}
-
-Réf. : {{reference_offre}} | Lieu : {{lieu}} | Heure : {{heure}}
-
-Merci de nous envoyer votre CV à l'adresse indiquée.`
+function buildFinalSmsMessage(body: string): string {
+  const trimmed = body.trim()
+  if (!trimmed) return SMS_SIGNATURE.trim()
+  if (trimmed.endsWith('COPSM')) return trimmed
+  return `${trimmed}${SMS_SIGNATURE}`
+}
 
 function normalizeNumero(raw: string): string {
   let digits = raw.replace(/\D/g, '')
@@ -142,8 +151,8 @@ function smsSegments(text: string): number {
   return Math.ceil((len - single) / multi) + 1
 }
 
-function buildCampaignLabel(entreprise: string, reference: string, pole: string) {
-  const parts = [entreprise, reference, pole].filter(Boolean)
+function buildCampaignLabel(poste: string, reference: string) {
+  const parts = [poste, reference].filter(Boolean)
   if (parts.length > 0) return parts.join(' · ')
   return `Campagne ${new Date().toLocaleDateString('fr-FR')}`
 }
@@ -154,16 +163,15 @@ export default function SmsModule() {
   const [fileName, setFileName] = useState<string | null>(null)
   const [excelRecipients, setExcelRecipients] = useState<SmsRecipient[] | null>(null)
   const [pastedText, setPastedText] = useState('')
-  const [messageTemplate, setMessageTemplate] = useState(DEFAULT_TEMPLATE)
   const [libelleCampagne, setLibelleCampagne] = useState('')
-  const [entreprise, setEntreprise] = useState('')
-  const [referenceOffre, setReferenceOffre] = useState('')
-  const [lieu, setLieu] = useState('')
-  const [heure, setHeure] = useState('')
-  const [pole, setPole] = useState('')
-  const [filiere, setFiliere] = useState('')
-  const [dateEvenement, setDateEvenement] = useState('')
-  const [dateMode, setDateMode] = useState<'cv_avant' | 'presenter'>('cv_avant')
+  const [poste, setPoste] = useState('Technicien de Laboratoire')
+  const [typeContrat, setTypeContrat] = useState('CDI')
+  const [dateDebut, setDateDebut] = useState('01/07/2026')
+  const [lien, setLien] = useState('copsm.space/candidature')
+  const [reference, setReference] = useState('COP-0116')
+  const [messageBody, setMessageBody] = useState(() =>
+    composeSmsBody('Technicien de Laboratoire', 'CDI', '01/07/2026', 'copsm.space/candidature', 'COP-0116')
+  )
   const [textoConfigured, setTextoConfigured] = useState(false)
   const [textoLoading, setTextoLoading] = useState(true)
   const [testNumber, setTestNumber] = useState('')
@@ -191,30 +199,19 @@ export default function SmsModule() {
     return { Authorization: `Bearer ${session.access_token}` }
   }, [])
 
-  const instructionDate = useMemo(() => {
-    if (!dateEvenement) return ''
-    return dateMode === 'cv_avant'
-      ? `Merci d'envoyer votre CV avant le ${dateEvenement}.`
-      : `Merci de vous présenter à la journée de recrutement le ${dateEvenement}.`
-  }, [dateEvenement, dateMode])
+  const syncMessageFromFields = useCallback(() => {
+    setMessageBody(composeSmsBody(poste, typeContrat, dateDebut, lien, reference))
+  }, [poste, typeContrat, dateDebut, lien, reference])
 
   const buildMessage = useCallback(() => {
-    return messageTemplate
-      .replace(/\{\{entreprise\}\}/g, entreprise || '—')
-      .replace(/\{\{reference_offre\}\}/g, referenceOffre || '—')
-      .replace(/\{\{lieu\}\}/g, lieu || '—')
-      .replace(/\{\{heure\}\}/g, heure || '—')
-      .replace(/\{\{pole\}\}/g, pole || '—')
-      .replace(/\{\{filiere\}\}/g, filiere || '—')
-      .replace(/\{\{date\}\}/g, dateEvenement || '—')
-      .replace(/\{\{instruction_date\}\}/g, instructionDate)
-      .replace(/\n{3,}/g, '\n\n')
-      .trim()
-  }, [messageTemplate, entreprise, referenceOffre, lieu, heure, pole, filiere, dateEvenement, instructionDate])
+    return buildFinalSmsMessage(messageBody)
+  }, [messageBody])
 
   const previewMessage = buildMessage()
   const charCount = previewMessage.length
   const segmentCount = smsSegments(previewMessage)
+  const isOverLimit = charCount > SMS_MAX_LENGTH
+  const maxBodyLength = SMS_MAX_LENGTH - SMS_SIGNATURE.length
 
   const pastedRecipients = useMemo(() => parsePastedNumbers(pastedText), [pastedText])
   const recipients = useMemo(
@@ -222,7 +219,7 @@ export default function SmsModule() {
     [excelRecipients, pastedRecipients]
   )
 
-  const campaignLabel = libelleCampagne.trim() || buildCampaignLabel(entreprise, referenceOffre, pole)
+  const campaignLabel = libelleCampagne.trim() || buildCampaignLabel(poste, reference)
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -288,7 +285,7 @@ export default function SmsModule() {
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'SMS')
-    const slug = (entreprise || 'cop').replace(/\s+/g, '_').slice(0, 20)
+    const slug = (reference || 'cop').replace(/\s+/g, '_').slice(0, 20)
     XLSX.writeFile(wb, `sms_${slug}_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
@@ -296,6 +293,10 @@ export default function SmsModule() {
     const to = testNumber.trim() || recipients[0]?.numero
     if (!to) {
       setTestResult({ ok: false, message: 'Indiquez un numéro de test.' })
+      return
+    }
+    if (isOverLimit) {
+      setTestResult({ ok: false, message: `Message trop long (${charCount}/${SMS_MAX_LENGTH} car.).` })
       return
     }
     setTestSending(true)
@@ -326,6 +327,10 @@ export default function SmsModule() {
   const sendCampaign = async () => {
     if (recipients.length === 0) return
     const msg = buildMessage()
+    if (isOverLimit) {
+      alert(`Message trop long (${charCount}/${SMS_MAX_LENGTH} caractères). Raccourcissez le texte.`)
+      return
+    }
     if (!window.confirm(`Envoyer ${recipients.length} SMS — « ${campaignLabel} » ?`)) return
 
     setCampaignSending(true)
@@ -340,11 +345,11 @@ export default function SmsModule() {
           delayMs,
           campaign: {
             libelle: campaignLabel,
-            entreprise,
-            reference_offre: referenceOffre,
-            pole,
-            filiere,
-            lieu,
+            entreprise: poste,
+            reference_offre: reference,
+            pole: typeContrat,
+            filiere: dateDebut,
+            lieu: lien,
             message: msg,
           },
         }),
@@ -412,9 +417,9 @@ export default function SmsModule() {
                 <div className="text-2xl font-bold">{recipients.length}</div>
                 <div className="text-xs text-slate-300">Destinataires</div>
               </div>
-              <div className="rounded-xl bg-white/10 px-4 py-3 text-center ring-1 ring-white/10">
-                <div className="text-2xl font-bold">{segmentCount}</div>
-                <div className="text-xs text-slate-300">Segments SMS</div>
+              <div className={`rounded-xl px-4 py-3 text-center ring-1 ${isOverLimit ? 'bg-red-500/20 ring-red-400/40' : 'bg-white/10 ring-white/10'}`}>
+                <div className="text-2xl font-bold">{charCount}/{SMS_MAX_LENGTH}</div>
+                <div className="text-xs text-slate-300">Caractères</div>
               </div>
             </div>
           </div>
@@ -456,55 +461,43 @@ export default function SmsModule() {
             <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <MessageSquare className="h-5 w-5 text-indigo-600" />
-                Offre & campagne
+                Offre
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Nom de la campagne</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Nom de la campagne (optionnel)</label>
                   <input
                     value={libelleCampagne}
                     onChange={(e) => setLibelleCampagne(e.target.value)}
-                    placeholder={buildCampaignLabel(entreprise, referenceOffre, pole)}
+                    placeholder={buildCampaignLabel(poste, reference)}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                   />
                 </div>
                 {[
-                  { label: 'Entreprise', value: entreprise, set: setEntreprise },
-                  { label: 'Réf. offre', value: referenceOffre, set: setReferenceOffre },
-                  { label: 'Pôle', value: pole, set: setPole },
-                  { label: 'Filière', value: filiere, set: setFiliere },
-                  { label: 'Lieu', value: lieu, set: setLieu },
-                  { label: 'Heure', value: heure, set: setHeure },
+                  { label: 'Poste / intitulé', value: poste, set: setPoste },
+                  { label: 'Type de contrat', value: typeContrat, set: setTypeContrat },
+                  { label: 'Date de début', value: dateDebut, set: setDateDebut },
+                  { label: 'Lien candidature', value: lien, set: setLien },
+                  { label: 'Référence', value: reference, set: setReference },
                 ].map(({ label, value, set }) => (
-                  <div key={label}>
+                  <div key={label} className={label === 'Référence' ? 'md:col-span-2' : ''}>
                     <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
                     <input
                       value={value}
                       onChange={(e) => set(e.target.value)}
+                      onBlur={syncMessageFromFields}
                       className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     />
                   </div>
                 ))}
               </div>
-              <div className="mt-3 rounded-lg bg-slate-50 p-3 space-y-2">
-                <input
-                  type="text"
-                  value={dateEvenement}
-                  onChange={(e) => setDateEvenement(e.target.value)}
-                  placeholder="Date (ex. 25/06/2026)"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                />
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" checked={dateMode === 'cv_avant'} onChange={() => setDateMode('cv_avant')} />
-                    CV avant la date
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" checked={dateMode === 'presenter'} onChange={() => setDateMode('presenter')} />
-                    Se présenter à la journée
-                  </label>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={syncMessageFromFields}
+                className="mt-3 text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                Regénérer le message depuis les champs
+              </button>
             </section>
 
             {/* Destinataires */}
@@ -557,18 +550,33 @@ export default function SmsModule() {
             {/* Message */}
             <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">Message</h3>
-                <span className="text-xs text-gray-400">{charCount} car. · {segmentCount} SMS</span>
+                <h3 className="text-lg font-semibold text-gray-900">Message SMS</h3>
+                <span className={`text-xs font-medium ${isOverLimit ? 'text-red-600' : charCount > SMS_MAX_LENGTH - 20 ? 'text-amber-600' : 'text-gray-400'}`}>
+                  {charCount}/{SMS_MAX_LENGTH} car. · signature COPSM incluse
+                </span>
               </div>
               <textarea
-                value={messageTemplate}
-                onChange={(e) => setMessageTemplate(e.target.value)}
-                rows={8}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-mono leading-relaxed"
+                value={messageBody}
+                onChange={(e) => setMessageBody(e.target.value.slice(0, maxBodyLength))}
+                maxLength={maxBodyLength}
+                rows={4}
+                className={`w-full rounded-xl border px-4 py-3 text-sm leading-relaxed ${
+                  isOverLimit ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
               />
-              <p className="mt-2 text-xs text-gray-400">
-                Variables : {'{{entreprise}}'}, {'{{pole}}'}, {'{{filiere}}'}, {'{{reference_offre}}'}, {'{{lieu}}'}, {'{{heure}}'}, {'{{instruction_date}}'}
+              <p className="mt-2 text-xs text-gray-500">
+                Format : « Votre profil peut correspondre : [poste] ([contrat]). Début [date]. Postulez : [lien] – Réf [réf] » + signature <strong>COPSM</strong> (ajoutée automatiquement).
               </p>
+              {isOverLimit && (
+                <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Dépassement de {SMS_MAX_LENGTH} caractères — raccourcissez le message pour envoyer.
+                </p>
+              )}
+              <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-gray-700 border border-gray-100">
+                <span className="text-xs text-gray-400 block mb-1">Aperçu final envoyé :</span>
+                {previewMessage}
+              </div>
             </section>
 
             {/* Envoi */}
@@ -616,7 +624,7 @@ export default function SmsModule() {
                 </button>
                 <button
                   type="button"
-                  disabled={!textoConfigured || campaignSending || recipients.length === 0}
+                  disabled={!textoConfigured || campaignSending || recipients.length === 0 || isOverLimit}
                   onClick={sendCampaign}
                   className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40"
                 >
@@ -657,8 +665,8 @@ export default function SmsModule() {
                     )}
                   </div>
                   <div className="border-t bg-white px-4 py-2 flex justify-between text-[10px] text-gray-400">
-                    <span>{charCount} car.</span>
-                    <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{segmentCount}</span>
+                    <span>{charCount}/{SMS_MAX_LENGTH}</span>
+                    <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{segmentCount} seg.</span>
                   </div>
                 </div>
               </div>
