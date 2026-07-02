@@ -63,9 +63,12 @@ export const useDemandesEntreprises = () => {
   const [error, setError] = useState<string | null>(null)
 
   // Charger toutes les demandes d'entreprises avec leurs candidatures
-  const loadDemandes = async () => {
+  const loadDemandes = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
     try {
-      setLoading(true)
+      if (!silent) {
+        setLoading(true)
+      }
       setError(null)
       
       // Charger les demandes d'entreprises
@@ -113,9 +116,40 @@ export const useDemandesEntreprises = () => {
       console.error('Erreur chargement demandes:', err)
       setError(err.message)
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }
+
+  const patchCandidatureInDemandes = useCallback(
+    (
+      candidatureId: string,
+      patch: Partial<Candidature> | null
+    ): DemandeEntreprise[] => {
+      let previous: DemandeEntreprise[] = []
+      setDemandes((prev) => {
+        previous = prev
+        return prev.map((demande) => {
+          if (!demande.candidatures?.some((c) => c.id === candidatureId)) {
+            return demande
+          }
+          const candidatures = patch
+            ? demande.candidatures.map((c) =>
+                c.id === candidatureId ? { ...c, ...patch } : c
+              )
+            : demande.candidatures.filter((c) => c.id !== candidatureId)
+          return {
+            ...demande,
+            candidatures,
+            candidatures_count: candidatures.length,
+          }
+        })
+      })
+      return previous
+    },
+    []
+  )
 
   // Charger les candidatures d'une demande spécifique
   const loadCandidaturesByDemande = async (demandeId: string) => {
@@ -156,50 +190,49 @@ export const useDemandesEntreprises = () => {
 
   // Mettre à jour le statut d'une candidature
   const updateStatutCandidature = async (candidatureId: string, newStatut: string, notes?: string) => {
+    const updateData: Partial<Candidature> = {
+      statut_candidature: newStatut,
+      date_derniere_maj: new Date().toISOString().split('T')[0],
+    }
+    if (notes) {
+      updateData.feedback_entreprise = notes
+    }
+
+    const previousDemandes = patchCandidatureInDemandes(candidatureId, updateData)
+
     try {
-      const updateData: any = {
-        statut_candidature: newStatut,
-        date_derniere_maj: new Date().toISOString().split('T')[0]
-      }
-      
-      if (notes) {
-        updateData.feedback_entreprise = notes
-      }
-      
       const { error } = await supabase
         .from('candidatures_stagiaires')
         .update(updateData)
         .eq('id', candidatureId)
-      
+
       if (error) throw error
-      
-      // Recharger les demandes
-      await loadDemandes()
-      
       return { success: true }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      setDemandes(previousDemandes)
       console.error('Erreur mise à jour statut:', err)
-      return { success: false, error: err.message }
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      return { success: false, error: message }
     }
   }
 
   // Supprimer une candidature
   const deleteCandidature = async (candidatureId: string) => {
+    const previousDemandes = patchCandidatureInDemandes(candidatureId, null)
+
     try {
       const { error } = await supabase
         .from('candidatures_stagiaires')
         .delete()
         .eq('id', candidatureId)
-      
+
       if (error) throw error
-      
-      // Recharger les demandes
-      await loadDemandes()
-      
       return { success: true }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      setDemandes(previousDemandes)
       console.error('Erreur suppression candidature:', err)
-      return { success: false, error: err.message }
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      return { success: false, error: message }
     }
   }
 
@@ -234,11 +267,16 @@ export const useDemandesEntreprises = () => {
     })
   }, [])
 
-  // Tri CV : accepté / refusé
+  // Tri CV : accepté / refusé (mise à jour instantanée, sans rechargement complet)
   const updateCvTriStatut = async (
     candidatureId: string,
     cvTriStatut: 'en_attente' | 'accepte' | 'refuse'
   ) => {
+    const previousDemandes = patchCandidatureInDemandes(candidatureId, {
+      cv_tri_statut: cvTriStatut,
+      date_derniere_maj: new Date().toISOString().split('T')[0],
+    })
+
     try {
       const { error } = await supabase
         .from('candidatures_stagiaires')
@@ -249,10 +287,9 @@ export const useDemandesEntreprises = () => {
         .eq('id', candidatureId)
 
       if (error) throw error
-
-      await loadDemandes()
       return { success: true }
     } catch (err: unknown) {
+      setDemandes(previousDemandes)
       console.error('Erreur tri CV:', err)
       const message = err instanceof Error ? err.message : 'Erreur inconnue'
       return { success: false, error: message }
