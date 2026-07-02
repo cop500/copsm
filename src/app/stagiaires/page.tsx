@@ -43,7 +43,7 @@ interface CandidatureAction {
 
 export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
-  const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, deleteCandidature: deleteCandidatureDemande } = useDemandesEntreprises()
+  const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, updateCvTriStatut, deleteCandidature: deleteCandidatureDemande } = useDemandesEntreprises()
   const { poles, filieres, loading: settingsLoading } = useSettings()
   const { isAdmin, isDirecteur } = useRole()
   const { profile } = useAuth()
@@ -1524,6 +1524,7 @@ export default function StagiairesPage() {
                 // Ici vous pouvez ajouter une logique pour afficher les détails de la demande
               }}
               onUpdateStatut={updateStatutDemande}
+              onUpdateCvTriStatut={updateCvTriStatut}
               onDeleteCandidature={deleteCandidatureDemande}
               isAdmin={isAdmin}
               canDownloadAllCVs={canDownloadAllDemandesCV}

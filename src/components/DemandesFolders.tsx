@@ -9,6 +9,12 @@ import {
 } from 'lucide-react'
 import JSZip from 'jszip'
 import * as XLSX from 'xlsx'
+import {
+  getCvTriColor,
+  getCvTriLabel,
+  isCvAcceptedForDownload,
+  type CvTriStatut,
+} from '@/lib/cvTriStatut'
 
 interface DemandeEntreprise {
   id: string
@@ -45,6 +51,8 @@ interface Candidature {
   created_at: string
   demande_entreprise_id?: string
   poste_index?: number
+  cv_tri_statut?: string
+  feedback_entreprise?: string
 }
 
 interface DemandesFoldersProps {
@@ -52,6 +60,10 @@ interface DemandesFoldersProps {
   loading: boolean
   onSelectDemande: (demande: DemandeEntreprise) => void
   onUpdateStatut: (candidatureId: string, newStatut: string, notes?: string) => Promise<{success: boolean}>
+  onUpdateCvTriStatut: (
+    candidatureId: string,
+    statut: CvTriStatut
+  ) => Promise<{ success: boolean; error?: string }>
   onDeleteCandidature: (candidatureId: string) => Promise<{success: boolean}>
   isAdmin?: boolean
   canDownloadAllCVs?: boolean
@@ -62,6 +74,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   loading,
   onSelectDemande,
   onUpdateStatut,
+  onUpdateCvTriStatut,
   onDeleteCandidature,
   isAdmin = false,
   canDownloadAllCVs = false
@@ -72,6 +85,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
   const [candidatureNotes, setCandidatureNotes] = useState('')
   const [downloadingCVs, setDownloadingCVs] = useState<string | null>(null)
+  const [updatingCvTriId, setUpdatingCvTriId] = useState<string | null>(null)
 
   const toggleFolder = (demandeId: string) => {
     const newExpanded = new Set(expandedFolders)
@@ -195,6 +209,20 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     }
   }
 
+  const handleCvTriStatut = async (candidatureId: string, statut: CvTriStatut) => {
+    setUpdatingCvTriId(candidatureId)
+    try {
+      const result = await onUpdateCvTriStatut(candidatureId, statut)
+      if (!result.success) {
+        alert(result.error || 'Impossible de mettre à jour le tri CV.')
+      } else if (selectedCandidature?.id === candidatureId) {
+        setSelectedCandidature((prev) => (prev ? { ...prev, cv_tri_statut: statut } : prev))
+      }
+    } finally {
+      setUpdatingCvTriId(null)
+    }
+  }
+
   const handleDeleteCandidature = async (candidatureId: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
       const result = await onDeleteCandidature(candidatureId)
@@ -212,11 +240,15 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       return
     }
 
-    // Filtrer les candidatures qui ont un CV
-    const candidaturesWithCV = demande.candidatures.filter(c => c.cv_url)
-    
+    // Uniquement les CV marqués « accepté »
+    const candidaturesWithCV = demande.candidatures.filter(
+      (c) => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)
+    )
+
     if (candidaturesWithCV.length === 0) {
-      alert('Aucun CV disponible pour téléchargement.')
+      alert(
+        'Aucun CV accepté à télécharger. Utilisez le bouton « CV accepté » sur chaque candidature pour valider les dossiers à envoyer.'
+      )
       return
     }
 
@@ -274,7 +306,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       const a = document.createElement('a')
       a.href = url
       const entrepriseName = demande.entreprise_nom.replace(/[^a-zA-Z0-9_-]/g, '_')
-      a.download = `CV_${entrepriseName}_${new Date().toISOString().split('T')[0]}.zip`
+      a.download = `CV_acceptes_${entrepriseName}_${new Date().toISOString().split('T')[0]}.zip`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -315,48 +347,93 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     XLSX.writeFile(wb, fileName)
   }
 
-  // Fonction pour rendre une carte de candidature
-  const renderCandidatureCard = (candidature: Candidature) => (
-    <div className="flex items-center justify-between">
-      <div className="flex-1">
-        <div className="flex items-center space-x-3 mb-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+  const renderCandidatureCard = (candidature: Candidature) => {
+    const cvTri = candidature.cv_tri_statut || 'en_attente'
+    const isUpdatingTri = updatingCvTriId === candidature.id
+
+    return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center flex-wrap gap-2 mb-2">
+          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center shrink-0">
             <Users className="w-4 h-4 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h5 className="font-medium text-gray-900">
               {candidature.nom} {candidature.prenom}
             </h5>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 truncate">
               {candidature.email}
             </p>
           </div>
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCandidatureStatutColor(candidature.statut_candidature || 'envoye')}`}>
             {getCandidatureStatutLabel(candidature.statut_candidature || 'envoye')}
           </span>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCvTriColor(cvTri)}`}>
+            {getCvTriLabel(cvTri)}
+          </span>
         </div>
         
-        <div className="flex items-center space-x-4 text-sm text-gray-600">
+        <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mb-3">
           {candidature.poste && (
             <div className="flex items-center space-x-1">
-              <Briefcase className="w-4 h-4" />
+              <Briefcase className="w-4 h-4 shrink-0" />
               <span>{candidature.poste}</span>
             </div>
           )}
           <div className="flex items-center space-x-1">
-            <Calendar className="w-4 h-4" />
+            <Calendar className="w-4 h-4 shrink-0" />
             <span>{new Date(candidature.created_at).toLocaleDateString('fr-FR')}</span>
           </div>
           {candidature.telephone && (
             <div className="flex items-center space-x-1">
-              <Phone className="w-4 h-4" />
+              <Phone className="w-4 h-4 shrink-0" />
               <span>{candidature.telephone}</span>
             </div>
           )}
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={isUpdatingTri}
+            onClick={() => handleCvTriStatut(candidature.id, 'accepte')}
+            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              cvTri === 'accepte'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+            } disabled:opacity-50`}
+          >
+            <CheckCircle className="w-3.5 h-3.5" />
+            CV accepté
+          </button>
+          <button
+            type="button"
+            disabled={isUpdatingTri}
+            onClick={() => handleCvTriStatut(candidature.id, 'refuse')}
+            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              cvTri === 'refuse'
+                ? 'bg-red-600 text-white shadow-sm'
+                : 'bg-red-50 text-red-800 border border-red-200 hover:bg-red-100'
+            } disabled:opacity-50`}
+          >
+            <XCircle className="w-3.5 h-3.5" />
+            CV refusé
+          </button>
+          {cvTri !== 'en_attente' && (
+            <button
+              type="button"
+              disabled={isUpdatingTri}
+              onClick={() => handleCvTriStatut(candidature.id, 'en_attente')}
+              className="px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 underline disabled:opacity-50"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
       </div>
       
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 shrink-0">
         <button
           onClick={() => handleViewCandidature(candidature)}
           className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
@@ -373,7 +450,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
         </button>
       </div>
     </div>
-  )
+    )
+  }
 
   if (loading) {
     return (
@@ -470,7 +548,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       <FileSpreadsheet className="w-5 h-5" />
                     </button>
                   )}
-                  {canDownloadAllCVs && demande.candidatures && demande.candidatures.some(c => c.cv_url) && (
+                  {canDownloadAllCVs && demande.candidatures && demande.candidatures.some(c => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -480,7 +558,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       className={`p-2 text-gray-400 hover:text-green-600 transition-colors ${
                         downloadingCVs === demande.id ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
-                      title="Télécharger tous les CV"
+                      title="Télécharger les CV acceptés (ZIP)"
                     >
                       {downloadingCVs === demande.id ? (
                         <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
@@ -582,6 +660,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                   <h5 className="font-semibold text-gray-900">{posteName}</h5>
                                   <p className="text-sm text-gray-600">
                                     {candidatures.length} candidature{candidatures.length > 1 ? 's' : ''}
+                                    {' · '}
+                                    {candidatures.filter((c) => isCvAcceptedForDownload(c.cv_tri_statut)).length} CV accepté
+                                    {candidatures.filter((c) => c.cv_tri_statut === 'refuse').length > 0 &&
+                                      ` · ${candidatures.filter((c) => c.cv_tri_statut === 'refuse').length} refusé`}
                                   </p>
                                 </div>
                               </div>
@@ -671,6 +753,42 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                   </a>
                 </div>
               )}
+
+              {/* Tri CV */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Tri du CV</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={updatingCvTriId === selectedCandidature.id}
+                    onClick={() => handleCvTriStatut(selectedCandidature.id, 'accepte')}
+                    className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold ${
+                      (selectedCandidature.cv_tri_statut || 'en_attente') === 'accepte'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    CV accepté
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingCvTriId === selectedCandidature.id}
+                    onClick={() => handleCvTriStatut(selectedCandidature.id, 'refuse')}
+                    className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold ${
+                      selectedCandidature.cv_tri_statut === 'refuse'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    CV refusé
+                  </button>
+                  <span className={`text-xs px-2 py-1 rounded-full ${getCvTriColor(selectedCandidature.cv_tri_statut)}`}>
+                    {getCvTriLabel(selectedCandidature.cv_tri_statut)}
+                  </span>
+                </div>
+              </div>
 
               {/* Notes */}
               <div>

@@ -54,6 +54,7 @@ interface Candidature {
   updated_at?: string
   demande_entreprise_id?: string
   poste_index?: number
+  cv_tri_statut?: string
 }
 
 export const useDemandesEntreprises = () => {
@@ -233,6 +234,31 @@ export const useDemandesEntreprises = () => {
     })
   }, [])
 
+  // Tri CV : accepté / refusé
+  const updateCvTriStatut = async (
+    candidatureId: string,
+    cvTriStatut: 'en_attente' | 'accepte' | 'refuse'
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('candidatures_stagiaires')
+        .update({
+          cv_tri_statut: cvTriStatut,
+          date_derniere_maj: new Date().toISOString().split('T')[0],
+        })
+        .eq('id', candidatureId)
+
+      if (error) throw error
+
+      await loadDemandes()
+      return { success: true }
+    } catch (err: unknown) {
+      console.error('Erreur tri CV:', err)
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      return { success: false, error: message }
+    }
+  }
+
   // Synchronisation en temps réel
   const { isConnected } = useRealTime('demandes_entreprises', handleRealtimeChange)
 
@@ -243,6 +269,7 @@ export const useDemandesEntreprises = () => {
     loadDemandes,
     loadCandidaturesByDemande,
     updateStatutCandidature,
+    updateCvTriStatut,
     deleteCandidature,
     refreshDemandes,
     isRealtimeConnected: isConnected
