@@ -13,6 +13,8 @@ import {
   getCvTriColor,
   getCvTriLabel,
   isCvAcceptedForDownload,
+  getCvEnvoisBadge,
+  hasCvEnvois,
   type CvTriStatut,
 } from '@/lib/cvTriStatut'
 
@@ -52,6 +54,9 @@ interface Candidature {
   demande_entreprise_id?: string
   poste_index?: number
   cv_tri_statut?: string
+  cv_telecharge_le?: string | null
+  cv_dernier_envoi_le?: string | null
+  cv_nb_envois?: number
   feedback_entreprise?: string
 }
 
@@ -64,6 +69,7 @@ interface DemandesFoldersProps {
     candidatureId: string,
     statut: CvTriStatut
   ) => Promise<{ success: boolean; error?: string }>
+  onMarkCvsTelecharges: (candidatureIds: string[]) => Promise<{ success: boolean; error?: string; marked?: number }>
   onDeleteCandidature: (candidatureId: string) => Promise<{success: boolean}>
   isAdmin?: boolean
   canDownloadAllCVs?: boolean
@@ -75,6 +81,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   onSelectDemande,
   onUpdateStatut,
   onUpdateCvTriStatut,
+  onMarkCvsTelecharges,
   onDeleteCandidature,
   isAdmin = false,
   canDownloadAllCVs = false
@@ -258,6 +265,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       const zip = new JSZip()
       let downloadedCount = 0
       let failedCount = 0
+      const successfullyDownloadedIds: string[] = []
 
       // Télécharger chaque CV et l'ajouter au ZIP
       await Promise.all(
@@ -285,6 +293,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
             // Ajouter le fichier au ZIP
             zip.file(fileName, blob)
             downloadedCount++
+            successfullyDownloadedIds.push(candidature.id)
           } catch (error) {
             console.error(`Erreur lors du téléchargement du CV de ${candidature.nom} ${candidature.prenom}:`, error)
             failedCount++
@@ -311,6 +320,13 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
+
+      if (successfullyDownloadedIds.length > 0) {
+        const markResult = await onMarkCvsTelecharges(successfullyDownloadedIds)
+        if (!markResult.success) {
+          console.warn('Marquage 1er envoi non enregistré:', markResult.error)
+        }
+      }
 
       if (failedCount > 0) {
         alert(`${downloadedCount} CV téléchargé(s) avec succès. ${failedCount} CV n'ont pas pu être téléchargés.`)
@@ -350,6 +366,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const renderCandidatureCard = (candidature: Candidature) => {
     const cvTri = candidature.cv_tri_statut || 'en_attente'
     const isUpdatingTri = updatingCvTriId === candidature.id
+    const envoisBadge = getCvEnvoisBadge(
+      candidature.cv_nb_envois,
+      candidature.cv_telecharge_le,
+      candidature.cv_dernier_envoi_le
+    )
 
     return (
     <div className="flex items-start justify-between gap-4">
@@ -372,6 +393,15 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCvTriColor(cvTri)}`}>
             {getCvTriLabel(cvTri)}
           </span>
+          {envoisBadge && (
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800 border border-sky-200"
+              title={envoisBadge.title}
+            >
+              <Download className="w-3 h-3" />
+              {envoisBadge.label}
+            </span>
+          )}
         </div>
         
         <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mb-3">
@@ -664,6 +694,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                     {candidatures.filter((c) => isCvAcceptedForDownload(c.cv_tri_statut)).length} CV accepté
                                     {candidatures.filter((c) => c.cv_tri_statut === 'refuse').length > 0 &&
                                       ` · ${candidatures.filter((c) => c.cv_tri_statut === 'refuse').length} refusé`}
+                                    {candidatures.filter((c) =>
+                                      hasCvEnvois(c.cv_nb_envois, c.cv_telecharge_le)
+                                    ).length > 0 &&
+                                      ` · ${candidatures.filter((c) => hasCvEnvois(c.cv_nb_envois, c.cv_telecharge_le)).length} envoyé`}
                                   </p>
                                 </div>
                               </div>
@@ -742,6 +776,23 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
               {selectedCandidature.cv_url && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">CV</h3>
+                  {(() => {
+                    const envois = getCvEnvoisBadge(
+                      selectedCandidature.cv_nb_envois,
+                      selectedCandidature.cv_telecharge_le,
+                      selectedCandidature.cv_dernier_envoi_le
+                    )
+                    if (!envois) return null
+                    return (
+                      <p
+                        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-sky-50 border border-sky-200 px-3 py-2 text-sm text-sky-800"
+                        title={envois.title}
+                      >
+                        <Download className="w-4 h-4" />
+                        {envois.label}
+                      </p>
+                    )
+                  })()}
                   <a
                     href={selectedCandidature.cv_url}
                     target="_blank"

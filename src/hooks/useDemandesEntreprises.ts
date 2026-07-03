@@ -55,6 +55,9 @@ interface Candidature {
   demande_entreprise_id?: string
   poste_index?: number
   cv_tri_statut?: string
+  cv_telecharge_le?: string | null
+  cv_dernier_envoi_le?: string | null
+  cv_nb_envois?: number
 }
 
 export const useDemandesEntreprises = () => {
@@ -296,6 +299,73 @@ export const useDemandesEntreprises = () => {
     }
   }
 
+  // Enregistrer un envoi / téléchargement ZIP (1er, 2e, 3e…)
+  const markCvsTelecharges = async (candidatureIds: string[]) => {
+    const uniqueIds = [...new Set(candidatureIds.filter(Boolean))]
+    if (uniqueIds.length === 0) return { success: true, marked: 0 }
+
+    const now = new Date().toISOString()
+    let previousDemandes: DemandeEntreprise[] = []
+
+    setDemandes((prev) => {
+      previousDemandes = prev
+      return prev.map((demande) => {
+        if (!demande.candidatures?.some((c) => uniqueIds.includes(c.id))) {
+          return demande
+        }
+        return {
+          ...demande,
+          candidatures: demande.candidatures.map((c) => {
+            if (!uniqueIds.includes(c.id)) return c
+            const prevNb = c.cv_nb_envois ?? (c.cv_telecharge_le ? 1 : 0)
+            const nextNb = prevNb + 1
+            return {
+              ...c,
+              cv_nb_envois: nextNb,
+              cv_telecharge_le: c.cv_telecharge_le ?? now,
+              cv_dernier_envoi_le: now,
+            }
+          }),
+        }
+      })
+    })
+
+    try {
+      const { data: currentRows, error: fetchError } = await supabase
+        .from('candidatures_stagiaires')
+        .select('id, cv_nb_envois, cv_telecharge_le')
+        .in('id', uniqueIds)
+
+      if (fetchError) throw fetchError
+
+      const results = await Promise.all(
+        (currentRows ?? []).map((row) => {
+          const prevNb = row.cv_nb_envois ?? (row.cv_telecharge_le ? 1 : 0)
+          const nextNb = prevNb + 1
+          return supabase
+            .from('candidatures_stagiaires')
+            .update({
+              cv_nb_envois: nextNb,
+              cv_dernier_envoi_le: now,
+              cv_telecharge_le: row.cv_telecharge_le ?? now,
+            })
+            .eq('id', row.id)
+            .select('id')
+        })
+      )
+
+      const failed = results.find((r) => r.error)
+      if (failed?.error) throw failed.error
+
+      return { success: true, marked: currentRows?.length ?? 0 }
+    } catch (err: unknown) {
+      setDemandes(previousDemandes)
+      console.error('Erreur enregistrement envoi CV:', err)
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      return { success: false, error: message, marked: 0 }
+    }
+  }
+
   // Synchronisation en temps réel
   const { isConnected } = useRealTime('demandes_entreprises', handleRealtimeChange)
 
@@ -307,6 +377,7 @@ export const useDemandesEntreprises = () => {
     loadCandidaturesByDemande,
     updateStatutCandidature,
     updateCvTriStatut,
+    markCvsTelecharges,
     deleteCandidature,
     refreshDemandes,
     isRealtimeConnected: isConnected
