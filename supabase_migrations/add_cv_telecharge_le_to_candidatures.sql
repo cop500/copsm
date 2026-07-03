@@ -1,15 +1,21 @@
--- Suivi des envois / téléchargements CV (1er, 2e, 3e envoi…)
+-- Tri CV + suivi des envois / téléchargements (1er, 2e, 3e envoi…)
 ALTER TABLE candidatures_stagiaires
+  ADD COLUMN IF NOT EXISTS cv_tri_statut TEXT DEFAULT 'en_attente',
   ADD COLUMN IF NOT EXISTS cv_telecharge_le TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS cv_dernier_envoi_le TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS cv_nb_envois INTEGER NOT NULL DEFAULT 0;
 
+COMMENT ON COLUMN candidatures_stagiaires.cv_tri_statut IS
+  'Tri préliminaire du CV : en_attente, accepte, refuse';
 COMMENT ON COLUMN candidatures_stagiaires.cv_telecharge_le IS
   'Date du premier téléchargement / envoi du CV';
 COMMENT ON COLUMN candidatures_stagiaires.cv_dernier_envoi_le IS
   'Date du dernier téléchargement / envoi du CV';
 COMMENT ON COLUMN candidatures_stagiaires.cv_nb_envois IS
   'Nombre de fois que le CV a été inclus dans un ZIP accepté';
+
+CREATE INDEX IF NOT EXISTS idx_candidatures_cv_tri_statut
+  ON candidatures_stagiaires(cv_tri_statut);
 
 CREATE INDEX IF NOT EXISTS idx_candidatures_cv_nb_envois
   ON candidatures_stagiaires(cv_nb_envois)

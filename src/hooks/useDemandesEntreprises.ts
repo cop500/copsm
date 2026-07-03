@@ -65,6 +65,19 @@ export const useDemandesEntreprises = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const getStaffAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session?.access_token) {
+      throw new Error('Session expirée — reconnectez-vous')
+    }
+    return {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    }
+  }, [])
+
   // Charger toutes les demandes d'entreprises avec leurs candidatures
   const loadDemandes = async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false
@@ -281,15 +294,16 @@ export const useDemandesEntreprises = () => {
     })
 
     try {
-      const { error } = await supabase
-        .from('candidatures_stagiaires')
-        .update({
-          cv_tri_statut: cvTriStatut,
-          date_derniere_maj: new Date().toISOString().split('T')[0],
-        })
-        .eq('id', candidatureId)
-
-      if (error) throw error
+      const headers = await getStaffAuthHeaders()
+      const res = await fetch('/api/candidatures/cv-tri', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ candidatureId, cv_tri_statut: cvTriStatut }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || data.details || 'Échec sauvegarde tri CV')
+      }
       return { success: true }
     } catch (err: unknown) {
       setDemandes(previousDemandes)
@@ -331,33 +345,17 @@ export const useDemandesEntreprises = () => {
     })
 
     try {
-      const { data: currentRows, error: fetchError } = await supabase
-        .from('candidatures_stagiaires')
-        .select('id, cv_nb_envois, cv_telecharge_le')
-        .in('id', uniqueIds)
-
-      if (fetchError) throw fetchError
-
-      const results = await Promise.all(
-        (currentRows ?? []).map((row) => {
-          const prevNb = row.cv_nb_envois ?? (row.cv_telecharge_le ? 1 : 0)
-          const nextNb = prevNb + 1
-          return supabase
-            .from('candidatures_stagiaires')
-            .update({
-              cv_nb_envois: nextNb,
-              cv_dernier_envoi_le: now,
-              cv_telecharge_le: row.cv_telecharge_le ?? now,
-            })
-            .eq('id', row.id)
-            .select('id')
-        })
-      )
-
-      const failed = results.find((r) => r.error)
-      if (failed?.error) throw failed.error
-
-      return { success: true, marked: currentRows?.length ?? 0 }
+      const headers = await getStaffAuthHeaders()
+      const res = await fetch('/api/candidatures/cv-envoi', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ candidatureIds: uniqueIds }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Échec enregistrement envoi CV')
+      }
+      return { success: true, marked: data.marked ?? uniqueIds.length }
     } catch (err: unknown) {
       setDemandes(previousDemandes)
       console.error('Erreur enregistrement envoi CV:', err)
