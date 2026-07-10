@@ -17,7 +17,7 @@ import {
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
   ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
-  Upload, HelpCircle, Settings, Smartphone, Mail
+  Upload, HelpCircle, Settings, Smartphone
 } from 'lucide-react'
 import Link from 'next/link'
 import SmsModule from '@/components/SmsModule'
