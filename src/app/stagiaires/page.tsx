@@ -17,10 +17,11 @@ import {
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
   ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
-  Upload, HelpCircle, Settings, Smartphone
+  Upload, HelpCircle, Settings, Smartphone, Mail
 } from 'lucide-react'
 import Link from 'next/link'
 import SmsModule from '@/components/SmsModule'
+import EmailContactsModule from '@/components/EmailContactsModule'
 
 // Types pour les nouveaux statuts
 type CandidatureStatus = 
@@ -58,7 +59,7 @@ export default function StagiairesPage() {
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
   React.useEffect(() => {
-    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms')) {
+    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms' || activeTab === 'contacts-email')) {
       setActiveTab('candidatures')
     }
     if (isDirecteur && activeTab === 'assistance-conseiller') {
@@ -532,6 +533,22 @@ export default function StagiairesPage() {
                     <span className="px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">
                       Beta
                     </span>
+                  </div>
+                </button>
+              )}
+
+              {isAdmin && (
+                <button
+                  onClick={() => setActiveTab('contacts-email')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                    activeTab === 'contacts-email'
+                      ? 'border-teal-500 text-teal-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Mail className="w-5 h-5" />
+                    <span>Contacts e-mail</span>
                   </div>
                 </button>
               )}
@@ -1646,6 +1663,10 @@ export default function StagiairesPage() {
         {/* SMS Tab - Visible seulement pour les admins */}
         {activeTab === 'sms' && isAdmin && (
           <SmsModule />
+        )}
+
+        {activeTab === 'contacts-email' && isAdmin && (
+          <EmailContactsModule />
         )}
 
         {/* Assistance Admin Tab - Visible seulement pour les admins */}
