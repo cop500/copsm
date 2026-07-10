@@ -33,7 +33,8 @@ export default function EmailContactsModule() {
       (r) =>
         r.email.toLowerCase().includes(q) ||
         r.nom.toLowerCase().includes(q) ||
-        r.objet.toLowerCase().includes(q)
+        r.objet.toLowerCase().includes(q) ||
+        r.dateRecu.toLowerCase().includes(q)
     )
   }, [rows, search])
 
@@ -93,7 +94,7 @@ export default function EmailContactsModule() {
             <h2 className="text-xl font-bold text-gray-900">Contacts e-mail (Outlook)</h2>
             <p className="text-gray-600 mt-1 text-sm">
               Importez le fichier CSV reçu depuis Power Automate. COP réorganise les colonnes
-              (Nom, Email, Objet) et génère un Excel propre.
+              (Nom, Email, Objet, Date reçue) et génère un Excel propre.
             </p>
           </div>
         </div>
@@ -188,7 +189,7 @@ export default function EmailContactsModule() {
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="Filtrer par nom, e-mail ou objet…"
+                placeholder="Filtrer par nom, e-mail, objet ou date…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -202,6 +203,7 @@ export default function EmailContactsModule() {
                     <th className="text-left px-4 py-3 font-medium text-gray-700">Nom</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-700">Email</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-700">Objet</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-700 whitespace-nowrap">Date reçue</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -210,6 +212,7 @@ export default function EmailContactsModule() {
                       <td className="px-4 py-2 text-gray-800 whitespace-nowrap">{row.nom || '—'}</td>
                       <td className="px-4 py-2 text-gray-900">{row.email || '—'}</td>
                       <td className="px-4 py-2 text-gray-700">{row.objet || '—'}</td>
+                      <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{row.dateRecu || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

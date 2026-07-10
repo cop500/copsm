@@ -4,6 +4,26 @@ export interface EmailContactRow {
   nom: string
   email: string
   objet: string
+  dateRecu: string
+}
+
+/** Formate une date ISO ou texte Power Automate en affichage français. */
+export function formatDateReceived(raw: unknown): string {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+
+  const iso = new Date(s)
+  if (!Number.isNaN(iso.getTime()) && s.includes('-')) {
+    return iso.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  return s
 }
 
 function normalizeHeader(h: string): string {
@@ -143,12 +163,14 @@ function mapRowsToContacts(rows: string[][]): EmailContactRow[] {
   const headers = rows[0].map(String)
   let emailCol = findColumn(headers, ['email', 'adresse', 'from', 'de', 'expediteur'])
   let objetCol = findColumn(headers, ['objet', 'subject', 'sujet'])
+  let dateCol = findColumn(headers, ['date', 'daterecu', 'received', 'reception', 'receiveddatetime'])
   let nomCol = findColumn(headers, ['nom', 'name', 'expediteur'])
 
-  // Fichier sans en-têtes reconnaissables : 2 colonnes (email/objet)
+  // Fichier sans en-têtes reconnaissables : colonnes brutes
   if (emailCol < 0 && objetCol < 0 && rows[0].length >= 2) {
     emailCol = 0
     objetCol = 1
+    if (rows[0].length >= 3) dateCol = 2
     const dataRows = rows
     return dataRows
       .map((row) => {
@@ -157,6 +179,7 @@ function mapRowsToContacts(rows: string[][]): EmailContactRow[] {
           nom: from.nom,
           email: from.email,
           objet: String(row[objetCol] ?? '').trim(),
+          dateRecu: dateCol >= 0 ? formatDateReceived(row[dateCol]) : '',
         }
       })
       .filter((r) => r.email || r.objet)
@@ -188,6 +211,7 @@ function mapRowsToContacts(rows: string[][]): EmailContactRow[] {
       nom,
       email,
       objet,
+      dateRecu: dateCol >= 0 ? formatDateReceived(row[dateCol]) : '',
     })
   }
 
@@ -222,10 +246,11 @@ export function exportEmailContactsExcel(rows: EmailContactRow[], fileName?: str
     Nom: r.nom,
     Email: r.email,
     Objet: r.objet,
+    'Date reçue': r.dateRecu,
   }))
 
   const ws = XLSX.utils.json_to_sheet(data)
-  ws['!cols'] = [{ wch: 28 }, { wch: 36 }, { wch: 55 }]
+  ws['!cols'] = [{ wch: 28 }, { wch: 36 }, { wch: 55 }, { wch: 18 }]
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Contacts email')
