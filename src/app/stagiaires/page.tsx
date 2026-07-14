@@ -17,11 +17,12 @@ import {
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
   ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
-  Upload, HelpCircle, Settings, Smartphone
+  Upload, HelpCircle, Settings, Smartphone, Video
 } from 'lucide-react'
 import Link from 'next/link'
 import SmsModule from '@/components/SmsModule'
 import EmailContactsModule from '@/components/EmailContactsModule'
+import VideoPreselectionModule from '@/components/VideoPreselectionModule'
 
 // Types pour les nouveaux statuts
 type CandidatureStatus = 
@@ -59,7 +60,7 @@ export default function StagiairesPage() {
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
   React.useEffect(() => {
-    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms' || activeTab === 'contacts-email')) {
+    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms' || activeTab === 'contacts-email' || activeTab === 'videos')) {
       setActiveTab('candidatures')
     }
     if (isDirecteur && activeTab === 'assistance-conseiller') {
@@ -549,6 +550,25 @@ export default function StagiairesPage() {
                   <div className="flex items-center space-x-2">
                     <Mail className="w-5 h-5" />
                     <span>Contacts e-mail</span>
+                  </div>
+                </button>
+              )}
+
+              {isAdmin && (
+                <button
+                  onClick={() => setActiveTab('videos')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                    activeTab === 'videos'
+                      ? 'border-violet-500 text-violet-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Video className="w-5 h-5" />
+                    <span>Vidéo</span>
+                    <span className="px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-700 rounded-full">
+                      Beta
+                    </span>
                   </div>
                 </button>
               )}
@@ -1667,6 +1687,10 @@ export default function StagiairesPage() {
 
         {activeTab === 'contacts-email' && isAdmin && (
           <EmailContactsModule />
+        )}
+
+        {activeTab === 'videos' && isAdmin && (
+          <VideoPreselectionModule />
         )}
 
         {/* Assistance Admin Tab - Visible seulement pour les admins */}
