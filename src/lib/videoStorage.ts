@@ -79,12 +79,6 @@ export async function createVideoUploadUrl(
 
 export async function videoExistsInStorage(bucket: string, path: string): Promise<boolean> {
   if (!supabaseAdmin) return false
-  const folder = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
-  const name = path.includes('/') ? path.slice(path.lastIndexOf('/') + 1) : path
-  const { data, error } = await supabaseAdmin.storage.from(bucket).list(folder, {
-    search: name,
-    limit: 1,
-  })
-  if (error) return false
-  return (data ?? []).some((f) => f.name === name)
+  const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 60)
+  return !error && !!data?.signedUrl
 }
