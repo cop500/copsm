@@ -17,6 +17,19 @@ import {
   VIDEO_MAX_DURATION_SEC,
   type VideoFiliereId,
 } from '@/lib/videoPreselectionConstants'
+import { supabase } from '@/lib/supabase'
+
+async function parseApiJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text()
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    if (text.toLowerCase().includes('internal')) {
+      throw new Error('Erreur serveur. Réessayez avec une vidéo plus légère (< 50 Mo).')
+    }
+    throw new Error(text.slice(0, 120) || 'Réponse serveur invalide.')
+  }
+}
 
 function checkVideoDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -78,18 +91,56 @@ export default function VideoPresentationPage() {
 
     setSubmitting(true)
     try {
-      const fd = new FormData()
-      fd.append('nom', nom.trim())
-      fd.append('prenom', prenom.trim())
-      fd.append('cine', cine.trim())
-      fd.append('filiere', filiere)
-      fd.append('video', videoFile)
+      const mimeType = videoFile.type || 'video/mp4'
 
-      const res = await fetch('/api/videos/upload', { method: 'POST', body: fd })
-      const json = await res.json()
-      if (!res.ok) {
-        throw new Error(json.error || 'Erreur lors du dépôt.')
+      const initRes = await fetch('/api/videos/upload-init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom: nom.trim(),
+          prenom: prenom.trim(),
+          cine: cine.trim(),
+          filiere,
+          fileSize: videoFile.size,
+          mimeType,
+        }),
+      })
+
+      const initJson = await parseApiJson(initRes)
+      if (!initRes.ok) {
+        throw new Error(String(initJson.error || 'Erreur lors de la préparation.'))
       }
+
+      const putRes = await supabase.storage
+        .from(initJson.bucket as string)
+        .uploadToSignedUrl(
+          initJson.storagePath as string,
+          initJson.uploadToken as string,
+          videoFile
+        )
+
+      if (putRes.error) {
+        throw new Error(putRes.error.message || 'Échec de l\'envoi de la vidéo vers le stockage.')
+      }
+
+      const completeRes = await fetch('/api/videos/upload-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom: nom.trim(),
+          prenom: prenom.trim(),
+          cine: cine.trim(),
+          filiere,
+          storagePath: initJson.storagePath,
+          completeToken: initJson.completeToken,
+        }),
+      })
+
+      const completeJson = await parseApiJson(completeRes)
+      if (!completeRes.ok) {
+        throw new Error(String(completeJson.error || 'Erreur lors de l\'enregistrement.'))
+      }
+
       setSuccess(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue.')

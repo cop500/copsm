@@ -59,3 +59,32 @@ export async function getVideoSignedUrl(
   if (error || !data?.signedUrl) return null
   return data.signedUrl
 }
+
+/** URL signée pour upload direct navigateur → Supabase (contourne limite Netlify). */
+export async function createVideoUploadUrl(
+  storagePath: string
+): Promise<{ signedUrl: string; token: string } | null> {
+  if (!supabaseAdmin) return null
+  const { data, error } = await supabaseAdmin.storage
+    .from(VIDEO_BUCKET)
+    .createSignedUploadUrl(storagePath)
+
+  if (error || !data?.signedUrl) {
+    console.error('[videoStorage] createSignedUploadUrl:', error?.message)
+    return null
+  }
+
+  return { signedUrl: data.signedUrl, token: data.token }
+}
+
+export async function videoExistsInStorage(bucket: string, path: string): Promise<boolean> {
+  if (!supabaseAdmin) return false
+  const folder = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
+  const name = path.includes('/') ? path.slice(path.lastIndexOf('/') + 1) : path
+  const { data, error } = await supabaseAdmin.storage.from(bucket).list(folder, {
+    search: name,
+    limit: 1,
+  })
+  if (error) return false
+  return (data ?? []).some((f) => f.name === name)
+}
