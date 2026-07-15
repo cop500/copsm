@@ -140,6 +140,21 @@ export default function VideoPreselectionModule() {
     )
   }, [formateurs, filiereFilter])
 
+  const formateurVideoCounts = useMemo(() => {
+    const map = new Map<string, { affectees: number; evaluees: number }>()
+    for (const f of formateurs) {
+      map.set(f.id, { affectees: 0, evaluees: 0 })
+    }
+    for (const v of videos) {
+      if (!v.formateur_id) continue
+      const entry = map.get(v.formateur_id)
+      if (!entry) continue
+      if (v.statut === 'affectee') entry.affectees++
+      if (v.statut === 'evaluee') entry.evaluees++
+    }
+    return map
+  }, [videos, formateurs])
+
   const canCreateFormateur =
     newNom.trim().length > 0 &&
     newLogin.trim().length > 0 &&
@@ -725,7 +740,12 @@ export default function VideoPreselectionModule() {
               {formateurs.length === 0 ? (
                 <p className="text-gray-400 text-center py-6">Aucun formateur.</p>
               ) : (
-                formateurs.map((f) => (
+                formateurs.map((f) => {
+                  const counts = formateurVideoCounts.get(f.id) ?? {
+                    affectees: 0,
+                    evaluees: 0,
+                  }
+                  return (
                   <li key={f.id} className="border rounded-lg p-3 space-y-2">
                     <div className="flex justify-between items-start gap-2">
                       <div>
@@ -733,6 +753,16 @@ export default function VideoPreselectionModule() {
                         <p className="text-gray-500 text-xs">
                           {f.login} — {filiereLabel(f.filiere)}
                         </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-cyan-50 text-cyan-800 border border-cyan-100">
+                            <Video className="w-3 h-3" />
+                            {counts.affectees} affectée{counts.affectees !== 1 ? 's' : ''}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-green-50 text-green-800 border border-green-100">
+                            <CheckCircle2 className="w-3 h-3" />
+                            {counts.evaluees} évaluée{counts.evaluees !== 1 ? 's' : ''}
+                          </span>
+                        </div>
                       </div>
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
@@ -761,7 +791,8 @@ export default function VideoPreselectionModule() {
                       </button>
                     </div>
                   </li>
-                ))
+                  )
+                })
               )}
             </ul>
           </div>
