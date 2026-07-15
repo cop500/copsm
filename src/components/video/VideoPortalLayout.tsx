@@ -21,6 +21,7 @@ interface VideoPortalLayoutProps {
   showHero?: boolean
   footer?: ReactNode
   variant?: VideoPortalVariant
+  wide?: boolean
 }
 
 function FloatingDecor({ variant }: { variant: VideoPortalVariant }) {
@@ -95,6 +96,7 @@ export default function VideoPortalLayout({
   showHero = true,
   footer,
   variant = 'formateur',
+  wide = false,
 }: VideoPortalLayoutProps) {
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -142,7 +144,7 @@ export default function VideoPortalLayout({
         )}
 
         <main className="flex-1 px-4 sm:px-8 pb-8">
-          <div className="max-w-6xl mx-auto">{children}</div>
+          <div className={`mx-auto ${wide ? 'max-w-[90rem]' : 'max-w-6xl'}`}>{children}</div>
         </main>
 
         <footer className="px-4 pb-6 text-center">

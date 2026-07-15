@@ -182,6 +182,7 @@ export default function EvaluationVideoPage() {
   return (
     <VideoPortalLayout
       variant="formateur"
+      wide
       badge="Portail formateur"
       title="Évaluation des vidéos présentatives"
       subtitle={`${formateur?.nom} — ${filiereLabel(formateur?.filiere ?? '')}`}
@@ -201,8 +202,8 @@ export default function EvaluationVideoPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        <aside className="xl:col-span-4">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 xl:gap-6">
+        <aside className={`${selectedId ? 'xl:col-span-3' : 'xl:col-span-4'}`}>
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/80">
               <h2 className="font-semibold text-slate-900 flex items-center gap-2">
@@ -210,7 +211,7 @@ export default function EvaluationVideoPage() {
                 À évaluer ({videos.length})
               </h2>
             </div>
-            <div className="p-3 max-h-[520px] overflow-auto space-y-2">
+            <div className={`p-3 space-y-2 overflow-auto ${selectedId ? 'max-h-[280px] xl:max-h-[calc(100vh-12rem)]' : 'max-h-[520px]'}`}>
               {videos.length === 0 ? (
                 <p className="text-sm text-slate-500 p-4 text-center">
                   Aucune vidéo affectée pour le moment.
@@ -238,40 +239,47 @@ export default function EvaluationVideoPage() {
           </div>
         </aside>
 
-        <section className="xl:col-span-8 space-y-5">
+        <section className={`${selectedId ? 'xl:col-span-9' : 'xl:col-span-8'}`}>
           {!selectedId ? (
             <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 p-12 text-center">
               <PlayCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500">Sélectionnez une vidéo dans la liste pour commencer l&apos;évaluation.</p>
             </div>
           ) : (
-            <>
-              <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[#0f3d6c]/10 flex items-center justify-center">
-                    <User className="w-5 h-5 text-[#0f3d6c]" />
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
+              {/* Vidéo fixe à gauche pendant la notation */}
+              <div className="lg:col-span-2 lg:sticky lg:top-4 z-10">
+                <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-full bg-[#0f3d6c]/10 flex items-center justify-center shrink-0">
+                      <User className="w-4 h-4 text-[#0f3d6c]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-slate-900 truncate">
+                        {current?.prenom} {current?.nom}
+                      </h3>
+                      <p className="text-xs text-slate-500">{current?.cine}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg text-slate-900">
-                      {current?.prenom} {current?.nom}
-                    </h3>
-                    <p className="text-sm text-slate-500">{current?.cine}</p>
-                  </div>
+                  {streamUrl ? (
+                    <video
+                      src={streamUrl}
+                      controls
+                      className="w-full rounded-xl bg-black aspect-video shadow-inner"
+                    />
+                  ) : (
+                    <div className="flex justify-center items-center aspect-video bg-slate-100 rounded-xl">
+                      <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-500 mt-2 text-center">
+                    La vidéo reste visible pendant que vous remplissez la grille →
+                  </p>
                 </div>
-                {streamUrl ? (
-                  <video
-                    src={streamUrl}
-                    controls
-                    className="w-full rounded-xl bg-black max-h-[380px] shadow-inner"
-                  />
-                ) : (
-                  <div className="flex justify-center py-16 bg-slate-100 rounded-xl">
-                    <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-                  </div>
-                )}
               </div>
 
-              <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 p-5">
+              {/* Grille défilante à droite */}
+              <div className="lg:col-span-3 bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 p-5 max-h-none lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
                 <EvaluationGridForm
                   scores={scores}
                   observations={observations}
@@ -314,12 +322,12 @@ export default function EvaluationVideoPage() {
                   type="button"
                   disabled={evalLoading || !commentaire.trim()}
                   onClick={() => void submitEvaluation()}
-                  className="mt-4 w-full sm:w-auto bg-[#0f3d6c] text-white px-8 py-3 rounded-xl font-medium disabled:opacity-50 hover:bg-[#0d3359]"
+                  className="mt-4 w-full bg-[#0f3d6c] text-white px-8 py-3 rounded-xl font-medium disabled:opacity-50 hover:bg-[#0d3359] sticky bottom-0"
                 >
                   {evalLoading ? 'Enregistrement…' : 'Enregistrer l\'évaluation'}
                 </button>
               </div>
-            </>
+            </div>
           )}
         </section>
       </div>
