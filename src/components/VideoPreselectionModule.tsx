@@ -280,6 +280,14 @@ export default function VideoPreselectionModule() {
               <RefreshCw className="w-4 h-4" /> Actualiser
             </button>
             <div className="flex gap-2">
+              <a
+                href="/docs/grille-evaluation-videos.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm px-3 py-1.5 border rounded-lg flex items-center gap-1 hover:bg-gray-50"
+              >
+                <Download className="w-4 h-4" /> Grille PDF
+              </a>
               <button
                 type="button"
                 onClick={() => void exportExcel()}
@@ -319,7 +327,7 @@ export default function VideoPreselectionModule() {
                     <td className="p-3">
                       {VIDEO_STATUTS[v.statut as keyof typeof VIDEO_STATUTS] ?? v.statut}
                     </td>
-                    <td className="p-3">{v.note != null ? `${v.note}/20` : '—'}</td>
+                    <td className="p-3">{v.note != null ? `${v.note}/30` : '—'}</td>
                     <td className="p-3">{v.formateurs_video?.nom ?? '—'}</td>
                   </tr>
                 ))}

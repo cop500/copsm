@@ -2,15 +2,22 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Video,
-  LogIn,
   LogOut,
   Loader2,
   AlertCircle,
   CheckCircle2,
-  Star,
+  ClipboardList,
+  PlayCircle,
+  User,
 } from 'lucide-react'
 import { filiereLabel } from '@/lib/videoPreselectionConstants'
+import {
+  emptyGrilleObservations,
+  emptyGrilleScores,
+} from '@/lib/videoEvaluationGrid'
+import FormateurLoginScreen from '@/components/video/FormateurLoginScreen'
+import VideoPortalLayout from '@/components/video/VideoPortalLayout'
+import EvaluationGridForm from '@/components/video/EvaluationGridForm'
 
 interface FormateurInfo {
   id: string
@@ -38,10 +45,12 @@ export default function EvaluationVideoPage() {
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
-  const [note, setNote] = useState('')
+  const [scores, setScores] = useState(emptyGrilleScores)
+  const [observations, setObservations] = useState(emptyGrilleObservations)
   const [commentaire, setCommentaire] = useState('')
   const [evalLoading, setEvalLoading] = useState(false)
   const [evalSuccess, setEvalSuccess] = useState('')
+  const [pageError, setPageError] = useState('')
 
   const checkSession = useCallback(async () => {
     const res = await fetch('/api/videos/formateur/session')
@@ -105,28 +114,30 @@ export default function EvaluationVideoPage() {
   const openVideo = async (id: string) => {
     setSelectedId(id)
     setStreamUrl(null)
-    setNote('')
+    setScores(emptyGrilleScores())
+    setObservations(emptyGrilleObservations())
     setCommentaire('')
     setEvalSuccess('')
+    setPageError('')
     const res = await fetch(`/api/videos/stream/${id}`)
     const json = await res.json()
     if (res.ok) setStreamUrl(json.url)
-    else setLoginError(json.error || 'Lecture impossible')
+    else setPageError(json.error || 'Lecture impossible')
   }
 
   const submitEvaluation = async () => {
     if (!selectedId) return
     setEvalLoading(true)
     setEvalSuccess('')
-    setLoginError('')
+    setPageError('')
     try {
       const res = await fetch('/api/videos/formateur/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           videoId: selectedId,
-          note: Number(note),
           commentaire,
+          grille: { scores, observations },
         }),
       })
       const json = await res.json()
@@ -136,7 +147,7 @@ export default function EvaluationVideoPage() {
       setStreamUrl(null)
       await loadVideos()
     } catch (err: unknown) {
-      setLoginError(err instanceof Error ? err.message : 'Erreur')
+      setPageError(err instanceof Error ? err.message : 'Erreur')
     } finally {
       setEvalLoading(false)
     }
@@ -144,166 +155,174 @@ export default function EvaluationVideoPage() {
 
   if (authenticated === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0f3d6c]" />
-      </div>
+      <VideoPortalLayout showHero={false}>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-10 h-10 animate-spin text-white/80" />
+        </div>
+      </VideoPortalLayout>
     )
   }
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0f3d6c] to-[#1a5a96] flex items-center justify-center p-4">
-        <form
-          onSubmit={handleLogin}
-          className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md space-y-4"
-        >
-          <div className="text-center mb-2">
-            <Video className="w-10 h-10 text-[#0f3d6c] mx-auto mb-2" />
-            <h1 className="text-xl font-bold text-gray-900">Évaluation vidéo</h1>
-            <p className="text-sm text-gray-500">Accès formateur</p>
-          </div>
-          <input
-            required
-            placeholder="Identifiant"
-            value={login}
-            onChange={(e) => setLogin(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            autoComplete="username"
-          />
-          <input
-            required
-            type="password"
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            autoComplete="current-password"
-          />
-          {loginError && (
-            <p className="text-sm text-red-600 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" /> {loginError}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={loginLoading}
-            className="w-full bg-[#0f3d6c] text-white py-2.5 rounded-lg flex items-center justify-center gap-2"
-          >
-            {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-            Se connecter
-          </button>
-        </form>
-      </div>
+      <FormateurLoginScreen
+        login={login}
+        password={password}
+        loginError={loginError}
+        loginLoading={loginLoading}
+        onLoginChange={setLogin}
+        onPasswordChange={setPassword}
+        onSubmit={handleLogin}
+      />
     )
   }
 
   const current = videos.find((v) => v.id === selectedId)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-gray-900">Évaluation vidéo</h1>
-          <p className="text-sm text-gray-500">
-            {formateur?.nom} — {filiereLabel(formateur?.filiere ?? '')}
-          </p>
-        </div>
+    <VideoPortalLayout
+      variant="formateur"
+      badge="Portail formateur"
+      title="Évaluation des vidéos présentatives"
+      subtitle={`${formateur?.nom} — ${filiereLabel(formateur?.filiere ?? '')}`}
+      footer={
+        <p className="inline-flex items-center gap-2 text-xs text-blue-100/70">
+          Grille officielle — contenu /20 + forme /10 = total /30
+        </p>
+      }
+    >
+      <div className="flex justify-end mb-5">
         <button
           type="button"
           onClick={handleLogout}
-          className="text-sm text-gray-600 flex items-center gap-1 hover:text-gray-900"
+          className="text-sm text-white flex items-center gap-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/20 shadow-lg transition-all"
         >
           <LogOut className="w-4 h-4" /> Déconnexion
         </button>
-      </header>
-
-      <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-2">
-          <h2 className="font-medium text-gray-800 mb-2">
-            À évaluer ({videos.length})
-          </h2>
-          {videos.length === 0 ? (
-            <p className="text-sm text-gray-500">Aucune vidéo affectée pour le moment.</p>
-          ) : (
-            videos.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => void openVideo(v.id)}
-                className={`w-full text-left p-3 rounded-lg border ${
-                  selectedId === v.id
-                    ? 'border-[#0f3d6c] bg-blue-50'
-                    : 'border-gray-200 bg-white hover:bg-gray-50'
-                }`}
-              >
-                <p className="font-medium text-gray-900">
-                  {v.prenom} {v.nom}
-                </p>
-                <p className="text-xs text-gray-500">{v.cine}</p>
-              </button>
-            ))
-          )}
-        </div>
-
-        <div className="lg:col-span-2 bg-white rounded-xl border p-4">
-          {!selectedId ? (
-            <p className="text-gray-500 text-center py-16">Sélectionnez une vidéo à gauche.</p>
-          ) : (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">
-                {current?.prenom} {current?.nom} — {current?.cine}
-              </h3>
-              {streamUrl ? (
-                <video src={streamUrl} controls className="w-full rounded-lg bg-black max-h-[360px]" />
-              ) : (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                </div>
-              )}
-              <div>
-                <label className="text-sm font-medium flex items-center gap-1 mb-1">
-                  <Star className="w-4 h-4" /> Note /20
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={20}
-                  step={0.5}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Commentaire (obligatoire)</label>
-                <textarea
-                  required
-                  rows={4}
-                  value={commentaire}
-                  onChange={(e) => setCommentaire(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-              {loginError && (
-                <p className="text-sm text-red-600">{loginError}</p>
-              )}
-              {evalSuccess && (
-                <p className="text-sm text-green-700 flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" /> {evalSuccess}
-                </p>
-              )}
-              <button
-                type="button"
-                disabled={evalLoading || !commentaire.trim()}
-                onClick={() => void submitEvaluation()}
-                className="bg-[#0f3d6c] text-white px-6 py-2.5 rounded-lg disabled:opacity-50"
-              >
-                {evalLoading ? 'Enregistrement…' : 'Enregistrer l\'évaluation'}
-              </button>
-            </div>
-          )}
-        </div>
       </div>
-    </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <aside className="xl:col-span-4">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/80">
+              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-[#0f3d6c]" />
+                À évaluer ({videos.length})
+              </h2>
+            </div>
+            <div className="p-3 max-h-[520px] overflow-auto space-y-2">
+              {videos.length === 0 ? (
+                <p className="text-sm text-slate-500 p-4 text-center">
+                  Aucune vidéo affectée pour le moment.
+                </p>
+              ) : (
+                videos.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => void openVideo(v.id)}
+                    className={`w-full text-left p-4 rounded-xl border transition-all ${
+                      selectedId === v.id
+                        ? 'border-[#0f3d6c] bg-blue-50 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <p className="font-medium text-slate-900">
+                      {v.prenom} {v.nom}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">{v.cine}</p>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </aside>
+
+        <section className="xl:col-span-8 space-y-5">
+          {!selectedId ? (
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 p-12 text-center">
+              <PlayCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500">Sélectionnez une vidéo dans la liste pour commencer l&apos;évaluation.</p>
+            </div>
+          ) : (
+            <>
+              <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#0f3d6c]/10 flex items-center justify-center">
+                    <User className="w-5 h-5 text-[#0f3d6c]" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg text-slate-900">
+                      {current?.prenom} {current?.nom}
+                    </h3>
+                    <p className="text-sm text-slate-500">{current?.cine}</p>
+                  </div>
+                </div>
+                {streamUrl ? (
+                  <video
+                    src={streamUrl}
+                    controls
+                    className="w-full rounded-xl bg-black max-h-[380px] shadow-inner"
+                  />
+                ) : (
+                  <div className="flex justify-center py-16 bg-slate-100 rounded-xl">
+                    <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl shadow-black/20 p-5">
+                <EvaluationGridForm
+                  scores={scores}
+                  observations={observations}
+                  disabled={evalLoading}
+                  onScoreChange={(id, value) =>
+                    setScores((prev) => ({ ...prev, [id]: value }))
+                  }
+                  onObservationChange={(id, value) =>
+                    setObservations((prev) => ({ ...prev, [id]: value }))
+                  }
+                />
+
+                <div className="mt-5">
+                  <label className="text-sm font-medium text-slate-800 mb-2 block">
+                    Appréciation globale (obligatoire)
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={commentaire}
+                    onChange={(e) => setCommentaire(e.target.value)}
+                    disabled={evalLoading}
+                    placeholder="Synthèse de votre évaluation, points forts et axes d'amélioration…"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#0f3d6c]/20 focus:border-[#0f3d6c] disabled:bg-slate-50"
+                  />
+                </div>
+
+                {pageError && (
+                  <p className="text-sm text-red-600 mt-3 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" /> {pageError}
+                  </p>
+                )}
+                {evalSuccess && (
+                  <p className="text-sm text-green-700 mt-3 flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" /> {evalSuccess}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  disabled={evalLoading || !commentaire.trim()}
+                  onClick={() => void submitEvaluation()}
+                  className="mt-4 w-full sm:w-auto bg-[#0f3d6c] text-white px-8 py-3 rounded-xl font-medium disabled:opacity-50 hover:bg-[#0d3359]"
+                >
+                  {evalLoading ? 'Enregistrement…' : 'Enregistrer l\'évaluation'}
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+    </VideoPortalLayout>
   )
 }

@@ -4,6 +4,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { hashFormateurPassword } from '@/lib/formateurAuth'
 import { VIDEO_FILIERES } from '@/lib/videoPreselectionConstants'
 import { deleteVideoFile } from '@/lib/videoStorage'
+import {
+  EVALUATION_ALL_CRITERIA,
+  type GrilleEvaluationData,
+} from '@/lib/videoEvaluationGrid'
 import * as XLSX from 'xlsx'
 
 export const runtime = 'nodejs'
@@ -21,7 +25,7 @@ export async function GET(request: Request) {
   const { data: videos, error: vErr } = await supabaseAdmin
     .from('videos_preselection')
     .select(
-      `id, nom, prenom, cine, filiere, statut, note, commentaire, evalue_le, created_at,
+      `id, nom, prenom, cine, filiere, statut, note, commentaire, grille_notes, evalue_le, created_at,
        formateur_id, formateurs_video ( id, nom, login )`
     )
     .order('created_at', { ascending: false })
@@ -42,18 +46,27 @@ export async function GET(request: Request) {
   if (exportExcel) {
     const rows = (videos ?? []).map((v) => {
       const f = v.formateurs_video as { nom?: string } | null
-      return {
+      const grille = v.grille_notes as GrilleEvaluationData | null
+      const base: Record<string, string | number> = {
         Nom: v.nom,
         Prénom: v.prenom,
         CINE: v.cine,
         Filière: v.filiere,
         Statut: v.statut,
-        Note: v.note ?? '',
+        'Note contenu /20': grille?.note_contenu ?? '',
+        'Note forme /10': grille?.note_forme ?? '',
+        'Note totale /30': v.note ?? '',
         Commentaire: v.commentaire ?? '',
         Formateur: f?.nom ?? '',
         'Évalué le': v.evalue_le ?? '',
         'Déposé le': v.created_at,
       }
+      for (const c of EVALUATION_ALL_CRITERIA) {
+        base[`${c.label} (/ ${c.maxPoints})`] = grille?.scores?.[c.id] ?? ''
+        const obs = grille?.observations?.[c.id]
+        if (obs) base[`Obs. ${c.label}`] = obs
+      }
+      return base
     })
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()

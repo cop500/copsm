@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react'
 import {
-  Video,
   Upload,
   CheckCircle2,
   AlertCircle,
@@ -10,6 +9,9 @@ import {
   User,
   IdCard,
   GraduationCap,
+  FileVideo,
+  ArrowRight,
+  Video,
 } from 'lucide-react'
 import {
   VIDEO_FILIERES,
@@ -22,6 +24,8 @@ import {
   formatUploadSpeed,
   uploadVideoToSignedUrl,
 } from '@/lib/videoUploadClient'
+import VideoPortalLayout from '@/components/video/VideoPortalLayout'
+import CandidateGuide from '@/components/video/CandidateGuide'
 
 type UploadPhase = 'idle' | 'preparing' | 'uploading' | 'finalizing'
 
@@ -65,6 +69,14 @@ function phaseLabel(phase: UploadPhase): string {
       return ''
   }
 }
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
+const inputClass =
+  'w-full border border-slate-200/80 bg-white rounded-2xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0f3d6c]/25 focus:border-[#0f3d6c]/40 disabled:bg-slate-50 transition-shadow'
 
 export default function VideoPresentationPage() {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -188,172 +200,210 @@ export default function VideoPresentationPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0f3d6c] to-[#1a5a96] flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Vidéo enregistrée</h1>
-          <p className="text-gray-600">
-            Merci {prenom} {nom}. Votre vidéo de présentation a bien été reçue. Elle sera
-            évaluée par nos formateurs.
-          </p>
+      <VideoPortalLayout
+        variant="candidat"
+        title="Vidéo enregistrée"
+        subtitle="Votre candidature a bien été transmise."
+      >
+        <div className="flex justify-center">
+          <div className="relative w-full max-w-md">
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-20">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center shadow-xl ring-4 ring-white/90">
+                <CheckCircle2 className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/25 border border-white/60 px-8 pt-12 pb-8 text-center">
+              <h2 className="text-xl font-bold text-slate-900 mb-2">
+                Merci {prenom} {nom}
+              </h2>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Votre vidéo de présentation a bien été reçue. Elle sera évaluée par nos formateurs
+                selon la grille officielle OFPPT.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </VideoPortalLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0f3d6c] to-[#1a5a96] py-10 px-4">
-      <div className="max-w-lg mx-auto">
-        <div className="text-center text-white mb-8">
-          <Video className="w-12 h-12 mx-auto mb-3 opacity-90" />
-          <h1 className="text-2xl font-bold">Vidéo de présentation</h1>
-          <p className="text-blue-100 mt-2 text-sm">
-            Pré-sélection — 2 minutes maximum — 1 dépôt par CINE
-          </p>
+    <VideoPortalLayout
+      variant="candidat"
+      badge="Dépôt candidat"
+      title="Vidéo présentative"
+      subtitle="Pré-sélection OFPPT — Présentez-vous en 2 minutes"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2">
+          <CandidateGuide />
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-xl p-6 space-y-5"
-        >
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
-              <User className="w-4 h-4" /> Nom
-            </label>
-            <input
-              required
-              value={nom}
-              onChange={(e) => setNom(e.target.value)}
-              disabled={submitting}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 disabled:bg-gray-50"
-            />
+        <div className="lg:col-span-3 relative">
+          <div className="absolute -top-5 left-8 z-20 hidden sm:block">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a6bb5] to-[#0f3d6c] flex items-center justify-center shadow-xl shadow-blue-900/40 ring-4 ring-white/90">
+              <Video className="w-5 h-5 text-white" />
+            </div>
           </div>
 
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
-              <User className="w-4 h-4" /> Prénom
-            </label>
-            <input
-              required
-              value={prenom}
-              onChange={(e) => setPrenom(e.target.value)}
-              disabled={submitting}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 disabled:bg-gray-50"
-            />
-          </div>
+          <form
+            onSubmit={handleSubmit}
+            className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/25 border border-white/60 p-6 sm:p-8 space-y-5"
+          >
+            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-blue-50/80 to-transparent rounded-t-3xl pointer-events-none" />
 
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
-              <IdCard className="w-4 h-4" /> CINE
-            </label>
-            <input
-              required
-              value={cine}
-              onChange={(e) => setCine(e.target.value.toUpperCase())}
-              placeholder="Ex : AB123456"
-              disabled={submitting}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 uppercase disabled:bg-gray-50"
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
-              <GraduationCap className="w-4 h-4" /> Filière
-            </label>
-            <select
-              required
-              value={filiere}
-              onChange={(e) => setFiliere(e.target.value as VideoFiliereId)}
-              disabled={submitting}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 disabled:bg-gray-50"
-            >
-              <option value="">— Choisir —</option>
-              {VIDEO_FILIERES.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Vidéo (MP4, max 2 min, 50 Mo)
-            </label>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="video/mp4,video/webm,video/quicktime"
-              className="hidden"
-              disabled={submitting}
-              onChange={(e) => void onPickVideo(e.target.files?.[0])}
-            />
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => fileRef.current?.click()}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#0f3d6c] transition-colors disabled:opacity-60"
-            >
-              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              {videoFile ? (
-                <span className="text-sm text-[#0f3d6c] font-medium">{videoFile.name}</span>
-              ) : (
-                <span className="text-sm text-gray-500">Cliquez pour choisir une vidéo</span>
-              )}
-            </button>
-          </div>
-
-          {submitting && (
-            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-3">
-              <div className="flex items-center justify-between text-sm text-[#0f3d6c]">
-                <span className="flex items-center gap-2 font-medium">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {phaseLabel(uploadPhase)}
-                </span>
-                <span className="font-semibold">{uploadPercent}%</span>
+            <div className="relative flex items-center gap-3 pb-1 border-b border-slate-100">
+              <div className="w-10 h-10 rounded-xl bg-[#0f3d6c]/10 flex items-center justify-center">
+                <FileVideo className="w-5 h-5 text-[#0f3d6c]" />
               </div>
-              <div className="h-2.5 w-full rounded-full bg-blue-100 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[#0f3d6c] transition-all duration-300 ease-out"
-                  style={{ width: `${uploadPercent}%` }}
+              <div>
+                <h2 className="font-semibold text-slate-900">Formulaire de dépôt</h2>
+                <p className="text-xs text-slate-500">Tous les champs sont obligatoires</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
+                  <User className="w-4 h-4 text-[#0f3d6c]/60" /> Nom
+                </label>
+                <input
+                  required
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
+                  disabled={submitting}
+                  className={inputClass}
                 />
               </div>
-              {uploadPhase === 'uploading' && (
-                <p className="text-xs text-blue-800">
-                  {formatUploadSpeed(uploadSpeed)}
-                  {uploadEta !== '—' ? ` · environ ${uploadEta} restantes` : ''}
-                </p>
-              )}
-              {uploadPhase === 'uploading' && (
-                <p className="text-xs text-blue-700">
-                  Ne fermez pas cette page pendant l&apos;envoi.
-                </p>
-              )}
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
+                  <User className="w-4 h-4 text-[#0f3d6c]/60" /> Prénom
+                </label>
+                <input
+                  required
+                  value={prenom}
+                  onChange={(e) => setPrenom(e.target.value)}
+                  disabled={submitting}
+                  className={inputClass}
+                />
+              </div>
             </div>
-          )}
 
-          {error && (
-            <div className="flex items-start gap-2 text-red-700 bg-red-50 border border-red-100 rounded-lg p-3 text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              {error}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
+                <IdCard className="w-4 h-4 text-[#0f3d6c]/60" /> CINE
+              </label>
+              <input
+                required
+                value={cine}
+                onChange={(e) => setCine(e.target.value.toUpperCase())}
+                placeholder="Ex : AB123456"
+                disabled={submitting}
+                className={`${inputClass} uppercase`}
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-[#0f3d6c] text-white py-3 rounded-lg font-medium hover:bg-[#0d3359] disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" /> Envoi en cours…
-              </>
-            ) : (
-              'Envoyer ma vidéo'
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
+                <GraduationCap className="w-4 h-4 text-[#0f3d6c]/60" /> Filière
+              </label>
+              <select
+                required
+                value={filiere}
+                onChange={(e) => setFiliere(e.target.value as VideoFiliereId)}
+                disabled={submitting}
+                className={inputClass}
+              >
+                <option value="">— Choisir une filière —</option>
+                {VIDEO_FILIERES.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Vidéo (MP4, max 2 min, 50 Mo)
+              </label>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                className="hidden"
+                disabled={submitting}
+                onChange={(e) => void onPickVideo(e.target.files?.[0])}
+              />
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => fileRef.current?.click()}
+                className="w-full border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-[#0f3d6c]/50 hover:bg-blue-50/40 transition-all disabled:opacity-60 group"
+              >
+                <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2 group-hover:text-[#0f3d6c] transition-colors" />
+                {videoFile ? (
+                  <div>
+                    <span className="text-sm text-[#0f3d6c] font-medium block">{videoFile.name}</span>
+                    <span className="text-xs text-slate-500">{formatFileSize(videoFile.size)}</span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-slate-500">Cliquez pour choisir une vidéo</span>
+                )}
+              </button>
+            </div>
+
+            {submitting && (
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4 space-y-3">
+                <div className="flex items-center justify-between text-sm text-[#0f3d6c]">
+                  <span className="flex items-center gap-2 font-medium">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {phaseLabel(uploadPhase)}
+                  </span>
+                  <span className="font-semibold">{uploadPercent}%</span>
+                </div>
+                <div className="h-2.5 w-full rounded-full bg-blue-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#0f3d6c] to-[#1a5a96] transition-all duration-300 ease-out"
+                    style={{ width: `${uploadPercent}%` }}
+                  />
+                </div>
+                {uploadPhase === 'uploading' && (
+                  <p className="text-xs text-blue-800">
+                    {formatUploadSpeed(uploadSpeed)}
+                    {uploadEta !== '—' ? ` · environ ${uploadEta} restantes` : ''}
+                    {' · '}Ne fermez pas cette page.
+                  </p>
+                )}
+              </div>
             )}
-          </button>
-        </form>
+
+            {error && (
+              <div className="flex items-start gap-2 text-red-700 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-gradient-to-r from-[#0f3d6c] to-[#1a5a96] text-white py-3.5 rounded-2xl font-semibold hover:from-[#0d3359] hover:to-[#164a7d] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-[#0f3d6c]/30 transition-all hover:shadow-xl hover:-translate-y-0.5"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" /> Envoi en cours…
+                </>
+              ) : (
+                <>
+                  Envoyer ma vidéo
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
+    </VideoPortalLayout>
   )
 }

@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { parseFormateurCookie, verifyFormateurSessionToken } from '@/lib/formateurAuth'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { deleteVideoFile } from '@/lib/videoStorage'
+import {
+  buildGrilleData,
+  validateGrilleScores,
+  type GrilleObservations,
+  type GrilleScores,
+} from '@/lib/videoEvaluationGrid'
 
 export const runtime = 'nodejs'
 
@@ -44,14 +50,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
-  const { videoId, note, commentaire } = await request.json()
-  const noteNum = Number(note)
+  const { videoId, commentaire, grille } = await request.json()
+  const scores = (grille?.scores ?? {}) as GrilleScores
+  const observations = (grille?.observations ?? {}) as GrilleObservations
 
   if (!videoId) {
     return NextResponse.json({ error: 'Vidéo requise.' }, { status: 400 })
   }
-  if (Number.isNaN(noteNum) || noteNum < 0 || noteNum > 20) {
-    return NextResponse.json({ error: 'Note entre 0 et 20 requise.' }, { status: 400 })
+
+  const scoreError = validateGrilleScores(scores)
+  if (scoreError) {
+    return NextResponse.json({ error: scoreError }, { status: 400 })
+  }
+
+  const grilleData = buildGrilleData(scores, observations)
+  const noteNum = grilleData.note_totale
+
+  if (noteNum < 0 || noteNum > 30) {
+    return NextResponse.json({ error: 'Note totale invalide.' }, { status: 400 })
   }
   if (!commentaire?.trim()) {
     return NextResponse.json({ error: 'Commentaire obligatoire.' }, { status: 400 })
@@ -74,6 +90,7 @@ export async function POST(request: Request) {
     .from('videos_preselection')
     .update({
       note: noteNum,
+      grille_notes: grilleData,
       commentaire: commentaire.trim(),
       statut: 'evaluee',
       evalue_le: new Date().toISOString(),

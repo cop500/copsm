@@ -28,6 +28,28 @@
   animation: shimmer 3s infinite;
 }
 
+@keyframes portal-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(2deg);
+  }
+}
+
+.animate-portal-float {
+  animation: portal-float 7s ease-in-out infinite;
+}
+
+.animate-portal-float-delayed {
+  animation: portal-float 9s ease-in-out infinite 1s;
+}
+
+.animate-portal-float-slow {
+  animation: portal-float 10s ease-in-out infinite 1.5s;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
