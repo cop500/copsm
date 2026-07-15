@@ -138,7 +138,34 @@ export async function POST(request: Request) {
       .update({ password_hash })
       .eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, message: 'Mot de passe mis à jour.' })
+  }
+
+  if (action === 'delete_formateur') {
+    const { id } = body as { id?: string }
+    if (!id) {
+      return NextResponse.json({ error: 'Formateur requis.' }, { status: 400 })
+    }
+
+    const { data: assigned } = await supabaseAdmin
+      .from('videos_preselection')
+      .select('id')
+      .eq('formateur_id', id)
+      .eq('statut', 'affectee')
+
+    if ((assigned ?? []).length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Ce formateur a encore des vidéos en cours d\'évaluation. Réaffectez-les ou attendez la fin des évaluations avant suppression.',
+        },
+        { status: 400 }
+      )
+    }
+
+    const { error } = await supabaseAdmin.from('formateurs_video').delete().eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, message: 'Formateur supprimé.' })
   }
 
   if (action === 'assign_videos') {

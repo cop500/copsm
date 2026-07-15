@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Link as LinkIcon,
   RefreshCw,
+  KeyRound,
+  FileText,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import {
@@ -19,6 +21,10 @@ import {
   filiereLabel,
   type VideoFiliereId,
 } from '@/lib/videoPreselectionConstants'
+import type { GrilleEvaluationData } from '@/lib/videoEvaluationGrid'
+import { computeVideoAdminStats, type VideoGrillePrintData } from '@/lib/videoAdminStats'
+import VideoAdminDashboard from '@/components/video/VideoAdminDashboard'
+import VideoGrilleDetailModal from '@/components/video/VideoGrilleDetailModal'
 
 interface FormateurRow {
   id: string
@@ -37,6 +43,8 @@ interface VideoRow {
   statut: string
   note: number | null
   commentaire: string | null
+  grille_notes: GrilleEvaluationData | null
+  evalue_le: string | null
   formateur_id: string | null
   formateurs_video: { nom: string } | null
   created_at: string
@@ -58,6 +66,12 @@ export default function VideoPreselectionModule() {
   const [newLogin, setNewLogin] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [newFiliere, setNewFiliere] = useState<VideoFiliereId | ''>('')
+  const [grilleVideo, setGrilleVideo] = useState<VideoGrillePrintData | null>(null)
+
+  const stats = useMemo(
+    () => computeVideoAdminStats(videos, formateurs),
+    [videos, formateurs]
+  )
 
   const getAuthHeaders = useCallback(async () => {
     const {
@@ -175,6 +189,68 @@ export default function VideoPreselectionModule() {
     }
   }
 
+  const resetFormateurPassword = async (id: string, nom: string) => {
+    const password = prompt(`Nouveau mot de passe pour ${nom} (min. 6 caractères) :`)
+    if (!password) return
+    if (password.length < 6) {
+      alert('Le mot de passe doit contenir au moins 6 caractères.')
+      return
+    }
+    try {
+      const headers = await getAuthHeaders()
+      const res = await fetch('/api/videos/admin', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action: 'reset_formateur_password', id, password }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      alert(json.message || 'Mot de passe mis à jour.')
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Erreur')
+    }
+  }
+
+  const deleteFormateur = async (id: string, nom: string) => {
+    if (
+      !confirm(
+        `Supprimer le formateur « ${nom} » ?\n\nImpossible s'il a des vidéos encore en cours d'évaluation.`
+      )
+    ) {
+      return
+    }
+    try {
+      const headers = await getAuthHeaders()
+      const res = await fetch('/api/videos/admin', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action: 'delete_formateur', id }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      alert(json.message || 'Formateur supprimé.')
+      await load()
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Erreur')
+    }
+  }
+
+  const openGrille = (v: VideoRow) => {
+    setGrilleVideo({
+      id: v.id,
+      nom: v.nom,
+      prenom: v.prenom,
+      cine: v.cine,
+      filiere: v.filiere,
+      filiereLabel: filiereLabel(v.filiere),
+      note: v.note,
+      commentaire: v.commentaire,
+      grille_notes: v.grille_notes,
+      evalue_le: v.evalue_le,
+      formateurNom: v.formateurs_video?.nom ?? null,
+    })
+  }
+
   const purgeEvaluated = async () => {
     if (!confirm('Supprimer les fichiers vidéo déjà évalués du stockage ? Les notes restent en base.'))
       return
@@ -235,6 +311,10 @@ export default function VideoPreselectionModule() {
           URL candidats : {publicUrl}
         </p>
       </div>
+
+      {!loading && <VideoAdminDashboard stats={stats} />}
+
+      <VideoGrilleDetailModal video={grilleVideo} onClose={() => setGrilleVideo(null)} />
 
       <div className="flex gap-2 border-b">
         {(
@@ -313,6 +393,7 @@ export default function VideoPreselectionModule() {
                   <th className="text-left p-3">Filière</th>
                   <th className="text-left p-3">Statut</th>
                   <th className="text-left p-3">Note</th>
+                  <th className="text-left p-3">Détail</th>
                   <th className="text-left p-3">Formateur</th>
                 </tr>
               </thead>
@@ -327,7 +408,34 @@ export default function VideoPreselectionModule() {
                     <td className="p-3">
                       {VIDEO_STATUTS[v.statut as keyof typeof VIDEO_STATUTS] ?? v.statut}
                     </td>
-                    <td className="p-3">{v.note != null ? `${v.note}/30` : '—'}</td>
+                    <td className="p-3">
+                      {v.note != null ? (
+                        <div>
+                          <span className="font-medium">{v.note}/30</span>
+                          {v.grille_notes && (
+                            <p className="text-xs text-gray-500">
+                              C {v.grille_notes.note_contenu}/20 · F {v.grille_notes.note_forme}/10
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="p-3">
+                      {v.statut === 'evaluee' && v.grille_notes ? (
+                        <button
+                          type="button"
+                          onClick={() => openGrille(v)}
+                          className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 bg-violet-50 text-violet-700 border border-violet-200 rounded-lg hover:bg-violet-100"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          Grille
+                        </button>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td className="p-3">{v.formateurs_video?.nom ?? '—'}</td>
                   </tr>
                 ))}
@@ -452,22 +560,40 @@ export default function VideoPreselectionModule() {
             <h3 className="font-medium flex items-center gap-2 mb-3">
               <Users className="w-4 h-4" /> Formateurs ({formateurs.length})
             </h3>
-            <ul className="space-y-2 text-sm max-h-[320px] overflow-auto">
+            <ul className="space-y-2 text-sm max-h-[420px] overflow-auto">
               {formateurs.map((f) => (
-                <li key={f.id} className="flex justify-between items-center border rounded-lg p-3">
-                  <div>
-                    <p className="font-medium">{f.nom}</p>
-                    <p className="text-gray-500 text-xs">
-                      {f.login} — {filiereLabel(f.filiere)}
-                    </p>
+                <li key={f.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <p className="font-medium">{f.nom}</p>
+                      <p className="text-gray-500 text-xs">
+                        {f.login} — {filiereLabel(f.filiere)}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                        f.actif ? 'bg-green-100 text-green-800' : 'bg-gray-100'
+                      }`}
+                    >
+                      {f.actif ? 'Actif' : 'Inactif'}
+                    </span>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      f.actif ? 'bg-green-100 text-green-800' : 'bg-gray-100'
-                    }`}
-                  >
-                    {f.actif ? 'Actif' : 'Inactif'}
-                  </span>
+                  <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => void resetFormateurPassword(f.id, f.nom)}
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border rounded-lg hover:bg-gray-50"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" /> Mot de passe
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deleteFormateur(f.id, f.nom)}
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Supprimer
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
