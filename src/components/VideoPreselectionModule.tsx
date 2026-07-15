@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Video,
   Users,
@@ -13,6 +13,7 @@ import {
   RefreshCw,
   KeyRound,
   FileText,
+  CheckCircle2,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import {
@@ -53,11 +54,15 @@ interface VideoRow {
 type AdminTab = 'videos' | 'affectation' | 'formateurs'
 
 export default function VideoPreselectionModule() {
+  const tokenRef = useRef<string | null>(null)
   const [tab, setTab] = useState<AdminTab>('videos')
   const [videos, setVideos] = useState<VideoRow[]>([])
   const [formateurs, setFormateurs] = useState<FormateurRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
   const [filiereFilter, setFiliereFilter] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [assignFormateurId, setAssignFormateurId] = useState('')
@@ -74,36 +79,52 @@ export default function VideoPreselectionModule() {
   )
 
   const getAuthHeaders = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    if (!session?.access_token) throw new Error('Session expirée')
+    if (!tokenRef.current) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('Session expirée — reconnectez-vous.')
+      tokenRef.current = session.access_token
+    }
     return {
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${tokenRef.current}`,
       'Content-Type': 'application/json',
     }
   }, [])
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const headers = await getAuthHeaders()
-      const res = await fetch('/api/videos/admin', { headers })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Erreur chargement')
-      setVideos(json.videos ?? [])
-      setFormateurs(json.formateurs ?? [])
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erreur')
-    } finally {
-      setLoading(false)
-    }
-  }, [getAuthHeaders])
+  const load = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      const silent = opts?.silent ?? false
+      if (!silent) setInitialLoading(true)
+      else setRefreshing(true)
+      setError('')
+      try {
+        const headers = await getAuthHeaders()
+        const res = await fetch('/api/videos/admin', { headers })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Erreur chargement')
+        setVideos(json.videos ?? [])
+        setFormateurs(json.formateurs ?? [])
+      } catch (e: unknown) {
+        tokenRef.current = null
+        setError(e instanceof Error ? e.message : 'Erreur')
+      } finally {
+        setInitialLoading(false)
+        setRefreshing(false)
+      }
+    },
+    [getAuthHeaders]
+  )
 
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (!successMsg) return
+    const t = setTimeout(() => setSuccessMsg(''), 4000)
+    return () => clearTimeout(t)
+  }, [successMsg])
 
   const pendingVideos = useMemo(() => {
     return videos.filter(
@@ -112,6 +133,20 @@ export default function VideoPreselectionModule() {
         (!filiereFilter || v.filiere === filiereFilter)
     )
   }, [videos, filiereFilter])
+
+  const assignableFormateurs = useMemo(() => {
+    return formateurs.filter(
+      (f) => f.actif && (!filiereFilter || f.filiere === filiereFilter)
+    )
+  }, [formateurs, filiereFilter])
+
+  const canCreateFormateur =
+    newNom.trim().length > 0 &&
+    newLogin.trim().length > 0 &&
+    newPassword.length >= 6 &&
+    !!newFiliere
+
+  const canAssign = assignFormateurId.length > 0 && selectedIds.size > 0
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -122,8 +157,18 @@ export default function VideoPreselectionModule() {
     })
   }
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === pendingVideos.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(pendingVideos.map((v) => v.id)))
+    }
+  }
+
   const assignSelected = async () => {
-    if (!assignFormateurId || selectedIds.size === 0) return
+    if (!canAssign) return
+    setActionLoading('assign')
+    setError('')
     try {
       const headers = await getAuthHeaders()
       const res = await fetch('/api/videos/admin', {
@@ -137,15 +182,38 @@ export default function VideoPreselectionModule() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
+
+      const formateur = formateurs.find((f) => f.id === assignFormateurId)
+      const ids = new Set(selectedIds)
+      setVideos((prev) =>
+        prev.map((v) =>
+          ids.has(v.id)
+            ? {
+                ...v,
+                statut: 'affectee',
+                formateur_id: assignFormateurId,
+                formateurs_video: formateur ? { nom: formateur.nom } : null,
+              }
+            : v
+        )
+      )
       setSelectedIds(new Set())
-      await load()
-      alert(`${json.assigned} vidéo(s) affectée(s).`)
+      setSuccessMsg(`${json.assigned} vidéo(s) affectée(s).`)
+      void load({ silent: true })
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur')
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setActionLoading(null)
     }
   }
 
   const createFormateur = async () => {
+    if (!canCreateFormateur) {
+      setError('Remplissez tous les champs (mot de passe min. 6 caractères).')
+      return
+    }
+    setActionLoading('create')
+    setError('')
     try {
       const headers = await getAuthHeaders()
       const res = await fetch('/api/videos/admin', {
@@ -153,26 +221,33 @@ export default function VideoPreselectionModule() {
         headers,
         body: JSON.stringify({
           action: 'create_formateur',
-          nom: newNom,
-          login: newLogin,
+          nom: newNom.trim(),
+          login: newLogin.trim(),
           password: newPassword,
           filiere: newFiliere,
         }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
+
+      if (json.formateur) {
+        setFormateurs((prev) => [...prev, json.formateur as FormateurRow])
+      }
       setNewNom('')
       setNewLogin('')
       setNewPassword('')
       setNewFiliere('')
-      await load()
-      alert(`Formateur créé. Login : ${json.formateur.login}`)
+      setSuccessMsg(`Formateur créé — login : ${json.formateur?.login ?? newLogin}`)
+      void load({ silent: true })
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur')
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setActionLoading(null)
     }
   }
 
   const exportExcel = async () => {
+    setActionLoading('export')
     try {
       const headers = await getAuthHeaders()
       const res = await fetch('/api/videos/admin?export=excel', { headers })
@@ -185,7 +260,9 @@ export default function VideoPreselectionModule() {
       a.click()
       URL.revokeObjectURL(url)
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur')
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -193,9 +270,10 @@ export default function VideoPreselectionModule() {
     const password = prompt(`Nouveau mot de passe pour ${nom} (min. 6 caractères) :`)
     if (!password) return
     if (password.length < 6) {
-      alert('Le mot de passe doit contenir au moins 6 caractères.')
+      setError('Le mot de passe doit contenir au moins 6 caractères.')
       return
     }
+    setActionLoading(`pwd-${id}`)
     try {
       const headers = await getAuthHeaders()
       const res = await fetch('/api/videos/admin', {
@@ -205,9 +283,11 @@ export default function VideoPreselectionModule() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      alert(json.message || 'Mot de passe mis à jour.')
+      setSuccessMsg(json.message || 'Mot de passe mis à jour.')
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur')
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -219,6 +299,7 @@ export default function VideoPreselectionModule() {
     ) {
       return
     }
+    setActionLoading(`del-${id}`)
     try {
       const headers = await getAuthHeaders()
       const res = await fetch('/api/videos/admin', {
@@ -228,10 +309,13 @@ export default function VideoPreselectionModule() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      alert(json.message || 'Formateur supprimé.')
-      await load()
+      setFormateurs((prev) => prev.filter((f) => f.id !== id))
+      setSuccessMsg(json.message || 'Formateur supprimé.')
+      void load({ silent: true })
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur')
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -254,6 +338,7 @@ export default function VideoPreselectionModule() {
   const purgeEvaluated = async () => {
     if (!confirm('Supprimer les fichiers vidéo déjà évalués du stockage ? Les notes restent en base.'))
       return
+    setActionLoading('purge')
     try {
       const headers = await getAuthHeaders()
       const res = await fetch('/api/videos/admin', {
@@ -263,10 +348,12 @@ export default function VideoPreselectionModule() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      alert(json.message || 'Terminé.')
-      await load()
+      setSuccessMsg(json.message || 'Purge terminée.')
+      void load({ silent: true })
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur')
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -274,6 +361,14 @@ export default function VideoPreselectionModule() {
     typeof window !== 'undefined'
       ? `${window.location.origin}/video-presentation`
       : '/video-presentation'
+
+  if (initialLoading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -288,14 +383,28 @@ export default function VideoPreselectionModule() {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {refreshing && (
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" /> Sync…
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => void load({ silent: true })}
+              disabled={refreshing}
+              className="text-sm px-3 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-1 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Actualiser
+            </button>
             <a
               href="/video-presentation"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm px-3 py-2 border rounded-lg hover:bg-gray-50"
             >
-              <LinkIcon className="w-4 h-4" /> Lien public candidat
+              <LinkIcon className="w-4 h-4" /> Lien candidat
             </a>
             <a
               href="/evaluation-video"
@@ -307,14 +416,28 @@ export default function VideoPreselectionModule() {
             </a>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-3 break-all">
-          URL candidats : {publicUrl}
-        </p>
+        <p className="text-xs text-gray-500 mt-3 break-all">URL candidats : {publicUrl}</p>
       </div>
 
-      {!loading && <VideoAdminDashboard stats={stats} />}
+      <VideoAdminDashboard stats={stats} />
 
-      <VideoGrilleDetailModal video={grilleVideo} onClose={() => setGrilleVideo(null)} />
+      {successMsg && (
+        <div className="text-green-800 bg-green-50 border border-green-100 rounded-lg p-3 text-sm flex gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" /> {successMsg}
+        </div>
+      )}
+      {error && (
+        <div className="text-red-700 bg-red-50 border border-red-100 rounded-lg p-3 text-sm flex gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+          <button type="button" onClick={() => setError('')} className="ml-auto text-xs underline">
+            Fermer
+          </button>
+        </div>
+      )}
+
+      {grilleVideo && (
+        <VideoGrilleDetailModal video={grilleVideo} onClose={() => setGrilleVideo(null)} />
+      )}
 
       <div className="flex gap-2 border-b">
         {(
@@ -331,7 +454,7 @@ export default function VideoPreselectionModule() {
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
               tab === id
                 ? 'border-violet-600 text-violet-700'
-                : 'border-transparent text-gray-500'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             {label}
@@ -339,50 +462,38 @@ export default function VideoPreselectionModule() {
         ))}
       </div>
 
-      {error && (
-        <div className="text-red-700 bg-red-50 border border-red-100 rounded-lg p-3 text-sm flex gap-2">
-          <AlertCircle className="w-4 h-4" /> {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-        </div>
-      ) : tab === 'videos' ? (
+      {tab === 'videos' ? (
         <div className="bg-white border rounded-lg overflow-hidden">
-          <div className="p-4 flex flex-wrap gap-2 justify-between border-b">
+          <div className="p-4 flex flex-wrap gap-2 justify-end border-b">
+            <a
+              href="/docs/grille-evaluation-videos.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm px-3 py-1.5 border rounded-lg flex items-center gap-1 hover:bg-gray-50"
+            >
+              <Download className="w-4 h-4" /> Grille PDF
+            </a>
             <button
               type="button"
-              onClick={() => void load()}
-              className="text-sm px-3 py-1.5 border rounded-lg flex items-center gap-1"
+              disabled={actionLoading === 'export'}
+              onClick={() => void exportExcel()}
+              className="text-sm px-3 py-1.5 bg-violet-600 text-white rounded-lg flex items-center gap-1 disabled:opacity-50"
             >
-              <RefreshCw className="w-4 h-4" /> Actualiser
+              {actionLoading === 'export' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Export Excel
             </button>
-            <div className="flex gap-2">
-              <a
-                href="/docs/grille-evaluation-videos.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm px-3 py-1.5 border rounded-lg flex items-center gap-1 hover:bg-gray-50"
-              >
-                <Download className="w-4 h-4" /> Grille PDF
-              </a>
-              <button
-                type="button"
-                onClick={() => void exportExcel()}
-                className="text-sm px-3 py-1.5 bg-violet-600 text-white rounded-lg flex items-center gap-1"
-              >
-                <Download className="w-4 h-4" /> Export Excel
-              </button>
-              <button
-                type="button"
-                onClick={() => void purgeEvaluated()}
-                className="text-sm px-3 py-1.5 border border-red-200 text-red-700 rounded-lg flex items-center gap-1"
-              >
-                <Trash2 className="w-4 h-4" /> Purger fichiers évalués
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled={actionLoading === 'purge'}
+              onClick={() => void purgeEvaluated()}
+              className="text-sm px-3 py-1.5 border border-red-200 text-red-700 rounded-lg flex items-center gap-1 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" /> Purger fichiers évalués
+            </button>
           </div>
           <div className="overflow-auto max-h-[520px]">
             <table className="w-full text-sm">
@@ -450,8 +561,12 @@ export default function VideoPreselectionModule() {
               <label className="text-xs text-gray-500 block mb-1">Filtrer filière</label>
               <select
                 value={filiereFilter}
-                onChange={(e) => setFiliereFilter(e.target.value)}
-                className="border rounded-lg px-3 py-2 text-sm"
+                onChange={(e) => {
+                  setFiliereFilter(e.target.value)
+                  setSelectedIds(new Set())
+                  setAssignFormateurId('')
+                }}
+                className="border rounded-lg px-3 py-2 text-sm min-w-[180px]"
               >
                 <option value="">Toutes</option>
                 {VIDEO_FILIERES.map((f) => (
@@ -466,49 +581,84 @@ export default function VideoPreselectionModule() {
               <select
                 value={assignFormateurId}
                 onChange={(e) => setAssignFormateurId(e.target.value)}
-                className="border rounded-lg px-3 py-2 text-sm min-w-[200px]"
+                className="border rounded-lg px-3 py-2 text-sm min-w-[220px]"
               >
-                <option value="">— Formateur —</option>
-                {formateurs
-                  .filter((f) => f.actif && (!filiereFilter || f.filiere === filiereFilter))
-                  .map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.nom} ({filiereLabel(f.filiere)})
-                    </option>
-                  ))}
+                <option value="">— Choisir un formateur —</option>
+                {assignableFormateurs.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.nom} ({filiereLabel(f.filiere)})
+                  </option>
+                ))}
               </select>
             </div>
             <button
               type="button"
-              disabled={!assignFormateurId || selectedIds.size === 0}
+              disabled={!canAssign || actionLoading === 'assign'}
               onClick={() => void assignSelected()}
-              className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm disabled:opacity-50"
+              className="px-5 py-2.5 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 min-w-[140px] justify-center"
             >
+              {actionLoading === 'assign' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : null}
               Affecter ({selectedIds.size})
             </button>
           </div>
-          <p className="text-sm text-gray-500">
-            {pendingVideos.length} vidéo(s) en attente d&apos;affectation
-          </p>
-          <div className="space-y-2 max-h-[400px] overflow-auto">
-            {pendingVideos.map((v) => (
-              <label
-                key={v.id}
-                className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+
+          {!canAssign && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              {!assignFormateurId && selectedIds.size === 0
+                ? 'Cochez une ou plusieurs vidéos, puis choisissez un formateur.'
+                : !assignFormateurId
+                  ? 'Choisissez un formateur dans la liste.'
+                  : 'Cochez au moins une vidéo à affecter.'}
+            </p>
+          )}
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              {pendingVideos.length} vidéo(s) en attente
+            </p>
+            {pendingVideos.length > 0 && (
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className="text-xs text-violet-600 hover:underline"
               >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(v.id)}
-                  onChange={() => toggleSelect(v.id)}
-                />
-                <div>
-                  <p className="font-medium">
-                    {v.prenom} {v.nom} — {v.cine}
-                  </p>
-                  <p className="text-xs text-gray-500">{filiereLabel(v.filiere)}</p>
-                </div>
-              </label>
-            ))}
+                {selectedIds.size === pendingVideos.length ? 'Tout décocher' : 'Tout sélectionner'}
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-2 max-h-[400px] overflow-auto">
+            {pendingVideos.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">
+                Aucune vidéo en attente d&apos;affectation.
+              </p>
+            ) : (
+              pendingVideos.map((v) => (
+                <label
+                  key={v.id}
+                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                    selectedIds.has(v.id)
+                      ? 'border-violet-400 bg-violet-50'
+                      : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-violet-600"
+                    checked={selectedIds.has(v.id)}
+                    onChange={() => toggleSelect(v.id)}
+                  />
+                  <div>
+                    <p className="font-medium">
+                      {v.prenom} {v.nom} — {v.cine}
+                    </p>
+                    <p className="text-xs text-gray-500">{filiereLabel(v.filiere)}</p>
+                  </div>
+                </label>
+              ))
+            )}
           </div>
         </div>
       ) : (
@@ -548,11 +698,22 @@ export default function VideoPreselectionModule() {
                 </option>
               ))}
             </select>
+            {!canCreateFormateur && (
+              <p className="text-xs text-gray-500">
+                Remplissez nom, identifiant, mot de passe (6+) et filière.
+              </p>
+            )}
             <button
               type="button"
+              disabled={!canCreateFormateur || actionLoading === 'create'}
               onClick={() => void createFormateur()}
-              className="w-full bg-violet-600 text-white py-2 rounded-lg text-sm"
+              className="w-full bg-violet-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
+              {actionLoading === 'create' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <UserPlus className="w-4 h-4" />
+              )}
               Créer l&apos;accès
             </button>
           </div>
@@ -561,41 +722,47 @@ export default function VideoPreselectionModule() {
               <Users className="w-4 h-4" /> Formateurs ({formateurs.length})
             </h3>
             <ul className="space-y-2 text-sm max-h-[420px] overflow-auto">
-              {formateurs.map((f) => (
-                <li key={f.id} className="border rounded-lg p-3 space-y-2">
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <p className="font-medium">{f.nom}</p>
-                      <p className="text-gray-500 text-xs">
-                        {f.login} — {filiereLabel(f.filiere)}
-                      </p>
+              {formateurs.length === 0 ? (
+                <p className="text-gray-400 text-center py-6">Aucun formateur.</p>
+              ) : (
+                formateurs.map((f) => (
+                  <li key={f.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <p className="font-medium">{f.nom}</p>
+                        <p className="text-gray-500 text-xs">
+                          {f.login} — {filiereLabel(f.filiere)}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                          f.actif ? 'bg-green-100 text-green-800' : 'bg-gray-100'
+                        }`}
+                      >
+                        {f.actif ? 'Actif' : 'Inactif'}
+                      </span>
                     </div>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
-                        f.actif ? 'bg-green-100 text-green-800' : 'bg-gray-100'
-                      }`}
-                    >
-                      {f.actif ? 'Actif' : 'Inactif'}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={() => void resetFormateurPassword(f.id, f.nom)}
-                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border rounded-lg hover:bg-gray-50"
-                    >
-                      <KeyRound className="w-3.5 h-3.5" /> Mot de passe
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void deleteFormateur(f.id, f.nom)}
-                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Supprimer
-                    </button>
-                  </div>
-                </li>
-              ))}
+                    <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
+                      <button
+                        type="button"
+                        disabled={actionLoading === `pwd-${f.id}`}
+                        onClick={() => void resetFormateurPassword(f.id, f.nom)}
+                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" /> Mot de passe
+                      </button>
+                      <button
+                        type="button"
+                        disabled={actionLoading === `del-${f.id}`}
+                        onClick={() => void deleteFormateur(f.id, f.nom)}
+                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border border-red-200 text-red-700 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Supprimer
+                      </button>
+                    </div>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
         </div>
