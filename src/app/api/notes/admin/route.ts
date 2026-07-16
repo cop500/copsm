@@ -33,31 +33,65 @@ export async function GET(request: Request) {
     })
   }
 
-  const { data: candidats, error: cErr } = await supabaseAdmin
+  const page = Math.max(1, Number(url.searchParams.get('page') || 1))
+  const limit = Math.min(100, Math.max(10, Number(url.searchParams.get('limit') || 50)))
+  const search = url.searchParams.get('search')?.trim() ?? ''
+  const filter = url.searchParams.get('filter') ?? 'tous'
+  const offset = (page - 1) * limit
+
+  const [{ count: total }, { count: traites }, agentsResult] = await Promise.all([
+    supabaseAdmin.from('candidats_notes_concours').select('*', { count: 'exact', head: true }),
+    supabaseAdmin
+      .from('candidats_notes_concours')
+      .select('*', { count: 'exact', head: true })
+      .not('note_70', 'is', null),
+    supabaseAdmin
+      .from('agents_saisie_notes')
+      .select('id, nom, login, actif, created_at')
+      .order('nom'),
+  ])
+
+  if (agentsResult.error) {
+    return NextResponse.json({ error: agentsResult.error.message }, { status: 500 })
+  }
+
+  let candidatsQuery = supabaseAdmin
     .from('candidats_notes_concours')
-    .select(
-      `*, agents_saisie_notes ( nom )`
+    .select(`id, nom, prenom, cef, filiere, note_70, note_20, agents_saisie_notes ( nom )`, {
+      count: 'exact',
+    })
+
+  if (filter === 'traites') candidatsQuery = candidatsQuery.not('note_70', 'is', null)
+  if (filter === 'restants') candidatsQuery = candidatsQuery.is('note_70', null)
+
+  if (search) {
+    const q = `%${search.replace(/[%_]/g, '')}%`
+    candidatsQuery = candidatsQuery.or(
+      `cef.ilike.${q},nom.ilike.${q},prenom.ilike.${q},id_inscription_concours_national.ilike.${q}`
     )
+  }
+
+  const { data: candidats, error: cErr, count: filteredTotal } = await candidatsQuery
     .order('nom')
     .order('prenom')
+    .range(offset, offset + limit - 1)
 
   if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 })
 
-  const { data: agents, error: aErr } = await supabaseAdmin
-    .from('agents_saisie_notes')
-    .select('id, nom, login, actif, created_at')
-    .order('nom')
-
-  if (aErr) return NextResponse.json({ error: aErr.message }, { status: 500 })
-
-  const list = candidats ?? []
-  const total = list.length
-  const traites = list.filter((c) => c.note_70 != null).length
+  const totalCount = total ?? 0
+  const traitesCount = traites ?? 0
+  const listTotal = filteredTotal ?? 0
 
   return NextResponse.json({
-    candidats: list,
-    agents: agents ?? [],
-    stats: { total, traites, restants: total - traites },
+    candidats: candidats ?? [],
+    agents: agentsResult.data ?? [],
+    stats: { total: totalCount, traites: traitesCount, restants: totalCount - traitesCount },
+    pagination: {
+      page,
+      limit,
+      total: listTotal,
+      totalPages: Math.max(1, Math.ceil(listTotal / limit)),
+    },
   })
 }
 

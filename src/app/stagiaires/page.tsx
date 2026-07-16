@@ -53,10 +53,48 @@ export default function StagiairesPage() {
   
   const canDownloadAllDemandesCV = isAdmin || profile?.role === 'conseillere_carriere'
   
-  // État pour l'onglet actif
-  const [activeTab, setActiveTab] = useState('candidatures')
+  const STAGIAIRES_TAB_KEY = 'stagiaires_activeTab'
+  const STAGIAIRES_VALID_TABS = new Set([
+    'candidatures',
+    'candidatures-par-demande',
+    'cv-connect',
+    'sms',
+    'contacts-email',
+    'notes',
+    'videos',
+    'assistance-conseiller',
+    'assistance-admin',
+  ])
+
+  // État pour l'onglet actif (restauré depuis URL ou localStorage)
+  const [activeTab, setActiveTabState] = useState('candidatures')
+  const [notesModuleMounted, setNotesModuleMounted] = useState(false)
   const [showAcceptedInMainList, setShowAcceptedInMainList] = useState(false)
   const [showAcceptedArchive, setShowAcceptedArchive] = useState(false)
+
+  const setActiveTab = React.useCallback((tab: string) => {
+    setActiveTabState(tab)
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(STAGIAIRES_TAB_KEY, tab)
+    const url = new URL(window.location.href)
+    if (tab === 'candidatures') url.searchParams.delete('tab')
+    else url.searchParams.set('tab', tab)
+    window.history.replaceState({}, '', url.toString())
+  }, [])
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+    const fromUrl = new URLSearchParams(window.location.search).get('tab')
+    const fromStorage = window.localStorage.getItem(STAGIAIRES_TAB_KEY)
+    const candidate = fromUrl || fromStorage || 'candidatures'
+    if (STAGIAIRES_VALID_TABS.has(candidate)) {
+      setActiveTabState(candidate)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (activeTab === 'notes') setNotesModuleMounted(true)
+  }, [activeTab])
   
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
@@ -1706,8 +1744,10 @@ export default function StagiairesPage() {
           <EmailContactsModule />
         )}
 
-        {activeTab === 'notes' && isAdmin && (
-          <NoteConcoursModule />
+        {notesModuleMounted && isAdmin && (
+          <div className={activeTab === 'notes' ? '' : 'hidden'}>
+            <NoteConcoursModule />
+          </div>
         )}
 
         {activeTab === 'videos' && isAdmin && (

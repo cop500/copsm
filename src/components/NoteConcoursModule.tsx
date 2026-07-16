@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Upload,
   Download,
@@ -23,20 +23,27 @@ import NoteAdminDashboard from '@/components/notes/NoteAdminDashboard'
 
 type AdminTab = 'candidats' | 'agents' | 'import'
 
+const PAGE_SIZE = 50
+
 export default function NoteConcoursModule() {
   const tokenRef = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const hasLoadedRef = useRef(false)
   const [tab, setTab] = useState<AdminTab>('candidats')
   const [candidats, setCandidats] = useState<CandidatNotesRow[]>([])
   const [agents, setAgents] = useState<AgentSaisieRow[]>([])
   const [stats, setStats] = useState({ total: 0, traites: 0, restants: 0 })
+  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0, totalPages: 1 })
   const [initialLoading, setInitialLoading] = useState(true)
+  const [tableLoading, setTableLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [filterStatut, setFilterStatut] = useState<'tous' | 'traites' | 'restants'>('tous')
+  const [page, setPage] = useState(1)
   const [editNoteId, setEditNoteId] = useState<string | null>(null)
   const [editNote70, setEditNote70] = useState('')
 
@@ -45,62 +52,75 @@ export default function NoteConcoursModule() {
   const [newPassword, setNewPassword] = useState('')
 
   const getAuthHeaders = useCallback(async (json = true) => {
-    if (!tokenRef.current) {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) throw new Error('Session expirée — reconnectez-vous.')
-      tokenRef.current = session.access_token
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (!tokenRef.current) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) tokenRef.current = session.access_token
+      }
+      if (tokenRef.current) {
+        const h: Record<string, string> = { Authorization: `Bearer ${tokenRef.current}` }
+        if (json) h['Content-Type'] = 'application/json'
+        return h
+      }
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 250))
     }
-    const h: Record<string, string> = { Authorization: `Bearer ${tokenRef.current}` }
-    if (json) h['Content-Type'] = 'application/json'
-    return h
+    throw new Error('Session expirée — reconnectez-vous.')
   }, [])
 
-  const load = useCallback(async (opts?: { silent?: boolean }) => {
-    const silent = opts?.silent ?? false
-    if (!silent) setInitialLoading(true)
-    else setRefreshing(true)
-    setError('')
-    try {
-      const headers = await getAuthHeaders()
-      const res = await fetch('/api/notes/admin', { headers })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Erreur chargement')
-      setCandidats(json.candidats ?? [])
-      setAgents(json.agents ?? [])
-      setStats(json.stats ?? { total: 0, traites: 0, restants: 0 })
-    } catch (e: unknown) {
-      tokenRef.current = null
-      setError(e instanceof Error ? e.message : 'Erreur')
-    } finally {
-      setInitialLoading(false)
-      setRefreshing(false)
-    }
-  }, [getAuthHeaders])
+  const load = useCallback(
+    async (opts?: { silent?: boolean; pageOverride?: number }) => {
+      const silent = opts?.silent ?? false
+      const currentPage = opts?.pageOverride ?? page
+      if (!hasLoadedRef.current) setInitialLoading(true)
+      else if (!silent) setTableLoading(true)
+      else setRefreshing(true)
+      setError('')
+      try {
+        const headers = await getAuthHeaders()
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          limit: String(PAGE_SIZE),
+          filter: filterStatut,
+        })
+        if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
+        const res = await fetch(`/api/notes/admin?${params}`, { headers })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Erreur chargement')
+        setCandidats(json.candidats ?? [])
+        setAgents(json.agents ?? [])
+        setStats(json.stats ?? { total: 0, traites: 0, restants: 0 })
+        setPagination(json.pagination ?? { page: 1, limit: PAGE_SIZE, total: 0, totalPages: 1 })
+      } catch (e: unknown) {
+        tokenRef.current = null
+        setError(e instanceof Error ? e.message : 'Erreur')
+      } finally {
+        hasLoadedRef.current = true
+        setInitialLoading(false)
+        setTableLoading(false)
+        setRefreshing(false)
+      }
+    },
+    [getAuthHeaders, page, filterStatut, debouncedSearch]
+  )
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch, filterStatut])
+
+  useEffect(() => {
+    void load({ silent: hasLoadedRef.current, pageOverride: page })
+  }, [page, debouncedSearch, filterStatut, load])
 
   useEffect(() => {
     if (!successMsg) return
     const t = setTimeout(() => setSuccessMsg(''), 4000)
     return () => clearTimeout(t)
   }, [successMsg])
-
-  const filteredCandidats = useMemo(() => {
-    let list = candidats
-    if (filterStatut === 'traites') list = list.filter((c) => c.note_70 != null)
-    if (filterStatut === 'restants') list = list.filter((c) => c.note_70 == null)
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      list = list.filter(
-        (c) =>
-          c.cef.toLowerCase().includes(q) ||
-          c.nom.toLowerCase().includes(q) ||
-          c.prenom.toLowerCase().includes(q) ||
-          c.id_inscription_concours_national.toLowerCase().includes(q)
-      )
-    }
-    return list
-  }, [candidats, search, filterStatut])
 
   const postAction = async (body: Record<string, unknown>) => {
     const headers = await getAuthHeaders()
@@ -252,8 +272,14 @@ export default function NoteConcoursModule() {
 
   if (initialLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-gray-100 rounded-lg w-2/3" />
+        <div className="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-gray-100 rounded-xl" />
+          ))}
+        </div>
+        <div className="h-64 bg-gray-100 rounded-xl" />
       </div>
     )
   }
@@ -511,7 +537,12 @@ export default function NoteConcoursModule() {
             </select>
           </div>
 
-          <div className="bg-white rounded-xl border overflow-x-auto">
+          <div className="bg-white rounded-xl border overflow-x-auto relative">
+            {(tableLoading || refreshing) && (
+              <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
+                <Loader2 className="w-6 h-6 animate-spin text-violet-600" />
+              </div>
+            )}
             <table className="w-full text-sm min-w-[900px]">
               <thead className="bg-gray-50 border-b">
                 <tr>
@@ -526,7 +557,7 @@ export default function NoteConcoursModule() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCandidats.map((c) => (
+                {candidats.map((c) => (
                   <tr key={c.id} className="border-b last:border-0 hover:bg-gray-50/50">
                     <td className="p-3 font-mono text-xs">{c.cef}</td>
                     <td className="p-3">{c.nom}</td>
@@ -591,10 +622,10 @@ export default function NoteConcoursModule() {
                     </td>
                   </tr>
                 ))}
-                {!filteredCandidats.length && (
+                {!candidats.length && !tableLoading && (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-gray-500">
-                      {candidats.length === 0
+                      {stats.total === 0
                         ? 'Aucun candidat — importez un fichier Excel.'
                         : 'Aucun résultat pour cette recherche.'}
                     </td>
@@ -603,6 +634,32 @@ export default function NoteConcoursModule() {
               </tbody>
             </table>
           </div>
+
+          {pagination.totalPages > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <p className="text-gray-600">
+                Page {pagination.page} / {pagination.totalPages} — {pagination.total} candidat(s)
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1 || tableLoading}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="px-3 py-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                >
+                  Précédent
+                </button>
+                <button
+                  type="button"
+                  disabled={page >= pagination.totalPages || tableLoading}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-3 py-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
