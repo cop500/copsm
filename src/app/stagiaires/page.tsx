@@ -17,12 +17,13 @@ import {
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
   ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
-  Upload, HelpCircle, Settings, Smartphone, Video
+  Upload, HelpCircle, Settings, Smartphone, Video, PenLine
 } from 'lucide-react'
 import Link from 'next/link'
 import SmsModule from '@/components/SmsModule'
 import EmailContactsModule from '@/components/EmailContactsModule'
 import VideoPreselectionModule from '@/components/VideoPreselectionModule'
+import NoteConcoursModule from '@/components/NoteConcoursModule'
 
 // Types pour les nouveaux statuts
 type CandidatureStatus = 
@@ -60,7 +61,7 @@ export default function StagiairesPage() {
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
   React.useEffect(() => {
-    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms' || activeTab === 'contacts-email' || activeTab === 'videos')) {
+    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms' || activeTab === 'contacts-email' || activeTab === 'videos' || activeTab === 'notes')) {
       setActiveTab('candidatures')
     }
     if (isDirecteur && activeTab === 'assistance-conseiller') {
@@ -550,6 +551,22 @@ export default function StagiairesPage() {
                   <div className="flex items-center space-x-2">
                     <Mail className="w-5 h-5" />
                     <span>Contacts e-mail</span>
+                  </div>
+                </button>
+              )}
+
+              {isAdmin && (
+                <button
+                  onClick={() => setActiveTab('notes')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                    activeTab === 'notes'
+                      ? 'border-violet-500 text-violet-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <PenLine className="w-5 h-5" />
+                    <span>NOTE</span>
                   </div>
                 </button>
               )}
@@ -1687,6 +1704,10 @@ export default function StagiairesPage() {
 
         {activeTab === 'contacts-email' && isAdmin && (
           <EmailContactsModule />
+        )}
+
+        {activeTab === 'notes' && isAdmin && (
+          <NoteConcoursModule />
         )}
 
         {activeTab === 'videos' && isAdmin && (
