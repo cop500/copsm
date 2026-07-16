@@ -194,5 +194,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ candidat: data })
   }
 
+  if (action === 'purge_import') {
+    const { count, error: countErr } = await supabaseAdmin
+      .from('candidats_notes_concours')
+      .select('*', { count: 'exact', head: true })
+
+    if (countErr) return NextResponse.json({ error: countErr.message }, { status: 500 })
+
+    const { error } = await supabaseAdmin
+      .from('candidats_notes_concours')
+      .delete()
+      .not('id', 'is', null)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({
+      success: true,
+      deleted: count ?? 0,
+      message: `${count ?? 0} candidat(s) supprimé(s).`,
+    })
+  }
+
+  if (action === 'delete_candidat') {
+    const { id } = body as { id?: string }
+    if (!id) return NextResponse.json({ error: 'Candidat requis.' }, { status: 400 })
+
+    const { error } = await supabaseAdmin.from('candidats_notes_concours').delete().eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, message: 'Candidat supprimé.' })
+  }
+
   return NextResponse.json({ error: 'Action inconnue.' }, { status: 400 })
 }

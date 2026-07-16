@@ -310,6 +310,50 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
     }
   }
 
+  const handlePurgeImport = async () => {
+    if (stats.total === 0) {
+      setError('Aucune donnée à supprimer.')
+      return
+    }
+    if (
+      !window.confirm(
+        `Supprimer définitivement les ${stats.total} candidats importés (notes incluses) ?\n\nCette action est irréversible.`
+      )
+    ) {
+      return
+    }
+    const confirmText = window.prompt('Tapez SUPPRIMER pour confirmer la suppression :')
+    if (confirmText !== 'SUPPRIMER') return
+
+    setActionLoading('purge')
+    setError('')
+    try {
+      const json = await postAction({ action: 'purge_import' })
+      setSuccessMsg(json.message ?? 'Données supprimées.')
+      setPage(1)
+      hasLoadedRef.current = false
+      await load({ silent: false })
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleDeleteCandidat = async (id: string, nom: string, prenom: string) => {
+    if (!window.confirm(`Supprimer ${prenom} ${nom} de la liste ?`)) return
+    setActionLoading(`del-candidat-${id}`)
+    try {
+      await postAction({ action: 'delete_candidat', id })
+      setSuccessMsg('Candidat supprimé.')
+      await load({ silent: true })
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const agentsActifs = agents.filter((a) => a.actif).length
   const previewNote20 =
     editNote70 !== '' && !Number.isNaN(Number(editNote70))
@@ -416,36 +460,62 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
       </div>
 
       {tab === 'import' && (
-        <div className="bg-white rounded-xl border p-6 max-w-xl">
-          <h3 className="font-semibold text-gray-900 mb-2">Importer un fichier Excel</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Colonnes attendues : DR, EFP, Niveau Formation, Nom, Prénom,
-            id_InscriptionConcoursNational, CEF, etc. Les notes déjà saisies par les agents
-            sont conservées lors d&apos;un réimport.
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) void handleImport(f)
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={actionLoading === 'import'}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50"
-          >
-            {actionLoading === 'import' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
-            Choisir un fichier Excel
-          </button>
+        <div className="space-y-6 max-w-xl">
+          <div className="bg-white rounded-xl border p-6">
+            <h3 className="font-semibold text-gray-900 mb-2">Importer un fichier Excel</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Colonnes attendues : DR, EFP, Niveau Formation, Nom, Prénom,
+              id_InscriptionConcoursNational, CEF, etc. Les notes déjà saisies par les agents
+              sont conservées lors d&apos;un réimport.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void handleImport(f)
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={actionLoading === 'import'}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50"
+            >
+              {actionLoading === 'import' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              Choisir un fichier Excel
+            </button>
+          </div>
+
+          <div className="bg-red-50 rounded-xl border border-red-200 p-6">
+            <h3 className="font-semibold text-red-900 mb-2 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              Supprimer les données importées
+            </h3>
+            <p className="text-sm text-red-800 mb-4">
+              Efface tous les candidats et notes en base ({stats.total} enregistrement
+              {stats.total !== 1 ? 's' : ''}). Les comptes agents de saisie sont conservés.
+            </p>
+            <button
+              type="button"
+              onClick={() => void handlePurgeImport()}
+              disabled={actionLoading === 'purge' || stats.total === 0}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              {actionLoading === 'purge' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              Supprimer tout le fichier importé
+            </button>
+          </div>
         </div>
       )}
 
@@ -652,16 +722,27 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
                           </button>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditNoteId(c.id)
-                            setEditNote70(c.note_70 != null ? String(c.note_70) : '')
-                          }}
-                          className="px-2 py-1 text-xs border rounded hover:bg-gray-50"
-                        >
-                          Modifier note
-                        </button>
+                        <div className="flex justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditNoteId(c.id)
+                              setEditNote70(c.note_70 != null ? String(c.note_70) : '')
+                            }}
+                            className="px-2 py-1 text-xs border rounded hover:bg-gray-50"
+                          >
+                            Modifier note
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteCandidat(c.id, c.nom, c.prenom)}
+                            disabled={actionLoading === `del-candidat-${c.id}`}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
