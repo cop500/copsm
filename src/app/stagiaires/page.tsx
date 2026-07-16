@@ -1746,7 +1746,7 @@ export default function StagiairesPage() {
 
         {notesModuleMounted && isAdmin && (
           <div className={activeTab === 'notes' ? '' : 'hidden'}>
-            <NoteConcoursModule />
+            <NoteConcoursModule isActive={activeTab === 'notes'} />
           </div>
         )}
 

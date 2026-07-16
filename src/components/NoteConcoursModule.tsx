@@ -25,7 +25,27 @@ type AdminTab = 'candidats' | 'agents' | 'import'
 
 const PAGE_SIZE = 50
 
-export default function NoteConcoursModule() {
+interface NoteConcoursModuleProps {
+  isActive?: boolean
+}
+
+function readSupabaseAccessToken(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith('sb-') || !key.endsWith('-auth-token')) continue
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const parsed = JSON.parse(raw) as { access_token?: string }
+      if (parsed.access_token) return parsed.access_token
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+export default function NoteConcoursModule({ isActive = true }: NoteConcoursModuleProps) {
   const tokenRef = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hasLoadedRef = useRef(false)
@@ -34,7 +54,7 @@ export default function NoteConcoursModule() {
   const [agents, setAgents] = useState<AgentSaisieRow[]>([])
   const [stats, setStats] = useState({ total: 0, traites: 0, restants: 0 })
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0, totalPages: 1 })
-  const [initialLoading, setInitialLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(false)
   const [tableLoading, setTableLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -51,56 +71,82 @@ export default function NoteConcoursModule() {
   const [newLogin, setNewLogin] = useState('')
   const [newPassword, setNewPassword] = useState('')
 
+  const fetchAbortRef = useRef<AbortController | null>(null)
+
   const getAuthHeaders = useCallback(async (json = true) => {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (!tokenRef.current) {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.access_token) tokenRef.current = session.access_token
-      }
-      if (tokenRef.current) {
-        const h: Record<string, string> = { Authorization: `Bearer ${tokenRef.current}` }
-        if (json) h['Content-Type'] = 'application/json'
-        return h
-      }
-      if (attempt < 2) await new Promise((r) => setTimeout(r, 250))
+    const cached = tokenRef.current || readSupabaseAccessToken()
+    if (cached) {
+      tokenRef.current = cached
+      const h: Record<string, string> = { Authorization: `Bearer ${cached}` }
+      if (json) h['Content-Type'] = 'application/json'
+      return h
     }
-    throw new Error('Session expirée — reconnectez-vous.')
+
+    const sessionPromise = supabase.auth.getSession()
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Session lente — réessayez ou reconnectez-vous.')), 8000)
+    )
+    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise])
+    if (!session?.access_token) throw new Error('Session expirée — reconnectez-vous.')
+    tokenRef.current = session.access_token
+    const h: Record<string, string> = { Authorization: `Bearer ${session.access_token}` }
+    if (json) h['Content-Type'] = 'application/json'
+    return h
   }, [])
 
   const load = useCallback(
     async (opts?: { silent?: boolean; pageOverride?: number }) => {
+      if (!isActive) return
+
+      fetchAbortRef.current?.abort()
+      const controller = new AbortController()
+      fetchAbortRef.current = controller
+
       const silent = opts?.silent ?? false
       const currentPage = opts?.pageOverride ?? page
-      if (!hasLoadedRef.current) setInitialLoading(true)
+
+      if (!hasLoadedRef.current && !silent) setInitialLoading(true)
       else if (!silent) setTableLoading(true)
       else setRefreshing(true)
       setError('')
+
       try {
         const headers = await getAuthHeaders()
+        if (controller.signal.aborted) return
+
         const params = new URLSearchParams({
           page: String(currentPage),
           limit: String(PAGE_SIZE),
           filter: filterStatut,
         })
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
-        const res = await fetch(`/api/notes/admin?${params}`, { headers })
+
+        const res = await fetch(`/api/notes/admin?${params}`, {
+          headers,
+          signal: controller.signal,
+        })
         const json = await res.json()
+        if (controller.signal.aborted) return
         if (!res.ok) throw new Error(json.error || 'Erreur chargement')
+
         setCandidats(json.candidats ?? [])
         setAgents(json.agents ?? [])
         setStats(json.stats ?? { total: 0, traites: 0, restants: 0 })
         setPagination(json.pagination ?? { page: 1, limit: PAGE_SIZE, total: 0, totalPages: 1 })
+        hasLoadedRef.current = true
       } catch (e: unknown) {
+        if (controller.signal.aborted) return
         tokenRef.current = null
         setError(e instanceof Error ? e.message : 'Erreur')
       } finally {
-        hasLoadedRef.current = true
-        setInitialLoading(false)
-        setTableLoading(false)
-        setRefreshing(false)
+        if (!controller.signal.aborted) {
+          setInitialLoading(false)
+          setTableLoading(false)
+          setRefreshing(false)
+        }
       }
     },
-    [getAuthHeaders, page, filterStatut, debouncedSearch]
+    [getAuthHeaders, page, filterStatut, debouncedSearch, isActive]
   )
 
   useEffect(() => {
@@ -109,12 +155,12 @@ export default function NoteConcoursModule() {
   }, [search])
 
   useEffect(() => {
-    setPage(1)
-  }, [debouncedSearch, filterStatut])
-
-  useEffect(() => {
-    void load({ silent: hasLoadedRef.current, pageOverride: page })
-  }, [page, debouncedSearch, filterStatut, load])
+    if (!isActive) return
+    void load({ silent: hasLoadedRef.current })
+    return () => fetchAbortRef.current?.abort()
+    // load recalculé volontairement quand page/filtre/recherche changent
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, page, debouncedSearch, filterStatut])
 
   useEffect(() => {
     if (!successMsg) return
@@ -270,22 +316,14 @@ export default function NoteConcoursModule() {
       ? calcNote20From70(Number(editNote70))
       : null
 
-  if (initialLoading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 bg-gray-100 rounded-lg w-2/3" />
-        <div className="grid grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 bg-gray-100 rounded-xl" />
-          ))}
-        </div>
-        <div className="h-64 bg-gray-100 rounded-xl" />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
+      {(initialLoading || refreshing) && !error && (
+        <div className="flex items-center gap-2 text-sm text-violet-600">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Chargement des données…
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -522,13 +560,19 @@ export default function NoteConcoursModule() {
                 type="text"
                 placeholder="Rechercher CEF, nom, prénom…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value)
+                  setPage(1)
+                }}
                 className="w-full pl-9 pr-3 py-2 border rounded-lg"
               />
             </div>
             <select
               value={filterStatut}
-              onChange={(e) => setFilterStatut(e.target.value as typeof filterStatut)}
+              onChange={(e) => {
+                setFilterStatut(e.target.value as typeof filterStatut)
+                setPage(1)
+              }}
               className="px-3 py-2 border rounded-lg"
             >
               <option value="tous">Tous</option>

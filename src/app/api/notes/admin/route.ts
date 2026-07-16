@@ -39,17 +39,23 @@ export async function GET(request: Request) {
   const filter = url.searchParams.get('filter') ?? 'tous'
   const offset = (page - 1) * limit
 
-  const [{ count: total }, { count: traites }, agentsResult] = await Promise.all([
-    supabaseAdmin.from('candidats_notes_concours').select('*', { count: 'exact', head: true }),
-    supabaseAdmin
-      .from('candidats_notes_concours')
-      .select('*', { count: 'exact', head: true })
-      .not('note_70', 'is', null),
-    supabaseAdmin
-      .from('agents_saisie_notes')
-      .select('id, nom, login, actif, created_at')
-      .order('nom'),
-  ])
+  const [{ count: total, error: totalErr }, { count: traites, error: traitesErr }, agentsResult] =
+    await Promise.all([
+      supabaseAdmin.from('candidats_notes_concours').select('*', { count: 'exact', head: true }),
+      supabaseAdmin
+        .from('candidats_notes_concours')
+        .select('*', { count: 'exact', head: true })
+        .not('note_70', 'is', null),
+      supabaseAdmin
+        .from('agents_saisie_notes')
+        .select('id, nom, login, actif, created_at')
+        .order('nom'),
+    ])
+
+  const countErr = totalErr || traitesErr
+  if (countErr) {
+    return NextResponse.json({ error: countErr.message }, { status: 500 })
+  }
 
   if (agentsResult.error) {
     return NextResponse.json({ error: agentsResult.error.message }, { status: 500 })
