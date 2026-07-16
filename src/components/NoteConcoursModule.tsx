@@ -19,7 +19,19 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { calcNote20From70, type AgentSaisieRow, type CandidatNotesRow } from '@/lib/notesConcoursConstants'
+import { parseNotesConcoursWorkbook } from '@/lib/notesConcoursExcel'
 import NoteAdminDashboard from '@/components/notes/NoteAdminDashboard'
+
+async function readJsonResponse(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text()
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    throw new Error(
+      'Réponse serveur invalide lors de l\'import. Le fichier est peut-être trop volumineux — réduisez-le ou réessayez.'
+    )
+  }
+}
 
 type AdminTab = 'candidats' | 'agents' | 'import'
 
@@ -52,6 +64,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
   const [tab, setTab] = useState<AdminTab>('candidats')
   const [candidats, setCandidats] = useState<CandidatNotesRow[]>([])
   const [agents, setAgents] = useState<AgentSaisieRow[]>([])
+  const [filieres, setFilieres] = useState<string[]>([])
   const [stats, setStats] = useState({ total: 0, traites: 0, restants: 0 })
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0, totalPages: 1 })
   const [initialLoading, setInitialLoading] = useState(false)
@@ -63,6 +76,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [filterStatut, setFilterStatut] = useState<'tous' | 'traites' | 'restants'>('tous')
+  const [filterFiliere, setFilterFiliere] = useState('')
   const [page, setPage] = useState(1)
   const [editNoteId, setEditNoteId] = useState<string | null>(null)
   const [editNote70, setEditNote70] = useState('')
@@ -120,19 +134,28 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
           filter: filterStatut,
         })
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
+        if (filterFiliere) params.set('filiere', filterFiliere)
 
         const res = await fetch(`/api/notes/admin?${params}`, {
           headers,
           signal: controller.signal,
         })
-        const json = await res.json()
+        const json = await readJsonResponse(res)
         if (controller.signal.aborted) return
-        if (!res.ok) throw new Error(json.error || 'Erreur chargement')
+        if (!res.ok) throw new Error(String(json.error || 'Erreur chargement'))
 
-        setCandidats(json.candidats ?? [])
-        setAgents(json.agents ?? [])
-        setStats(json.stats ?? { total: 0, traites: 0, restants: 0 })
-        setPagination(json.pagination ?? { page: 1, limit: PAGE_SIZE, total: 0, totalPages: 1 })
+        setCandidats((json.candidats as CandidatNotesRow[]) ?? [])
+        setAgents((json.agents as AgentSaisieRow[]) ?? [])
+        setFilieres((json.filieres as string[]) ?? [])
+        setStats((json.stats as typeof stats) ?? { total: 0, traites: 0, restants: 0 })
+        setPagination(
+          (json.pagination as typeof pagination) ?? {
+            page: 1,
+            limit: PAGE_SIZE,
+            total: 0,
+            totalPages: 1,
+          }
+        )
         hasLoadedRef.current = true
       } catch (e: unknown) {
         if (controller.signal.aborted) return
@@ -146,7 +169,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
         }
       }
     },
-    [getAuthHeaders, page, filterStatut, debouncedSearch, isActive]
+    [getAuthHeaders, page, filterStatut, filterFiliere, debouncedSearch, isActive]
   )
 
   useEffect(() => {
@@ -160,7 +183,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
     return () => fetchAbortRef.current?.abort()
     // load recalculé volontairement quand page/filtre/recherche changent
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, page, debouncedSearch, filterStatut])
+  }, [isActive, page, debouncedSearch, filterStatut, filterFiliere])
 
   useEffect(() => {
     if (!successMsg) return
@@ -175,8 +198,8 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
       headers,
       body: JSON.stringify(body),
     })
-    const json = await res.json()
-    if (!res.ok) throw new Error(json.error || 'Erreur')
+    const json = await readJsonResponse(res)
+    if (!res.ok) throw new Error(String(json.error || 'Erreur'))
     return json
   }
 
@@ -184,19 +207,20 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
     setActionLoading('import')
     setError('')
     try {
-      const headers = await getAuthHeaders(false)
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch('/api/notes/admin/import', {
-        method: 'POST',
-        headers,
-        body: form,
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Import échoué')
-      setSuccessMsg(json.message ?? 'Import réussi.')
-      if (json.errors?.length) setError(json.errors.slice(0, 3).join(' · '))
-      await load({ silent: true })
+      const buffer = await file.arrayBuffer()
+      const { rows, errors: parseErrors } = parseNotesConcoursWorkbook(buffer)
+      if (parseErrors.length && !rows.length) {
+        throw new Error(parseErrors.join(' '))
+      }
+
+      const json = await postAction({ action: 'import_rows', rows })
+      setSuccessMsg(String(json.message ?? 'Import réussi.'))
+      const importErrors = json.errors as string[] | undefined
+      if (importErrors?.length) setError(importErrors.slice(0, 3).join(' · '))
+      setPage(1)
+      setFilterFiliere('')
+      hasLoadedRef.current = false
+      await load({ silent: false })
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erreur import')
     } finally {
@@ -372,7 +396,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
         <div>
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <PenLine className="w-6 h-6 text-violet-600" />
-            Module NOTE — Concours national
+            Module NOTE
           </h2>
           <p className="text-sm text-gray-600 mt-1">
             Import Excel, saisie par agents, export des résultats
@@ -465,8 +489,9 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
             <h3 className="font-semibold text-gray-900 mb-2">Importer un fichier Excel</h3>
             <p className="text-sm text-gray-600 mb-4">
               Colonnes attendues : DR, EFP, Niveau Formation, Nom, Prénom,
-              id_InscriptionConcoursNational, CEF, etc. Les notes déjà saisies par les agents
-              sont conservées lors d&apos;un réimport.
+              id_InscriptionConcoursNational, CEF, Filière, etc.
+              L&apos;import <strong>remplace entièrement</strong> la liste en base
+              (les notes déjà saisies sont conservées pour les CEF identiques).
             </p>
             <input
               ref={fileInputRef}
@@ -648,6 +673,21 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
               <option value="tous">Tous</option>
               <option value="traites">Notes saisies</option>
               <option value="restants">Restants</option>
+            </select>
+            <select
+              value={filterFiliere}
+              onChange={(e) => {
+                setFilterFiliere(e.target.value)
+                setPage(1)
+              }}
+              className="px-3 py-2 border rounded-lg min-w-[180px]"
+            >
+              <option value="">Toutes les filières</option>
+              {filieres.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
             </select>
           </div>
 

@@ -3,9 +3,32 @@ import { verifyAdminFromRequest } from '@/lib/verifyAdminRequest'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { hashAgentPassword } from '@/lib/agentNotesAuth'
 import { buildNotesConcoursExportBuffer } from '@/lib/notesConcoursExcel'
+import { importCandidatsRows } from '@/lib/notesConcoursImportServer'
 import { calcNote20From70, type CandidatNotesRow } from '@/lib/notesConcoursConstants'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
+
+function applyListFilters<
+  T extends {
+    eq: (col: string, val: string) => T
+    not: (col: string, op: string, val: null) => T
+    is: (col: string, val: null) => T
+    or: (filter: string) => T
+  },
+>(query: T, opts: { filiere?: string; filter?: string; search?: string }): T {
+  let q = query
+  if (opts.filiere) q = q.eq('filiere', opts.filiere) as T
+  if (opts.filter === 'traites') q = q.not('note_70', 'is', null) as T
+  if (opts.filter === 'restants') q = q.is('note_70', null) as T
+  if (opts.search) {
+    const s = `%${opts.search.replace(/[%_]/g, '')}%`
+    q = q.or(
+      `cef.ilike.${s},nom.ilike.${s},prenom.ilike.${s},id_inscription_concours_national.ilike.${s}`
+    ) as T
+  }
+  return q
+}
 
 export async function GET(request: Request) {
   const auth = await verifyAdminFromRequest(request)
@@ -37,19 +60,36 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(10, Number(url.searchParams.get('limit') || 50)))
   const search = url.searchParams.get('search')?.trim() ?? ''
   const filter = url.searchParams.get('filter') ?? 'tous'
+  const filiere = url.searchParams.get('filiere')?.trim() ?? ''
   const offset = (page - 1) * limit
+  const listFilters = { filiere: filiere || undefined, filter, search: search || undefined }
 
-  const [{ count: total, error: totalErr }, { count: traites, error: traitesErr }, agentsResult] =
+  let totalQuery = supabaseAdmin
+    .from('candidats_notes_concours')
+    .select('*', { count: 'exact', head: true })
+  let traitesQuery = supabaseAdmin
+    .from('candidats_notes_concours')
+    .select('*', { count: 'exact', head: true })
+    .not('note_70', 'is', null)
+
+  if (filiere) {
+    totalQuery = totalQuery.eq('filiere', filiere)
+    traitesQuery = traitesQuery.eq('filiere', filiere)
+  }
+
+  const [{ count: total, error: totalErr }, { count: traites, error: traitesErr }, agentsResult, filieresResult] =
     await Promise.all([
-      supabaseAdmin.from('candidats_notes_concours').select('*', { count: 'exact', head: true }),
-      supabaseAdmin
-        .from('candidats_notes_concours')
-        .select('*', { count: 'exact', head: true })
-        .not('note_70', 'is', null),
+      totalQuery,
+      traitesQuery,
       supabaseAdmin
         .from('agents_saisie_notes')
         .select('id, nom, login, actif, created_at')
         .order('nom'),
+      supabaseAdmin
+        .from('candidats_notes_concours')
+        .select('filiere')
+        .not('filiere', 'is', null)
+        .order('filiere'),
     ])
 
   const countErr = totalErr || traitesErr
@@ -61,21 +101,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: agentsResult.error.message }, { status: 500 })
   }
 
-  let candidatsQuery = supabaseAdmin
-    .from('candidats_notes_concours')
-    .select(`id, nom, prenom, cef, filiere, note_70, note_20, agents_saisie_notes ( nom )`, {
-      count: 'exact',
-    })
-
-  if (filter === 'traites') candidatsQuery = candidatsQuery.not('note_70', 'is', null)
-  if (filter === 'restants') candidatsQuery = candidatsQuery.is('note_70', null)
-
-  if (search) {
-    const q = `%${search.replace(/[%_]/g, '')}%`
-    candidatsQuery = candidatsQuery.or(
-      `cef.ilike.${q},nom.ilike.${q},prenom.ilike.${q},id_inscription_concours_national.ilike.${q}`
-    )
-  }
+  let candidatsQuery = applyListFilters(
+    supabaseAdmin.from('candidats_notes_concours').select(
+      `id, nom, prenom, cef, filiere, note_70, note_20, agents_saisie_notes ( nom )`,
+      { count: 'exact' }
+    ),
+    listFilters
+  )
 
   const { data: candidats, error: cErr, count: filteredTotal } = await candidatsQuery
     .order('nom')
@@ -88,9 +120,14 @@ export async function GET(request: Request) {
   const traitesCount = traites ?? 0
   const listTotal = filteredTotal ?? 0
 
+  const filieres = [
+    ...new Set((filieresResult.data ?? []).map((r) => r.filiere).filter(Boolean) as string[]),
+  ].sort((a, b) => a.localeCompare(b, 'fr'))
+
   return NextResponse.json({
     candidats: candidats ?? [],
     agents: agentsResult.data ?? [],
+    filieres,
     stats: { total: totalCount, traites: traitesCount, restants: totalCount - traitesCount },
     pagination: {
       page,
@@ -110,6 +147,35 @@ export async function POST(request: Request) {
 
   const body = await request.json()
   const action = body.action as string
+
+  if (action === 'import_rows') {
+    const { rows } = body as { rows?: Record<string, string | number | null>[] }
+    if (!Array.isArray(rows) || !rows.length) {
+      return NextResponse.json({ error: 'Aucune ligne à importer.' }, { status: 400 })
+    }
+    if (rows.length > 5000) {
+      return NextResponse.json({ error: 'Maximum 5000 lignes par import.' }, { status: 400 })
+    }
+
+    try {
+      const { inserted, total, errors } = await importCandidatsRows(rows, true)
+      if (!inserted && errors.length) {
+        return NextResponse.json({ error: errors.join(' ') }, { status: 500 })
+      }
+      return NextResponse.json({
+        success: true,
+        inserted,
+        total,
+        errors: errors.length ? errors : undefined,
+        message: `Import terminé : ${inserted} candidat(s) importé(s).`,
+      })
+    } catch (e: unknown) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : 'Erreur import' },
+        { status: 500 }
+      )
+    }
+  }
 
   if (action === 'create_agent') {
     const { nom, login, password } = body
