@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   LogOut,
   Loader2,
@@ -59,6 +59,7 @@ export default function SaisieNotesPage() {
   const [saveLoading, setSaveLoading] = useState(false)
   const [pageError, setPageError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const checkSession = useCallback(async () => {
     const res = await fetch('/api/notes/agent/session')
@@ -142,8 +143,11 @@ export default function SaisieNotesPage() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Enregistrement impossible')
-      setCandidat(json.candidat)
       setSuccessMsg(json.message ?? 'Notes enregistrées.')
+      setCandidat(null)
+      setCefSearch('')
+      setNote70('')
+      setTimeout(() => searchInputRef.current?.focus(), 100)
     } catch (err: unknown) {
       setPageError(err instanceof Error ? err.message : 'Erreur')
     } finally {
@@ -215,18 +219,20 @@ export default function SaisieNotesPage() {
         </div>
       )}
 
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/60 shadow-2xl overflow-hidden max-w-4xl mx-auto">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/60 shadow-2xl overflow-hidden max-w-4xl mx-auto sticky top-4 z-20">
         <div className="bg-gradient-to-r from-[#0a3560] to-[#0f4c81] px-6 py-4 text-white flex items-center gap-3">
           <Search className="w-5 h-5" />
           <h2 className="font-semibold">Rechercher un candidat (CEF)</h2>
         </div>
-        <form onSubmit={handleSearch} className="p-6 border-b flex flex-wrap gap-3">
+        <form onSubmit={handleSearch} className="p-6 border-b flex flex-wrap gap-3 bg-white">
           <input
+            ref={searchInputRef}
             type="text"
             value={cefSearch}
             onChange={(e) => setCefSearch(e.target.value)}
-            placeholder="Numéro CEF"
+            placeholder="Saisir le CEF du candidat suivant…"
             className="flex-1 min-w-[200px] px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+            autoComplete="off"
             required
           />
           <button
@@ -240,7 +246,7 @@ export default function SaisieNotesPage() {
         </form>
 
         {candidat && (
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
             <div className="flex items-center gap-2 text-gray-800">
               <User className="w-5 h-5 text-[#0f4c81]" />
               <h3 className="font-bold text-lg">
@@ -254,7 +260,11 @@ export default function SaisieNotesPage() {
                 <div key={key} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
                   <span className="text-xs text-gray-500 block">{label}</span>
                   <span className="font-medium text-gray-800">
-                    {(candidat[key as keyof CandidatInfo] as string) ?? '—'}
+                    {(() => {
+                      const v = candidat[key as keyof CandidatInfo]
+                      if (v == null || v === '') return '—'
+                      return String(v)
+                    })()}
                   </span>
                 </div>
               ))}

@@ -39,11 +39,15 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url)
   if (url.searchParams.get('export') === 'excel') {
-    const { data: candidats, error } = await supabaseAdmin
+    const exportFiliere = url.searchParams.get('filiere')?.trim() ?? ''
+    let exportQuery = supabaseAdmin
       .from('candidats_notes_concours')
       .select('*')
       .order('nom')
       .order('prenom')
+    if (exportFiliere) exportQuery = exportQuery.eq('filiere', exportFiliere)
+
+    const { data: candidats, error } = await exportQuery
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

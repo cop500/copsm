@@ -79,7 +79,7 @@ export const CANDIDAT_READONLY_FIELDS: { key: keyof CandidatNotesRow; label: str
   { key: 'niveau_formation', label: 'Niveau Formation' },
   { key: 'nom', label: 'Nom' },
   { key: 'prenom', label: 'Prénom' },
-  { key: 'id_inscription_concours_national', label: 'id_InscriptionConcoursNational' },
+  { key: 'id_inscription_concours_national', label: 'N° inscription' },
   { key: 'cef', label: 'CEF' },
   { key: 'niveau_scolaire', label: 'Niveau scolaire' },
   { key: 'moyenne', label: 'Moyenne' },

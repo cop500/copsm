@@ -233,7 +233,9 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
     setActionLoading('export')
     try {
       const headers = await getAuthHeaders(false)
-      const res = await fetch('/api/notes/admin?export=excel', { headers })
+      const exportParams = new URLSearchParams({ export: 'excel' })
+      if (filterFiliere) exportParams.set('filiere', filterFiliere)
+      const res = await fetch(`/api/notes/admin?${exportParams}`, { headers })
       if (!res.ok) {
         const json = await res.json()
         throw new Error(json.error || 'Export échoué')
@@ -647,7 +649,51 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
       )}
 
       {tab === 'candidats' && (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
+          <div className="bg-white rounded-xl border p-4 h-fit lg:sticky lg:top-4">
+            <p className="text-sm font-semibold text-gray-900 mb-1">Filtrer par filière</p>
+            <p className="text-xs text-gray-500 mb-3">
+              Sélectionnez une filière — seules les données associées s&apos;affichent.
+            </p>
+            <div className="max-h-56 overflow-y-auto border rounded-lg divide-y divide-gray-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterFiliere('')
+                  setPage(1)
+                }}
+                className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
+                  !filterFiliere
+                    ? 'bg-violet-100 text-violet-800 font-medium'
+                    : 'hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                Toutes les filières
+              </button>
+              {filieres.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => {
+                    setFilterFiliere(f)
+                    setPage(1)
+                  }}
+                  className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
+                    filterFiliere === f
+                      ? 'bg-violet-100 text-violet-800 font-medium'
+                      : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+              {!filieres.length && (
+                <p className="px-3 py-4 text-xs text-gray-500">Aucune filière — importez un fichier.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4 min-w-0">
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -674,22 +720,13 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
               <option value="traites">Notes saisies</option>
               <option value="restants">Restants</option>
             </select>
-            <select
-              value={filterFiliere}
-              onChange={(e) => {
-                setFilterFiliere(e.target.value)
-                setPage(1)
-              }}
-              className="px-3 py-2 border rounded-lg min-w-[180px]"
-            >
-              <option value="">Toutes les filières</option>
-              {filieres.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
           </div>
+
+          {filterFiliere && (
+            <p className="text-sm text-violet-700 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">
+              Filière active : <strong>{filterFiliere}</strong>
+            </p>
+          )}
 
           <div className="bg-white rounded-xl border overflow-x-auto relative">
             {(tableLoading || refreshing) && (
@@ -825,6 +862,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
               </div>
             </div>
           )}
+          </div>
         </div>
       )}
     </div>
