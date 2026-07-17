@@ -77,6 +77,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [filterStatut, setFilterStatut] = useState<'tous' | 'traites' | 'restants'>('tous')
   const [filterFiliere, setFilterFiliere] = useState('')
+  const [filterAgent, setFilterAgent] = useState('')
   const [page, setPage] = useState(1)
   const [editNoteId, setEditNoteId] = useState<string | null>(null)
   const [editNote70, setEditNote70] = useState('')
@@ -135,6 +136,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
         })
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
         if (filterFiliere) params.set('filiere', filterFiliere)
+        if (filterAgent) params.set('agent_id', filterAgent)
 
         const res = await fetch(`/api/notes/admin?${params}`, {
           headers,
@@ -169,7 +171,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
         }
       }
     },
-    [getAuthHeaders, page, filterStatut, filterFiliere, debouncedSearch, isActive]
+    [getAuthHeaders, page, filterStatut, filterFiliere, filterAgent, debouncedSearch, isActive]
   )
 
   useEffect(() => {
@@ -183,7 +185,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
     return () => fetchAbortRef.current?.abort()
     // load recalculé volontairement quand page/filtre/recherche changent
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, page, debouncedSearch, filterStatut, filterFiliere])
+  }, [isActive, page, debouncedSearch, filterStatut, filterFiliere, filterAgent])
 
   useEffect(() => {
     if (!successMsg) return
@@ -219,6 +221,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
       if (importErrors?.length) setError(importErrors.slice(0, 3).join(' · '))
       setPage(1)
       setFilterFiliere('')
+      setFilterAgent('')
       hasLoadedRef.current = false
       await load({ silent: false })
     } catch (e: unknown) {
@@ -235,6 +238,7 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
       const headers = await getAuthHeaders(false)
       const exportParams = new URLSearchParams({ export: 'excel' })
       if (filterFiliere) exportParams.set('filiere', filterFiliere)
+      if (filterAgent) exportParams.set('agent_id', filterAgent)
       const res = await fetch(`/api/notes/admin?${exportParams}`, { headers })
       if (!res.ok) {
         const json = await res.json()
@@ -691,6 +695,62 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
                 <p className="px-3 py-4 text-xs text-gray-500">Aucune filière — importez un fichier.</p>
               )}
             </div>
+
+            <p className="text-sm font-semibold text-gray-900 mb-1 mt-5">Filtrer par agent</p>
+            <p className="text-xs text-gray-500 mb-3">
+              Sélectionnez un agent — seules les saisies associées s&apos;affichent.
+            </p>
+            <div className="max-h-56 overflow-y-auto border rounded-lg divide-y divide-gray-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterAgent('')
+                  setPage(1)
+                }}
+                className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
+                  !filterAgent
+                    ? 'bg-violet-100 text-violet-800 font-medium'
+                    : 'hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                Tous les agents
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterAgent('none')
+                  setPage(1)
+                }}
+                className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
+                  filterAgent === 'none'
+                    ? 'bg-violet-100 text-violet-800 font-medium'
+                    : 'hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                Sans agent
+              </button>
+              {agents.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => {
+                    setFilterAgent(a.id)
+                    setPage(1)
+                  }}
+                  className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
+                    filterAgent === a.id
+                      ? 'bg-violet-100 text-violet-800 font-medium'
+                      : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  {a.nom}
+                  {!a.actif && <span className="text-xs text-gray-400 ml-1">(inactif)</span>}
+                </button>
+              ))}
+              {!agents.length && (
+                <p className="px-3 py-4 text-xs text-gray-500">Aucun agent — créez un compte.</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4 min-w-0">
@@ -725,6 +785,17 @@ export default function NoteConcoursModule({ isActive = true }: NoteConcoursModu
           {filterFiliere && (
             <p className="text-sm text-violet-700 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">
               Filière active : <strong>{filterFiliere}</strong>
+            </p>
+          )}
+
+          {filterAgent && (
+            <p className="text-sm text-violet-700 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">
+              Agent actif :{' '}
+              <strong>
+                {filterAgent === 'none'
+                  ? 'Sans agent'
+                  : agents.find((a) => a.id === filterAgent)?.nom ?? 'Agent'}
+              </strong>
             </p>
           )}
 

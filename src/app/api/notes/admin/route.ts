@@ -16,9 +16,11 @@ function applyListFilters<
     is: (col: string, val: null) => T
     or: (filter: string) => T
   },
->(query: T, opts: { filiere?: string; filter?: string; search?: string }): T {
+>(query: T, opts: { filiere?: string; agentId?: string; filter?: string; search?: string }): T {
   let q = query
   if (opts.filiere) q = q.eq('filiere', opts.filiere) as T
+  if (opts.agentId === 'none') q = q.is('agent_id', null) as T
+  else if (opts.agentId) q = q.eq('agent_id', opts.agentId) as T
   if (opts.filter === 'traites') q = q.not('note_70', 'is', null) as T
   if (opts.filter === 'restants') q = q.is('note_70', null) as T
   if (opts.search) {
@@ -40,12 +42,15 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   if (url.searchParams.get('export') === 'excel') {
     const exportFiliere = url.searchParams.get('filiere')?.trim() ?? ''
+    const exportAgentId = url.searchParams.get('agent_id')?.trim() ?? ''
     let exportQuery = supabaseAdmin
       .from('candidats_notes_concours')
       .select('*')
       .order('nom')
       .order('prenom')
     if (exportFiliere) exportQuery = exportQuery.eq('filiere', exportFiliere)
+    if (exportAgentId === 'none') exportQuery = exportQuery.is('agent_id', null)
+    else if (exportAgentId) exportQuery = exportQuery.eq('agent_id', exportAgentId)
 
     const { data: candidats, error } = await exportQuery
 
@@ -65,8 +70,14 @@ export async function GET(request: Request) {
   const search = url.searchParams.get('search')?.trim() ?? ''
   const filter = url.searchParams.get('filter') ?? 'tous'
   const filiere = url.searchParams.get('filiere')?.trim() ?? ''
+  const agentId = url.searchParams.get('agent_id')?.trim() ?? ''
   const offset = (page - 1) * limit
-  const listFilters = { filiere: filiere || undefined, filter, search: search || undefined }
+  const listFilters = {
+    filiere: filiere || undefined,
+    agentId: agentId || undefined,
+    filter,
+    search: search || undefined,
+  }
 
   let totalQuery = supabaseAdmin
     .from('candidats_notes_concours')
@@ -79,6 +90,13 @@ export async function GET(request: Request) {
   if (filiere) {
     totalQuery = totalQuery.eq('filiere', filiere)
     traitesQuery = traitesQuery.eq('filiere', filiere)
+  }
+  if (agentId === 'none') {
+    totalQuery = totalQuery.is('agent_id', null)
+    traitesQuery = traitesQuery.is('agent_id', null)
+  } else if (agentId) {
+    totalQuery = totalQuery.eq('agent_id', agentId)
+    traitesQuery = traitesQuery.eq('agent_id', agentId)
   }
 
   const [{ count: total, error: totalErr }, { count: traites, error: traitesErr }, agentsResult, filieresResult] =
