@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { 
   Home, Users, Building2, Calendar, FileText, Settings, Search, Bell,
   TrendingUp, Target, Activity, AlertCircle, CheckCircle, Mail,
-  GraduationCap, Menu, X, User, LogOut, PlusCircle
+  GraduationCap, Menu, X, User, LogOut, PlusCircle, ClipboardList
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,6 +55,8 @@ const COPInterface: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const { signOut, profile } = useAuth();
+  const { isAdmin, isManager } = useRole();
+  const canAccessAdmission = isAdmin || isManager;
 
   // Navigation items
   const navigation: NavigationItem[] = [
@@ -62,11 +64,13 @@ const COPInterface: React.FC = () => {
     { id: 'entreprises', name: 'Entreprises', icon: Building2, href: '/entreprises-gestion', active: false },
     { id: 'evenements', name: 'Événements', icon: Calendar, href: '/evenements', active: false },
     { id: 'stagiaires', name: 'Stagiaires', icon: GraduationCap, href: '/stagiaires', active: false },
+    ...(canAccessAdmission
+      ? [{ id: 'admission', name: 'Admission', icon: ClipboardList, href: '/admission', active: false }]
+      : []),
     { id: 'demandes-entreprises', name: 'Demandes entreprises', icon: Users, href: '/dashboard-admin', active: false },
-    // Ajout du lien Paramètres pour les admins
-    ...(profile?.role === 'business_developer' ? [
-      { id: 'parametres', name: 'Paramètres', icon: Settings, href: '/parametres', active: false }
-    ] : [])
+    ...(isAdmin
+      ? [{ id: 'parametres', name: 'Paramètres', icon: Settings, href: '/parametres', active: false }]
+      : []),
   ];
 
   // KPI Data
@@ -168,9 +172,11 @@ const COPInterface: React.FC = () => {
   // Quick actions
   const quickActions = [
     { name: 'Candidatures', icon: Users, color: 'bg-blue-500 hover:bg-blue-600', href: '/stagiaires' },
+    ...(canAccessAdmission
+      ? [{ name: 'Admission', icon: ClipboardList, color: 'bg-violet-500 hover:bg-violet-600', href: '/admission' }]
+      : []),
     { name: 'Demandes entreprises', icon: Building2, color: 'bg-green-500 hover:bg-green-600', href: '/dashboard-admin' },
-    { name: 'Planifier événement', icon: Calendar, color: 'bg-purple-500 hover:bg-purple-600', href: '/evenements' }
-    // Action 'Envoyer CV' supprimée
+    { name: 'Planifier événement', icon: Calendar, color: 'bg-purple-500 hover:bg-purple-600', href: '/evenements' },
   ];
 
   // Handlers
@@ -421,7 +427,7 @@ const COPInterface: React.FC = () => {
                 <Target className="w-6 h-6 text-blue-600 mr-3" />
                 Actions rapides
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
                   return (

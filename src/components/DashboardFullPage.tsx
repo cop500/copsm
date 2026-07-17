@@ -5,7 +5,7 @@ import {
   Home, Users, Building2, Calendar, FileText, Settings, 
   Search, Bell, TrendingUp, Target, Activity, AlertCircle, 
   CheckCircle, Mail, GraduationCap, Menu, X, User, LogOut, 
-  PlusCircle, Send, Trash2, MessageSquare, MoreVertical
+  PlusCircle, Send, Trash2, MessageSquare, MoreVertical, ClipboardList
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,8 +28,9 @@ interface QuickAction {
 const DashboardFullPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { profile, signOut } = useAuth();
-  const { isAdmin, isDirecteur } = useRole();
+  const { isAdmin, isDirecteur, isManager } = useRole();
   const router = useRouter();
+  const canAccessAdmission = isAdmin || isManager;
 
   // Actions rapides - Style professionnel éducatif
   const quickActions: QuickAction[] = [
@@ -39,6 +40,14 @@ const DashboardFullPage: React.FC = () => {
       href: '/stagiaires',
       color: 'bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg'
     },
+    ...(canAccessAdmission
+      ? [{
+          name: 'Admission',
+          icon: ClipboardList,
+          href: '/admission',
+          color: 'bg-gradient-to-br from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white shadow-md hover:shadow-lg'
+        }]
+      : []),
     {
       name: 'Demandes entreprises',
       icon: Building2,
@@ -188,7 +197,7 @@ const DashboardFullPage: React.FC = () => {
                 <Target className="w-5 h-5 text-blue-600" />
                 <h2 className="text-lg font-semibold text-gray-900">Actions rapides</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
                   return (

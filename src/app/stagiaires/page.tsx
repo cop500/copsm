@@ -17,13 +17,10 @@ import {
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
   ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
-  Upload, HelpCircle, Settings, Smartphone, Video, PenLine
+  Upload, HelpCircle, Settings, Smartphone
 } from 'lucide-react'
 import Link from 'next/link'
 import SmsModule from '@/components/SmsModule'
-import EmailContactsModule from '@/components/EmailContactsModule'
-import VideoPreselectionModule from '@/components/VideoPreselectionModule'
-import NoteConcoursModule from '@/components/NoteConcoursModule'
 
 // Types pour les nouveaux statuts
 type CandidatureStatus = 
@@ -48,11 +45,10 @@ export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
   const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, updateCvTriStatut, markCvsTelecharges, deleteCandidature: deleteCandidatureDemande } = useDemandesEntreprises()
   const { poles, filieres, loading: settingsLoading } = useSettings()
-  const { isAdmin, isManager, isDirecteur } = useRole()
+  const { isAdmin, isDirecteur } = useRole()
   const { profile } = useAuth()
   
   const canDownloadAllDemandesCV = isAdmin || profile?.role === 'conseillere_carriere'
-  const canAccessVideoNotes = isAdmin || isManager
   
   const STAGIAIRES_TAB_KEY = 'stagiaires_activeTab'
   const STAGIAIRES_VALID_TABS = new Set([
@@ -60,16 +56,12 @@ export default function StagiairesPage() {
     'candidatures-par-demande',
     'cv-connect',
     'sms',
-    'contacts-email',
-    'notes',
-    'videos',
     'assistance-conseiller',
     'assistance-admin',
   ])
 
   // État pour l'onglet actif (restauré depuis URL ou localStorage)
   const [activeTab, setActiveTabState] = useState('candidatures')
-  const [notesModuleMounted, setNotesModuleMounted] = useState(false)
   const [showAcceptedInMainList, setShowAcceptedInMainList] = useState(false)
   const [showAcceptedArchive, setShowAcceptedArchive] = useState(false)
 
@@ -86,30 +78,27 @@ export default function StagiairesPage() {
   React.useEffect(() => {
     if (typeof window === 'undefined') return
     const fromUrl = new URLSearchParams(window.location.search).get('tab')
+    if (fromUrl === 'notes' || fromUrl === 'videos' || fromUrl === 'contacts-email') {
+      window.location.replace(`/admission?tab=${fromUrl}`)
+      return
+    }
     const fromStorage = window.localStorage.getItem(STAGIAIRES_TAB_KEY)
     const candidate = fromUrl || fromStorage || 'candidatures'
     if (STAGIAIRES_VALID_TABS.has(candidate)) {
       setActiveTabState(candidate)
     }
   }, [])
-
-  React.useEffect(() => {
-    if (activeTab === 'notes') setNotesModuleMounted(true)
-  }, [activeTab])
   
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
   React.useEffect(() => {
-    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms' || activeTab === 'contacts-email')) {
-      setActiveTab('candidatures')
-    }
-    if (!canAccessVideoNotes && (activeTab === 'videos' || activeTab === 'notes')) {
+    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms')) {
       setActiveTab('candidatures')
     }
     if (isDirecteur && activeTab === 'assistance-conseiller') {
       setActiveTab('candidatures')
     }
-  }, [isAdmin, canAccessVideoNotes, isDirecteur, activeTab])
+  }, [isAdmin, isDirecteur, activeTab])
 
   // Conserver le mode d'affichage des candidatures acceptées pendant toute la session
   React.useEffect(() => {
@@ -575,57 +564,6 @@ export default function StagiairesPage() {
                     <Smartphone className="w-5 h-5" />
                     <span>SMS</span>
                     <span className="px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">
-                      Beta
-                    </span>
-                  </div>
-                </button>
-              )}
-
-              {isAdmin && (
-                <button
-                  onClick={() => setActiveTab('contacts-email')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === 'contacts-email'
-                      ? 'border-teal-500 text-teal-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Mail className="w-5 h-5" />
-                    <span>Contacts e-mail</span>
-                  </div>
-                </button>
-              )}
-
-              {canAccessVideoNotes && (
-                <button
-                  onClick={() => setActiveTab('notes')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === 'notes'
-                      ? 'border-violet-500 text-violet-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <PenLine className="w-5 h-5" />
-                    <span>NOTE</span>
-                  </div>
-                </button>
-              )}
-
-              {canAccessVideoNotes && (
-                <button
-                  onClick={() => setActiveTab('videos')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === 'videos'
-                      ? 'border-violet-500 text-violet-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Video className="w-5 h-5" />
-                    <span>Vidéo</span>
-                    <span className="px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-700 rounded-full">
                       Beta
                     </span>
                   </div>
@@ -1742,20 +1680,6 @@ export default function StagiairesPage() {
         {/* SMS Tab - Visible seulement pour les admins */}
         {activeTab === 'sms' && isAdmin && (
           <SmsModule />
-        )}
-
-        {activeTab === 'contacts-email' && isAdmin && (
-          <EmailContactsModule />
-        )}
-
-        {notesModuleMounted && canAccessVideoNotes && (
-          <div className={activeTab === 'notes' ? '' : 'hidden'}>
-            <NoteConcoursModule isActive={activeTab === 'notes'} />
-          </div>
-        )}
-
-        {activeTab === 'videos' && canAccessVideoNotes && (
-          <VideoPreselectionModule />
         )}
 
         {/* Assistance Admin Tab - Visible seulement pour les admins */}

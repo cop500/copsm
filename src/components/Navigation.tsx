@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   Home, Users, Calendar, Settings, GraduationCap, Menu, X,
-  LogOut, Send, FileText
+  LogOut, Send, FileText, ClipboardList
 } from 'lucide-react'
 import { useState } from 'react'
 import { useUser } from '@/contexts/UserContext'
@@ -31,6 +31,12 @@ const navigation = [
     icon: GraduationCap,
   },
   {
+    name: 'Admission',
+    href: '/admission',
+    icon: ClipboardList,
+    requiresAdmission: true,
+  },
+  {
     name: 'Demandes entreprises',
     href: '/dashboard-admin',
     icon: Users,
@@ -51,12 +57,17 @@ export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   const { currentUser } = useUser()
-  const { isAdmin } = useRole();
+  const { isAdmin, isManager } = useRole();
+
+  const canAccessAdmission = isAdmin || isManager;
 
   // Filtrer la navigation
   const filteredNavigation = navigation.filter(item => {
     if (item.name === 'Paramètres') {
       return isAdmin;
+    }
+    if ('requiresAdmission' in item && item.requiresAdmission) {
+      return canAccessAdmission;
     }
     return true;
   });
@@ -121,7 +132,7 @@ export default function Navigation() {
             <nav className="px-4 py-2 space-y-1">
               {filteredNavigation.map((item) => {
                 const Icon = item.icon
-                const isCurrent = pathname === item.href
+                const isCurrent = pathname === item.href || pathname?.startsWith(`${item.href}/`)
                 return (
                   <Link
                     key={item.name}
@@ -164,7 +175,7 @@ export default function Navigation() {
           <nav className="flex-1 space-y-1 px-2">
             {filteredNavigation.map((item) => {
               const Icon = item.icon;
-              const isCurrent = pathname === item.href;
+              const isCurrent = pathname === item.href || pathname?.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.name}
