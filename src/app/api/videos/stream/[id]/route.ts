@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminFromRequest } from '@/lib/verifyAdminRequest'
+import { verifyVideoNotesAdminFromRequest } from '@/lib/verifyAdminRequest'
 import { parseFormateurCookie, verifyFormateurSessionToken } from '@/lib/formateurAuth'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getVideoSignedUrl } from '@/lib/videoStorage'
@@ -31,8 +31,8 @@ export async function GET(
 
   let allowed = false
 
-  const adminAuth = await verifyAdminFromRequest(request)
-  if (!adminAuth.error) {
+  const videoNotesAdminAuth = await verifyVideoNotesAdminFromRequest(request)
+  if (!videoNotesAdminAuth.error) {
     allowed = true
   } else {
     const token = parseFormateurCookie(request.headers.get('cookie'))

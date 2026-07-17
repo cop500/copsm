@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { verifyAdminFromRequest } from '@/lib/verifyAdminRequest'
+import { verifyVideoNotesAdminFromRequest } from '@/lib/verifyAdminRequest'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { hashAgentPassword } from '@/lib/agentNotesAuth'
 import { buildNotesConcoursExportBuffer } from '@/lib/notesConcoursExcel'
@@ -31,7 +31,7 @@ function applyListFilters<
 }
 
 export async function GET(request: Request) {
-  const auth = await verifyAdminFromRequest(request)
+  const auth = await verifyVideoNotesAdminFromRequest(request)
   if (auth.error) return auth.error
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Configuration serveur' }, { status: 500 })
@@ -143,7 +143,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await verifyAdminFromRequest(request)
+  const auth = await verifyVideoNotesAdminFromRequest(request)
   if (auth.error) return auth.error
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Configuration serveur' }, { status: 500 })

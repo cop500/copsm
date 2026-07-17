@@ -48,10 +48,11 @@ export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
   const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, updateCvTriStatut, markCvsTelecharges, deleteCandidature: deleteCandidatureDemande } = useDemandesEntreprises()
   const { poles, filieres, loading: settingsLoading } = useSettings()
-  const { isAdmin, isDirecteur } = useRole()
+  const { isAdmin, isManager, isDirecteur } = useRole()
   const { profile } = useAuth()
   
   const canDownloadAllDemandesCV = isAdmin || profile?.role === 'conseillere_carriere'
+  const canAccessVideoNotes = isAdmin || isManager
   
   const STAGIAIRES_TAB_KEY = 'stagiaires_activeTab'
   const STAGIAIRES_VALID_TABS = new Set([
@@ -99,13 +100,16 @@ export default function StagiairesPage() {
   // Si l'utilisateur n'est pas admin et essaie d'accéder à CV Connect ou Assistance Admin, rediriger vers candidatures
   // Si l'utilisateur est directeur et essaie d'accéder à Assistance Conseiller, rediriger vers candidatures
   React.useEffect(() => {
-    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms' || activeTab === 'contacts-email' || activeTab === 'videos' || activeTab === 'notes')) {
+    if (!isAdmin && (activeTab === 'cv-connect' || activeTab === 'assistance-admin' || activeTab === 'sms' || activeTab === 'contacts-email')) {
+      setActiveTab('candidatures')
+    }
+    if (!canAccessVideoNotes && (activeTab === 'videos' || activeTab === 'notes')) {
       setActiveTab('candidatures')
     }
     if (isDirecteur && activeTab === 'assistance-conseiller') {
       setActiveTab('candidatures')
     }
-  }, [isAdmin, isDirecteur, activeTab])
+  }, [isAdmin, canAccessVideoNotes, isDirecteur, activeTab])
 
   // Conserver le mode d'affichage des candidatures acceptées pendant toute la session
   React.useEffect(() => {
@@ -593,7 +597,7 @@ export default function StagiairesPage() {
                 </button>
               )}
 
-              {isAdmin && (
+              {canAccessVideoNotes && (
                 <button
                   onClick={() => setActiveTab('notes')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
@@ -609,7 +613,7 @@ export default function StagiairesPage() {
                 </button>
               )}
 
-              {isAdmin && (
+              {canAccessVideoNotes && (
                 <button
                   onClick={() => setActiveTab('videos')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
@@ -1744,13 +1748,13 @@ export default function StagiairesPage() {
           <EmailContactsModule />
         )}
 
-        {notesModuleMounted && isAdmin && (
+        {notesModuleMounted && canAccessVideoNotes && (
           <div className={activeTab === 'notes' ? '' : 'hidden'}>
             <NoteConcoursModule isActive={activeTab === 'notes'} />
           </div>
         )}
 
-        {activeTab === 'videos' && isAdmin && (
+        {activeTab === 'videos' && canAccessVideoNotes && (
           <VideoPreselectionModule />
         )}
 
