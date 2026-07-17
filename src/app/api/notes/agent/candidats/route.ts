@@ -3,7 +3,7 @@ import {
   parseAgentCookie,
   verifyAgentSessionToken,
 } from '@/lib/agentNotesAuth'
-import { calcNote20From70 } from '@/lib/notesConcoursConstants'
+import { calcNote20From70, isCandidatTraite } from '@/lib/notesConcoursConstants'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -63,6 +63,26 @@ export async function POST(request: Request) {
   const { id, note_70 } = body as { id?: string; note_70?: number }
 
   if (!id) return NextResponse.json({ error: 'Candidat requis.' }, { status: 400 })
+
+  const { data: existing, error: existingErr } = await supabaseAdmin!
+    .from('candidats_notes_concours')
+    .select('note_70')
+    .eq('id', id)
+    .single()
+
+  if (existingErr || !existing) {
+    return NextResponse.json({ error: 'Candidat introuvable.' }, { status: 404 })
+  }
+
+  if (isCandidatTraite(existing.note_70)) {
+    return NextResponse.json(
+      {
+        error:
+          'La note est déjà saisie pour ce candidat. Merci de contacter l\'administrateur pour toute modification.',
+      },
+      { status: 409 }
+    )
+  }
 
   const note70 = Number(note_70)
   if (Number.isNaN(note70) || note70 < 0 || note70 > 70) {

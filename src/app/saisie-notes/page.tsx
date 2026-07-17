@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import AgentLoginScreen from '@/components/notes/AgentLoginScreen'
 import VideoPortalLayout from '@/components/video/VideoPortalLayout'
-import { calcNote20From70, CANDIDAT_READONLY_FIELDS } from '@/lib/notesConcoursConstants'
+import { calcNote20From70, CANDIDAT_READONLY_FIELDS, isCandidatTraite } from '@/lib/notesConcoursConstants'
 
 interface AgentInfo {
   id: string
@@ -129,9 +129,16 @@ export default function SaisieNotesPage() {
     }
   }
 
+  const previewNote20 =
+    note70 !== '' && !Number.isNaN(Number(note70))
+      ? calcNote20From70(Number(note70))
+      : null
+
+  const noteDejaSaisie = candidat != null && isCandidatTraite(candidat.note_70)
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!candidat) return
+    if (!candidat || noteDejaSaisie) return
     setSaveLoading(true)
     setPageError('')
     setSuccessMsg('')
@@ -154,11 +161,6 @@ export default function SaisieNotesPage() {
       setSaveLoading(false)
     }
   }
-
-  const previewNote20 =
-    note70 !== '' && !Number.isNaN(Number(note70))
-      ? calcNote20From70(Number(note70))
-      : null
 
   if (authenticated === null) {
     return (
@@ -275,48 +277,65 @@ export default function SaisieNotesPage() {
                 <PenLine className="w-5 h-5 text-violet-600" />
                 <h4 className="font-semibold text-gray-900">Saisie des notes</h4>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Note /70 *
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={70}
-                    step={0.01}
-                    value={note70}
-                    onChange={(e) => setNote70(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-violet-200 rounded-xl focus:ring-2 focus:ring-violet-500 bg-violet-50/50"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Note /20 (calculée)
-                  </label>
-                  <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-100 text-gray-700 font-semibold">
-                    {previewNote20 != null ? previewNote20 : '—'}
+
+              {noteDejaSaisie ? (
+                <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
+                  <div className="text-sm space-y-1">
+                    <p className="font-semibold">Note déjà saisie</p>
+                    <p>
+                      Ce candidat a déjà une note enregistrée ({candidat.note_70}/70 —{' '}
+                      {candidat.note_20}/20). Merci de contacter l&apos;administrateur pour toute
+                      modification.
+                    </p>
                   </div>
                 </div>
-              </div>
-              <button
-                type="submit"
-                disabled={saveLoading}
-                className="mt-4 inline-flex items-center gap-2 px-6 py-2.5 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 disabled:opacity-60"
-              >
-                {saveLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Enregistrement…
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Valider et enregistrer
-                  </>
-                )}
-              </button>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Note /70 *
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={70}
+                        step={0.01}
+                        value={note70}
+                        onChange={(e) => setNote70(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-violet-200 rounded-xl focus:ring-2 focus:ring-violet-500 bg-violet-50/50"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Note /20 (calculée)
+                      </label>
+                      <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-100 text-gray-700 font-semibold">
+                        {previewNote20 != null ? previewNote20 : '—'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={saveLoading}
+                    className="mt-4 inline-flex items-center gap-2 px-6 py-2.5 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 disabled:opacity-60"
+                  >
+                    {saveLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Enregistrement…
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Valider et enregistrer
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </form>
           </div>
         )}
