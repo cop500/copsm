@@ -19,15 +19,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'cv_tri_statut invalide' }, { status: 400 })
     }
 
-    const dateMaj = new Date().toISOString().split('T')[0]
     const { data, error } = await auth.supabaseAdmin!
       .from('candidatures_stagiaires')
       .update({
         cv_tri_statut: cvTriStatut,
-        date_derniere_maj: dateMaj,
       })
       .eq('id', candidatureId)
-      .select('id, cv_tri_statut')
+      .select('id, cv_tri_statut, cv_telecharge_le, cv_dernier_envoi_le, cv_nb_envois')
       .single()
 
     if (error) {

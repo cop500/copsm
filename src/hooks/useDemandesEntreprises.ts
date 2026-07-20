@@ -283,26 +283,51 @@ export const useDemandesEntreprises = () => {
     })
   }, [])
 
-  // Tri CV : accepté / refusé (mise à jour instantanée, sans rechargement complet)
+  // Tri CV : accepté / refusé — persistance base (API admin + repli Supabase)
   const updateCvTriStatut = async (
     candidatureId: string,
     cvTriStatut: 'en_attente' | 'accepte' | 'refuse'
   ) => {
     const previousDemandes = patchCandidatureInDemandes(candidatureId, {
       cv_tri_statut: cvTriStatut,
-      date_derniere_maj: new Date().toISOString().split('T')[0],
     })
 
     try {
-      const headers = await getStaffAuthHeaders()
-      const res = await fetch('/api/candidatures/cv-tri', {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ candidatureId, cv_tri_statut: cvTriStatut }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || data.details || 'Échec sauvegarde tri CV')
+      let savedRow: Partial<Candidature> | null = null
+
+      try {
+        const headers = await getStaffAuthHeaders()
+        const res = await fetch('/api/candidatures/cv-tri', {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ candidatureId, cv_tri_statut: cvTriStatut }),
+        })
+        const data = await res.json()
+        if (res.ok && data.candidature?.id) {
+          savedRow = data.candidature as Partial<Candidature>
+        } else if (!res.ok) {
+          throw new Error(data.error || data.details || 'Échec sauvegarde tri CV')
+        }
+      } catch (apiErr) {
+        console.warn('API cv-tri indisponible, repli Supabase direct:', apiErr)
+        const { data: row, error } = await supabase
+          .from('candidatures_stagiaires')
+          .update({ cv_tri_statut: cvTriStatut })
+          .eq('id', candidatureId)
+          .select('id, cv_tri_statut, cv_telecharge_le, cv_dernier_envoi_le, cv_nb_envois')
+          .single()
+        if (error) {
+          throw new Error(
+            error.message?.includes('cv_tri_statut')
+              ? `${error.message} — exécutez la migration add_cv_telecharge_le_to_candidatures.sql sur Supabase.`
+              : error.message
+          )
+        }
+        savedRow = row as Partial<Candidature>
+      }
+
+      if (savedRow?.id) {
+        patchCandidatureInDemandes(savedRow.id, savedRow)
       }
       return { success: true }
     } catch (err: unknown) {
@@ -345,17 +370,62 @@ export const useDemandesEntreprises = () => {
     })
 
     try {
-      const headers = await getStaffAuthHeaders()
-      const res = await fetch('/api/candidatures/cv-envoi', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ candidatureIds: uniqueIds }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Échec enregistrement envoi CV')
+      let savedRows: Partial<Candidature>[] = []
+
+      try {
+        const headers = await getStaffAuthHeaders()
+        const res = await fetch('/api/candidatures/cv-envoi', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ candidatureIds: uniqueIds }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          savedRows = (data.candidatures as Partial<Candidature>[]) ?? []
+        } else {
+          throw new Error(data.error || 'Échec enregistrement envoi CV')
+        }
+      } catch (apiErr) {
+        console.warn('API cv-envoi indisponible, repli Supabase direct:', apiErr)
+        const { data: currentRows, error: fetchErr } = await supabase
+          .from('candidatures_stagiaires')
+          .select('id, cv_nb_envois, cv_telecharge_le')
+          .in('id', uniqueIds)
+        if (fetchErr) throw fetchErr
+
+        for (const row of currentRows ?? []) {
+          const prevNb = row.cv_nb_envois ?? (row.cv_telecharge_le ? 1 : 0)
+          const nextNb = prevNb + 1
+          const { error: updErr } = await supabase
+            .from('candidatures_stagiaires')
+            .update({
+              cv_nb_envois: nextNb,
+              cv_dernier_envoi_le: now,
+              cv_telecharge_le: row.cv_telecharge_le ?? now,
+            })
+            .eq('id', row.id)
+          if (updErr) {
+            throw new Error(
+              updErr.message?.includes('cv_nb_envois')
+                ? `${updErr.message} — exécutez add_cv_telecharge_le_to_candidatures.sql sur Supabase.`
+                : updErr.message
+            )
+          }
+        }
+
+        const { data: refreshed, error: refreshErr } = await supabase
+          .from('candidatures_stagiaires')
+          .select('id, cv_tri_statut, cv_telecharge_le, cv_dernier_envoi_le, cv_nb_envois')
+          .in('id', uniqueIds)
+        if (refreshErr) throw refreshErr
+        savedRows = (refreshed as Partial<Candidature>[]) ?? []
       }
-      return { success: true, marked: data.marked ?? uniqueIds.length }
+
+      savedRows.forEach((row) => {
+        if (row.id) patchCandidatureInDemandes(row.id, row)
+      })
+
+      return { success: true, marked: savedRows.length || uniqueIds.length }
     } catch (err: unknown) {
       setDemandes(previousDemandes)
       console.error('Erreur enregistrement envoi CV:', err)
@@ -364,8 +434,23 @@ export const useDemandesEntreprises = () => {
     }
   }
 
+  const handleCandidatureRealtimeChange = useCallback(
+    ({ eventType, new: newRow }: { eventType: string; new: Candidature | null; old: Candidature | null }) => {
+      if (eventType !== 'UPDATE' || !newRow?.id) return
+      patchCandidatureInDemandes(newRow.id, {
+        cv_tri_statut: newRow.cv_tri_statut,
+        cv_telecharge_le: newRow.cv_telecharge_le,
+        cv_dernier_envoi_le: newRow.cv_dernier_envoi_le,
+        cv_nb_envois: newRow.cv_nb_envois,
+        statut_candidature: newRow.statut_candidature,
+      })
+    },
+    [patchCandidatureInDemandes]
+  )
+
   // Synchronisation en temps réel
   const { isConnected } = useRealTime('demandes_entreprises', handleRealtimeChange)
+  useRealTime('candidatures_stagiaires', handleCandidatureRealtimeChange)
 
   return {
     demandes,

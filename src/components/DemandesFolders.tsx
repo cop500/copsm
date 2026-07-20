@@ -15,6 +15,7 @@ import {
   isCvAcceptedForDownload,
   getCvEnvoisBadge,
   hasCvEnvois,
+  formatCvTelechargeLe,
   type CvTriStatut,
 } from '@/lib/cvTriStatut'
 
@@ -324,7 +325,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       if (successfullyDownloadedIds.length > 0) {
         const markResult = await onMarkCvsTelecharges(successfullyDownloadedIds)
         if (!markResult.success) {
-          console.warn('Marquage 1er envoi non enregistré:', markResult.error)
+          alert(
+            markResult.error ||
+              'Les CV ont été téléchargés mais la date d\'envoi n\'a pas pu être enregistrée. Contactez l\'administrateur ou réessayez.'
+          )
         }
       }
 
@@ -401,6 +405,23 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
               <Download className="w-3 h-3" />
               {envoisBadge.label}
             </span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mb-2">
+          {candidature.cv_telecharge_le && (
+            <span title="Date du premier lot ZIP téléchargé">
+              1er envoi : {formatCvTelechargeLe(candidature.cv_telecharge_le)}
+            </span>
+          )}
+          {candidature.cv_dernier_envoi_le &&
+            candidature.cv_dernier_envoi_le !== candidature.cv_telecharge_le && (
+              <span title="Dernier téléchargement ZIP">
+                Dernier envoi : {formatCvTelechargeLe(candidature.cv_dernier_envoi_le)}
+              </span>
+            )}
+          {cvTri !== 'en_attente' && (
+            <span className="text-emerald-700 font-medium">Tri enregistré en base</span>
           )}
         </div>
         

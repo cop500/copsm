@@ -41,9 +41,26 @@ export async function POST(request: NextRequest) {
     )
 
     const failed = updates.find((r) => r.error)
-    if (failed?.error) throw failed.error
+    if (failed?.error) {
+      const hint =
+        failed.error.message?.includes('cv_nb_envois') || failed.error.code === '42703'
+          ? ' Exécutez add_cv_telecharge_le_to_candidatures.sql sur Supabase.'
+          : ''
+      throw new Error(failed.error.message + hint)
+    }
 
-    return NextResponse.json({ success: true, marked: currentRows?.length ?? 0 })
+    const { data: updatedRows, error: selectError } = await auth.supabaseAdmin!
+      .from('candidatures_stagiaires')
+      .select('id, cv_tri_statut, cv_telecharge_le, cv_dernier_envoi_le, cv_nb_envois')
+      .in('id', candidatureIds)
+
+    if (selectError) throw selectError
+
+    return NextResponse.json({
+      success: true,
+      marked: currentRows?.length ?? 0,
+      candidatures: updatedRows ?? [],
+    })
   } catch (error) {
     console.error('Erreur API cv-envoi:', error)
     return NextResponse.json({ error: 'Erreur enregistrement envoi CV' }, { status: 500 })

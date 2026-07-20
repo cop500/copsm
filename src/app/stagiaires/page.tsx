@@ -43,7 +43,7 @@ interface CandidatureAction {
 
 export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
-  const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, updateCvTriStatut, markCvsTelecharges, deleteCandidature: deleteCandidatureDemande } = useDemandesEntreprises()
+  const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, updateCvTriStatut, markCvsTelecharges, deleteCandidature: deleteCandidatureDemande, refreshDemandes } = useDemandesEntreprises()
   const { poles, filieres, loading: settingsLoading } = useSettings()
   const { isAdmin, isDirecteur } = useRole()
   const { profile } = useAuth()
@@ -99,6 +99,12 @@ export default function StagiairesPage() {
       setActiveTab('candidatures')
     }
   }, [isAdmin, isDirecteur, activeTab])
+
+  React.useEffect(() => {
+    if (activeTab === 'candidatures-par-demande') {
+      void refreshDemandes()
+    }
+  }, [activeTab, refreshDemandes])
 
   // Conserver le mode d'affichage des candidatures acceptées pendant toute la session
   React.useEffect(() => {
