@@ -2,16 +2,17 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PenLine, Video, Mail, ClipboardList, Loader2 } from 'lucide-react'
+import { PenLine, Video, Mail, ClipboardList, Loader2, Columns3 } from 'lucide-react'
 import { useRole } from '@/hooks/useRole'
 import NoteConcoursModule from '@/components/NoteConcoursModule'
 import VideoPreselectionModule from '@/components/VideoPreselectionModule'
 import EmailContactsModule from '@/components/EmailContactsModule'
+import CanevasModule from '@/components/CanevasModule'
 
-type AdmissionTab = 'notes' | 'videos' | 'contacts-email'
+type AdmissionTab = 'notes' | 'videos' | 'contacts-email' | 'canevas'
 
 const ADMISSION_TAB_KEY = 'admission_activeTab'
-const VALID_TABS = new Set<string>(['notes', 'videos', 'contacts-email'])
+const VALID_TABS = new Set<string>(['notes', 'videos', 'contacts-email', 'canevas'])
 
 export default function AdmissionPage() {
   const router = useRouter()
@@ -22,6 +23,7 @@ export default function AdmissionPage() {
 
   const [activeTab, setActiveTabState] = useState<AdmissionTab>('notes')
   const [notesModuleMounted, setNotesModuleMounted] = useState(false)
+  const [canevasModuleMounted, setCanevasModuleMounted] = useState(false)
   const [ready, setReady] = useState(false)
 
   const setActiveTab = useCallback((tab: AdmissionTab) => {
@@ -46,7 +48,7 @@ export default function AdmissionPage() {
     let candidate = (fromUrl || fromStorage || 'notes') as AdmissionTab
     if (!VALID_TABS.has(candidate)) candidate = 'notes'
     if (candidate === 'contacts-email' && !canAccessContactsEmail) candidate = 'notes'
-    if ((candidate === 'notes' || candidate === 'videos') && !canAccessVideoNotes) {
+    if ((candidate === 'notes' || candidate === 'videos' || candidate === 'canevas') && !canAccessVideoNotes) {
       candidate = canAccessContactsEmail ? 'contacts-email' : 'notes'
     }
     setActiveTabState(candidate)
@@ -55,12 +57,13 @@ export default function AdmissionPage() {
 
   useEffect(() => {
     if (activeTab === 'notes') setNotesModuleMounted(true)
+    if (activeTab === 'canevas') setCanevasModuleMounted(true)
   }, [activeTab])
 
   useEffect(() => {
     if (!ready || !canAccessAdmission) return
     if (activeTab === 'contacts-email' && !canAccessContactsEmail) setActiveTab('notes')
-    if ((activeTab === 'notes' || activeTab === 'videos') && !canAccessVideoNotes) {
+    if ((activeTab === 'notes' || activeTab === 'videos' || activeTab === 'canevas') && !canAccessVideoNotes) {
       if (canAccessContactsEmail) setActiveTab('contacts-email')
     }
   }, [
@@ -91,7 +94,7 @@ export default function AdmissionPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Admission</h1>
               <p className="text-gray-600">
-                Notes concours, vidéos de présélection et contacts e-mail
+                Notes concours, vidéos, canevas d&apos;export et contacts e-mail
               </p>
             </div>
           </div>
@@ -136,6 +139,23 @@ export default function AdmissionPage() {
               </button>
             )}
 
+            {canAccessVideoNotes && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('canevas')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'canevas'
+                    ? 'border-violet-500 text-violet-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Columns3 className="w-5 h-5" />
+                  <span>Canevas</span>
+                </div>
+              </button>
+            )}
+
             {canAccessContactsEmail && (
               <button
                 type="button"
@@ -162,6 +182,12 @@ export default function AdmissionPage() {
         )}
 
         {activeTab === 'videos' && canAccessVideoNotes && <VideoPreselectionModule />}
+
+        {canevasModuleMounted && canAccessVideoNotes && (
+          <div className={activeTab === 'canevas' ? '' : 'hidden'}>
+            <CanevasModule isActive={activeTab === 'canevas'} />
+          </div>
+        )}
 
         {activeTab === 'contacts-email' && canAccessContactsEmail && <EmailContactsModule />}
       </div>
