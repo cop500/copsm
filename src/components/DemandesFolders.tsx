@@ -155,6 +155,26 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     return 'Poste non spécifié'
   }
 
+  const getNbProfilsDemandes = (
+    demande: DemandeEntreprise,
+    posteIndex: number | null | undefined,
+    posteName?: string
+  ): number | null => {
+    if (!demande.profils || !Array.isArray(demande.profils)) return null
+
+    if (posteIndex !== null && posteIndex !== undefined && posteIndex >= 0) {
+      const profil = demande.profils[posteIndex]
+      if (profil?.nb_profils != null) return Number(profil.nb_profils)
+    }
+
+    if (posteName) {
+      const profil = demande.profils.find((p) => p.poste_intitule === posteName)
+      if (profil?.nb_profils != null) return Number(profil.nb_profils)
+    }
+
+    return null
+  }
+
   const getStatutColor = (statut: string) => {
     switch (statut) {
       case 'en_attente': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
@@ -679,6 +699,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                         const posteName = posteIndex !== null && posteIndex >= 0
                           ? getPosteName(demande, posteIndex)
                           : candidatures[0]?.poste || 'Poste non spécifié'
+                        const nbProfilsDemandes = getNbProfilsDemandes(demande, posteIndex, posteName)
                         const posteToggleKey = posteIndex !== null && posteIndex >= 0 
                           ? `${demande.id}-${posteIndex}`
                           : `${demande.id}-${posteKey}`
@@ -710,6 +731,13 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                 <div>
                                   <h5 className="font-semibold text-gray-900">{posteName}</h5>
                                   <p className="text-sm text-gray-600">
+                                    {nbProfilsDemandes != null && (
+                                      <>
+                                        {nbProfilsDemandes} profil{nbProfilsDemandes > 1 ? 's' : ''} demandé
+                                        {nbProfilsDemandes > 1 ? 's' : ''}
+                                        {' · '}
+                                      </>
+                                    )}
                                     {candidatures.length} candidature{candidatures.length > 1 ? 's' : ''}
                                     {' · '}
                                     {candidatures.filter((c) => isCvAcceptedForDownload(c.cv_tri_statut)).length} CV accepté
