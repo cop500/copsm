@@ -4,6 +4,14 @@ import {
   verifyAgentSessionToken,
 } from '@/lib/agentNotesAuth'
 import { calcNote20From70, isCandidatTraite } from '@/lib/notesConcoursConstants'
+import { resolveGrilleCodeFromFiliere } from '@/lib/notesConcoursGrilleMapping'
+import {
+  buildGrilleData,
+  getGrilleDefinition,
+  validateGrilleScores,
+  type NotesConcoursGrilleObservations,
+  type NotesConcoursGrilleScores,
+} from '@/lib/notesConcoursGrilles'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -25,7 +33,8 @@ const CANDIDAT_FIELDS = `
   id, dr, efp, niveau_formation, nom, prenom,
   id_inscription_concours_national, cef, niveau_scolaire, moyenne,
   branche, categorie, filiere, numero_choix, classement, statut,
-  tel_1, tel_2, valide, absent, note_70, note_20, saisi_le
+  tel_1, tel_2, valide, absent, note_70, note_20, saisi_le,
+  grille_notes, mode_saisie, grille_code
 `
 
 export async function GET(request: Request) {
@@ -50,7 +59,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Aucun candidat trouvé pour ce CEF.' }, { status: 404 })
   }
 
-  return NextResponse.json({ candidat: data })
+  const grilleCode = resolveGrilleCodeFromFiliere(data.filiere)
+  const grilleDefinition = grilleCode ? getGrilleDefinition(grilleCode) : null
+
+  return NextResponse.json({
+    candidat: data,
+    grille: grilleDefinition
+      ? {
+          code: grilleDefinition.code,
+          title: grilleDefinition.title,
+          secteur: grilleDefinition.secteur,
+          available: true,
+        }
+      : grilleCode
+        ? { code: grilleCode, available: false }
+        : null,
+  })
 }
 
 export async function POST(request: Request) {
@@ -60,13 +84,27 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { id, note_70 } = body as { id?: string; note_70?: number }
+  const {
+    id,
+    note_70,
+    mode_saisie,
+    grille_code,
+    grille_scores,
+    grille_observations,
+  } = body as {
+    id?: string
+    note_70?: number
+    mode_saisie?: 'direct' | 'grille'
+    grille_code?: string
+    grille_scores?: NotesConcoursGrilleScores
+    grille_observations?: NotesConcoursGrilleObservations
+  }
 
   if (!id) return NextResponse.json({ error: 'Candidat requis.' }, { status: 400 })
 
   const { data: existing, error: existingErr } = await supabaseAdmin!
     .from('candidats_notes_concours')
-    .select('note_70')
+    .select('note_70, filiere')
     .eq('id', id)
     .single()
 
@@ -84,32 +122,84 @@ export async function POST(request: Request) {
     )
   }
 
-  const note70 = Number(note_70)
-  if (Number.isNaN(note70) || note70 < 0 || note70 > 70) {
-    return NextResponse.json({ error: 'Note /70 invalide (0 à 70).' }, { status: 400 })
+  let note70: number
+  let grilleNotes: ReturnType<typeof buildGrilleData> | null = null
+  let resolvedMode = mode_saisie ?? 'direct'
+  let resolvedGrilleCode: string | null = null
+
+  if (mode_saisie === 'grille') {
+    const expectedCode = resolveGrilleCodeFromFiliere(existing.filiere)
+    if (!expectedCode) {
+      return NextResponse.json(
+        { error: 'Aucune grille disponible pour la filière de ce candidat.' },
+        { status: 400 }
+      )
+    }
+    if (grille_code && grille_code !== expectedCode) {
+      return NextResponse.json({ error: 'Code grille incompatible avec la filière.' }, { status: 400 })
+    }
+
+    const definition = getGrilleDefinition(expectedCode)
+    if (!definition) {
+      return NextResponse.json(
+        {
+          error: `Grille « ${expectedCode} » pas encore configurée dans l'application. Utilisez la saisie directe /70.`,
+        },
+        { status: 400 }
+      )
+    }
+
+    const validation = validateGrilleScores(definition, grille_scores ?? {})
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.errors[0] ?? 'Grille incomplète.', details: validation.errors },
+        { status: 400 }
+      )
+    }
+
+    grilleNotes = buildGrilleData(definition, grille_scores ?? {}, grille_observations ?? {})
+    note70 = grilleNotes.total
+    resolvedMode = 'grille'
+    resolvedGrilleCode = expectedCode
+  } else {
+    note70 = Number(note_70)
+    if (Number.isNaN(note70) || note70 < 0 || note70 > 70) {
+      return NextResponse.json({ error: 'Note /70 invalide (0 à 70).' }, { status: 400 })
+    }
   }
 
   const note20 = calcNote20From70(note70)
   const now = new Date().toISOString()
 
+  const updatePayload: Record<string, unknown> = {
+    note_70: note70,
+    note_20: note20,
+    agent_id: agent.agentId,
+    saisi_le: now,
+    updated_at: now,
+    mode_saisie: resolvedMode,
+    grille_code: resolvedGrilleCode,
+    grille_notes: grilleNotes,
+  }
+
   const { data, error } = await supabaseAdmin!
     .from('candidats_notes_concours')
-    .update({
-      note_70: note70,
-      note_20: note20,
-      agent_id: agent.agentId,
-      saisi_le: now,
-      updated_at: now,
-    })
+    .update(updatePayload)
     .eq('id', id)
     .select(CANDIDAT_FIELDS)
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    const hint =
+      error.message?.includes('grille_notes') || error.code === '42703'
+        ? ' Exécutez add_grille_notes_to_candidats_notes_concours.sql sur Supabase.'
+        : ''
+    return NextResponse.json({ error: error.message + hint }, { status: 500 })
+  }
 
   return NextResponse.json({
     success: true,
     candidat: data,
-    message: 'Notes enregistrées.',
+    message: resolvedMode === 'grille' ? 'Grille et notes enregistrées.' : 'Notes enregistrées.',
   })
 }
