@@ -43,7 +43,7 @@ interface CandidatureAction {
 
 export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
-  const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, updateCvTriStatut, markCvsTelecharges, deleteCandidature: deleteCandidatureDemande, refreshDemandes } = useDemandesEntreprises()
+  const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, updateCvTriStatut, markCvsTelecharges, deleteCandidature: deleteCandidatureDemande, refreshDemandes, cvTriPersistenceWarning } = useDemandesEntreprises()
   const { poles, filieres, loading: settingsLoading } = useSettings()
   const { isAdmin, isDirecteur } = useRole()
   const { profile } = useAuth()
@@ -1554,6 +1554,12 @@ export default function StagiairesPage() {
                 </div>
               </div>
             </div>
+
+            {cvTriPersistenceWarning && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {cvTriPersistenceWarning}
+              </div>
+            )}
 
             {/* Interface en dossiers */}
             <DemandesFolders

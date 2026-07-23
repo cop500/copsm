@@ -6,6 +6,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { fetchAllPages } from '@/lib/supabaseFetchAll'
 import { useRealTime } from './useRealTime'
+import type { CvTriStatut } from '@/lib/cvTriStatut'
+import {
+  countPendingCvTriSync,
+  listPendingCvTriSync,
+  markCvTriSynced,
+  mergeCvTriFromCache,
+  setCvTriInCache,
+} from '@/lib/cvTriLocalCache'
 
 interface DemandeEntreprise {
   id: string
@@ -64,6 +72,7 @@ export const useDemandesEntreprises = () => {
   const [demandes, setDemandes] = useState<DemandeEntreprise[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [cvTriPersistenceWarning, setCvTriPersistenceWarning] = useState<string | null>(null)
 
   const getStaffAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
     const {
@@ -77,6 +86,41 @@ export const useDemandesEntreprises = () => {
       'Content-Type': 'application/json',
     }
   }, [])
+
+  const persistCvTriToServer = useCallback(
+    async (candidatureId: string, cvTriStatut: CvTriStatut): Promise<Partial<Candidature>> => {
+      try {
+        const headers = await getStaffAuthHeaders()
+        const res = await fetch('/api/candidatures/cv-tri', {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ candidatureId, cv_tri_statut: cvTriStatut }),
+        })
+        const data = await res.json()
+        if (res.ok && data.candidature?.id) {
+          return data.candidature as Partial<Candidature>
+        }
+        throw new Error(data.error || data.details || 'Échec sauvegarde tri CV')
+      } catch (apiErr) {
+        console.warn('API cv-tri indisponible, repli Supabase direct:', apiErr)
+        const { data: row, error } = await supabase
+          .from('candidatures_stagiaires')
+          .update({ cv_tri_statut: cvTriStatut })
+          .eq('id', candidatureId)
+          .select('id, cv_tri_statut, cv_telecharge_le, cv_dernier_envoi_le, cv_nb_envois')
+          .single()
+        if (error) {
+          throw new Error(
+            error.message?.includes('cv_tri_statut') || error.code === '42703'
+              ? `${error.message} — exécutez add_cv_telecharge_le_to_candidatures.sql sur Supabase.`
+              : error.message
+          )
+        }
+        return row as Partial<Candidature>
+      }
+    },
+    [getStaffAuthHeaders]
+  )
 
   // Charger toutes les demandes d'entreprises avec leurs candidatures
   const loadDemandes = async (options?: { silent?: boolean }) => {
@@ -116,18 +160,20 @@ export const useDemandesEntreprises = () => {
         return acc
       }, {} as Record<string, Candidature[]>) || {}
 
-      // Enrichir les demandes avec les candidatures
+      // Enrichir les demandes avec les candidatures (+ cache local de repli)
       const demandesEnrichies = demandesData?.map(demande => {
-        // Chercher les candidatures par demande_entreprise_id d'abord, puis par entreprise_nom
-        const candidatures = candidaturesByDemande[demande.id] || candidaturesByDemande[demande.entreprise_nom] || []
+        const candidatures = mergeCvTriFromCache(
+          candidaturesByDemande[demande.id] || candidaturesByDemande[demande.entreprise_nom] || []
+        )
         return {
           ...demande,
           candidatures_count: candidatures.length,
-          candidatures: candidatures
+          candidatures,
         }
       }) || []
 
       setDemandes(demandesEnrichies)
+      void syncPendingCvTriToServer()
     } catch (err: any) {
       console.error('Erreur chargement demandes:', err)
       setError(err.message)
@@ -166,6 +212,35 @@ export const useDemandesEntreprises = () => {
     },
     []
   )
+
+  const syncPendingCvTriToServer = useCallback(async () => {
+    const pending = listPendingCvTriSync()
+    if (!pending.length) {
+      setCvTriPersistenceWarning(null)
+      return
+    }
+
+    for (const { id, entry } of pending) {
+      try {
+        const savedRow = await persistCvTriToServer(id, entry.cv_tri_statut)
+        if (savedRow?.id) {
+          markCvTriSynced(savedRow.id, entry.cv_tri_statut)
+          patchCandidatureInDemandes(savedRow.id, savedRow)
+        }
+      } catch {
+        /* retry au prochain chargement */
+      }
+    }
+
+    const remaining = countPendingCvTriSync()
+    if (remaining > 0) {
+      setCvTriPersistenceWarning(
+        `${remaining} tri(s) CV conservé(s) localement — exécutez add_cv_telecharge_le_to_candidatures.sql sur Supabase si le message persiste.`
+      )
+    } else {
+      setCvTriPersistenceWarning(null)
+    }
+  }, [persistCvTriToServer, patchCandidatureInDemandes])
 
   // Charger les candidatures d'une demande spécifique
   const loadCandidaturesByDemande = async (demandeId: string) => {
@@ -254,7 +329,15 @@ export const useDemandesEntreprises = () => {
 
   // Charger au montage du composant
   useEffect(() => {
-    loadDemandes()
+    void loadDemandes()
+  }, [])
+
+  useEffect(() => {
+    const onFocus = () => {
+      void loadDemandes({ silent: true })
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   // Fonction pour recharger les demandes
@@ -293,44 +376,21 @@ export const useDemandesEntreprises = () => {
     })
 
     try {
-      let savedRow: Partial<Candidature> | null = null
-
-      try {
-        const headers = await getStaffAuthHeaders()
-        const res = await fetch('/api/candidatures/cv-tri', {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ candidatureId, cv_tri_statut: cvTriStatut }),
-        })
-        const data = await res.json()
-        if (res.ok && data.candidature?.id) {
-          savedRow = data.candidature as Partial<Candidature>
-        } else if (!res.ok) {
-          throw new Error(data.error || data.details || 'Échec sauvegarde tri CV')
-        }
-      } catch (apiErr) {
-        console.warn('API cv-tri indisponible, repli Supabase direct:', apiErr)
-        const { data: row, error } = await supabase
-          .from('candidatures_stagiaires')
-          .update({ cv_tri_statut: cvTriStatut })
-          .eq('id', candidatureId)
-          .select('id, cv_tri_statut, cv_telecharge_le, cv_dernier_envoi_le, cv_nb_envois')
-          .single()
-        if (error) {
-          throw new Error(
-            error.message?.includes('cv_tri_statut')
-              ? `${error.message} — exécutez la migration add_cv_telecharge_le_to_candidatures.sql sur Supabase.`
-              : error.message
-          )
-        }
-        savedRow = row as Partial<Candidature>
-      }
-
+      const savedRow = await persistCvTriToServer(candidatureId, cvTriStatut)
       if (savedRow?.id) {
+        markCvTriSynced(savedRow.id, cvTriStatut)
         patchCandidatureInDemandes(savedRow.id, savedRow)
+        setCvTriPersistenceWarning(null)
       }
       return { success: true }
     } catch (err: unknown) {
+      if (cvTriStatut === 'accepte' || cvTriStatut === 'refuse') {
+        setCvTriInCache(candidatureId, cvTriStatut, { pendingSync: true })
+        setCvTriPersistenceWarning(
+          'Tri enregistré sur cet appareil ; synchronisation serveur en attente (migration Supabase ou clé service).'
+        )
+        return { success: true, offline: true }
+      }
       setDemandes(previousDemandes)
       console.error('Erreur tri CV:', err)
       const message = err instanceof Error ? err.message : 'Erreur inconnue'
@@ -463,6 +523,7 @@ export const useDemandesEntreprises = () => {
     markCvsTelecharges,
     deleteCandidature,
     refreshDemandes,
-    isRealtimeConnected: isConnected
+    isRealtimeConnected: isConnected,
+    cvTriPersistenceWarning,
   }
 }
