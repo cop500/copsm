@@ -261,52 +261,51 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     }
   }
 
-  // Fonction pour télécharger tous les CV d'une demande dans un ZIP
-  const handleDownloadAllCVs = async (demande: DemandeEntreprise) => {
-    if (!demande.candidatures || demande.candidatures.length === 0) {
-      alert('Aucune candidature avec CV disponible pour cette demande.')
-      return
-    }
-
-    const candidaturesWithCV = demande.candidatures.filter((c) => c.cv_url)
+  // Télécharger une sélection de CV dans un ZIP (toute la demande ou un poste)
+  const downloadCVsAsZip = async (
+    demande: DemandeEntreprise,
+    candidatures: Candidature[],
+    downloadKey: string,
+    zipLabel?: string
+  ) => {
+    const candidaturesWithCV = candidatures.filter((c) => c.cv_url)
 
     if (candidaturesWithCV.length === 0) {
-      alert('Aucun CV disponible à télécharger pour cette demande.')
+      alert(
+        zipLabel
+          ? `Aucun CV disponible à télécharger pour le poste « ${zipLabel} ».`
+          : 'Aucun CV disponible à télécharger pour cette demande.'
+      )
       return
     }
 
-    setDownloadingCVs(demande.id)
-    
+    setDownloadingCVs(downloadKey)
+
     try {
       const zip = new JSZip()
       let downloadedCount = 0
       let failedCount = 0
       const successfullyDownloadedIds: string[] = []
 
-      // Télécharger chaque CV et l'ajouter au ZIP
       await Promise.all(
         candidaturesWithCV.map(async (candidature) => {
           try {
             if (!candidature.cv_url) return
 
-            // Télécharger le fichier
             const response = await fetch(candidature.cv_url)
             if (!response.ok) {
               throw new Error(`Erreur HTTP: ${response.status}`)
             }
-            
+
             const blob = await response.blob()
-            
-            // Déterminer l'extension du fichier
+
             const urlParts = candidature.cv_url.split('.')
             const extension = urlParts[urlParts.length - 1].split('?')[0] || 'pdf'
-            
-            // Créer un nom de fichier unique
+
             const nomCandidat = `${candidature.nom || 'Nom'}_${candidature.prenom || 'Prenom'}`.replace(/[^a-zA-Z0-9_-]/g, '_')
             const poste = candidature.poste ? candidature.poste.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Poste'
             const fileName = `${nomCandidat}_${poste}.${extension}`
-            
-            // Ajouter le fichier au ZIP
+
             zip.file(fileName, blob)
             downloadedCount++
             successfullyDownloadedIds.push(candidature.id)
@@ -323,15 +322,14 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
         return
       }
 
-      // Générer le fichier ZIP
       const zipBlob = await zip.generateAsync({ type: 'blob' })
-      
-      // Télécharger le ZIP
+
       const url = window.URL.createObjectURL(zipBlob)
       const a = document.createElement('a')
       a.href = url
       const entrepriseName = demande.entreprise_nom.replace(/[^a-zA-Z0-9_-]/g, '_')
-      a.download = `CV_${entrepriseName}_${new Date().toISOString().split('T')[0]}.zip`
+      const posteSuffix = zipLabel ? `_${zipLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}` : ''
+      a.download = `CV_${entrepriseName}${posteSuffix}_${new Date().toISOString().split('T')[0]}.zip`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -358,6 +356,24 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     } finally {
       setDownloadingCVs(null)
     }
+  }
+
+  const handleDownloadAllCVs = async (demande: DemandeEntreprise) => {
+    if (!demande.candidatures || demande.candidatures.length === 0) {
+      alert('Aucune candidature avec CV disponible pour cette demande.')
+      return
+    }
+
+    await downloadCVsAsZip(demande, demande.candidatures, demande.id)
+  }
+
+  const handleDownloadPosteCVs = async (
+    demande: DemandeEntreprise,
+    candidatures: Candidature[],
+    posteName: string,
+    posteKey: string
+  ) => {
+    await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}`, posteName)
   }
 
   // Fonction pour exporter les candidatures (nom, prénom, email, téléphone) en Excel
@@ -699,31 +715,32 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                           ? `${demande.id}-${posteIndex}`
                           : `${demande.id}-${posteKey}`
                         const isPosteExpanded = expandedPostes.has(posteToggleKey)
+                        const posteDownloadKey = `${demande.id}-${posteKey}`
+                        const posteHasCvs = candidatures.some((c) => c.cv_url)
                         
                         return (
                           <div key={posteKey} className="border border-gray-200 rounded-lg overflow-hidden">
                             {/* Header du poste */}
-                            <div
-                              className="bg-blue-50 hover:bg-blue-100 p-4 cursor-pointer transition-colors flex items-center justify-between"
-                              onClick={() => {
-                                if (posteIndex !== null && posteIndex >= 0) {
-                                  togglePoste(demande.id, posteIndex)
-                                } else {
-                                  // Pour les postes sans index, utiliser la clé
-                                  const key = `${demande.id}-${posteKey}`
-                                  const newExpanded = new Set(expandedPostes)
-                                  if (newExpanded.has(key)) {
-                                    newExpanded.delete(key)
+                            <div className="bg-blue-50 hover:bg-blue-100 p-4 transition-colors flex items-center justify-between">
+                              <div
+                                className="flex items-center space-x-3 flex-1 cursor-pointer min-w-0"
+                                onClick={() => {
+                                  if (posteIndex !== null && posteIndex >= 0) {
+                                    togglePoste(demande.id, posteIndex)
                                   } else {
-                                    newExpanded.add(key)
+                                    const key = `${demande.id}-${posteKey}`
+                                    const newExpanded = new Set(expandedPostes)
+                                    if (newExpanded.has(key)) {
+                                      newExpanded.delete(key)
+                                    } else {
+                                      newExpanded.add(key)
+                                    }
+                                    setExpandedPostes(newExpanded)
                                   }
-                                  setExpandedPostes(newExpanded)
-                                }
-                              }}
-                            >
-                              <div className="flex items-center space-x-3">
-                                <Briefcase className="w-5 h-5 text-blue-600" />
-                                <div>
+                                }}
+                              >
+                                <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                <div className="min-w-0">
                                   <h5 className="font-semibold text-gray-900">{posteName}</h5>
                                   <p className="text-sm text-gray-600">
                                     {nbProfilsDemandes != null && (
@@ -745,11 +762,52 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                   </p>
                                 </div>
                               </div>
-                              {isPosteExpanded ? (
-                                <ChevronDown className="w-5 h-5 text-gray-400" />
-                              ) : (
-                                <ChevronRight className="w-5 h-5 text-gray-400" />
-                              )}
+                              <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
+                                {canDownloadAllCVs && posteHasCvs && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDownloadPosteCVs(demande, candidatures, posteName, posteKey)
+                                    }}
+                                    disabled={downloadingCVs === posteDownloadKey}
+                                    className={`p-2 text-gray-500 hover:text-green-600 transition-colors rounded-lg hover:bg-white/70 ${
+                                      downloadingCVs === posteDownloadKey ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                    title={`Télécharger les CV du poste « ${posteName} » (ZIP)`}
+                                  >
+                                    {downloadingCVs === posteDownloadKey ? (
+                                      <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                      <Download className="w-5 h-5" />
+                                    )}
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className="p-1 text-gray-400"
+                                  onClick={() => {
+                                    if (posteIndex !== null && posteIndex >= 0) {
+                                      togglePoste(demande.id, posteIndex)
+                                    } else {
+                                      const key = `${demande.id}-${posteKey}`
+                                      const newExpanded = new Set(expandedPostes)
+                                      if (newExpanded.has(key)) {
+                                        newExpanded.delete(key)
+                                      } else {
+                                        newExpanded.add(key)
+                                      }
+                                      setExpandedPostes(newExpanded)
+                                    }
+                                  }}
+                                  aria-label={isPosteExpanded ? 'Replier le poste' : 'Déplier le poste'}
+                                >
+                                  {isPosteExpanded ? (
+                                    <ChevronDown className="w-5 h-5" />
+                                  ) : (
+                                    <ChevronRight className="w-5 h-5" />
+                                  )}
+                                </button>
+                              </div>
                             </div>
                             
                             {/* Candidatures du poste */}
