@@ -268,15 +268,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       return
     }
 
-    // Uniquement les CV marqués « accepté »
-    const candidaturesWithCV = demande.candidatures.filter(
-      (c) => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)
-    )
+    const candidaturesWithCV = demande.candidatures.filter((c) => c.cv_url)
 
     if (candidaturesWithCV.length === 0) {
-      alert(
-        'Aucun CV accepté à télécharger. Utilisez le bouton « CV accepté » sur chaque candidature pour valider les dossiers à envoyer.'
-      )
+      alert('Aucun CV disponible à télécharger pour cette demande.')
       return
     }
 
@@ -336,7 +331,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       const a = document.createElement('a')
       a.href = url
       const entrepriseName = demande.entreprise_nom.replace(/[^a-zA-Z0-9_-]/g, '_')
-      a.download = `CV_acceptes_${entrepriseName}_${new Date().toISOString().split('T')[0]}.zip`
+      a.download = `CV_${entrepriseName}_${new Date().toISOString().split('T')[0]}.zip`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -619,7 +614,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       <FileSpreadsheet className="w-5 h-5" />
                     </button>
                   )}
-                  {canDownloadAllCVs && demande.candidatures && demande.candidatures.some(c => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)) && (
+                  {canDownloadAllCVs && demande.candidatures && demande.candidatures.some((c) => c.cv_url) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -629,7 +624,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       className={`p-2 text-gray-400 hover:text-green-600 transition-colors ${
                         downloadingCVs === demande.id ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
-                      title="Télécharger les CV acceptés (ZIP)"
+                      title="Télécharger tous les CV (ZIP)"
                     >
                       {downloadingCVs === demande.id ? (
                         <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
