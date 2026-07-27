@@ -25,14 +25,15 @@ export async function POST(request: NextRequest) {
 
     const updates = await Promise.all(
       (currentRows ?? []).map((row) => {
-        const prevNb = row.cv_nb_envois ?? (row.cv_telecharge_le ? 1 : 0)
-        const nextNb = prevNb + 1
+        if (row.cv_telecharge_le) {
+          return Promise.resolve({ data: { id: row.id }, error: null })
+        }
         return auth.supabaseAdmin!
           .from('candidatures_stagiaires')
           .update({
-            cv_nb_envois: nextNb,
+            cv_telecharge_le: now,
             cv_dernier_envoi_le: now,
-            cv_telecharge_le: row.cv_telecharge_le ?? now,
+            cv_nb_envois: 1,
           })
           .eq('id', row.id)
           .select('id')

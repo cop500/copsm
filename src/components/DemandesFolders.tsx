@@ -13,9 +13,8 @@ import {
   getCvTriColor,
   getCvTriLabel,
   isCvAcceptedForDownload,
-  getCvEnvoisBadge,
-  hasCvEnvois,
-  formatCvTelechargeLe,
+  getPremierEnvoiBadge,
+  hasPremierEnvoi,
   type CvTriStatut,
 } from '@/lib/cvTriStatut'
 
@@ -401,11 +400,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const renderCandidatureCard = (candidature: Candidature) => {
     const cvTri = candidature.cv_tri_statut || 'en_attente'
     const isUpdatingTri = updatingCvTriId === candidature.id
-    const envoisBadge = getCvEnvoisBadge(
-      candidature.cv_nb_envois,
-      candidature.cv_telecharge_le,
-      candidature.cv_dernier_envoi_le
-    )
+    const premierEnvoiBadge = getPremierEnvoiBadge(candidature.cv_telecharge_le)
 
     return (
     <div className="flex items-start justify-between gap-4">
@@ -428,29 +423,18 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCvTriColor(cvTri)}`}>
             {getCvTriLabel(cvTri)}
           </span>
-          {envoisBadge && (
+          {premierEnvoiBadge && (
             <span
               className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800 border border-sky-200"
-              title={envoisBadge.title}
+              title={premierEnvoiBadge.title}
             >
               <Download className="w-3 h-3" />
-              {envoisBadge.label}
+              {premierEnvoiBadge.label}
             </span>
           )}
         </div>
 
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mb-2">
-          {candidature.cv_telecharge_le && (
-            <span title="Date du premier lot ZIP téléchargé">
-              1er envoi : {formatCvTelechargeLe(candidature.cv_telecharge_le)}
-            </span>
-          )}
-          {candidature.cv_dernier_envoi_le &&
-            candidature.cv_dernier_envoi_le !== candidature.cv_telecharge_le && (
-              <span title="Dernier téléchargement ZIP">
-                Dernier envoi : {formatCvTelechargeLe(candidature.cv_dernier_envoi_le)}
-              </span>
-            )}
           {cvTri !== 'en_attente' && (
             <span className="text-emerald-700 font-medium">Tri enregistré en base</span>
           )}
@@ -755,10 +739,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                     {candidatures.filter((c) => isCvAcceptedForDownload(c.cv_tri_statut)).length} CV accepté
                                     {candidatures.filter((c) => c.cv_tri_statut === 'refuse').length > 0 &&
                                       ` · ${candidatures.filter((c) => c.cv_tri_statut === 'refuse').length} refusé`}
-                                    {candidatures.filter((c) =>
-                                      hasCvEnvois(c.cv_nb_envois, c.cv_telecharge_le)
-                                    ).length > 0 &&
-                                      ` · ${candidatures.filter((c) => hasCvEnvois(c.cv_nb_envois, c.cv_telecharge_le)).length} envoyé`}
+                                    {candidatures.filter((c) => hasPremierEnvoi(c.cv_telecharge_le)).length > 0 &&
+                                      ` · ${candidatures.filter((c) => hasPremierEnvoi(c.cv_telecharge_le)).length} avec 1er envoi`}
                                   </p>
                                 </div>
                               </div>
@@ -879,19 +861,15 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">CV</h3>
                   {(() => {
-                    const envois = getCvEnvoisBadge(
-                      selectedCandidature.cv_nb_envois,
-                      selectedCandidature.cv_telecharge_le,
-                      selectedCandidature.cv_dernier_envoi_le
-                    )
-                    if (!envois) return null
+                    const premierEnvoi = getPremierEnvoiBadge(selectedCandidature.cv_telecharge_le)
+                    if (!premierEnvoi) return null
                     return (
                       <p
                         className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-sky-50 border border-sky-200 px-3 py-2 text-sm text-sky-800"
-                        title={envois.title}
+                        title={premierEnvoi.title}
                       >
                         <Download className="w-4 h-4" />
-                        {envois.label}
+                        {premierEnvoi.label}
                       </p>
                     )
                   })()}

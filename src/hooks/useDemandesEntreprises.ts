@@ -398,7 +398,7 @@ export const useDemandesEntreprises = () => {
     }
   }
 
-  // Enregistrer un envoi / téléchargement ZIP (1er, 2e, 3e…)
+  // Enregistrer le 1er téléchargement ZIP (date figée — les re-téléchargements ne changent rien)
   const markCvsTelecharges = async (candidatureIds: string[]) => {
     const uniqueIds = [...new Set(candidatureIds.filter(Boolean))]
     if (uniqueIds.length === 0) return { success: true, marked: 0 }
@@ -416,12 +416,11 @@ export const useDemandesEntreprises = () => {
           ...demande,
           candidatures: demande.candidatures.map((c) => {
             if (!uniqueIds.includes(c.id)) return c
-            const prevNb = c.cv_nb_envois ?? (c.cv_telecharge_le ? 1 : 0)
-            const nextNb = prevNb + 1
+            if (c.cv_telecharge_le) return c
             return {
               ...c,
-              cv_nb_envois: nextNb,
-              cv_telecharge_le: c.cv_telecharge_le ?? now,
+              cv_nb_envois: 1,
+              cv_telecharge_le: now,
               cv_dernier_envoi_le: now,
             }
           }),
@@ -454,14 +453,13 @@ export const useDemandesEntreprises = () => {
         if (fetchErr) throw fetchErr
 
         for (const row of currentRows ?? []) {
-          const prevNb = row.cv_nb_envois ?? (row.cv_telecharge_le ? 1 : 0)
-          const nextNb = prevNb + 1
+          if (row.cv_telecharge_le) continue
           const { error: updErr } = await supabase
             .from('candidatures_stagiaires')
             .update({
-              cv_nb_envois: nextNb,
+              cv_nb_envois: 1,
               cv_dernier_envoi_le: now,
-              cv_telecharge_le: row.cv_telecharge_le ?? now,
+              cv_telecharge_le: now,
             })
             .eq('id', row.id)
           if (updErr) {
