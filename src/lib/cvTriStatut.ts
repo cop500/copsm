@@ -14,11 +14,35 @@ export function getCvTriLabel(statut?: string | null): string {
 export function getCvTriColor(statut?: string | null): string {
   switch (statut) {
     case 'accepte':
-      return 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+      return 'bg-emerald-600 text-white border border-emerald-700 shadow-sm'
     case 'refuse':
-      return 'bg-red-100 text-red-800 border border-red-200'
+      return 'bg-red-600 text-white border border-red-700 shadow-sm'
     default:
       return 'bg-gray-100 text-gray-600 border border-gray-200'
+  }
+}
+
+/** Contour de fiche candidature selon le tri CV. */
+export function getCandidatureTriShellClass(statut?: string | null): string {
+  switch (statut) {
+    case 'accepte':
+      return 'ring-2 ring-emerald-500/70 bg-emerald-50/90'
+    case 'refuse':
+      return 'ring-2 ring-red-400/60 bg-red-50/70'
+    default:
+      return 'bg-gray-50'
+  }
+}
+
+/** Bande latérale colorée (persistante) pour repérer le tri d’un coup d’œil. */
+export function getCandidatureTriBorderClass(statut?: string | null): string {
+  switch (statut) {
+    case 'accepte':
+      return 'border-l-4 border-emerald-600 bg-emerald-50/50'
+    case 'refuse':
+      return 'border-l-4 border-red-500 bg-red-50/40'
+    default:
+      return 'border-l-4 border-transparent bg-gray-50'
   }
 }
 

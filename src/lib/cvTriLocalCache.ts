@@ -53,6 +53,13 @@ export function markCvTriSynced(candidatureId: string, cvTriStatut: CvTriStatut)
   setCvTriInCache(candidatureId, cvTriStatut, { pendingSync: false })
 }
 
+export function removeCvTriFromCache(candidatureId: string): void {
+  const map = readMap()
+  if (!map[candidatureId]) return
+  delete map[candidatureId]
+  writeMap(map)
+}
+
 export function listPendingCvTriSync(): Array<{ id: string; entry: CvTriCacheEntry }> {
   return Object.entries(readMap())
     .filter(([, entry]) => entry.pendingSync)
@@ -71,17 +78,16 @@ export function mergeCvTriFromCache<T extends { id: string; cv_tri_statut?: stri
     if (!cached) return row
 
     const dbStatut = row.cv_tri_statut || 'en_attente'
-    const cacheIsDecision = cached.cv_tri_statut === 'accepte' || cached.cv_tri_statut === 'refuse'
+    const cacheStatut = cached.cv_tri_statut
+    const cacheIsDecision = cacheStatut === 'accepte' || cacheStatut === 'refuse'
 
-    if (dbStatut === 'en_attente' && cacheIsDecision) {
-      return { ...row, cv_tri_statut: cached.cv_tri_statut }
+    // Repli local : la base renvoie encore « en_attente » ou sync en cours
+    if (cacheIsDecision && (dbStatut === 'en_attente' || cached.pendingSync)) {
+      return { ...row, cv_tri_statut: cacheStatut }
     }
 
-    if (
-      (cached.cv_tri_statut === 'accepte' || cached.cv_tri_statut === 'refuse') &&
-      dbStatut === cached.cv_tri_statut
-    ) {
-      markCvTriSynced(row.id, cached.cv_tri_statut)
+    if (cacheIsDecision && dbStatut === cacheStatut) {
+      markCvTriSynced(row.id, cacheStatut)
     }
 
     return row

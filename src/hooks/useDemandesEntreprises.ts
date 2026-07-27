@@ -12,8 +12,12 @@ import {
   listPendingCvTriSync,
   markCvTriSynced,
   mergeCvTriFromCache,
+  removeCvTriFromCache,
   setCvTriInCache,
 } from '@/lib/cvTriLocalCache'
+
+const CV_TRI_MIGRATION_HINT =
+  ' Exécutez add_cv_telecharge_le_to_candidatures.sql (ou add_cv_tri_statut_to_candidatures.sql) sur Supabase.'
 
 interface DemandeEntreprise {
   id: string
@@ -112,7 +116,7 @@ export const useDemandesEntreprises = () => {
         if (error) {
           throw new Error(
             error.message?.includes('cv_tri_statut') || error.code === '42703'
-              ? `${error.message} — exécutez add_cv_telecharge_le_to_candidatures.sql sur Supabase.`
+              ? `${error.message}${CV_TRI_MIGRATION_HINT}`
               : error.message
           )
         }
@@ -235,7 +239,7 @@ export const useDemandesEntreprises = () => {
     const remaining = countPendingCvTriSync()
     if (remaining > 0) {
       setCvTriPersistenceWarning(
-        `${remaining} tri(s) CV conservé(s) localement — exécutez add_cv_telecharge_le_to_candidatures.sql sur Supabase si le message persiste.`
+        `${remaining} tri(s) CV conservé(s) localement${CV_TRI_MIGRATION_HINT}`
       )
     } else {
       setCvTriPersistenceWarning(null)
@@ -268,11 +272,11 @@ export const useDemandesEntreprises = () => {
           .order('created_at', { ascending: false })
         
         if (error2) throw error2
-        return candidaturesByNom || []
+        return mergeCvTriFromCache(candidaturesByNom || [])
       }
 
       if (error1) throw error1
-      return candidaturesByDemandeId || []
+      return mergeCvTriFromCache(candidaturesByDemandeId || [])
     } catch (err: any) {
       console.error('Erreur chargement candidatures par demande:', err)
       return []
@@ -371,6 +375,12 @@ export const useDemandesEntreprises = () => {
     candidatureId: string,
     cvTriStatut: 'en_attente' | 'accepte' | 'refuse'
   ) => {
+    if (cvTriStatut === 'en_attente') {
+      removeCvTriFromCache(candidatureId)
+    } else {
+      setCvTriInCache(candidatureId, cvTriStatut, { pendingSync: true })
+    }
+
     const previousDemandes = patchCandidatureInDemandes(candidatureId, {
       cv_tri_statut: cvTriStatut,
     })
@@ -378,7 +388,11 @@ export const useDemandesEntreprises = () => {
     try {
       const savedRow = await persistCvTriToServer(candidatureId, cvTriStatut)
       if (savedRow?.id) {
-        markCvTriSynced(savedRow.id, cvTriStatut)
+        if (cvTriStatut === 'en_attente') {
+          removeCvTriFromCache(savedRow.id)
+        } else {
+          markCvTriSynced(savedRow.id, cvTriStatut)
+        }
         patchCandidatureInDemandes(savedRow.id, savedRow)
         setCvTriPersistenceWarning(null)
       }
@@ -387,7 +401,7 @@ export const useDemandesEntreprises = () => {
       if (cvTriStatut === 'accepte' || cvTriStatut === 'refuse') {
         setCvTriInCache(candidatureId, cvTriStatut, { pendingSync: true })
         setCvTriPersistenceWarning(
-          'Tri enregistré sur cet appareil ; synchronisation serveur en attente (migration Supabase ou clé service).'
+          `Tri enregistré sur cet appareil ; synchronisation serveur en attente.${CV_TRI_MIGRATION_HINT}`
         )
         return { success: true, offline: true }
       }

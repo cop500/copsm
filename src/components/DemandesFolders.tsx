@@ -15,6 +15,8 @@ import {
   isCvAcceptedForDownload,
   getPremierEnvoiBadge,
   hasPremierEnvoi,
+  getCandidatureTriShellClass,
+  getCandidatureTriBorderClass,
   type CvTriStatut,
 } from '@/lib/cvTriStatut'
 
@@ -444,15 +446,50 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     const premierEnvoiBadge = getPremierEnvoiBadge(candidature.cv_telecharge_le)
 
     return (
-    <div className="flex items-start justify-between gap-4">
+    <div className={`flex items-start justify-between gap-4 rounded-lg p-3 ${getCandidatureTriShellClass(cvTri)}`}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center flex-wrap gap-2 mb-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4 text-white" />
+          <div
+            className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
+              cvTri === 'accepte'
+                ? 'bg-emerald-600'
+                : cvTri === 'refuse'
+                  ? 'bg-red-600'
+                  : 'bg-gradient-to-r from-green-500 to-emerald-600'
+            }`}
+            title={getCvTriLabel(cvTri)}
+          >
+            {cvTri === 'accepte' ? (
+              <CheckCircle className="w-5 h-5 text-white" />
+            ) : cvTri === 'refuse' ? (
+              <XCircle className="w-5 h-5 text-white" />
+            ) : (
+              <Users className="w-4 h-4 text-white" />
+            )}
           </div>
           <div className="min-w-0">
-            <h5 className="font-medium text-gray-900">
-              {candidature.nom} {candidature.prenom}
+            <h5 className="font-medium text-gray-900 flex items-center flex-wrap gap-2">
+              <span>
+                {candidature.nom} {candidature.prenom}
+              </span>
+              {cvTri === 'accepte' && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white shadow-sm"
+                  title="CV accepté — tri enregistré"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  Accepté
+                </span>
+              )}
+              {cvTri === 'refuse' && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-md bg-red-600 px-2 py-0.5 text-xs font-bold text-white shadow-sm"
+                  title="CV refusé — tri enregistré"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Refusé
+                </span>
+              )}
             </h5>
             <p className="text-sm text-gray-600 truncate">
               {candidature.email}
@@ -476,8 +513,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
         </div>
 
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mb-2">
-          {cvTri !== 'en_attente' && (
-            <span className="text-emerald-700 font-medium">Tri enregistré en base</span>
+          {cvTri === 'accepte' && (
+            <span className="font-semibold text-emerald-800">Tri : CV retenu pour envoi entreprise</span>
+          )}
+          {cvTri === 'refuse' && (
+            <span className="font-semibold text-red-800">Tri : CV écarté</span>
           )}
         </div>
         
@@ -744,7 +784,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                         return (
                           <div className="space-y-3">
                             {demande.candidatures.map((candidature) => (
-                              <div key={candidature.id} className="bg-gray-50 rounded-lg p-4">
+                              <div
+                                key={candidature.id}
+                                className={`rounded-lg p-4 ${getCandidatureTriBorderClass(candidature.cv_tri_statut)}`}
+                              >
                                 {renderCandidatureCard(candidature)}
                               </div>
                             ))}
@@ -892,7 +935,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                             {isPosteExpanded && (
                               <div className="bg-white p-4 space-y-3">
                                 {candidatures.map((candidature) => (
-                                  <div key={candidature.id} className="bg-gray-50 rounded-lg p-4">
+                                  <div
+                                key={candidature.id}
+                                className={`rounded-lg p-4 ${getCandidatureTriBorderClass(candidature.cv_tri_statut)}`}
+                              >
                                     {renderCandidatureCard(candidature)}
                                   </div>
                                 ))}
