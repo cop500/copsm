@@ -260,21 +260,38 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     }
   }
 
-  // Télécharger une sélection de CV dans un ZIP (toute la demande ou un poste)
+  // Télécharger une sélection de CV dans un ZIP (toute la demande, un poste, ou CV acceptés)
   const downloadCVsAsZip = async (
     demande: DemandeEntreprise,
     candidatures: Candidature[],
     downloadKey: string,
-    zipLabel?: string
+    options?: {
+      zipLabel?: string
+      variant?: 'tous' | 'acceptes'
+    }
   ) => {
-    const candidaturesWithCV = candidatures.filter((c) => c.cv_url)
+    const variant = options?.variant ?? 'tous'
+    const zipLabel = options?.zipLabel
+    const candidaturesWithCV = candidatures.filter((c) => {
+      if (!c.cv_url) return false
+      if (variant === 'acceptes') return isCvAcceptedForDownload(c.cv_tri_statut)
+      return true
+    })
 
     if (candidaturesWithCV.length === 0) {
-      alert(
-        zipLabel
-          ? `Aucun CV disponible à télécharger pour le poste « ${zipLabel} ».`
-          : 'Aucun CV disponible à télécharger pour cette demande.'
-      )
+      if (variant === 'acceptes') {
+        alert(
+          zipLabel
+            ? `Aucun CV accepté à télécharger pour le poste « ${zipLabel} ». Utilisez le bouton « CV accepté » sur chaque candidature.`
+            : 'Aucun CV accepté à télécharger. Utilisez le bouton « CV accepté » sur chaque candidature.'
+        )
+      } else {
+        alert(
+          zipLabel
+            ? `Aucun CV disponible à télécharger pour le poste « ${zipLabel} ».`
+            : 'Aucun CV disponible à télécharger pour cette demande.'
+        )
+      }
       return
     }
 
@@ -328,7 +345,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       a.href = url
       const entrepriseName = demande.entreprise_nom.replace(/[^a-zA-Z0-9_-]/g, '_')
       const posteSuffix = zipLabel ? `_${zipLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}` : ''
-      a.download = `CV_${entrepriseName}${posteSuffix}_${new Date().toISOString().split('T')[0]}.zip`
+      const zipPrefix = variant === 'acceptes' ? 'CV_acceptes_' : 'CV_'
+      a.download = `${zipPrefix}${entrepriseName}${posteSuffix}_${new Date().toISOString().split('T')[0]}.zip`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -366,13 +384,36 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     await downloadCVsAsZip(demande, demande.candidatures, demande.id)
   }
 
+  const handleDownloadAcceptedCVs = async (demande: DemandeEntreprise) => {
+    if (!demande.candidatures || demande.candidatures.length === 0) {
+      alert('Aucune candidature disponible pour cette demande.')
+      return
+    }
+
+    await downloadCVsAsZip(demande, demande.candidatures, `${demande.id}-acceptes`, {
+      variant: 'acceptes',
+    })
+  }
+
   const handleDownloadPosteCVs = async (
     demande: DemandeEntreprise,
     candidatures: Candidature[],
     posteName: string,
     posteKey: string
   ) => {
-    await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}`, posteName)
+    await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}`, { zipLabel: posteName })
+  }
+
+  const handleDownloadPosteAcceptedCVs = async (
+    demande: DemandeEntreprise,
+    candidatures: Candidature[],
+    posteName: string,
+    posteKey: string
+  ) => {
+    await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}-acceptes`, {
+      zipLabel: posteName,
+      variant: 'acceptes',
+    })
   }
 
   // Fonction pour exporter les candidatures (nom, prénom, email, téléphone) en Excel
@@ -633,6 +674,31 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       )}
                     </button>
                   )}
+                  {canDownloadAllCVs &&
+                    demande.candidatures &&
+                    demande.candidatures.some(
+                      (c) => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)
+                    ) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDownloadAcceptedCVs(demande)
+                        }}
+                        disabled={downloadingCVs === `${demande.id}-acceptes`}
+                        className={`p-2 text-gray-400 hover:text-emerald-600 transition-colors ${
+                          downloadingCVs === `${demande.id}-acceptes`
+                            ? 'opacity-50 cursor-not-allowed'
+                            : ''
+                        }`}
+                        title="Télécharger les CV acceptés (ZIP)"
+                      >
+                        {downloadingCVs === `${demande.id}-acceptes` ? (
+                          <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <CheckCircle className="w-5 h-5" />
+                        )}
+                      </button>
+                    )}
                   
                   <button
                     onClick={(e) => {
@@ -700,7 +766,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                           : `${demande.id}-${posteKey}`
                         const isPosteExpanded = expandedPostes.has(posteToggleKey)
                         const posteDownloadKey = `${demande.id}-${posteKey}`
+                        const posteAcceptedDownloadKey = `${demande.id}-${posteKey}-acceptes`
                         const posteHasCvs = candidatures.some((c) => c.cv_url)
+                        const posteHasAcceptedCvs = candidatures.some(
+                          (c) => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)
+                        )
                         
                         return (
                           <div key={posteKey} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -755,12 +825,38 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                     className={`p-2 text-gray-500 hover:text-green-600 transition-colors rounded-lg hover:bg-white/70 ${
                                       downloadingCVs === posteDownloadKey ? 'opacity-50 cursor-not-allowed' : ''
                                     }`}
-                                    title={`Télécharger les CV du poste « ${posteName} » (ZIP)`}
+                                    title={`Télécharger tous les CV du poste « ${posteName} » (ZIP)`}
                                   >
                                     {downloadingCVs === posteDownloadKey ? (
                                       <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
                                     ) : (
                                       <Download className="w-5 h-5" />
+                                    )}
+                                  </button>
+                                )}
+                                {canDownloadAllCVs && posteHasAcceptedCvs && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDownloadPosteAcceptedCVs(
+                                        demande,
+                                        candidatures,
+                                        posteName,
+                                        posteKey
+                                      )
+                                    }}
+                                    disabled={downloadingCVs === posteAcceptedDownloadKey}
+                                    className={`p-2 text-gray-500 hover:text-emerald-600 transition-colors rounded-lg hover:bg-white/70 ${
+                                      downloadingCVs === posteAcceptedDownloadKey
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : ''
+                                    }`}
+                                    title={`Télécharger les CV acceptés du poste « ${posteName} » (ZIP)`}
+                                  >
+                                    {downloadingCVs === posteAcceptedDownloadKey ? (
+                                      <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                      <CheckCircle className="w-5 h-5" />
                                     )}
                                   </button>
                                 )}
