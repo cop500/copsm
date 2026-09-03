@@ -22,6 +22,11 @@ const nextConfig = {
         destination: '/ecran-candidatures.html',
         permanent: false,
       },
+      {
+        source: '/inscription-ateliers/ecran',
+        destination: '/ecran-inscription-ateliers.html',
+        permanent: false,
+      },
     ]
   },
   // Forcer l'export de toutes les pages

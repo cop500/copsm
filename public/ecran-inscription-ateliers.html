@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Inscription ateliers — COP CMC Souss-Massa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #eff6ff;
+      color: #1a1a1a;
+      font-size: 18px;
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+    }
+    .header {
+      background: #2563eb;
+      color: #fff;
+      text-align: center;
+      padding: 28px 20px;
+    }
+    .header h1 { font-size: 28px; margin-bottom: 8px; }
+    .header p { font-size: 16px; opacity: 0.95; }
+    .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+    .card {
+      background: #fff;
+      border: 2px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 { color: #1d4ed8; font-size: 22px; margin-bottom: 10px; }
+    .card p { color: #444; margin-bottom: 8px; }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    .badge-open { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .badge-full { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+    .pole-filiere {
+      color: #1d4ed8;
+      font-size: 17px;
+      margin: 10px 0 12px;
+      padding: 12px 14px;
+      background: #eff6ff;
+      border-radius: 8px;
+      border-left: 4px solid #2563eb;
+    }
+    .meta { font-size: 16px; color: #374151; margin-bottom: 6px; }
+    .btn {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 16px 32px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 56px;
+      min-width: 160px;
+      margin-top: 12px;
+      width: 100%;
+    }
+    .btn:active { background: #1d4ed8; }
+    .btn-secondary { background: #e5e7eb; color: #333; }
+    .btn:disabled { background: #d1d5db; color: #6b7280; cursor: not-allowed; }
+    .loading, .empty, .error-box {
+      text-align: center;
+      padding: 40px 20px;
+      background: #fff;
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .error-box { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .overlay.open { display: block; }
+    .modal {
+      background: #fff;
+      max-width: 720px;
+      margin: 20px auto 40px;
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .modal h2 { color: #1d4ed8; margin-bottom: 16px; font-size: 24px; text-align: center; }
+    .summary {
+      background: #f3f4f6;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-weight: bold; margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    }
+    .row { display: block; }
+    @media (min-width: 640px) {
+      .row { display: flex; }
+      .row .field { flex: 1; margin-right: 16px; }
+      .row .field:last-child { margin-right: 0; }
+    }
+    .actions { margin-top: 24px; text-align: center; }
+    .actions .btn { margin: 8px; width: auto; min-width: 140px; }
+    .success { text-align: center; padding: 60px 24px; }
+    .success h2 { color: #059669; font-size: 28px; margin: 16px 0; }
+    .hidden { display: none !important; }
+    .refresh-bar { text-align: right; margin-bottom: 12px; }
+    .refresh-bar button {
+      background: #fff;
+      border: 2px solid #2563eb;
+      color: #2563eb;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Espace Ateliers</h1>
+    <p>Inscrivez-vous aux ateliers de développement professionnel — COP CMC Souss-Massa</p>
+  </div>
+
+  <div class="container" id="app">
+    <div class="refresh-bar">
+      <button type="button" id="btnRefresh">Actualiser les ateliers</button>
+    </div>
+    <div id="status" class="loading">Chargement des ateliers…</div>
+    <div id="liste"></div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>Inscription à l'atelier</h2>
+      <div class="summary" id="atelierSummary"></div>
+      <form id="formInscription">
+        <input type="hidden" id="atelier_id" />
+        <div class="row">
+          <div class="field">
+            <label for="nom">Nom complet *</label>
+            <input type="text" id="nom" required />
+          </div>
+          <div class="field">
+            <label for="email">Email *</label>
+            <input type="email" id="email" required />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="telephone">Téléphone</label>
+            <input type="tel" id="telephone" />
+          </div>
+          <div class="field">
+            <label for="pole">Pôle *</label>
+            <select id="pole" required><option value="">— Choisir —</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="filliere">Filière *</label>
+          <select id="filliere" required><option value="">— Choisir —</option></select>
+        </div>
+        <div id="formError" class="error-box hidden" style="margin-top:12px;"></div>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" id="btnCancel">Annuler</button>
+          <button type="submit" class="btn" id="btnSubmit">Confirmer l'inscription</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var ateliers = [];
+      var poles = [];
+      var filieres = [];
+      var selectedAtelier = null;
+
+      var statusEl = document.getElementById('status');
+      var listeEl = document.getElementById('liste');
+      var overlay = document.getElementById('overlay');
+      var form = document.getElementById('formInscription');
+      var formError = document.getElementById('formError');
+
+      function esc(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function formatDate(iso) {
+        if (!iso) return '—';
+        try {
+          return new Date(iso).toLocaleDateString('fr-FR');
+        } catch (e) {
+          return iso;
+        }
+      }
+
+      function formatTime(iso) {
+        if (!iso) return '—';
+        try {
+          return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function isComplet(a) {
+        var max = a.capacite_maximale || 0;
+        var cur = a.capacite_actuelle || 0;
+        return max > 0 && cur >= max;
+      }
+
+      function loadReferentiels(cb) {
+        fetch('/api/candidature/referentiels')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            poles = data.poles || [];
+            filieres = data.filieres || [];
+            var poleSelect = document.getElementById('pole');
+            poleSelect.innerHTML = '<option value="">— Choisir —</option>';
+            for (var i = 0; i < poles.length; i++) {
+              var opt = document.createElement('option');
+              opt.value = poles[i].nom;
+              opt.setAttribute('data-id', poles[i].id);
+              opt.textContent = poles[i].nom;
+              poleSelect.appendChild(opt);
+            }
+            if (cb) cb();
+          })
+          .catch(function () { if (cb) cb(); });
+      }
+
+      function loadAteliers() {
+        statusEl.className = 'loading';
+        statusEl.textContent = 'Chargement des ateliers…';
+        listeEl.innerHTML = '';
+
+        fetch('/api/ateliers/inscription/offres')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            ateliers = data.ateliers || [];
+            statusEl.className = 'hidden';
+            if (ateliers.length === 0) {
+              listeEl.innerHTML = '<div class="empty"><p>Aucun atelier disponible pour le moment.</p></div>';
+              return;
+            }
+            renderAteliers();
+          })
+          .catch(function () {
+            statusEl.className = 'error-box';
+            statusEl.textContent = 'Impossible de charger les ateliers. Vérifiez la connexion internet.';
+          });
+      }
+
+      function buildPoleFiliere(a) {
+        if (!a.pole && !a.filliere) return '';
+        var parts = [];
+        if (a.pole) parts.push('<strong>Pôle :</strong> ' + esc(a.pole));
+        if (a.filliere) parts.push('<strong>Filière :</strong> ' + esc(a.filliere));
+        return '<p class="pole-filiere">' + parts.join(' &nbsp;•&nbsp; ') + '</p>';
+      }
+
+      function renderAteliers() {
+        var html = '';
+        for (var i = 0; i < ateliers.length; i++) {
+          var a = ateliers[i];
+          var complet = isComplet(a);
+          html += '<div class="card">' +
+            '<span class="badge ' + (complet ? 'badge-full' : 'badge-open') + '">' +
+            (complet ? 'Complet' : 'Places disponibles') + '</span>' +
+            '<h2>' + esc(a.titre) + '</h2>' +
+            buildPoleFiliere(a) +
+            (a.description ? '<p>' + esc(a.description) + '</p>' : '') +
+            '<p class="meta">📅 <strong>Date :</strong> ' + formatDate(a.date_debut) + '</p>' +
+            '<p class="meta">🕐 <strong>Horaire :</strong> ' + formatTime(a.date_debut) + ' – ' + formatTime(a.date_fin) + '</p>' +
+            '<p class="meta">📍 <strong>Lieu :</strong> ' + esc(a.lieu || '—') + '</p>' +
+            '<p class="meta">👥 <strong>Places :</strong> ' + (a.capacite_actuelle || 0) + ' / ' + (a.capacite_maximale || '—') + '</p>' +
+            (a.animateur_nom ? '<p class="meta">👨‍🏫 <strong>Animateur :</strong> ' + esc(a.animateur_nom) +
+              (a.animateur_role ? ' (' + esc(a.animateur_role) + ')' : '') + '</p>' : '') +
+            '<button type="button" class="btn btn-inscrire" data-id="' + esc(a.id) + '" ' +
+            (complet ? 'disabled' : '') + '>' + (complet ? 'Complet' : "S'inscrire") + '</button>' +
+            '</div>';
+        }
+        listeEl.innerHTML = html;
+
+        var btns = listeEl.querySelectorAll('.btn-inscrire');
+        for (var j = 0; j < btns.length; j++) {
+          btns[j].addEventListener('click', onInscrireClick);
+        }
+      }
+
+      function onInscrireClick(e) {
+        var id = e.currentTarget.getAttribute('data-id');
+        for (var i = 0; i < ateliers.length; i++) {
+          if (ateliers[i].id === id) {
+            selectedAtelier = ateliers[i];
+            break;
+          }
+        }
+        if (!selectedAtelier || isComplet(selectedAtelier)) return;
+
+        document.getElementById('atelier_id').value = id;
+        document.getElementById('atelierSummary').innerHTML =
+          '<strong>' + esc(selectedAtelier.titre) + '</strong><br>' +
+          '📅 ' + formatDate(selectedAtelier.date_debut) + ' · 🕐 ' + formatTime(selectedAtelier.date_debut) +
+          ' – ' + formatTime(selectedAtelier.date_fin) + '<br>' +
+          '📍 ' + esc(selectedAtelier.lieu || '—') +
+          (selectedAtelier.pole ? '<br>🎯 ' + esc(selectedAtelier.pole) + (selectedAtelier.filliere ? ' — ' + esc(selectedAtelier.filliere) : '') : '');
+
+        form.reset();
+        document.getElementById('atelier_id').value = id;
+        formError.className = 'error-box hidden';
+        overlay.className = 'overlay open';
+      }
+
+      document.getElementById('pole').addEventListener('change', function () {
+        var selected = this.options[this.selectedIndex];
+        var poleId = selected ? selected.getAttribute('data-id') : '';
+        var filSelect = document.getElementById('filliere');
+        filSelect.innerHTML = '<option value="">— Choisir —</option>';
+        for (var i = 0; i < filieres.length; i++) {
+          if (filieres[i].pole_id === poleId) {
+            var opt = document.createElement('option');
+            opt.value = filieres[i].nom;
+            opt.textContent = filieres[i].nom;
+            filSelect.appendChild(opt);
+          }
+        }
+      });
+
+      document.getElementById('btnCancel').addEventListener('click', function () {
+        overlay.className = 'overlay';
+      });
+      document.getElementById('btnRefresh').addEventListener('click', loadAteliers);
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        formError.className = 'error-box hidden';
+        var submitBtn = document.getElementById('btnSubmit');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Inscription en cours…';
+
+        var payload = {
+          atelier_id: document.getElementById('atelier_id').value,
+          nom: document.getElementById('nom').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          telephone: document.getElementById('telephone').value.trim(),
+          pole: document.getElementById('pole').value,
+          filliere: document.getElementById('filliere').value,
+        };
+
+        fetch('/api/ateliers/inscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; }); })
+          .then(function (res) {
+            overlay.className = 'overlay';
+            if (res.ok) {
+              document.getElementById('app').innerHTML =
+                '<div class="success card"><h2>Inscription réussie !</h2>' +
+                '<p>' + esc(res.body.message || 'Votre inscription a été enregistrée.') + '</p>' +
+                '<button type="button" class="btn" onclick="location.reload()">Retour aux ateliers</button></div>';
+            } else if (res.status === 409 && res.body.message) {
+              formError.textContent = res.body.message;
+              formError.className = 'error-box';
+              overlay.className = 'overlay open';
+            } else {
+              throw new Error(res.body.error || 'Erreur inscription');
+            }
+          })
+          .catch(function (err) {
+            formError.textContent = err.message || 'Erreur lors de l\'inscription.';
+            formError.className = 'error-box';
+          })
+          .then(function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Confirmer l'inscription";
+          });
+      });
+
+      loadReferentiels(loadAteliers);
+      setInterval(loadAteliers, 60000);
+    })();
+  </script>
+</body>
+</html>
