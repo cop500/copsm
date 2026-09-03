@@ -259,9 +259,16 @@
         listeEl.innerHTML = '';
 
         fetch('/api/ateliers/inscription/offres')
-          .then(function (r) { return r.json(); })
-          .then(function (data) {
-            ateliers = data.ateliers || [];
+          .then(function (r) {
+            return r.json().then(function (data) {
+              return { ok: r.ok, data: data };
+            });
+          })
+          .then(function (res) {
+            if (!res.ok || res.data.error) {
+              throw new Error(res.data.error || 'Erreur serveur');
+            }
+            ateliers = res.data.ateliers || [];
             statusEl.className = 'hidden';
             if (ateliers.length === 0) {
               listeEl.innerHTML = '<div class="empty"><p>Aucun atelier disponible pour le moment.</p></div>';

@@ -15,19 +15,32 @@ export async function GET() {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data, error } = await supabase
-      .from('evenements')
-      .select(
-        'id, titre, description, date_debut, date_fin, capacite_maximale, capacite_actuelle, pole, filliere, lieu, statut, animateur_nom, animateur_role, created_at'
-      )
-      .eq('type_evenement', 'atelier')
-      .eq('visible_inscription', true)
-      .in('statut', ['planifie', 'en_cours'])
-      .order('created_at', { ascending: false })
+    const [{ data, error }, polesRes, filieresRes] = await Promise.all([
+      supabase
+        .from('evenements')
+        .select(
+          'id, titre, description, date_debut, date_fin, capacite_maximale, capacite_actuelle, pole_id, filiere_id, lieu, statut, animateur_nom, animateur_role, created_at'
+        )
+        .eq('type_evenement', 'atelier')
+        .eq('visible_inscription', true)
+        .in('statut', ['planifie', 'en_cours'])
+        .order('created_at', { ascending: false }),
+      supabase.from('poles').select('id, nom'),
+      supabase.from('filieres').select('id, nom'),
+    ])
 
     if (error) throw error
+    if (polesRes.error) throw polesRes.error
+    if (filieresRes.error) throw filieresRes.error
 
-    const ateliers = (data ?? []).slice().sort(function (a, b) {
+    const poleById = new Map((polesRes.data ?? []).map((p) => [p.id, p.nom]))
+    const filiereById = new Map((filieresRes.data ?? []).map((f) => [f.id, f.nom]))
+
+    const ateliers = (data ?? []).map((row) => ({
+      ...row,
+      pole: row.pole_id ? poleById.get(row.pole_id) ?? null : null,
+      filliere: row.filiere_id ? filiereById.get(row.filiere_id) ?? null : null,
+    })).sort(function (a, b) {
       const createdDiff =
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       if (Math.abs(createdDiff) > 24 * 60 * 60 * 1000) return createdDiff
