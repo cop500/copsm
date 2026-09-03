@@ -366,27 +366,30 @@ export default function CandidaturePage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative">
       {/* Background uniforme et doux inspiré de l'image */}
       <div className="absolute inset-0 bg-[#F5F7FA]"></div>
       
       {/* Légère texture très subtile */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.01)_1px,transparent_1px)] bg-[size:40px_40px] opacity-30"></div>
+      <div className="absolute inset-0 opacity-30" style={{
+        backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.01) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.01) 1px, transparent 1px)',
+        backgroundSize: '40px 40px',
+      }}></div>
       
       {/* Contenu principal */}
       <div className="relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* En-tête avec fond blanc simple */}
-          <div className="text-center mb-10 pb-10 pt-8 px-6 bg-white rounded-b-2xl shadow-sm border-b-2 border-[#0f3d6c]/20 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <div className="flex-1"></div>
-            <h1 className="text-3xl font-bold text-[#0f3d6c]">
+          <div className="text-center mb-10 pb-10 pt-8 px-6 bg-white rounded-b-2xl shadow-sm border-b-2 border-[#0f3d6c] relative">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 relative z-10">
+            <div className="hidden lg:block lg:flex-1"></div>
+            <h1 className="text-3xl lg:text-4xl font-bold text-[#0f3d6c] mb-4 lg:mb-0">
               Candidature aux offres d'emploi
             </h1>
-            <div className="flex-1 flex justify-end">
+            <div className="lg:flex-1 flex justify-center lg:justify-end">
               <button
                 onClick={loadDemandes}
-                className="px-4 py-2 border border-gray-200/80 text-gray-700 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white hover:border-gray-300 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
+                className="kiosk-no-fx px-5 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-base font-medium shadow-sm"
                 title="Actualiser les offres"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -476,7 +479,7 @@ export default function CandidaturePage() {
                           </div>
                           <button
                             onClick={() => handleSelectDemande(demande, index)}
-                            className="w-full md:w-auto flex-shrink-0 px-6 py-3 md:px-8 md:py-3 bg-[#0f3d6c] text-white rounded-lg font-semibold text-base whitespace-nowrap transition-all duration-300 hover:bg-[#0a2d52] hover:shadow-md active:bg-[#081f3a] flex items-center justify-center self-center md:self-start mt-2 md:mt-0"
+                            className="kiosk-postuler-btn w-full md:w-auto flex-shrink-0 px-8 py-4 bg-[#0f3d6c] text-white rounded-lg font-semibold text-lg whitespace-nowrap transition-colors hover:bg-[#0a2d52] active:bg-[#081f3a] flex items-center justify-center self-center md:self-start mt-2 md:mt-0"
                           >
                             Postuler
                           </button>
@@ -530,7 +533,7 @@ export default function CandidaturePage() {
                         </div>
                         <button
                           onClick={() => handleSelectDemande(demande, 0)}
-                          className="w-full md:w-auto flex-shrink-0 px-6 py-3 md:px-8 md:py-3 bg-[#0f3d6c] text-white rounded-lg font-semibold text-base whitespace-nowrap transition-all duration-300 hover:bg-[#0a2d52] hover:shadow-md active:bg-[#081f3a] flex items-center justify-center self-center md:self-start mt-2 md:mt-0"
+                          className="kiosk-postuler-btn w-full md:w-auto flex-shrink-0 px-8 py-4 bg-[#0f3d6c] text-white rounded-lg font-semibold text-lg whitespace-nowrap transition-colors hover:bg-[#0a2d52] active:bg-[#081f3a] flex items-center justify-center self-center md:self-start mt-2 md:mt-0"
                         >
                           Postuler
                         </button>
@@ -546,15 +549,8 @@ export default function CandidaturePage() {
         
         {/* Formulaire de candidature amélioré */}
         {formData.demande_id && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-10 mx-auto p-6 border w-full max-w-3xl shadow-2xl rounded-xl bg-white relative overflow-hidden">
-              {/* Background avec motifs professionnels */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-stone-50 to-amber-50 opacity-95"></div>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(59,130,246,0.1),transparent_50%)]"></div>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.1),transparent_50%)]"></div>
-              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,0.02)_25%,rgba(0,0,0,0.02)_50%,transparent_50%,transparent_75%,rgba(0,0,0,0.02)_75%)] bg-[length:20px_20px]"></div>
-              
-              <div className="relative z-10">
+          <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-6 mx-auto p-6 border w-[95%] max-w-3xl shadow-2xl rounded-xl bg-white mb-10">
                 {/* En-tête amélioré */}
                 <div className="text-center mb-8">
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">Déposer votre candidature</h3>
@@ -841,7 +837,6 @@ export default function CandidaturePage() {
                     </p>
                   </div>
               </form>
-              </div>
             </div>
           </div>
         )}

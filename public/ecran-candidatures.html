@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Candidatures — COP CMC Souss-Massa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a1a;
+      font-size: 18px;
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+    }
+    .header {
+      background: #0f3d6c;
+      color: #fff;
+      text-align: center;
+      padding: 28px 20px;
+    }
+    .header h1 { font-size: 28px; margin-bottom: 8px; }
+    .header p { font-size: 16px; opacity: 0.9; }
+    .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+    .card {
+      background: #fff;
+      border: 2px solid #d0d7de;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 { color: #0f3d6c; font-size: 22px; margin-bottom: 8px; }
+    .card h3 { font-size: 20px; margin: 12px 0 8px; }
+    .card p { color: #444; margin-bottom: 8px; }
+    .badge {
+      display: inline-block;
+      background: #0f3d6c;
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .btn {
+      display: inline-block;
+      background: #0f3d6c;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 16px 32px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 56px;
+      min-width: 160px;
+      margin-top: 12px;
+    }
+    .btn:active { background: #0a2d52; }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #333;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .loading, .empty, .error-box {
+      text-align: center;
+      padding: 40px 20px;
+      background: #fff;
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .error-box { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .overlay.open { display: block; }
+    .modal {
+      background: #fff;
+      max-width: 720px;
+      margin: 20px auto 40px;
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .modal h2 { color: #0f3d6c; margin-bottom: 20px; font-size: 24px; text-align: center; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-weight: bold; margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    }
+    .row { display: block; }
+    @media (min-width: 640px) {
+      .row { display: flex; }
+      .row .field { flex: 1; margin-right: 16px; }
+      .row .field:last-child { margin-right: 0; }
+    }
+    .choice-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 18px;
+      margin-bottom: 12px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .choice-btn.selected { border-color: #0f3d6c; background: #eef4fa; }
+    .actions { margin-top: 24px; text-align: center; }
+    .actions .btn { margin: 8px; }
+    .success { text-align: center; padding: 60px 24px; }
+    .success h2 { color: #059669; font-size: 28px; margin: 16px 0; }
+    .hidden { display: none !important; }
+    .refresh-bar { text-align: right; margin-bottom: 12px; }
+    .refresh-bar button {
+      background: #fff;
+      border: 2px solid #0f3d6c;
+      color: #0f3d6c;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Candidatures aux offres d'emploi</h1>
+    <p>COP — Centre d'Orientation Professionnelle CMC Souss-Massa</p>
+  </div>
+
+  <div class="container" id="app">
+    <div class="refresh-bar">
+      <button type="button" id="btnRefresh">Actualiser les offres</button>
+    </div>
+    <div id="status" class="loading">Chargement des offres…</div>
+    <div id="offres"></div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>Déposer votre candidature</h2>
+      <p id="offreLabel" style="text-align:center;margin-bottom:20px;color:#555;"></p>
+      <form id="formCandidature">
+        <input type="hidden" id="demande_id" name="demande_id" />
+        <input type="hidden" id="profil_index" name="profil_index" value="0" />
+        <input type="hidden" id="offre_source" name="offre_source" />
+
+        <div class="row">
+          <div class="field">
+            <label for="nom">Nom *</label>
+            <input type="text" id="nom" required />
+          </div>
+          <div class="field">
+            <label for="prenom">Prénom *</label>
+            <input type="text" id="prenom" required />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="email">Email *</label>
+            <input type="email" id="email" required />
+          </div>
+          <div class="field">
+            <label for="telephone">Téléphone</label>
+            <input type="tel" id="telephone" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Êtes-vous stagiaire ou lauréat CMC SM ? *</label>
+          <button type="button" class="choice-btn" id="btnCmcOui">Oui, je suis CMC</button>
+          <button type="button" class="choice-btn" id="btnCmcNon">Non, candidat externe</button>
+          <input type="hidden" id="est_cmc" value="" />
+        </div>
+
+        <div id="cmcFields" class="hidden">
+          <div class="row">
+            <div class="field">
+              <label for="pole_id">Pôle *</label>
+              <select id="pole_id"><option value="">— Choisir —</option></select>
+            </div>
+            <div class="field">
+              <label for="filiere_id">Filière *</label>
+              <select id="filiere_id"><option value="">— Choisir —</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="cv">CV (PDF) *</label>
+          <input type="file" id="cv" accept=".pdf,application/pdf" required />
+        </div>
+
+        <div id="formError" class="error-box hidden" style="margin-top:12px;"></div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" id="btnCancel">Annuler</button>
+          <button type="submit" class="btn" id="btnSubmit">Envoyer ma candidature</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var offres = [];
+      var poles = [];
+      var filieres = [];
+      var selectedOffre = null;
+      var selectedProfilIndex = 0;
+
+      var statusEl = document.getElementById('status');
+      var offresEl = document.getElementById('offres');
+      var overlay = document.getElementById('overlay');
+      var form = document.getElementById('formCandidature');
+      var formError = document.getElementById('formError');
+
+      function esc(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function showError(msg) {
+        statusEl.className = 'error-box';
+        statusEl.textContent = msg;
+      }
+
+      function loadReferentiels(cb) {
+        fetch('/api/candidature/referentiels')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            poles = data.poles || [];
+            filieres = data.filieres || [];
+            var poleSelect = document.getElementById('pole_id');
+            poleSelect.innerHTML = '<option value="">— Choisir —</option>';
+            for (var i = 0; i < poles.length; i++) {
+              var opt = document.createElement('option');
+              opt.value = poles[i].id;
+              opt.textContent = poles[i].nom;
+              poleSelect.appendChild(opt);
+            }
+            if (cb) cb();
+          })
+          .catch(function () { if (cb) cb(); });
+      }
+
+      function loadOffres() {
+        statusEl.className = 'loading';
+        statusEl.textContent = 'Chargement des offres…';
+        offresEl.innerHTML = '';
+
+        fetch('/api/candidature/offres')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            offres = data.offres || [];
+            statusEl.className = 'hidden';
+            if (offres.length === 0) {
+              offresEl.innerHTML = '<div class="empty"><p>Aucune offre disponible pour le moment.</p></div>';
+              return;
+            }
+            renderOffres();
+          })
+          .catch(function () {
+            showError('Impossible de charger les offres. Vérifiez la connexion internet.');
+          });
+      }
+
+      function renderOffres() {
+        var html = '';
+        for (var i = 0; i < offres.length; i++) {
+          var d = offres[i];
+          var nom = d.entreprise_nom || d.nom_entreprise || 'Entreprise';
+          if (d.source === 'entreprises' && d.profils && d.profils.length > 0) {
+            for (var j = 0; j < d.profils.length; j++) {
+              var p = d.profils[j];
+              html += buildCard(d, p, j, nom);
+            }
+          } else {
+            html += buildCardSimple(d, nom);
+          }
+        }
+        offresEl.innerHTML = html;
+
+        var buttons = offresEl.querySelectorAll('[data-postuler]');
+        for (var k = 0; k < buttons.length; k++) {
+          buttons[k].addEventListener('click', onPostulerClick);
+        }
+      }
+
+      function buildCard(d, p, index, nom) {
+        return '<div class="card">' +
+          '<span class="badge">' + esc(d.statut || 'Offre') + '</span>' +
+          '<h2>' + esc(nom) + '</h2>' +
+          (d.reference ? '<p><strong>Réf.</strong> ' + esc(d.reference) + '</p>' : '') +
+          '<h3>' + esc(p.poste_intitule || 'Poste') + '</h3>' +
+          (p.type_contrat ? '<p><strong>Contrat :</strong> ' + esc(p.type_contrat) + '</p>' : '') +
+          (p.poste_description ? '<p>' + esc(p.poste_description) + '</p>' : '') +
+          '<button type="button" class="btn" data-postuler="' + esc(d.id) + '" data-index="' + index + '" data-source="' + esc(d.source) + '">Postuler</button>' +
+          '</div>';
+      }
+
+      function buildCardSimple(d, nom) {
+        return '<div class="card">' +
+          '<span class="badge">' + esc(d.statut || 'Offre') + '</span>' +
+          '<h2>' + esc(nom) + '</h2>' +
+          '<h3>' + esc(d.poste_recherche || 'Poste à définir') + '</h3>' +
+          '<button type="button" class="btn" data-postuler="' + esc(d.id) + '" data-index="0" data-source="' + esc(d.source) + '">Postuler</button>' +
+          '</div>';
+      }
+
+      function onPostulerClick(e) {
+        var btn = e.currentTarget;
+        var id = btn.getAttribute('data-postuler');
+        var index = parseInt(btn.getAttribute('data-index'), 10) || 0;
+        var source = btn.getAttribute('data-source');
+        for (var i = 0; i < offres.length; i++) {
+          if (offres[i].id === id) {
+            selectedOffre = offres[i];
+            selectedProfilIndex = index;
+            break;
+          }
+        }
+        document.getElementById('demande_id').value = id;
+        document.getElementById('profil_index').value = String(index);
+        document.getElementById('offre_source').value = source;
+        var label = selectedOffre.entreprise_nom || selectedOffre.nom_entreprise || '';
+        if (selectedOffre.profils && selectedOffre.profils[index]) {
+          label += ' — ' + selectedOffre.profils[index].poste_intitule;
+        } else if (selectedOffre.poste_recherche) {
+          label += ' — ' + selectedOffre.poste_recherche;
+        }
+        document.getElementById('offreLabel').textContent = label;
+        form.reset();
+        document.getElementById('demande_id').value = id;
+        document.getElementById('profil_index').value = String(index);
+        document.getElementById('offre_source').value = source;
+        document.getElementById('est_cmc').value = '';
+        document.getElementById('btnCmcOui').className = 'choice-btn';
+        document.getElementById('btnCmcNon').className = 'choice-btn';
+        document.getElementById('cmcFields').className = 'hidden';
+        formError.className = 'error-box hidden';
+        overlay.className = 'overlay open';
+      }
+
+      function setCmc(val) {
+        document.getElementById('est_cmc').value = val ? 'true' : 'false';
+        document.getElementById('btnCmcOui').className = 'choice-btn' + (val ? ' selected' : '');
+        document.getElementById('btnCmcNon').className = 'choice-btn' + (!val ? ' selected' : '');
+        document.getElementById('cmcFields').className = val ? '' : 'hidden';
+      }
+
+      document.getElementById('pole_id').addEventListener('change', function () {
+        var poleId = this.value;
+        var filSelect = document.getElementById('filiere_id');
+        filSelect.innerHTML = '<option value="">— Choisir —</option>';
+        for (var i = 0; i < filieres.length; i++) {
+          if (filieres[i].pole_id === poleId) {
+            var opt = document.createElement('option');
+            opt.value = filieres[i].id;
+            opt.textContent = filieres[i].nom;
+            filSelect.appendChild(opt);
+          }
+        }
+      });
+
+      document.getElementById('btnCmcOui').addEventListener('click', function () { setCmc(true); });
+      document.getElementById('btnCmcNon').addEventListener('click', function () { setCmc(false); });
+      document.getElementById('btnCancel').addEventListener('click', function () {
+        overlay.className = 'overlay';
+      });
+      document.getElementById('btnRefresh').addEventListener('click', loadOffres);
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        formError.className = 'error-box hidden';
+        var estCmcVal = document.getElementById('est_cmc').value;
+        if (estCmcVal === '') {
+          formError.textContent = 'Indiquez si vous êtes stagiaire/lauréat CMC.';
+          formError.className = 'error-box';
+          return;
+        }
+        var estCmc = estCmcVal === 'true';
+        if (estCmc && (!document.getElementById('pole_id').value || !document.getElementById('filiere_id').value)) {
+          formError.textContent = 'Sélectionnez pôle et filière.';
+          formError.className = 'error-box';
+          return;
+        }
+        var cvInput = document.getElementById('cv');
+        if (!cvInput.files || !cvInput.files[0]) {
+          formError.textContent = 'Sélectionnez votre CV (PDF).';
+          formError.className = 'error-box';
+          return;
+        }
+
+        var submitBtn = document.getElementById('btnSubmit');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Envoi en cours…';
+
+        var fd = new FormData();
+        fd.append('cv', cvInput.files[0]);
+
+        fetch('/api/candidature/upload-cv', { method: 'POST', body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (uploadData) {
+            if (!uploadData.cv_url) throw new Error(uploadData.error || 'Upload échoué');
+            return buildAndSubmit(uploadData.cv_url, estCmc);
+          })
+          .catch(function (err) {
+            formError.textContent = err.message || 'Erreur lors de l\'envoi.';
+            formError.className = 'error-box';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Envoyer ma candidature';
+          });
+      });
+
+      function buildAndSubmit(cvUrl, estCmc) {
+        var d = selectedOffre;
+        var idx = selectedProfilIndex;
+        var payload = {
+          nom: document.getElementById('nom').value.trim(),
+          prenom: document.getElementById('prenom').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          telephone: document.getElementById('telephone').value.trim() || null,
+          cv_url: cvUrl,
+          est_cmc: estCmc,
+          pole_id: estCmc ? document.getElementById('pole_id').value : null,
+          filiere_id: estCmc ? document.getElementById('filiere_id').value : null,
+        };
+
+        if (d.source === 'entreprises' && d.profils && d.profils.length > 0) {
+          var profil = d.profils[idx];
+          payload.entreprise_nom = d.entreprise_nom;
+          payload.poste = profil.poste_intitule;
+          payload.type_contrat = profil.type_contrat || 'cv';
+          payload.demande_entreprise_id = d.id;
+          payload.poste_index = idx;
+        } else {
+          payload.entreprise_nom = d.nom_entreprise || d.entreprise_nom;
+          payload.poste = d.poste_recherche || 'Poste à définir';
+          payload.type_contrat = d.type_contrat || 'À définir';
+          payload.demande_entreprise_id = d.id;
+          payload.poste_index = null;
+        }
+
+        return fetch('/api/candidatures', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; }); })
+          .then(function (res) {
+            overlay.className = 'overlay';
+            if (res.ok) {
+              document.getElementById('app').innerHTML =
+                '<div class="success card"><h2>Candidature envoyée !</h2>' +
+                '<p>Merci. Votre dossier a bien été enregistré.</p>' +
+                '<button type="button" class="btn" onclick="location.reload()">Nouvelle candidature</button></div>';
+            } else if (res.status === 409 && res.body.message) {
+              document.getElementById('app').innerHTML =
+                '<div class="success card"><h2>Candidature déjà enregistrée</h2><p>' + esc(res.body.message) + '</p>' +
+                '<button type="button" class="btn" onclick="location.reload()">Retour aux offres</button></div>';
+            } else {
+              throw new Error(res.body.error || 'Erreur enregistrement');
+            }
+          });
+      }
+
+      loadReferentiels(loadOffres);
+      setInterval(loadOffres, 60000);
+    })();
+  </script>
+</body>
+</html>

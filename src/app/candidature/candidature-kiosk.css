@@ -1,0 +1,105 @@
+/**
+ * Compatibilité i3TOUCH / Android 8 (WebView Chrome ~69)
+ * — pas de flex gap, thème clair forcé, zones tactiles agrandies
+ */
+
+.candidature-page {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.candidature-page,
+.candidature-page * {
+  box-sizing: border-box;
+}
+
+/* Éviter le mode sombre système (TV / panneau) */
+@media (prefers-color-scheme: dark) {
+  .candidature-page {
+    background: #f5f7fa !important;
+    color: #171717 !important;
+  }
+
+  .candidature-page .bg-white,
+  .candidature-page [class*='bg-white'] {
+    background-color: #ffffff !important;
+    color: #171717 !important;
+  }
+}
+
+/* Repli flex gap (Chrome < 84 / WebView Android 8) */
+@supports not (gap: 1rem) {
+  .candidature-page .flex.gap-1 > * + * {
+    margin-left: 0.25rem;
+  }
+
+  .candidature-page .flex.gap-2 > * + * {
+    margin-left: 0.5rem;
+  }
+
+  .candidature-page .flex.gap-3 > * + * {
+    margin-left: 0.75rem;
+  }
+
+  .candidature-page .flex.gap-4 > * + * {
+    margin-left: 1rem;
+  }
+
+  .candidature-page .flex.gap-6 > * + * {
+    margin-left: 1.5rem;
+  }
+
+  .candidature-page .flex.flex-col.gap-2 > * + *,
+  .candidature-page .flex.flex-col.gap-3 > * + *,
+  .candidature-page .flex.flex-col.gap-4 > * + *,
+  .candidature-page .flex.flex-col.gap-6 > * + * {
+    margin-left: 0;
+    margin-top: 0.75rem;
+  }
+
+  .candidature-page .grid.gap-4 > * {
+    margin-bottom: 1rem;
+  }
+
+  .candidature-page .grid.gap-6 > * {
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Grand écran tactile : textes et boutons plus lisibles */
+@media (min-width: 1024px) {
+  .candidature-page {
+    font-size: 18px;
+  }
+
+  .candidature-page h1 {
+    font-size: 2.25rem !important;
+  }
+
+  .candidature-page h3,
+  .candidature-page h4 {
+    font-size: 1.35rem !important;
+  }
+
+  .candidature-page button,
+  .candidature-page [type='submit'],
+  .candidature-page input,
+  .candidature-page select {
+    min-height: 52px;
+    font-size: 1.05rem !important;
+  }
+
+  .candidature-page .kiosk-postuler-btn {
+    min-height: 56px !important;
+    min-width: 180px !important;
+    font-size: 1.15rem !important;
+    padding: 1rem 2rem !important;
+  }
+}
+
+/* Dégradés / blur parfois mal rendus sur TVOS */
+.candidature-page .kiosk-no-fx {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}

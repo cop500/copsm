@@ -5,6 +5,25 @@ const nextConfig = {
   trailingSlash: true,
   images: { unoptimized: true },
   typescript: { ignoreBuildErrors: true },
+  async redirects() {
+    return [
+      {
+        source: '/candidatures',
+        destination: '/candidature',
+        permanent: true,
+      },
+      {
+        source: '/candidatures/:path*',
+        destination: '/candidature/:path*',
+        permanent: true,
+      },
+      {
+        source: '/candidature/ecran',
+        destination: '/ecran-candidatures.html',
+        permanent: false,
+      },
+    ]
+  },
   // Forcer l'export de toutes les pages
   generateBuildId: () => 'build',
   // Configuration pour Netlify - optimiser la taille du build
