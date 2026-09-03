@@ -123,6 +123,15 @@
     .success h2 { color: #059669; font-size: 28px; margin: 16px 0; }
     .hidden { display: none !important; }
     .refresh-bar { text-align: right; margin-bottom: 12px; }
+    .pole-filiere {
+      color: #0f3d6c;
+      font-size: 17px;
+      margin: 10px 0 12px;
+      padding: 12px 14px;
+      background: #eef4fa;
+      border-radius: 8px;
+      border-left: 4px solid #0f3d6c;
+    }
     .refresh-bar button {
       background: #fff;
       border: 2px solid #0f3d6c;
@@ -234,6 +243,33 @@
         return d.innerHTML;
       }
 
+      function getPoleName(id) {
+        if (!id) return '';
+        for (var i = 0; i < poles.length; i++) {
+          if (poles[i].id === id) return poles[i].nom;
+        }
+        return '';
+      }
+
+      function getFiliereName(id) {
+        if (!id) return '';
+        for (var i = 0; i < filieres.length; i++) {
+          if (filieres[i].id === id) return filieres[i].nom;
+        }
+        return '';
+      }
+
+      function buildPoleFiliereLine(p) {
+        if (!p) return '';
+        var pole = getPoleName(p.pole_id);
+        var fil = getFiliereName(p.filiere_id);
+        if (!pole && !fil) return '';
+        var parts = [];
+        if (pole) parts.push('<strong>Pôle :</strong> ' + esc(pole));
+        if (fil) parts.push('<strong>Filière :</strong> ' + esc(fil));
+        return '<p class="pole-filiere">' + parts.join(' &nbsp;•&nbsp; ') + '</p>';
+      }
+
       function showError(msg) {
         statusEl.className = 'error-box';
         statusEl.textContent = msg;
@@ -307,6 +343,7 @@
           '<h2>' + esc(nom) + '</h2>' +
           (d.reference ? '<p><strong>Réf.</strong> ' + esc(d.reference) + '</p>' : '') +
           '<h3>' + esc(p.poste_intitule || 'Poste') + '</h3>' +
+          buildPoleFiliereLine(p) +
           (p.type_contrat ? '<p><strong>Contrat :</strong> ' + esc(p.type_contrat) + '</p>' : '') +
           (p.poste_description ? '<p>' + esc(p.poste_description) + '</p>' : '') +
           '<button type="button" class="btn" data-postuler="' + esc(d.id) + '" data-index="' + index + '" data-source="' + esc(d.source) + '">Postuler</button>' +
