@@ -32,6 +32,11 @@ const nextConfig = {
         destination: '/ecran-assistance-stagiaires.html',
         permanent: false,
       },
+      {
+        source: '/registre-visiteurs/public/ecran',
+        destination: '/ecran-registre-visiteurs.html',
+        permanent: false,
+      },
     ]
   },
   // Forcer l'export de toutes les pages

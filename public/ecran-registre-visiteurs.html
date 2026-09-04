@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Registre des visiteurs — COP CMC Souss-Massa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #0f172a;
+      font-size: 18px;
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+      min-height: 100vh;
+      background: #e2e8f0;
+    }
+    .bg-wrap {
+      min-height: 100vh;
+      padding: 16px;
+      position: relative;
+      background: linear-gradient(135deg, #e2e8f0 0%, #dbeafe 50%, #e0e7ff 100%);
+    }
+    .bg-image {
+      position: fixed;
+      inset: 0;
+      background: url('/registre%20des%20visiteurs.jpg') center/cover no-repeat;
+      opacity: 0.35;
+      z-index: 0;
+    }
+    .bg-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.12);
+      z-index: 0;
+    }
+    .card {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.96);
+      border: 2px solid #bfdbfe;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(30, 64, 175, 0.15);
+    }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header-icon {
+      display: inline-block;
+      width: 52px;
+      height: 52px;
+      line-height: 52px;
+      background: #2563eb;
+      color: #fff;
+      border-radius: 14px;
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+    .header h1 { font-size: 28px; color: #0f172a; }
+    .notice {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      color: #1e3a8a;
+      margin-bottom: 20px;
+    }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-weight: bold; margin-bottom: 8px; color: #334155; }
+    .field input, .field textarea {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .field textarea { min-height: 100px; resize: vertical; }
+    .row { display: block; }
+    @media (min-width: 640px) {
+      .row { display: flex; gap: 16px; }
+      .row .field { flex: 1; }
+    }
+    .btn-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn-grid.cols-2 .choice { flex: 1 1 calc(50% - 10px); min-width: 140px; }
+    .btn-grid.cols-3 .choice { flex: 1 1 calc(33% - 10px); min-width: 120px; }
+    .choice {
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      background: #fff;
+      text-align: center;
+      min-height: 56px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #334155;
+    }
+    .choice.small { text-align: left; font-size: 15px; font-weight: 500; min-height: 48px; }
+    .choice:active { background: #f1f5f9; }
+    .choice.selected { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+    .choice.selected.indigo { border-color: #4f46e5; background: #eef2ff; color: #4338ca; }
+    .choice.selected.violet { border-color: #7c3aed; background: #f5f3ff; color: #6d28d9; }
+    .choice .sub { display: block; font-size: 13px; font-weight: normal; color: #64748b; margin-top: 4px; }
+    .section-title { font-weight: bold; margin: 20px 0 10px; color: #1e293b; }
+    .poles-grid { display: block; }
+    @media (min-width: 640px) {
+      .poles-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+      .poles-grid .choice { flex: 1 1 calc(50% - 8px); text-align: left; }
+    }
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 18px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 60px;
+      margin-top: 8px;
+    }
+    .btn-submit:active { filter: brightness(0.95); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .warning-box {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+    .error-box {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .loading, .success-screen {
+      text-align: center;
+      padding: 60px 24px;
+    }
+    .success-screen h2 { color: #059669; font-size: 28px; margin: 16px 0; }
+    .success-icon { font-size: 56px; color: #059669; }
+    .hidden { display: none !important; }
+    .conditional { margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="bg-wrap">
+    <div class="bg-image"></div>
+    <div class="bg-overlay"></div>
+
+    <div id="loading" class="card loading">Chargement du formulaire…</div>
+
+    <div id="success" class="card success-screen hidden">
+      <div class="success-icon">✓</div>
+      <h2>Merci pour votre visite</h2>
+      <p id="successMsg">Votre passage a bien été enregistré.</p>
+      <button type="button" class="btn-submit" style="max-width:320px;margin:24px auto 0;" onclick="location.reload()">Nouvelle visite</button>
+    </div>
+
+    <div id="formCard" class="card hidden">
+      <div class="header">
+        <div class="header-icon">👤</div>
+        <h1>Registre des visiteurs COP</h1>
+      </div>
+
+      <div class="notice">
+        Vos données sont traitées de manière confidentielle et utilisées uniquement pour le suivi des visites et l'amélioration des services du COP.
+      </div>
+
+      <form id="formVisiteur">
+        <div class="row">
+          <div class="field">
+            <label for="nom">Nom *</label>
+            <input type="text" id="nom" required autocomplete="family-name" placeholder="Votre nom" />
+          </div>
+          <div class="field">
+            <label for="prenom">Prénom *</label>
+            <input type="text" id="prenom" required autocomplete="given-name" placeholder="Votre prénom" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Genre *</label>
+          <div class="btn-grid cols-2" id="genreGrid">
+            <div class="choice" data-genre="homme">Homme</div>
+            <div class="choice" data-genre="femme">Femme</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="telephone">Téléphone *</label>
+          <input type="tel" id="telephone" required placeholder="06XXXXXXXX" autocomplete="tel" />
+        </div>
+
+        <div class="field">
+          <label>Objet de visite *</label>
+          <div class="btn-grid cols-3" id="typeGrid">
+            <div class="choice" data-type="orientation">
+              Orientation
+              <span class="sub">Demande d'information</span>
+            </div>
+            <div class="choice" data-type="entreprise">
+              Entreprise
+              <span class="sub">Visite professionnelle</span>
+            </div>
+            <div class="choice" data-type="autre">
+              Autre
+              <span class="sub">Autre demande</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="orientationBlock" class="conditional hidden">
+          <p class="section-title">Niveau scolaire *</p>
+          <div class="btn-grid cols-2" id="niveauScolaireGrid">
+            <div class="choice small" data-niveau="primaire">Niveau primaire</div>
+            <div class="choice small" data-niveau="college">Collégien</div>
+            <div class="choice small" data-niveau="lycee">Lycéen</div>
+            <div class="choice small" data-niveau="bachelier">Bachelier</div>
+            <div class="choice small" data-niveau="universitaire">Universitaire</div>
+          </div>
+
+          <p class="section-title">Niveau souhaité *</p>
+          <div class="btn-grid cols-2" id="niveauSouhaiteGrid">
+            <div class="choice small" data-souhaite="technicien_specialise">Technicien spécialisé</div>
+            <div class="choice small" data-souhaite="technicien">Technicien</div>
+            <div class="choice small" data-souhaite="qualification">Qualification</div>
+            <div class="choice small" data-souhaite="formation_qualifiante">Formation qualifiante</div>
+          </div>
+
+          <p class="section-title">Pôle d'intérêt *</p>
+          <div class="poles-grid" id="polesGrid"></div>
+        </div>
+
+        <div id="autreBlock" class="conditional hidden">
+          <div class="field">
+            <label for="motif_autre">Précisez votre objet de visite *</label>
+            <textarea id="motif_autre" placeholder="Ex : demande d'information, suivi dossier…"></textarea>
+          </div>
+        </div>
+
+        <div id="duplicateWarning" class="warning-box hidden"></div>
+        <div id="formError" class="error-box hidden"></div>
+
+        <button type="submit" class="btn-submit" id="btnSubmit">Valider ma visite</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var poles = [];
+      var selectedGenre = '';
+      var selectedType = '';
+      var selectedNiveauScolaire = '';
+      var selectedNiveauSouhaite = '';
+      var selectedPoleId = '';
+      var confirmDuplicate = false;
+
+      var loadingEl = document.getElementById('loading');
+      var formCard = document.getElementById('formCard');
+      var form = document.getElementById('formVisiteur');
+      var formError = document.getElementById('formError');
+      var duplicateWarning = document.getElementById('duplicateWarning');
+
+      function esc(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function resetDuplicateState() {
+        confirmDuplicate = false;
+        duplicateWarning.className = 'warning-box hidden';
+        duplicateWarning.textContent = '';
+      }
+
+      function bindChoiceGrid(gridId, attr, onSelect, extraClass) {
+        var grid = document.getElementById(gridId);
+        var choices = grid.querySelectorAll('.choice');
+        for (var i = 0; i < choices.length; i++) {
+          choices[i].addEventListener('click', function () {
+            var val = this.getAttribute(attr);
+            onSelect(val, this);
+            var all = grid.querySelectorAll('.choice');
+            for (var j = 0; j < all.length; j++) {
+              all[j].className = 'choice' + (all[j].classList.contains('small') ? ' small' : '');
+              if (extraClass && all[j].getAttribute(attr) === val) {
+                all[j].className += ' selected ' + extraClass;
+              } else if (all[j].getAttribute(attr) === val) {
+                all[j].className += ' selected';
+              }
+            }
+            resetDuplicateState();
+          });
+        }
+      }
+
+      function updateConditionalBlocks() {
+        document.getElementById('orientationBlock').className =
+          selectedType === 'orientation' ? 'conditional' : 'conditional hidden';
+        document.getElementById('autreBlock').className =
+          selectedType === 'autre' ? 'conditional' : 'conditional hidden';
+      }
+
+      function renderPoles() {
+        var html = '';
+        for (var i = 0; i < poles.length; i++) {
+          var p = poles[i];
+          var sel = selectedPoleId === p.id ? ' selected' : '';
+          html += '<div class="choice small' + sel + '" data-pole="' + esc(p.id) + '">' + esc(p.nom) + '</div>';
+        }
+        document.getElementById('polesGrid').innerHTML = html;
+        var choices = document.getElementById('polesGrid').querySelectorAll('.choice');
+        for (var j = 0; j < choices.length; j++) {
+          choices[j].addEventListener('click', function () {
+            selectedPoleId = this.getAttribute('data-pole');
+            renderPoles();
+            resetDuplicateState();
+          });
+        }
+      }
+
+      function loadReferentiels() {
+        fetch('/api/registre-visiteurs/referentiels')
+          .then(function (r) {
+            return r.json().then(function (data) {
+              return { ok: r.ok, data: data };
+            });
+          })
+          .then(function (res) {
+            if (!res.ok || res.data.error) throw new Error(res.data.error || 'Erreur serveur');
+            poles = res.data.poles || [];
+            renderPoles();
+            loadingEl.className = 'hidden';
+            formCard.className = 'card';
+          })
+          .catch(function (err) {
+            loadingEl.className = 'card error-box';
+            loadingEl.textContent = err.message || 'Impossible de charger le formulaire.';
+          });
+      }
+
+      bindChoiceGrid('genreGrid', 'data-genre', function (val) {
+        selectedGenre = val;
+      });
+
+      (function () {
+        var grid = document.getElementById('typeGrid');
+        var choices = grid.querySelectorAll('.choice');
+        for (var i = 0; i < choices.length; i++) {
+          choices[i].addEventListener('click', function () {
+            selectedType = this.getAttribute('data-type');
+            updateConditionalBlocks();
+            resetDuplicateState();
+            var all = grid.querySelectorAll('.choice');
+            for (var j = 0; j < all.length; j++) {
+              all[j].className = 'choice';
+              var sub = all[j].querySelector('.sub');
+              if (sub) all[j].appendChild(sub);
+            }
+            this.className = 'choice selected';
+            if (selectedType === 'entreprise') this.className += ' indigo';
+            if (selectedType === 'autre') this.className += ' violet';
+          });
+        }
+      })();
+
+      bindChoiceGrid('niveauScolaireGrid', 'data-niveau', function (val) {
+        selectedNiveauScolaire = val;
+      });
+
+      bindChoiceGrid('niveauSouhaiteGrid', 'data-souhaite', function (val) {
+        selectedNiveauSouhaite = val;
+      });
+
+      ['nom', 'prenom', 'telephone', 'motif_autre'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', resetDuplicateState);
+      });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        formError.className = 'error-box hidden';
+        formError.textContent = '';
+
+        var payload = {
+          nom: document.getElementById('nom').value.trim(),
+          prenom: document.getElementById('prenom').value.trim(),
+          genre: selectedGenre,
+          telephone: document.getElementById('telephone').value.trim(),
+          type_visite: selectedType,
+          pole_id: selectedType === 'orientation' ? selectedPoleId : null,
+          niveau_scolaire: selectedType === 'orientation' ? selectedNiveauScolaire : null,
+          niveau_souhaite: selectedType === 'orientation' ? selectedNiveauSouhaite : null,
+          motif_autre: selectedType === 'autre' ? document.getElementById('motif_autre').value.trim() : null,
+          confirm_duplicate: confirmDuplicate
+        };
+
+        var btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Enregistrement…';
+
+        fetch('/api/registre-visiteurs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) {
+            return r.json().then(function (data) {
+              return { ok: r.ok, status: r.status, data: data };
+            });
+          })
+          .then(function (res) {
+            if (res.status === 409 && res.data.duplicate) {
+              confirmDuplicate = true;
+              duplicateWarning.textContent = res.data.error;
+              duplicateWarning.className = 'warning-box';
+              return;
+            }
+            if (!res.ok) throw new Error(res.data.error || 'Erreur lors de l\'enregistrement');
+            formCard.className = 'hidden';
+            document.getElementById('successMsg').textContent =
+              res.data.message || 'Votre passage a bien été enregistré.';
+            document.getElementById('success').className = 'card success-screen';
+          })
+          .catch(function (err) {
+            formError.textContent = err.message || 'Une erreur est survenue.';
+            formError.className = 'error-box';
+          })
+          .then(function () {
+            btn.disabled = false;
+            btn.textContent = confirmDuplicate ? 'Confirmer ma visite' : 'Valider ma visite';
+          });
+      });
+
+      loadReferentiels();
+    })();
+  </script>
+</body>
+</html>
