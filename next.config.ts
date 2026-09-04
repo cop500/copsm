@@ -27,6 +27,11 @@ const nextConfig = {
         destination: '/ecran-inscription-ateliers.html',
         permanent: false,
       },
+      {
+        source: '/assistance-stagiaires/demande/ecran',
+        destination: '/ecran-assistance-stagiaires.html',
+        permanent: false,
+      },
     ]
   },
   // Forcer l'export de toutes les pages

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Demande d'assistance — COP CMC Souss-Massa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #eef2ff;
+      color: #1a1a1a;
+      font-size: 18px;
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+    }
+    .header {
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      color: #fff;
+      text-align: center;
+      padding: 28px 20px;
+    }
+    .header h1 { font-size: 28px; margin-bottom: 8px; }
+    .header p { font-size: 16px; opacity: 0.95; }
+    .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+    .section {
+      background: #fff;
+      border: 2px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .section h2 {
+      color: #3730a3;
+      font-size: 22px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .step-num {
+      display: inline-block;
+      background: #4f46e5;
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+      border-radius: 50%;
+      text-align: center;
+      font-weight: bold;
+      margin-right: 8px;
+      font-size: 16px;
+    }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-weight: bold; margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    }
+    .row { display: block; }
+    @media (min-width: 640px) {
+      .row { display: flex; }
+      .row .field { flex: 1; margin-right: 16px; }
+      .row .field:last-child { margin-right: 0; }
+    }
+    .type-grid, .conseiller-grid {
+      display: block;
+    }
+    @media (min-width: 640px) {
+      .type-grid, .conseiller-grid { display: flex; flex-wrap: wrap; }
+      .type-grid .choice, .conseiller-grid .choice { flex: 1 1 calc(50% - 8px); margin: 4px; }
+    }
+    .choice {
+      border: 2px solid #d1d5db;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      background: #fff;
+      min-height: 72px;
+    }
+    .choice:active { background: #f3f4f6; }
+    .choice.selected {
+      border-color: #4f46e5;
+      background: #eef2ff;
+    }
+    .choice h3 { font-size: 17px; color: #1e1b4b; margin-bottom: 6px; }
+    .choice p { font-size: 15px; color: #4b5563; }
+    .choice .role { font-size: 14px; color: #6366f1; margin-top: 4px; }
+    .details-box {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 12px;
+      font-size: 15px;
+      color: #374151;
+    }
+    .details-box li { margin-left: 18px; margin-bottom: 4px; }
+    .btn {
+      display: inline-block;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 18px 32px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 60px;
+      width: 100%;
+    }
+    .btn:active { background: #4338ca; }
+    .btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .loading, .error-box {
+      text-align: center;
+      padding: 40px 20px;
+      background: #fff;
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .error-box { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .success {
+      text-align: center;
+      padding: 60px 24px;
+      background: #fff;
+      border-radius: 12px;
+      border: 2px solid #86efac;
+    }
+    .success h2 { color: #059669; font-size: 28px; margin: 16px 0; }
+    .hidden { display: none !important; }
+    .field-error { color: #dc2626; font-size: 14px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Demande d'assistance</h1>
+    <p>Un conseiller vous accompagne — COP CMC Souss-Massa</p>
+  </div>
+
+  <div class="container">
+    <div id="status" class="loading">Chargement du formulaire…</div>
+
+    <form id="formDemande" class="hidden">
+      <!-- Étape 1 -->
+      <div class="section">
+        <h2><span class="step-num">1</span> Vos informations</h2>
+        <div class="row">
+          <div class="field">
+            <label for="nom">Nom *</label>
+            <input type="text" id="nom" required autocomplete="family-name" />
+            <div class="field-error hidden" id="err-nom"></div>
+          </div>
+          <div class="field">
+            <label for="prenom">Prénom *</label>
+            <input type="text" id="prenom" required autocomplete="given-name" />
+            <div class="field-error hidden" id="err-prenom"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="telephone">Téléphone *</label>
+          <input type="tel" id="telephone" required placeholder="06 12 34 56 78" autocomplete="tel" />
+          <div class="field-error hidden" id="err-telephone"></div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="pole_id">Pôle *</label>
+            <select id="pole_id" required><option value="">— Choisir —</option></select>
+            <div class="field-error hidden" id="err-pole_id"></div>
+          </div>
+          <div class="field">
+            <label for="filiere_id">Filière *</label>
+            <select id="filiere_id" required disabled><option value="">— Choisir d'abord un pôle —</option></select>
+            <div class="field-error hidden" id="err-filiere_id"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 2 -->
+      <div class="section">
+        <h2><span class="step-num">2</span> Type d'assistance</h2>
+        <div class="type-grid" id="typesGrid"></div>
+        <div class="field-error hidden" id="err-type_assistance"></div>
+        <div id="typeDetails" class="details-box hidden"></div>
+      </div>
+
+      <!-- Étape 3 -->
+      <div class="section">
+        <h2><span class="step-num">3</span> Choisir votre conseiller</h2>
+        <div class="conseiller-grid" id="conseillersGrid"></div>
+        <div class="field-error hidden" id="err-conseiller_id"></div>
+      </div>
+
+      <div id="formError" class="error-box hidden"></div>
+      <button type="submit" class="btn" id="btnSubmit">Soumettre ma demande</button>
+    </form>
+
+    <div id="success" class="success hidden">
+      <h2>Demande envoyée !</h2>
+      <p id="successMsg">Votre demande a été soumise avec succès. Un conseiller vous contactera sous 24h.</p>
+      <button type="button" class="btn" style="margin-top:24px;max-width:320px;" onclick="location.reload()">Nouvelle demande</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var typesAssistance = [
+        {
+          id: 'orientation',
+          nom: 'Orientation et Projet Professionnel',
+          description: 'Accompagnement à l\'orientation, conseil en poursuite d\'études, validation du PPP',
+          details: [
+            'Accompagnement à l\'orientation ou à la réorientation',
+            'Conseil en poursuite d\'études',
+            'Validation du Projet Professionnel Personnel (PPP)',
+            'Entretiens d\'orientation approfondis'
+          ]
+        },
+        {
+          id: 'strategie',
+          nom: 'Stratégie et Recherche d\'Emploi',
+          description: 'Conseil en stratégie de carrière, aide à la recherche d\'emploi, optimisation CV',
+          details: [
+            'Conseil en stratégie de carrière',
+            'Aide à la recherche d\'emploi ou de stage',
+            'Correction de CV et lettres de motivation',
+            'Optimisation du profil LinkedIn'
+          ]
+        },
+        {
+          id: 'entretiens',
+          nom: 'Préparation aux Entretiens',
+          description: 'Simulation d\'entretien, entraînement aux tests de recrutement',
+          details: [
+            'Simulation d\'entretien (Mock Interviews)',
+            'Entraînement aux tests de recrutement'
+          ]
+        },
+        {
+          id: 'developpement',
+          nom: 'Développement Personnel',
+          description: 'Coaching émotionnel, confiance en soi, coaching de décision',
+          details: [
+            'Coaching émotionnel et confiance en soi',
+            'Soutien psychologique léger',
+            'Coaching de décision'
+          ]
+        },
+        {
+          id: 'paraformations',
+          nom: 'Activités Paraformations',
+          description: 'Accompagnement dans les activités complémentaires à la formation',
+          details: [
+            'Accompagnement paraformations',
+            'Soutien aux projets extra-scolaires',
+            'Développement de compétences transversales'
+          ]
+        }
+      ];
+
+      var poles = [];
+      var filieres = [];
+      var conseillers = [];
+      var selectedType = null;
+      var selectedConseiller = '';
+
+      var statusEl = document.getElementById('status');
+      var formEl = document.getElementById('formDemande');
+      var formError = document.getElementById('formError');
+
+      function esc(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function showFieldError(id, msg) {
+        var el = document.getElementById('err-' + id);
+        if (!el) return;
+        if (msg) {
+          el.textContent = msg;
+          el.className = 'field-error';
+        } else {
+          el.textContent = '';
+          el.className = 'field-error hidden';
+        }
+      }
+
+      function conseillerRoleLabel(c) {
+        if (c.role === 'conseillere_carriere') return 'Conseillère Carrière';
+        if ((c.prenom || '').toUpperCase().indexOf('SARA') >= 0) return 'Conseillère d\'orientation';
+        return 'Conseiller d\'orientation';
+      }
+
+      function renderTypes() {
+        var html = '';
+        for (var i = 0; i < typesAssistance.length; i++) {
+          var t = typesAssistance[i];
+          var sel = selectedType && selectedType.id === t.id ? ' selected' : '';
+          html += '<div class="choice' + sel + '" data-type="' + esc(t.id) + '">' +
+            '<h3>' + esc(t.nom) + '</h3>' +
+            '<p>' + esc(t.description) + '</p></div>';
+        }
+        document.getElementById('typesGrid').innerHTML = html;
+
+        var choices = document.getElementById('typesGrid').querySelectorAll('.choice');
+        for (var j = 0; j < choices.length; j++) {
+          choices[j].addEventListener('click', onTypeClick);
+        }
+      }
+
+      function onTypeClick(e) {
+        var id = e.currentTarget.getAttribute('data-type');
+        for (var i = 0; i < typesAssistance.length; i++) {
+          if (typesAssistance[i].id === id) {
+            selectedType = typesAssistance[i];
+            break;
+          }
+        }
+        showFieldError('type_assistance', '');
+        renderTypes();
+        var detailsEl = document.getElementById('typeDetails');
+        if (selectedType) {
+          var list = '<strong>Services :</strong><ul>';
+          for (var k = 0; k < selectedType.details.length; k++) {
+            list += '<li>' + esc(selectedType.details[k]) + '</li>';
+          }
+          list += '</ul>';
+          detailsEl.innerHTML = list;
+          detailsEl.className = 'details-box';
+        }
+      }
+
+      function renderConseillers() {
+        var grid = document.getElementById('conseillersGrid');
+        if (conseillers.length === 0) {
+          grid.innerHTML = '<p style="text-align:center;color:#6b7280;">Aucun conseiller disponible. Contactez l\'administration.</p>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < conseillers.length; i++) {
+          var c = conseillers[i];
+          var sel = selectedConseiller === c.id ? ' selected' : '';
+          html += '<div class="choice' + sel + '" data-id="' + esc(c.id) + '">' +
+            '<h3>' + esc(c.prenom) + ' ' + esc(c.nom) + '</h3>' +
+            '<p class="role">' + esc(conseillerRoleLabel(c)) + '</p></div>';
+        }
+        grid.innerHTML = html;
+        var choices = grid.querySelectorAll('.choice');
+        for (var j = 0; j < choices.length; j++) {
+          choices[j].addEventListener('click', onConseillerClick);
+        }
+      }
+
+      function onConseillerClick(e) {
+        selectedConseiller = e.currentTarget.getAttribute('data-id');
+        showFieldError('conseiller_id', '');
+        renderConseillers();
+      }
+
+      function loadReferentiels() {
+        fetch('/api/assistance-stagiaires/referentiels')
+          .then(function (r) {
+            return r.json().then(function (data) {
+              return { ok: r.ok, data: data };
+            });
+          })
+          .then(function (res) {
+            if (!res.ok || res.data.error) throw new Error(res.data.error || 'Erreur serveur');
+            poles = res.data.poles || [];
+            filieres = res.data.filieres || [];
+            conseillers = res.data.conseillers || [];
+
+            var poleSelect = document.getElementById('pole_id');
+            poleSelect.innerHTML = '<option value="">— Choisir —</option>';
+            for (var i = 0; i < poles.length; i++) {
+              var opt = document.createElement('option');
+              opt.value = poles[i].id;
+              opt.textContent = poles[i].nom;
+              poleSelect.appendChild(opt);
+            }
+
+            renderTypes();
+            renderConseillers();
+            statusEl.className = 'hidden';
+            formEl.className = '';
+          })
+          .catch(function (err) {
+            statusEl.className = 'error-box';
+            statusEl.textContent = err.message || 'Impossible de charger le formulaire.';
+          });
+      }
+
+      document.getElementById('pole_id').addEventListener('change', function () {
+        var poleId = this.value;
+        var filSelect = document.getElementById('filiere_id');
+        filSelect.innerHTML = '<option value="">— Choisir —</option>';
+        filSelect.disabled = !poleId;
+        if (!poleId) return;
+        for (var i = 0; i < filieres.length; i++) {
+          if (filieres[i].pole_id === poleId) {
+            var opt = document.createElement('option');
+            opt.value = filieres[i].id;
+            opt.textContent = filieres[i].nom;
+            filSelect.appendChild(opt);
+          }
+        }
+        showFieldError('pole_id', '');
+      });
+
+      document.getElementById('filiere_id').addEventListener('change', function () {
+        showFieldError('filiere_id', '');
+      });
+
+      function validate() {
+        var ok = true;
+        var nom = document.getElementById('nom').value.trim();
+        var prenom = document.getElementById('prenom').value.trim();
+        var telephone = document.getElementById('telephone').value.trim();
+        var poleId = document.getElementById('pole_id').value;
+        var filiereId = document.getElementById('filiere_id').value;
+
+        showFieldError('nom', nom ? '' : 'Le nom est requis');
+        showFieldError('prenom', prenom ? '' : 'Le prénom est requis');
+        showFieldError('telephone', telephone ? '' : 'Le téléphone est requis');
+        showFieldError('pole_id', poleId ? '' : 'Sélectionnez un pôle');
+        showFieldError('filiere_id', filiereId ? '' : 'Sélectionnez une filière');
+        showFieldError('type_assistance', selectedType ? '' : 'Sélectionnez un type d\'assistance');
+        showFieldError('conseiller_id', selectedConseiller ? '' : 'Sélectionnez un conseiller');
+
+        if (!nom) ok = false;
+        if (!prenom) ok = false;
+        if (!telephone) ok = false;
+        if (!poleId) ok = false;
+        if (!filiereId) ok = false;
+        if (!selectedType) ok = false;
+        if (!selectedConseiller) ok = false;
+        return ok;
+      }
+
+      formEl.addEventListener('submit', function (e) {
+        e.preventDefault();
+        formError.className = 'error-box hidden';
+        if (!validate()) return;
+
+        var btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Envoi en cours…';
+
+        var payload = {
+          nom: document.getElementById('nom').value.trim(),
+          prenom: document.getElementById('prenom').value.trim(),
+          telephone: document.getElementById('telephone').value.trim(),
+          pole_id: document.getElementById('pole_id').value,
+          filiere_id: document.getElementById('filiere_id').value,
+          type_assistance: selectedType.id,
+          conseiller_id: selectedConseiller
+        };
+
+        fetch('/api/assistance-stagiaires', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) {
+            return r.json().then(function (data) {
+              return { ok: r.ok, data: data };
+            });
+          })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.data.error || 'Erreur lors de l\'envoi');
+            formEl.className = 'hidden';
+            document.getElementById('successMsg').textContent =
+              res.data.message || 'Votre demande a été soumise avec succès !';
+            document.getElementById('success').className = 'success';
+          })
+          .catch(function (err) {
+            formError.textContent = err.message || 'Une erreur est survenue.';
+            formError.className = 'error-box';
+          })
+          .then(function () {
+            btn.disabled = false;
+            btn.textContent = 'Soumettre ma demande';
+          });
+      });
+
+      loadReferentiels();
+    })();
+  </script>
+</body>
+</html>
