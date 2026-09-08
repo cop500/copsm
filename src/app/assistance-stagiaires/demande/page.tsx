@@ -270,55 +270,7 @@ export default function DemandeAssistance() {
         throw new Error(result.error || 'Erreur lors de l\'envoi')
       }
       
-      // Succès
       console.log('✅ Demande créée avec succès, ID:', result.data?.id)
-      
-      // Envoyer la notification par email depuis le client (comme pour les demandes entreprises)
-      if (result.data?.id && form.conseiller_id) {
-        try {
-          console.log('📧 Envoi de notification email depuis le client...')
-          const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
-          
-          // Utiliser les données déjà disponibles dans le formulaire et la liste des conseillers
-          // Évite l'erreur 406 (RLS) en ne faisant pas de nouvelle requête Supabase
-          const conseillerSelectionne = conseillers.find(c => c.id === form.conseiller_id)
-          const poleSelectionne = poles.find(p => p.id === form.pole_id)
-          const filiereSelectionnee = filieres.find(f => f.id === form.filiere_id)
-          
-          if (conseillerSelectionne) {
-            await sendAssistanceAssignmentNotification({
-              id: result.data.id,
-              nom: form.nom || '',
-              prenom: form.prenom || '',
-              telephone: form.telephone || '',
-              type_assistance: form.type_assistance || '',
-              statut: 'en_attente',
-              conseiller_id: form.conseiller_id,
-              profiles: {
-                nom: conseillerSelectionne.nom || '',
-                prenom: conseillerSelectionne.prenom || '',
-                email: conseillerSelectionne.email || '',
-                role: conseillerSelectionne.role || ''
-              },
-              poles: poleSelectionne ? {
-                nom: poleSelectionne.nom || '',
-                code: poleSelectionne.code || ''
-              } : undefined,
-              filieres: filiereSelectionnee ? {
-                nom: filiereSelectionnee.nom || '',
-                code: filiereSelectionnee.code || ''
-              } : undefined
-            })
-            console.log('✅ Email de notification envoyé avec succès')
-          } else {
-            console.warn('⚠️ Conseiller sélectionné non trouvé dans la liste')
-          }
-        } catch (emailError) {
-          console.error('⚠️ Erreur envoi email (non bloquant):', emailError)
-          // On continue même si l'email échoue
-        }
-      }
-      
       alert(result.message || 'Votre demande a été soumise avec succès ! Vous recevrez une réponse sous 24h.')
       
       // Reset form

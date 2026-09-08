@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyConseillerForAssistanceRequest } from '@/lib/assistanceNotification'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -109,63 +110,27 @@ export async function POST(request: NextRequest) {
         conseiller_id_length: demandeData.conseiller_id?.length
       })
 
-      // Envoyer une notification par email si un conseiller a été assigné
-      // Vérifier que conseiller_id est présent et non vide
-      if (demandeData.conseiller_id && String(demandeData.conseiller_id).trim() !== '' && rpcInsertData?.id) {
-        console.log('✅ Conseiller ID détecté (RPC), préparation envoi email...')
+      if (rpcInsertData?.id) {
         try {
-          console.log('📧 Tentative d\'envoi de notification email pour nouvelle demande (RPC):', rpcInsertData.id)
-          console.log('📧 Conseiller assigné:', demandeData.conseiller_id)
-          
-          // Récupérer les données complètes avec les relations
-          const { data: demandeComplete, error: fetchError } = await supabase
-            .from('demandes_assistance_stagiaires')
-            .select(`
-              *,
-              poles(nom, code, couleur),
-              filieres(nom, code, color),
-              profiles!conseiller_id(nom, prenom, email, role)
-            `)
-            .eq('id', rpcInsertData.id)
-            .single()
-
-          if (!fetchError && demandeComplete) {
-            const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
-            const result = await sendAssistanceAssignmentNotification({
-              id: demandeComplete.id,
-              nom: demandeComplete.nom || '',
-              prenom: demandeComplete.prenom || '',
-              telephone: demandeComplete.telephone || '',
-              type_assistance: demandeComplete.type_assistance || '',
-              statut: demandeComplete.statut || 'en_attente',
-              conseiller_id: demandeComplete.conseiller_id || '',
-              profiles: demandeComplete.profiles,
-              poles: demandeComplete.poles,
-              filieres: demandeComplete.filieres
-            })
-            
-            if (result.success) {
-              console.log('✅ Email de notification envoyé avec succès pour nouvelle demande (RPC)')
-            } else {
-              console.warn('⚠️ Email non envoyé pour nouvelle demande (RPC), raison:', result.reason)
-              console.warn('⚠️ Détails:', JSON.stringify(result, null, 2))
-            }
+          const result = await notifyConseillerForAssistanceRequest(supabase, {
+            id: rpcInsertData.id,
+            nom: demandeData.nom,
+            prenom: demandeData.prenom,
+            telephone: demandeData.telephone,
+            type_assistance: demandeData.type_assistance,
+            conseiller_id: demandeData.conseiller_id,
+            pole_id: demandeData.pole_id,
+            filiere_id: demandeData.filiere_id,
+            statut: demandeData.statut,
+          })
+          if (result.success) {
+            console.log('✅ Email de notification envoyé (RPC)')
           } else {
-            console.warn('⚠️ Impossible de récupérer les données complètes pour l\'envoi d\'email (RPC)')
-            console.warn('⚠️ Erreur:', fetchError)
-            console.warn('⚠️ Données récupérées:', demandeComplete)
+            console.warn('⚠️ Email non envoyé (RPC):', result.reason)
           }
-        } catch (emailError: any) {
-          console.error('❌ Erreur envoi email notification pour nouvelle demande RPC (non bloquant):')
-          console.error('❌ Message:', emailError.message)
-          console.error('❌ Stack:', emailError.stack)
-          console.error('❌ Erreur complète:', JSON.stringify(emailError, null, 2))
-          // On continue même si l'email échoue
+        } catch (emailError) {
+          console.error('❌ Erreur envoi email (RPC, non bloquant):', emailError)
         }
-      } else {
-        console.log('ℹ️ Pas de conseiller assigné (RPC) (conseiller_id manquant ou vide), pas d\'envoi d\'email')
-        console.log('ℹ️ Valeur conseiller_id:', demandeData.conseiller_id)
-        console.log('ℹ️ RPC Insert Data ID:', rpcInsertData?.id)
       }
 
       return NextResponse.json({
@@ -187,62 +152,25 @@ export async function POST(request: NextRequest) {
       conseiller_id_length: demandeData.conseiller_id?.length
     })
 
-    // Envoyer une notification par email si un conseiller a été assigné
-    // Vérifier que conseiller_id est présent et non vide
-    if (demandeData.conseiller_id && String(demandeData.conseiller_id).trim() !== '') {
-      console.log('✅ Conseiller ID détecté, préparation envoi email...')
-      console.log('📧 Conseiller ID:', demandeData.conseiller_id)
-      try {
-        console.log('📧 Tentative d\'envoi de notification email pour nouvelle demande:', insertData.id)
-        
-        // Récupérer les données complètes avec les relations
-        const { data: demandeComplete, error: fetchError } = await supabase
-          .from('demandes_assistance_stagiaires')
-          .select(`
-            *,
-            poles(nom, code, couleur),
-            filieres(nom, code, color),
-            profiles!conseiller_id(nom, prenom, email, role)
-          `)
-          .eq('id', insertData.id)
-          .single()
-
-        if (!fetchError && demandeComplete) {
-          const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
-          const result = await sendAssistanceAssignmentNotification({
-            id: demandeComplete.id,
-            nom: demandeComplete.nom || '',
-            prenom: demandeComplete.prenom || '',
-            telephone: demandeComplete.telephone || '',
-            type_assistance: demandeComplete.type_assistance || '',
-            statut: demandeComplete.statut || 'en_attente',
-            conseiller_id: demandeComplete.conseiller_id || '',
-            profiles: demandeComplete.profiles,
-            poles: demandeComplete.poles,
-            filieres: demandeComplete.filieres
-          })
-          
-          if (result.success) {
-            console.log('✅ Email de notification envoyé avec succès pour nouvelle demande')
-          } else {
-            console.warn('⚠️ Email non envoyé pour nouvelle demande, raison:', result.reason)
-            console.warn('⚠️ Détails:', JSON.stringify(result, null, 2))
-          }
-        } else {
-          console.warn('⚠️ Impossible de récupérer les données complètes pour l\'envoi d\'email')
-          console.warn('⚠️ Erreur:', fetchError)
-          console.warn('⚠️ Données récupérées:', demandeComplete)
-        }
-      } catch (emailError: any) {
-        console.error('❌ Erreur envoi email notification pour nouvelle demande (non bloquant):')
-        console.error('❌ Message:', emailError.message)
-        console.error('❌ Stack:', emailError.stack)
-        console.error('❌ Erreur complète:', JSON.stringify(emailError, null, 2))
-        // On continue même si l'email échoue
+    try {
+      const result = await notifyConseillerForAssistanceRequest(supabase, {
+        id: insertData.id,
+        nom: demandeData.nom,
+        prenom: demandeData.prenom,
+        telephone: demandeData.telephone,
+        type_assistance: demandeData.type_assistance,
+        conseiller_id: demandeData.conseiller_id,
+        pole_id: demandeData.pole_id,
+        filiere_id: demandeData.filiere_id,
+        statut: demandeData.statut,
+      })
+      if (result.success) {
+        console.log('✅ Email de notification envoyé')
+      } else {
+        console.warn('⚠️ Email non envoyé:', result.reason)
       }
-    } else {
-      console.log('ℹ️ Pas de conseiller assigné (conseiller_id manquant ou vide), pas d\'envoi d\'email')
-      console.log('ℹ️ Valeur conseiller_id:', demandeData.conseiller_id)
+    } catch (emailError) {
+      console.error('❌ Erreur envoi email (non bloquant):', emailError)
     }
 
     return NextResponse.json({
