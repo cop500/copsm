@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { notifyConseillerForAssistanceRequest } from '@/lib/assistanceNotification'
+import { sendAssistanceAssignmentNotification } from '@/lib/email'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -12,6 +12,37 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     persistSession: false
   }
 })
+
+async function sendAssistanceEmailIfProvided(body: Record<string, unknown>, demandeId: string) {
+  if (!body.profiles || !demandeId) return
+
+  try {
+    const result = await sendAssistanceAssignmentNotification({
+      id: demandeId,
+      nom: String(body.nom || '').trim(),
+      prenom: String(body.prenom || '').trim(),
+      telephone: String(body.telephone || '').trim(),
+      type_assistance: String(body.type_assistance || ''),
+      statut: String(body.statut || 'en_attente'),
+      conseiller_id: String(body.conseiller_id || ''),
+      profiles: body.profiles as {
+        nom: string
+        prenom: string
+        email: string
+        role: string
+      },
+      poles: body.poles as { nom: string; code: string } | undefined,
+      filieres: body.filieres as { nom: string; code: string } | undefined,
+    })
+    if (result.success) {
+      console.log('✅ Email de notification assistance envoyé')
+    } else {
+      console.warn('⚠️ Email assistance non envoyé:', result.reason)
+    }
+  } catch (emailError) {
+    console.error('❌ Erreur envoi email assistance (non bloquant):', emailError)
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,28 +141,7 @@ export async function POST(request: NextRequest) {
         conseiller_id_length: demandeData.conseiller_id?.length
       })
 
-      if (rpcInsertData?.id) {
-        try {
-          const result = await notifyConseillerForAssistanceRequest(supabase, {
-            id: rpcInsertData.id,
-            nom: demandeData.nom,
-            prenom: demandeData.prenom,
-            telephone: demandeData.telephone,
-            type_assistance: demandeData.type_assistance,
-            conseiller_id: demandeData.conseiller_id,
-            pole_id: demandeData.pole_id,
-            filiere_id: demandeData.filiere_id,
-            statut: demandeData.statut,
-          })
-          if (result.success) {
-            console.log('✅ Email de notification envoyé (RPC)')
-          } else {
-            console.warn('⚠️ Email non envoyé (RPC):', result.reason)
-          }
-        } catch (emailError) {
-          console.error('❌ Erreur envoi email (RPC, non bloquant):', emailError)
-        }
-      }
+      await sendAssistanceEmailIfProvided(body, rpcInsertData.id)
 
       return NextResponse.json({
         success: true,
@@ -152,26 +162,7 @@ export async function POST(request: NextRequest) {
       conseiller_id_length: demandeData.conseiller_id?.length
     })
 
-    try {
-      const result = await notifyConseillerForAssistanceRequest(supabase, {
-        id: insertData.id,
-        nom: demandeData.nom,
-        prenom: demandeData.prenom,
-        telephone: demandeData.telephone,
-        type_assistance: demandeData.type_assistance,
-        conseiller_id: demandeData.conseiller_id,
-        pole_id: demandeData.pole_id,
-        filiere_id: demandeData.filiere_id,
-        statut: demandeData.statut,
-      })
-      if (result.success) {
-        console.log('✅ Email de notification envoyé')
-      } else {
-        console.warn('⚠️ Email non envoyé:', result.reason)
-      }
-    } catch (emailError) {
-      console.error('❌ Erreur envoi email (non bloquant):', emailError)
-    }
+    await sendAssistanceEmailIfProvided(body, insertData.id)
 
     return NextResponse.json({
       success: true,

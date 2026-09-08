@@ -252,12 +252,32 @@ export default function DemandeAssistance() {
       console.log('📋 Conseiller ID type:', typeof form.conseiller_id)
       console.log('📋 Conseiller ID vide?', !form.conseiller_id || form.conseiller_id.trim() === '')
       
+      const conseillerSelectionne = conseillers.find((c) => c.id === form.conseiller_id)
+      const poleSelectionne = poles.find((p) => p.id === form.pole_id)
+      const filiereSelectionnee = filieres.find((f) => f.id === form.filiere_id)
+
       const response = await fetch('/api/assistance-stagiaires', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          profiles: conseillerSelectionne
+            ? {
+                nom: conseillerSelectionne.nom || '',
+                prenom: conseillerSelectionne.prenom || '',
+                email: conseillerSelectionne.email || '',
+                role: conseillerSelectionne.role || '',
+              }
+            : undefined,
+          poles: poleSelectionne
+            ? { nom: poleSelectionne.nom || '', code: poleSelectionne.code || '' }
+            : undefined,
+          filieres: filiereSelectionnee
+            ? { nom: filiereSelectionnee.nom || '', code: filiereSelectionnee.code || '' }
+            : undefined,
+        })
       })
       
       const result = await response.json()

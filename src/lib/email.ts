@@ -2,6 +2,11 @@ import { getEmailConfig } from './email-config'
 import emailjs from '@emailjs/browser'
 import emailjsNode from '@emailjs/nodejs'
 
+// Initialiser EmailJS (côté client)
+if (typeof window !== 'undefined') {
+  emailjs.init('bnj9zb9qdXb4RjnvB')
+}
+
 interface DemandeEntreprise {
   id: string
   nom_entreprise: string
@@ -23,21 +28,36 @@ interface EmailConfig {
 const EMAILJS_SERVICE_ID = 'service_exp84pb'
 const EMAILJS_TEMPLATE_ID = 'template_rjxiwdp' // Template pour demandes entreprises
 const EMAILJS_TEMPLATE_ASSISTANCE_ID = 'template_9fbr18k' // Template pour demandes assistance
-const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB' // Pour les appels navigateur
-// Private Key pour les appels serveur (@emailjs/nodejs)
-const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY || 'I1YMENNRhAzFYwcJLDBex'
+const EMAILJS_TEMPLATE_CERTIFICAT_ID = 'template_certificat_atelier' // Template pour certificats ateliers (à créer dans EmailJS)
+const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB'
 
-// Initialiser EmailJS (côté client)
-if (typeof window !== 'undefined') {
-  emailjs.init(EMAILJS_PUBLIC_KEY)
+function formatDemandeEmailText(
+  template: string,
+  demande: DemandeEntreprise,
+  demandeUrl: string
+): string {
+  const nomEntreprise = (demande.nom_entreprise || '').trim() || 'Non renseigné'
+  return template
+    .replace(/\{nom_entreprise\}/g, nomEntreprise)
+    .replace(/\{nom_contact\}/g, demande.nom_contact || 'Non renseigné')
+    .replace(/\{email\}/g, demande.email || 'Non renseigné')
+    .replace(/\{telephone\}/g, demande.telephone || 'Non renseigné')
+    .replace(/\{type_demande\}/g, demande.type_demande || 'Non renseigné')
+    .replace(/\{lien\}/g, demandeUrl)
 }
 
-// Initialiser EmailJS Node.js (côté serveur) si on est côté serveur
-if (typeof window === 'undefined' && EMAILJS_PRIVATE_KEY) {
-  emailjsNode.init({
-    publicKey: EMAILJS_PUBLIC_KEY,
-    privateKey: EMAILJS_PRIVATE_KEY
-  })
+/** Objet avec nom d’entreprise (placeholder ou suffixe pour configs existantes). */
+function buildDemandeEmailSubject(
+  configSubject: string,
+  demande: DemandeEntreprise,
+  demandeUrl: string
+): string {
+  const nomEntreprise = (demande.nom_entreprise || '').trim()
+  let subject = formatDemandeEmailText(configSubject, demande, demandeUrl)
+  if (nomEntreprise && !subject.includes(nomEntreprise)) {
+    subject = `${subject} — ${nomEntreprise}`
+  }
+  return subject
 }
 
 export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
@@ -66,14 +86,8 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
     // Construire le lien vers la demande
     const demandeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/entreprises-gestion?demande=${demande.id}`
 
-    // Remplacer les variables dans le message
-    let emailContent = config.message
-      .replace('{nom_entreprise}', demande.nom_entreprise)
-      .replace('{nom_contact}', demande.nom_contact || 'Non renseigné')
-      .replace('{email}', demande.email || 'Non renseigné')
-      .replace('{telephone}', demande.telephone || 'Non renseigné')
-      .replace('{type_demande}', demande.type_demande || 'Non renseigné')
-      .replace('{lien}', demandeUrl)
+    const emailContent = formatDemandeEmailText(config.message, demande, demandeUrl)
+    const emailSubject = buildDemandeEmailSubject(config.subject, demande, demandeUrl)
 
     // Envoyer l'email via EmailJS
     console.log('📧 Destinataires configurés:', config.recipient_emails)
@@ -83,7 +97,7 @@ export async function sendNewDemandeNotification(demande: DemandeEntreprise) {
       
       const templateParams = {
         email: recipientEmail, // Utiliser 'email' au lieu de 'to_email'
-        subject: config.subject,
+        subject: emailSubject,
         message: emailContent,
         nom_entreprise: demande.nom_entreprise,
         nom_contact: demande.nom_contact || 'Non renseigné',
@@ -122,20 +136,14 @@ export async function sendTestEmail(demande: DemandeEntreprise & { config: Email
     // Construire le lien vers la demande
     const demandeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/entreprises-gestion`
 
-    // Remplacer les variables dans le message
-    let emailContent = config.message
-      .replace('{nom_entreprise}', demande.nom_entreprise)
-      .replace('{nom_contact}', demande.nom_contact || 'Non renseigné')
-      .replace('{email}', demande.email || 'Non renseigné')
-      .replace('{telephone}', demande.telephone || 'Non renseigné')
-      .replace('{type_demande}', demande.type_demande || 'Non renseigné')
-      .replace('{lien}', demandeUrl)
+    const emailContent = formatDemandeEmailText(config.message, demande, demandeUrl)
+    const emailSubject = buildDemandeEmailSubject(config.subject, demande, demandeUrl)
 
     // Envoyer l'email de test via EmailJS
     const emailPromises = config.recipient_emails.map(async (recipientEmail) => {
       const templateParams = {
         email: recipientEmail, // Utiliser 'email' au lieu de 'to_email'
-        subject: `[TEST] ${config.subject}`,
+        subject: `[TEST] ${emailSubject}`,
         message: emailContent,
         nom_entreprise: demande.nom_entreprise,
         nom_contact: demande.nom_contact || 'Non renseigné',
@@ -195,7 +203,6 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
     console.log('📧 Conseiller ID:', demande.conseiller_id)
     console.log('📧 Stagiaire:', `${demande.prenom} ${demande.nom}`)
     console.log('📧 Profil conseiller:', JSON.stringify(demande.profiles, null, 2))
-    console.log('📧 Environnement:', typeof window !== 'undefined' ? 'CLIENT (navigateur)' : 'SERVEUR')
 
     // Récupérer la configuration AVANT de vérifier l'email du profil
     // Car l'email peut être configuré manuellement même si le profil n'a pas d'email
@@ -299,78 +306,188 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
     console.log('📧 Paramètres EmailJS:', templateParams)
     console.log('📧 Service ID:', EMAILJS_SERVICE_ID)
     console.log('📧 Template ID:', EMAILJS_TEMPLATE_ASSISTANCE_ID)
-    console.log('📧 Environnement:', typeof window !== 'undefined' ? 'CLIENT (navigateur)' : 'SERVEUR')
+    console.log('📧 Public Key:', EMAILJS_PUBLIC_KEY ? 'Configuré' : 'MANQUANT')
 
-    // Utiliser emailjs (browser) si on est côté client, sinon emailjsNode (serveur)
-    if (typeof window !== 'undefined') {
-      // Côté client (navigateur) - utiliser emailjs comme pour les demandes entreprises
-      console.log('📧 Utilisation de emailjs (browser) côté client')
-      try {
-        const result = await emailjs.send(
+    try {
+      let result: unknown
+      if (typeof window !== 'undefined') {
+        result = await emailjs.send(
           EMAILJS_SERVICE_ID,
           EMAILJS_TEMPLATE_ASSISTANCE_ID,
           templateParams,
           EMAILJS_PUBLIC_KEY
         )
-        
-        console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', JSON.stringify(result, null, 2))
-        console.log('✅ Email de notification d\'assignation envoyé avec succès')
-        return { success: true, data: result }
-      } catch (emailjsError: any) {
-        console.error('❌ Erreur EmailJS détaillée:', {
-          message: emailjsError.message,
-          status: emailjsError.status,
-          text: emailjsError.text,
-          response: emailjsError.response,
-          stack: emailjsError.stack
+      } else {
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service_id: EMAILJS_SERVICE_ID,
+            template_id: EMAILJS_TEMPLATE_ASSISTANCE_ID,
+            user_id: EMAILJS_PUBLIC_KEY,
+            template_params: templateParams,
+          }),
         })
-        throw emailjsError
-      }
-    } else {
-      // Côté serveur - utiliser emailjsNode
-      console.log('📧 Utilisation de emailjsNode (serveur)')
-      console.log('📧 Private Key:', EMAILJS_PRIVATE_KEY ? 'Configuré' : 'MANQUANT (nécessaire pour appels serveur)')
-
-      if (!EMAILJS_PRIVATE_KEY) {
-        console.error('❌ EMAILJS_PRIVATE_KEY manquante dans les variables d\'environnement')
-        console.error('❌ Récupérez-la depuis: https://dashboard.emailjs.com/admin/account')
-        throw new Error('EMAILJS_PRIVATE_KEY manquante')
+        if (!response.ok) {
+          const text = await response.text()
+          throw new Error(`EmailJS HTTP ${response.status}: ${text}`)
+        }
+        result = await response.json()
       }
 
-      try {
-        // S'assurer que emailjsNode est initialisé avant l'appel
-        emailjsNode.init({
-          publicKey: EMAILJS_PUBLIC_KEY,
-          privateKey: EMAILJS_PRIVATE_KEY
-        })
-        
-        // Appeler send() avec les clés dans les options pour être sûr
-        const result = await emailjsNode.send(
-          EMAILJS_SERVICE_ID,
-          EMAILJS_TEMPLATE_ASSISTANCE_ID,
-          templateParams,
-          {
-            publicKey: EMAILJS_PUBLIC_KEY,
-            privateKey: EMAILJS_PRIVATE_KEY
-          }
-        )
-        
-        console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', JSON.stringify(result, null, 2))
-        console.log('✅ Email de notification d\'assignation envoyé avec succès')
-        return { success: true, data: result }
-      } catch (emailjsError: any) {
-        console.error('❌ Erreur EmailJS détaillée:', {
-          message: emailjsError.message,
-          status: emailjsError.status,
-          text: emailjsError.text,
-          response: emailjsError.response,
-          stack: emailjsError.stack
-        })
-        throw emailjsError
-      }
+      console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', JSON.stringify(result, null, 2))
+      console.log('✅ Email de notification d\'assignation envoyé avec succès')
+      return { success: true, data: result }
+    } catch (emailjsError: unknown) {
+      const err = emailjsError as { message?: string; status?: number; text?: string; response?: unknown; stack?: string }
+      console.error('❌ Erreur EmailJS détaillée:', {
+        message: err.message,
+        status: err.status,
+        text: err.text,
+        response: err.response,
+        stack: err.stack,
+      })
+      throw emailjsError
     }
   } catch (error) {
     console.error('❌ Erreur notification email assignation assistance:', error)
+    throw error
+  }
+}
+
+interface CertificatEmailData {
+  stagiaire_nom: string
+  stagiaire_email: string
+  atelier_nom: string
+  date_atelier: string
+  animateur?: string
+  lien_certificat: string
+}
+
+/**
+ * Envoie un email avec le lien de téléchargement du certificat à un stagiaire
+ */
+export async function sendCertificatEmail(data: CertificatEmailData) {
+  try {
+    console.log('📧 ==========================================')
+    console.log('📧 DÉBUT ENVOI EMAIL CERTIFICAT')
+    console.log('📧 ==========================================')
+    console.log('📧 Stagiaire:', data.stagiaire_nom)
+    console.log('📧 Email:', data.stagiaire_email)
+    console.log('📧 Atelier:', data.atelier_nom)
+    console.log('📧 Lien certificat:', data.lien_certificat)
+
+    // Vérifier que l'email est valide
+    if (!data.stagiaire_email || !data.stagiaire_email.includes('@')) {
+      console.error('❌ Email du stagiaire invalide:', data.stagiaire_email)
+      return { success: false, reason: 'invalid_email' }
+    }
+
+    // Construire le contenu de l'email
+    const emailSubject = `Votre certificat de participation - ${data.atelier_nom}`
+    
+    // Message HTML pour l'email
+    const emailMessage = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1E40AF;">Félicitations ${data.stagiaire_nom} !</h2>
+        
+        <p>Vous avez participé avec succès à l'atelier :</p>
+        <p style="font-weight: bold; color: #FF6D1F; font-size: 18px;">${data.atelier_nom}</p>
+        
+        ${data.date_atelier ? `<p><strong>Date :</strong> ${data.date_atelier}</p>` : ''}
+        ${data.animateur ? `<p><strong>Animateur :</strong> ${data.animateur}</p>` : ''}
+        
+        <p>Votre certificat de participation est maintenant disponible. Vous pouvez le télécharger en cliquant sur le lien ci-dessous :</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.lien_certificat}" 
+             style="background: linear-gradient(to right, #1E40AF, #FF6D1F); 
+                    color: white; 
+                    padding: 15px 30px; 
+                    text-decoration: none; 
+                    border-radius: 5px; 
+                    font-weight: bold;
+                    display: inline-block;">
+            Télécharger mon certificat
+          </a>
+        </div>
+        
+        <p style="color: #666; font-size: 12px;">
+          Vous pourrez télécharger votre certificat autant de fois que nécessaire en utilisant ce lien.
+        </p>
+        
+        <p style="margin-top: 30px;">
+          Cordialement,<br>
+          L'équipe du Centre d'Orientation Professionnelle CMC SM
+        </p>
+      </div>
+    `
+
+    // Message texte simple (fallback)
+    const emailMessageText = `
+Félicitations ${data.stagiaire_nom} !
+
+Vous avez participé avec succès à l'atelier : ${data.atelier_nom}
+
+${data.date_atelier ? `Date : ${data.date_atelier}` : ''}
+${data.animateur ? `Animateur : ${data.animateur}` : ''}
+
+Votre certificat de participation est maintenant disponible. Vous pouvez le télécharger en cliquant sur le lien suivant :
+
+${data.lien_certificat}
+
+Vous pourrez télécharger votre certificat autant de fois que nécessaire en utilisant ce lien.
+
+Cordialement,
+L'équipe du Centre d'Orientation Professionnelle CMC SM
+    `
+
+    console.log('📧 Envoi vers:', data.stagiaire_email)
+    
+    const templateParams = {
+      to_email: data.stagiaire_email,
+      email: data.stagiaire_email,
+      subject: emailSubject,
+      message: emailMessage,
+      message_text: emailMessageText,
+      nom_stagiaire: data.stagiaire_nom,
+      atelier_nom: data.atelier_nom,
+      date_atelier: data.date_atelier || '',
+      animateur: data.animateur || '',
+      lien_certificat: data.lien_certificat
+    }
+
+    console.log('📧 Paramètres EmailJS:', templateParams)
+    console.log('📧 Service ID:', EMAILJS_SERVICE_ID)
+    console.log('📧 Template ID:', EMAILJS_TEMPLATE_CERTIFICAT_ID)
+    console.log('📧 Public Key:', EMAILJS_PUBLIC_KEY ? 'Configuré' : 'MANQUANT')
+
+    // Utiliser @emailjs/nodejs pour les API routes (côté serveur)
+    try {
+      const result = await emailjsNode.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_CERTIFICAT_ID,
+        templateParams,
+        {
+          publicKey: EMAILJS_PUBLIC_KEY
+        }
+      )
+      
+      console.log('📧 Résultat EmailJS pour', data.stagiaire_email, ':', JSON.stringify(result, null, 2))
+      console.log('✅ Email de certificat envoyé avec succès')
+      return { success: true, data: result }
+    } catch (emailjsError: any) {
+      console.error('❌ Erreur EmailJS détaillée:', {
+        message: emailjsError.message,
+        status: emailjsError.status,
+        text: emailjsError.text,
+        response: emailjsError.response,
+        stack: emailjsError.stack
+      })
+      throw emailjsError
+    }
+  } catch (error) {
+    console.error('❌ Erreur envoi email certificat:', error)
     throw error
   }
 }

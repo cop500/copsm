@@ -440,6 +440,29 @@
         return ok;
       }
 
+      function getSelectedConseiller() {
+        for (var i = 0; i < conseillers.length; i++) {
+          if (conseillers[i].id === selectedConseiller) return conseillers[i];
+        }
+        return null;
+      }
+
+      function getSelectedPole() {
+        var poleId = document.getElementById('pole_id').value;
+        for (var i = 0; i < poles.length; i++) {
+          if (poles[i].id === poleId) return poles[i];
+        }
+        return null;
+      }
+
+      function getSelectedFiliere() {
+        var filiereId = document.getElementById('filiere_id').value;
+        for (var i = 0; i < filieres.length; i++) {
+          if (filieres[i].id === filiereId) return filieres[i];
+        }
+        return null;
+      }
+
       formEl.addEventListener('submit', function (e) {
         e.preventDefault();
         formError.className = 'error-box hidden';
@@ -449,6 +472,9 @@
         btn.disabled = true;
         btn.textContent = 'Envoi en cours…';
 
+        var conseiller = getSelectedConseiller();
+        var pole = getSelectedPole();
+        var filiere = getSelectedFiliere();
         var payload = {
           nom: document.getElementById('nom').value.trim(),
           prenom: document.getElementById('prenom').value.trim(),
@@ -456,7 +482,15 @@
           pole_id: document.getElementById('pole_id').value,
           filiere_id: document.getElementById('filiere_id').value,
           type_assistance: selectedType.id,
-          conseiller_id: selectedConseiller
+          conseiller_id: selectedConseiller,
+          profiles: conseiller ? {
+            nom: conseiller.nom || '',
+            prenom: conseiller.prenom || '',
+            email: conseiller.email || '',
+            role: conseiller.role || ''
+          } : undefined,
+          poles: pole ? { nom: pole.nom || '', code: pole.code || '' } : undefined,
+          filieres: filiere ? { nom: filiere.nom || '', code: filiere.code || '' } : undefined
         };
 
         fetch('/api/assistance-stagiaires', {
