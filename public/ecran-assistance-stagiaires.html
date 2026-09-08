@@ -203,8 +203,80 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>
     (function () {
+      var EMAILJS_SERVICE = 'service_exp84pb';
+      var EMAILJS_TEMPLATE = 'template_9fbr18k';
+      var EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB';
+      var DEFAULT_EMAIL_MESSAGE =
+        'Bonjour {conseiller_nom},\n\n' +
+        'Une nouvelle demande d\'assistance vous a été assignée dans le système COP.\n\n' +
+        'Détails de la demande :\n' +
+        '- Stagiaire : {nom_stagiaire}\n' +
+        '- Téléphone : {telephone_stagiaire}\n' +
+        '- Type d\'assistance : {type_assistance}\n' +
+        '- Statut : {statut}\n\n' +
+        'Lien pour accéder à la demande : {lien}\n\n' +
+        'Cordialement,\nNotification automatique - Système COP';
+
+      var TYPE_LABELS = {
+        orientation: 'Orientation',
+        strategie: 'Stratégie de recherche',
+        entretiens: 'Préparation entretiens',
+        developpement: 'Développement personnel',
+        paraformations: 'Accompagnement paraformations'
+      };
+
+      function envoyerNotificationEmail(payload) {
+        if (typeof emailjs === 'undefined') return;
+        emailjs.init(EMAILJS_PUBLIC_KEY);
+        fetch('/api/email-config/assistance')
+          .then(function (r) { return r.json(); })
+          .then(function (config) {
+            if (!config || !config.enabled) return;
+            var recipients = config.recipient_emails || {};
+            var toEmail = recipients[payload.conseiller_id];
+            if (!toEmail && payload.profiles) toEmail = payload.profiles.email;
+            if (!toEmail || toEmail.indexOf('@') === -1) return;
+
+            var conseillerNom = payload.profiles
+              ? ((payload.profiles.prenom || '') + ' ' + (payload.profiles.nom || '')).trim()
+              : 'Conseiller';
+            var typeLabel = TYPE_LABELS[payload.type_assistance] || payload.type_assistance;
+            var demandeUrl = window.location.origin + '/assistance-stagiaires/conseiller';
+            var msgTpl = (config.message && config.message.trim()) ? config.message : DEFAULT_EMAIL_MESSAGE;
+            var emailContent = msgTpl
+              .replace('{conseiller_nom}', conseillerNom)
+              .replace('{nom_stagiaire}', payload.prenom + ' ' + payload.nom)
+              .replace('{telephone_stagiaire}', payload.telephone)
+              .replace('{type_assistance}', typeLabel)
+              .replace('{statut}', 'En attente')
+              .replace('{lien}', demandeUrl);
+
+            return emailjs.send(
+              EMAILJS_SERVICE,
+              EMAILJS_TEMPLATE,
+              {
+                to_email: toEmail,
+                email: toEmail,
+                subject: config.subject,
+                message: emailContent,
+                conseiller_nom: conseillerNom,
+                nom_stagiaire: payload.prenom + ' ' + payload.nom,
+                telephone_stagiaire: payload.telephone,
+                type_assistance: typeLabel,
+                statut: 'En attente',
+                lien: demandeUrl
+              },
+              EMAILJS_PUBLIC_KEY
+            );
+          })
+          .catch(function (err) {
+            console.warn('Notification email:', err);
+          });
+      }
+
       var typesAssistance = [
         {
           id: 'orientation',
@@ -505,6 +577,7 @@
           })
           .then(function (res) {
             if (!res.ok) throw new Error(res.data.error || 'Erreur lors de l\'envoi');
+            envoyerNotificationEmail(payload);
             formEl.className = 'hidden';
             document.getElementById('successMsg').textContent =
               res.data.message || 'Votre demande a été soumise avec succès !';

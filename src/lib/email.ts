@@ -31,6 +31,21 @@ const EMAILJS_TEMPLATE_ASSISTANCE_ID = 'template_9fbr18k' // Template pour deman
 const EMAILJS_TEMPLATE_CERTIFICAT_ID = 'template_certificat_atelier' // Template pour certificats ateliers (à créer dans EmailJS)
 const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB'
 
+export const DEFAULT_ASSISTANCE_EMAIL_MESSAGE = `Bonjour {conseiller_nom},
+
+Une nouvelle demande d'assistance vous a été assignée dans le système COP.
+
+Détails de la demande :
+- Stagiaire : {nom_stagiaire}
+- Téléphone : {telephone_stagiaire}
+- Type d'assistance : {type_assistance}
+- Statut : {statut}
+
+Lien pour accéder à la demande : {lien}
+
+Cordialement,
+Notification automatique - Système COP`
+
 function formatDemandeEmailText(
   template: string,
   demande: DemandeEntreprise,
@@ -273,14 +288,19 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
       orientation: 'Orientation',
       strategie: 'Stratégie de recherche',
       entretiens: 'Préparation entretiens',
-      developpement: 'Développement personnel'
+      developpement: 'Développement personnel',
+      paraformations: 'Accompagnement paraformations',
     }
 
     const typeAssistanceLabel = typesAssistance[demande.type_assistance] || demande.type_assistance
     const statutLabel = demande.statut === 'en_attente' ? 'En attente' : demande.statut === 'en_cours' ? 'En cours' : 'Terminée'
 
+    const messageTemplate = config.message?.trim()
+      ? config.message
+      : DEFAULT_ASSISTANCE_EMAIL_MESSAGE
+
     // Remplacer les variables dans le message
-    let emailContent = config.message
+    let emailContent = messageTemplate
       .replace('{conseiller_nom}', conseillerNom)
       .replace('{nom_stagiaire}', `${demande.prenom} ${demande.nom}`)
       .replace('{telephone_stagiaire}', demande.telephone)
@@ -318,21 +338,12 @@ export async function sendAssistanceAssignmentNotification(demande: DemandeAssis
           EMAILJS_PUBLIC_KEY
         )
       } else {
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service_id: EMAILJS_SERVICE_ID,
-            template_id: EMAILJS_TEMPLATE_ASSISTANCE_ID,
-            user_id: EMAILJS_PUBLIC_KEY,
-            template_params: templateParams,
-          }),
-        })
-        if (!response.ok) {
-          const text = await response.text()
-          throw new Error(`EmailJS HTTP ${response.status}: ${text}`)
-        }
-        result = await response.json()
+        result = await emailjsNode.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ASSISTANCE_ID,
+          templateParams,
+          { publicKey: EMAILJS_PUBLIC_KEY }
+        )
       }
 
       console.log('📧 Résultat EmailJS pour', conseillerEmail, ':', JSON.stringify(result, null, 2))

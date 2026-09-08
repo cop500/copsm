@@ -1,17 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { DEFAULT_ASSISTANCE_EMAIL_MESSAGE } from '@/lib/email'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
-    persistSession: false
-  }
+    persistSession: false,
+  },
 })
 
-export async function GET(request: NextRequest) {
+const DEFAULT_CONFIG = {
+  enabled: true,
+  subject: "Nouvelle demande d'assistance vous a été assignée",
+  message: DEFAULT_ASSISTANCE_EMAIL_MESSAGE,
+  recipient_emails: {} as Record<string, string>,
+}
+
+export async function GET() {
   try {
     const { data, error } = await supabase
       .from('email_notifications_assistance_config')
@@ -20,30 +29,27 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // Aucune ligne trouvée, retourner les valeurs par défaut
-        return NextResponse.json({
-          enabled: true,
-          subject: 'Nouvelle demande d\'assistance vous a été assignée',
-          message: 'Bonjour {conseiller_nom},\n\nUne nouvelle demande d\'assistance vous a été assignée dans le système COP.\n\nDétails de la demande :\n- Stagiaire : {nom_stagiaire}\n- Téléphone : {telephone_stagiaire}\n- Type d\'assistance : {type_assistance}\n- Statut : {statut}\n\nLien pour accéder à la demande : {lien}\n\nCordialement,\nNotification automatique - Système COP',
-          recipient_emails: {}
-        })
+        return NextResponse.json(DEFAULT_CONFIG)
       }
       throw error
     }
 
-    // S'assurer que recipient_emails est un objet
-    if (data && data.recipient_emails) {
+    if (data?.recipient_emails) {
       if (typeof data.recipient_emails === 'string') {
         try {
           data.recipient_emails = JSON.parse(data.recipient_emails)
-        } catch (e) {
+        } catch {
           data.recipient_emails = {}
         }
       }
     }
 
+    if (!data.message?.trim()) {
+      data.message = DEFAULT_ASSISTANCE_EMAIL_MESSAGE
+    }
+
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur récupération config email assistance:', error)
     return NextResponse.json(
       { error: 'Erreur lors de la récupération de la configuration' },
@@ -51,4 +57,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

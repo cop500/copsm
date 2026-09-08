@@ -291,6 +291,39 @@ export default function DemandeAssistance() {
       }
       
       console.log('✅ Demande créée avec succès, ID:', result.data?.id)
+
+      if (result.data?.id && conseillerSelectionne) {
+        try {
+          const { sendAssistanceAssignmentNotification } = await import('@/lib/email')
+          const emailResult = await sendAssistanceAssignmentNotification({
+            id: result.data.id,
+            nom: form.nom.trim(),
+            prenom: form.prenom.trim(),
+            telephone: form.telephone.trim(),
+            type_assistance: form.type_assistance,
+            statut: 'en_attente',
+            conseiller_id: form.conseiller_id,
+            profiles: {
+              nom: conseillerSelectionne.nom || '',
+              prenom: conseillerSelectionne.prenom || '',
+              email: conseillerSelectionne.email || '',
+              role: conseillerSelectionne.role || '',
+            },
+            poles: poleSelectionne
+              ? { nom: poleSelectionne.nom || '', code: poleSelectionne.code || '' }
+              : undefined,
+            filieres: filiereSelectionnee
+              ? { nom: filiereSelectionnee.nom || '', code: filiereSelectionnee.code || '' }
+              : undefined,
+          })
+          if (!emailResult.success) {
+            console.warn('⚠️ Notification email non envoyée:', emailResult.reason)
+          }
+        } catch (emailError) {
+          console.warn('⚠️ Erreur envoi notification email (non bloquant):', emailError)
+        }
+      }
+
       alert(result.message || 'Votre demande a été soumise avec succès ! Vous recevrez une réponse sous 24h.')
       
       // Reset form
