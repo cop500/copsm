@@ -37,6 +37,11 @@ const nextConfig = {
         destination: '/ecran-registre-visiteurs.html',
         permanent: false,
       },
+      {
+        source: '/enquete-insertion/public/ecran',
+        destination: '/ecran-enquete-insertion.html',
+        permanent: false,
+      },
     ]
   },
   // Forcer l'export de toutes les pages

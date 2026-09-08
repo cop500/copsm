@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Enquête d'insertion — COP CMC Souss-Massa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      font-size: 18px;
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+    }
+    .header {
+      background: linear-gradient(135deg, #2563eb, #3730a3);
+      color: #fff;
+      text-align: center;
+      padding: 28px 20px;
+    }
+    .header .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .header h1 { font-size: 26px; margin-bottom: 8px; }
+    .header p { font-size: 16px; opacity: 0.95; }
+    .container { max-width: 800px; margin: 0 auto; padding: 16px; }
+    .section {
+      background: #fff;
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .section h2 {
+      font-size: 20px;
+      color: #1e40af;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-weight: bold; margin-bottom: 6px; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .row { display: block; }
+    @media (min-width: 640px) {
+      .row { display: flex; gap: 14px; }
+      .row .field { flex: 1; }
+    }
+    .yesno { display: flex; gap: 10px; }
+    .yesno .choice { flex: 1; }
+    .choice {
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      font-weight: 600;
+      cursor: pointer;
+      background: #fff;
+      min-height: 52px;
+    }
+    .choice:active { background: #f8fafc; }
+    .choice.selected { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+    .sub-block {
+      background: #eff6ff;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .sub-block.green { background: #ecfdf5; }
+    .notice {
+      text-align: center;
+      font-size: 15px;
+      color: #475569;
+      padding: 12px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 18px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      min-height: 60px;
+    }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error-box {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .loading, .success-screen {
+      text-align: center;
+      padding: 50px 20px;
+      background: #fff;
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .success-screen h2 { color: #059669; font-size: 28px; margin: 16px 0; }
+    .success-icon { font-size: 56px; color: #059669; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge">📊 ENQUÊTE</div>
+    <h1>Enquête d'Insertion Professionnelle</h1>
+    <p>Votre avis nous intéresse !</p>
+  </div>
+
+  <div class="container">
+    <div id="loading" class="loading">Chargement du formulaire…</div>
+
+    <div id="success" class="success-screen hidden">
+      <div class="success-icon">✓</div>
+      <h2>Merci !</h2>
+      <p id="successMsg">Votre réponse a été enregistrée avec succès.</p>
+      <button type="button" class="btn-submit" style="max-width:320px;margin:24px auto 0;" onclick="location.reload()">Nouvelle réponse</button>
+    </div>
+
+    <form id="formEnquete" class="hidden">
+      <div class="section">
+        <h2>Identité</h2>
+        <div class="row">
+          <div class="field">
+            <label for="nom">Nom *</label>
+            <input type="text" id="nom" required autocomplete="family-name" />
+          </div>
+          <div class="field">
+            <label for="prenom">Prénom *</label>
+            <input type="text" id="prenom" required autocomplete="given-name" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Genre *</label>
+          <div class="yesno" id="genreGrid">
+            <div class="choice" data-genre="homme">Homme</div>
+            <div class="choice" data-genre="femme">Femme</div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="promotion">Promotion *</label>
+          <select id="promotion" required>
+            <option value="">— Choisir —</option>
+            <option value="2022-2024">Promotion 2022-2024 (janvier 2025)</option>
+            <option value="2023-2025">Promotion 2023-2025 (janvier 2026)</option>
+            <option value="2024-2026">Promotion 2024-2026 (janvier 2027)</option>
+          </select>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="pole_id">Pôle *</label>
+            <select id="pole_id" required><option value="">— Choisir —</option></select>
+          </div>
+          <div class="field">
+            <label for="filiere_id">Filière *</label>
+            <select id="filiere_id" required disabled><option value="">— Choisir d'abord un pôle —</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Poursuite d'études</h2>
+        <div class="field">
+          <label>Poursuivez-vous actuellement vos études ? *</label>
+          <div class="yesno" id="poursuiteGrid">
+            <div class="choice" data-val="true">Oui</div>
+            <div class="choice selected" data-val="false">Non</div>
+          </div>
+        </div>
+        <div id="poursuiteBlock" class="sub-block hidden">
+          <div class="field">
+            <label for="type_formation">Type de formation *</label>
+            <select id="type_formation">
+              <option value="">— Choisir —</option>
+              <option value="passerelle">Passerelle</option>
+              <option value="licence_pro">Licence professionnelle</option>
+              <option value="licence_excellence">Licence d'excellence</option>
+              <option value="cycle_ingenieur">Cycle d'ingénieur</option>
+              <option value="formation_qualifiante">Formation qualifiante</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="option_specialite">Option / Spécialité *</label>
+            <input type="text" id="option_specialite" placeholder="Ex : Marketing Digital" />
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="ville_formation">Ville *</label>
+              <input type="text" id="ville_formation" placeholder="Ex : Agadir" />
+            </div>
+            <div class="field">
+              <label for="etablissement">Établissement *</label>
+              <input type="text" id="etablissement" placeholder="Ex : Université Ibn Zohr" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Activité professionnelle</h2>
+        <div class="field">
+          <label>Êtes-vous actuellement en activité ? *</label>
+          <div class="yesno" id="activiteGrid">
+            <div class="choice" data-val="true">Oui</div>
+            <div class="choice selected" data-val="false">Non</div>
+          </div>
+        </div>
+        <div id="activiteBlock" class="sub-block green hidden">
+          <div class="field">
+            <label for="type_activite">Type d'activité *</label>
+            <select id="type_activite">
+              <option value="">— Choisir —</option>
+              <option value="emploi_salarie">Emploi salarié</option>
+              <option value="travail_independant">Travail indépendant / Auto-entrepreneur</option>
+              <option value="stage">Stage</option>
+            </select>
+          </div>
+          <div id="emploiBlock" class="hidden">
+            <div class="field">
+              <label for="entreprise_nom">Intitulé de l'entreprise *</label>
+              <input type="text" id="entreprise_nom" placeholder="Ex : Entreprise XYZ" />
+            </div>
+            <div class="field">
+              <label for="poste_occupe">Poste occupé *</label>
+              <input type="text" id="poste_occupe" placeholder="Ex : Technicien" />
+            </div>
+          </div>
+          <div id="independantBlock" class="hidden">
+            <div class="field">
+              <label for="brand_activite">Nom du brand / activité *</label>
+              <input type="text" id="brand_activite" placeholder="Ex : Mon activité" />
+            </div>
+          </div>
+          <div id="stageBlock" class="hidden">
+            <div class="field">
+              <label for="type_stage">Type de stage *</label>
+              <select id="type_stage">
+                <option value="">— Choisir —</option>
+                <option value="insertion">Stage d'insertion</option>
+                <option value="perfectionnement">Stage de perfectionnement</option>
+                <option value="professionnel">Stage professionnel</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="organisme_nom">Intitulé de l'organisme *</label>
+              <input type="text" id="organisme_nom" placeholder="Ex : Ministère…" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="formError" class="error-box hidden"></div>
+      <button type="submit" class="btn-submit" id="btnSubmit">Soumettre l'enquête</button>
+      <div class="notice">🔒 Vos données sont confidentielles et utilisées uniquement à des fins statistiques.</div>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      var formStart = Date.now();
+      var poles = [];
+      var filieres = [];
+      var selectedGenre = '';
+      var poursuiteEtudes = false;
+      var enActivite = false;
+
+      var loadingEl = document.getElementById('loading');
+      var formEl = document.getElementById('formEnquete');
+      var formError = document.getElementById('formError');
+
+      function bindYesNo(gridId, onChange, initial) {
+        var grid = document.getElementById(gridId);
+        var choices = grid.querySelectorAll('.choice');
+        for (var i = 0; i < choices.length; i++) {
+          if (choices[i].getAttribute('data-val') === String(initial)) {
+            choices[i].className = 'choice selected';
+          }
+          choices[i].addEventListener('click', function () {
+            var val = this.getAttribute('data-val') === 'true';
+            onChange(val);
+            var all = grid.querySelectorAll('.choice');
+            for (var j = 0; j < all.length; j++) all[j].className = 'choice';
+            this.className = 'choice selected';
+          });
+        }
+      }
+
+      function bindGenre() {
+        var grid = document.getElementById('genreGrid');
+        var choices = grid.querySelectorAll('.choice');
+        for (var i = 0; i < choices.length; i++) {
+          choices[i].addEventListener('click', function () {
+            selectedGenre = this.getAttribute('data-genre');
+            var all = grid.querySelectorAll('.choice');
+            for (var j = 0; j < all.length; j++) all[j].className = 'choice';
+            this.className = 'choice selected';
+          });
+        }
+      }
+
+      function updatePoursuiteBlock() {
+        document.getElementById('poursuiteBlock').className =
+          poursuiteEtudes ? 'sub-block' : 'sub-block hidden';
+      }
+
+      function updateActiviteBlock() {
+        document.getElementById('activiteBlock').className =
+          enActivite ? 'sub-block green' : 'sub-block green hidden';
+        updateTypeActiviteBlocks();
+      }
+
+      function updateTypeActiviteBlocks() {
+        var type = document.getElementById('type_activite').value;
+        document.getElementById('emploiBlock').className =
+          enActivite && type === 'emploi_salarie' ? '' : 'hidden';
+        document.getElementById('independantBlock').className =
+          enActivite && type === 'travail_independant' ? '' : 'hidden';
+        document.getElementById('stageBlock').className =
+          enActivite && type === 'stage' ? '' : 'hidden';
+      }
+
+      function loadReferentiels() {
+        fetch('/api/enquete-insertion/referentiels')
+          .then(function (r) {
+            return r.json().then(function (data) {
+              return { ok: r.ok, data: data };
+            });
+          })
+          .then(function (res) {
+            if (!res.ok || res.data.error) throw new Error(res.data.error || 'Erreur serveur');
+            poles = res.data.poles || [];
+            filieres = res.data.filieres || [];
+            var poleSelect = document.getElementById('pole_id');
+            for (var i = 0; i < poles.length; i++) {
+              var opt = document.createElement('option');
+              opt.value = poles[i].id;
+              opt.textContent = poles[i].nom;
+              poleSelect.appendChild(opt);
+            }
+            loadingEl.className = 'hidden';
+            formEl.className = '';
+          })
+          .catch(function (err) {
+            loadingEl.className = 'error-box';
+            loadingEl.textContent = err.message || 'Impossible de charger le formulaire.';
+          });
+      }
+
+      document.getElementById('pole_id').addEventListener('change', function () {
+        var poleId = this.value;
+        var filSelect = document.getElementById('filiere_id');
+        filSelect.innerHTML = '<option value="">— Choisir —</option>';
+        filSelect.disabled = !poleId;
+        if (!poleId) return;
+        for (var i = 0; i < filieres.length; i++) {
+          if (filieres[i].pole_id === poleId) {
+            var opt = document.createElement('option');
+            opt.value = filieres[i].id;
+            opt.textContent = filieres[i].nom;
+            filSelect.appendChild(opt);
+          }
+        }
+      });
+
+      document.getElementById('type_activite').addEventListener('change', updateTypeActiviteBlocks);
+
+      bindGenre();
+      bindYesNo('poursuiteGrid', function (v) {
+        poursuiteEtudes = v;
+        updatePoursuiteBlock();
+      }, false);
+      bindYesNo('activiteGrid', function (v) {
+        enActivite = v;
+        updateActiviteBlock();
+      }, false);
+
+      formEl.addEventListener('submit', function (e) {
+        e.preventDefault();
+        formError.className = 'error-box hidden';
+
+        if (!selectedGenre) {
+          formError.textContent = 'Veuillez sélectionner le genre.';
+          formError.className = 'error-box';
+          return;
+        }
+
+        var payload = {
+          nom: document.getElementById('nom').value.trim(),
+          prenom: document.getElementById('prenom').value.trim(),
+          genre: selectedGenre,
+          promotion: document.getElementById('promotion').value,
+          pole_id: document.getElementById('pole_id').value,
+          filiere_id: document.getElementById('filiere_id').value,
+          poursuite_etudes: poursuiteEtudes,
+          type_formation: document.getElementById('type_formation').value,
+          option_specialite: document.getElementById('option_specialite').value.trim(),
+          ville_formation: document.getElementById('ville_formation').value.trim(),
+          etablissement: document.getElementById('etablissement').value.trim(),
+          en_activite: enActivite,
+          type_activite: document.getElementById('type_activite').value,
+          entreprise_nom: document.getElementById('entreprise_nom').value.trim(),
+          poste_occupe: document.getElementById('poste_occupe').value.trim(),
+          brand_activite: document.getElementById('brand_activite').value.trim(),
+          type_stage: document.getElementById('type_stage').value,
+          organisme_nom: document.getElementById('organisme_nom').value.trim(),
+          duree_remplissage: Math.floor((Date.now() - formStart) / 1000)
+        };
+
+        var btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Envoi en cours…';
+
+        fetch('/api/enquete-insertion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) {
+            return r.json().then(function (data) {
+              return { ok: r.ok, data: data };
+            });
+          })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.data.error || 'Erreur lors de la soumission');
+            formEl.className = 'hidden';
+            document.querySelector('.notice').className = 'hidden';
+            document.getElementById('successMsg').textContent =
+              res.data.message || 'Votre réponse a été enregistrée avec succès.';
+            document.getElementById('success').className = 'success-screen';
+          })
+          .catch(function (err) {
+            formError.textContent = err.message || 'Une erreur est survenue.';
+            formError.className = 'error-box';
+          })
+          .then(function () {
+            btn.disabled = false;
+            btn.textContent = "Soumettre l'enquête";
+          });
+      });
+
+      loadReferentiels();
+    })();
+  </script>
+</body>
+</html>
