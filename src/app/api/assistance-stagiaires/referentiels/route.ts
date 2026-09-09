@@ -6,6 +6,7 @@ const CONSEILLERS_AUTORISES = [
   'SIHAM EL OMARI',
   'IMANE IDRISSI',
   'SARA HANZAZE',
+  'FATIMAEZZAHRA AMORI',
 ]
 
 function matchConseillerAutorise(prenom: string, nom: string): boolean {

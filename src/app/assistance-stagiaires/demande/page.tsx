@@ -165,7 +165,7 @@ export default function DemandeAssistance() {
         ])
         
         // Filtrer pour ne garder que les 3 conseillers spécifiques
-        const conseillersAutorises = ['ABDELHAMID INAJJAREN', 'SIHAM EL OMARI', 'IMANE IDRISSI', 'SARA HANZAZE']
+        const conseillersAutorises = ['ABDELHAMID INAJJAREN', 'SIHAM EL OMARI', 'IMANE IDRISSI', 'SARA HANZAZE', 'FATIMAEZZAHRA AMORI']
         const conseillersFiltres = (conseillersResult.data || []).filter(conseiller => {
           const nomComplet = `${conseiller.prenom} ${conseiller.nom}`.toUpperCase()
           return conseillersAutorises.some(autorise => 
