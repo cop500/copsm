@@ -5,7 +5,7 @@ import {
   Archive, ArchiveRestore, Building2, Users, Calendar, 
   ChevronRight, ChevronDown, FileText, Eye, Edit3, 
   Trash2, CheckCircle, AlertTriangle, Clock, XCircle,
-  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet
+  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck
 } from 'lucide-react'
 import JSZip from 'jszip'
 import * as XLSX from 'xlsx'
@@ -17,6 +17,7 @@ import {
   hasPremierEnvoi,
   getCandidatureTriShellClass,
   getCandidatureTriBorderClass,
+  formatCvTriParLabel,
   type CvTriStatut,
 } from '@/lib/cvTriStatut'
 
@@ -34,6 +35,8 @@ interface DemandeEntreprise {
   fichier_url?: string
   type_demande: string
   statut: string
+  traite_par?: string | null
+  traite_par_nom?: string | null
   created_at: string
   updated_at?: string
   candidatures_count?: number
@@ -56,6 +59,8 @@ interface Candidature {
   demande_entreprise_id?: string
   poste_index?: number
   cv_tri_statut?: string
+  cv_tri_par_nom?: string | null
+  cv_tri_le?: string | null
   cv_telecharge_le?: string | null
   cv_dernier_envoi_le?: string | null
   cv_nb_envois?: number
@@ -444,6 +449,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     const cvTri = candidature.cv_tri_statut || 'en_attente'
     const isUpdatingTri = updatingCvTriId === candidature.id
     const premierEnvoiBadge = getPremierEnvoiBadge(candidature.cv_telecharge_le)
+    const triParLabel = formatCvTriParLabel(candidature.cv_tri_par_nom, candidature.cv_tri_le)
 
     return (
     <div className={`flex items-start justify-between gap-4 rounded-lg p-3 ${getCandidatureTriShellClass(cvTri)}`}>
@@ -518,6 +524,9 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
           )}
           {cvTri === 'refuse' && (
             <span className="font-semibold text-red-800">Tri : CV écarté</span>
+          )}
+          {triParLabel && (
+            <span className="text-gray-600 italic">{triParLabel}</span>
           )}
         </div>
         
@@ -652,13 +661,30 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                   </div>
                   
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
+                    <div className="flex items-center flex-wrap gap-2 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">
                         {demande.entreprise_nom}
                       </h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatutColor(demande.statut)}`}>
                         {getStatutLabel(demande.statut)}
                       </span>
+                      {demande.traite_par_nom ? (
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-800 border border-indigo-200"
+                          title="Personne en charge du suivi de cette demande"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" />
+                          Assignée à : {demande.traite_par_nom}
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200"
+                          title="Aucun conseiller n'a encore pris en charge cette demande"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Demande non assignée
+                        </span>
+                      )}
                     </div>
                     
                     <div className="flex items-center space-x-6 text-sm text-gray-600">
@@ -1061,6 +1087,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                     {getCvTriLabel(selectedCandidature.cv_tri_statut)}
                   </span>
                 </div>
+                {formatCvTriParLabel(selectedCandidature.cv_tri_par_nom, selectedCandidature.cv_tri_le) && (
+                  <p className="mt-2 text-sm text-gray-600 italic">
+                    {formatCvTriParLabel(selectedCandidature.cv_tri_par_nom, selectedCandidature.cv_tri_le)}
+                  </p>
+                )}
               </div>
 
               {/* Notes */}

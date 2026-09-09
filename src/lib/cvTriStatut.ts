@@ -22,6 +22,22 @@ export function getCvTriColor(statut?: string | null): string {
   }
 }
 
+export function formatCvTriParLabel(
+  cvTriParNom?: string | null,
+  cvTriLe?: string | null
+): string | null {
+  if (!cvTriParNom?.trim()) return null
+  if (!cvTriLe) return `Trié par ${cvTriParNom.trim()}`
+  const date = new Date(cvTriLe).toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  return `Trié par ${cvTriParNom.trim()} le ${date}`
+}
+
 /** Contour de fiche candidature selon le tri CV. */
 export function getCandidatureTriShellClass(statut?: string | null): string {
   switch (statut) {

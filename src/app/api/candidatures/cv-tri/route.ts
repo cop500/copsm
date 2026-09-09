@@ -19,13 +19,37 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'cv_tri_statut invalide' }, { status: 400 })
     }
 
+    const profile = auth.profile as {
+      id: string
+      nom?: string
+      prenom?: string
+    }
+    const triParNom = `${profile.prenom || ''} ${profile.nom || ''}`.trim() || 'Conseiller'
+    const now = new Date().toISOString()
+
+    const triMeta =
+      cvTriStatut === 'en_attente'
+        ? {
+            cv_tri_par_id: null,
+            cv_tri_par_nom: null,
+            cv_tri_le: null,
+          }
+        : {
+            cv_tri_par_id: profile.id,
+            cv_tri_par_nom: triParNom,
+            cv_tri_le: now,
+          }
+
     const { data, error } = await auth.supabaseAdmin!
       .from('candidatures_stagiaires')
       .update({
         cv_tri_statut: cvTriStatut,
+        ...triMeta,
       })
       .eq('id', candidatureId)
-      .select('id, cv_tri_statut, cv_telecharge_le, cv_dernier_envoi_le, cv_nb_envois')
+      .select(
+        'id, cv_tri_statut, cv_telecharge_le, cv_dernier_envoi_le, cv_nb_envois, cv_tri_par_id, cv_tri_par_nom, cv_tri_le'
+      )
       .single()
 
     if (error) {

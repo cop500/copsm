@@ -2,7 +2,7 @@
 // src/hooks/useDemandesEntreprises.ts - Hook pour gestion des demandes d'entreprises
 // ========================================
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { fetchAllPages } from '@/lib/supabaseFetchAll'
 import { useRealTime } from './useRealTime'
@@ -33,10 +33,24 @@ interface DemandeEntreprise {
   fichier_url?: string
   type_demande: string
   statut: string
+  traite_par?: string | null
+  traite_par_nom?: string | null
   created_at: string
   updated_at?: string
   candidatures_count?: number
   candidatures?: Candidature[]
+}
+
+type ProfileRef = { id: string; nom: string; prenom: string }
+
+function resolveTraiteParNom(
+  traiteParId: string | null | undefined,
+  profileMap: Map<string, ProfileRef>
+): string | null {
+  if (!traiteParId) return null
+  const profile = profileMap.get(traiteParId)
+  if (!profile) return null
+  return `${profile.prenom || ''} ${profile.nom || ''}`.trim() || null
 }
 
 interface Candidature {
@@ -67,6 +81,9 @@ interface Candidature {
   demande_entreprise_id?: string
   poste_index?: number
   cv_tri_statut?: string
+  cv_tri_par_id?: string | null
+  cv_tri_par_nom?: string | null
+  cv_tri_le?: string | null
   cv_telecharge_le?: string | null
   cv_dernier_envoi_le?: string | null
   cv_nb_envois?: number
@@ -74,6 +91,7 @@ interface Candidature {
 
 export const useDemandesEntreprises = () => {
   const [demandes, setDemandes] = useState<DemandeEntreprise[]>([])
+  const profileMapRef = useRef<Map<string, ProfileRef>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [cvTriPersistenceWarning, setCvTriPersistenceWarning] = useState<string | null>(null)
@@ -144,6 +162,19 @@ export const useDemandesEntreprises = () => {
       
       if (demandesError) throw demandesError
 
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, nom, prenom')
+
+      if (profilesError) {
+        console.warn('Erreur chargement profils (assignation demandes):', profilesError)
+      }
+
+      const profileMap = new Map<string, ProfileRef>(
+        (profilesData || []).map((p) => [p.id, p as ProfileRef])
+      )
+      profileMapRef.current = profileMap
+
       // Charger les candidatures (pagination pour dépasser la limite Supabase de 1000)
       const candidaturesData = await fetchAllPages<Candidature>((from, to) =>
         supabase
@@ -165,12 +196,13 @@ export const useDemandesEntreprises = () => {
       }, {} as Record<string, Candidature[]>) || {}
 
       // Enrichir les demandes avec les candidatures (+ cache local de repli)
-      const demandesEnrichies = demandesData?.map(demande => {
+      const demandesEnrichies = demandesData?.map((demande) => {
         const candidatures = mergeCvTriFromCache(
           candidaturesByDemande[demande.id] || candidaturesByDemande[demande.entreprise_nom] || []
         )
         return {
           ...demande,
+          traite_par_nom: resolveTraiteParNom(demande.traite_par, profileMap),
           candidatures_count: candidatures.length,
           candidatures,
         }
@@ -356,11 +388,28 @@ export const useDemandesEntreprises = () => {
     setDemandes((prev) => {
       if (eventType === 'INSERT' && newRow) {
         console.log('➕ Nouvelle demande ajoutée:', newRow)
-        return [newRow, ...prev]
+        return [
+          {
+            ...newRow,
+            traite_par_nom: resolveTraiteParNom(newRow.traite_par, profileMapRef.current),
+            candidatures: [],
+            candidatures_count: 0,
+          },
+          ...prev,
+        ]
       }
       if (eventType === 'UPDATE' && newRow) {
         console.log('✏️ Demande mise à jour:', newRow)
-        return prev.map((item) => (item.id === newRow.id ? newRow : item))
+        return prev.map((item) => {
+          if (item.id !== newRow.id) return item
+          return {
+            ...item,
+            ...newRow,
+            candidatures: item.candidatures,
+            candidatures_count: item.candidatures_count,
+            traite_par_nom: resolveTraiteParNom(newRow.traite_par, profileMapRef.current),
+          }
+        })
       }
       if (eventType === 'DELETE' && oldRow) {
         console.log('🗑️ Demande supprimée:', oldRow)

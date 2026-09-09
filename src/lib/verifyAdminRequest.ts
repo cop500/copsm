@@ -125,7 +125,7 @@ export async function verifyStaffFromRequest(request: Request) {
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('role')
+    .select('id, role, nom, prenom')
     .eq('id', user.id)
     .single()
 
