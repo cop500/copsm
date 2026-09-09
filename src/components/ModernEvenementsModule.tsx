@@ -58,14 +58,9 @@ export const ModernEvenementsModule = () => {
   const stableIsCarriere = memoizedRoles.isCarriere || isCarriere;
   const stableIsConseillerCop = memoizedRoles.isConseillerCop;
 
-  /** Admin + équipe métier ; le directeur ne voit pas l’onglet pour l’instant */
+  /** Admin et manager COP uniquement ; pas les conseillers ni le directeur */
   const canViewPartenariats =
-    !stableIsDirecteur &&
-    (stableIsAdmin ||
-      isAdmin ||
-      stableIsManager ||
-      stableIsCarriere ||
-      stableIsConseillerCop)
+    !stableIsDirecteur && (stableIsAdmin || isAdmin || stableIsManager)
 
   // Utiliser directement les données du hook sans synchronisation complexe
   // Protection contre les données invalides

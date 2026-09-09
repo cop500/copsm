@@ -202,11 +202,10 @@ async function downloadConventionPdfFile(c: ConventionRow): Promise<void> {
 }
 
 export default function PartenariatsConventionsModule() {
-  const { isAdmin, isDirecteur, isManager, isConseiller, isCarriere } = useRole()
+  const { isAdmin, isDirecteur, isManager } = useRole()
   const { poles } = useSettings()
-  /** Le directeur n’a pas accès pour l’instant ; manager / conseillers / carrière : lecture seule */
-  const canView =
-    !isDirecteur && (isAdmin || isManager || isConseiller || isCarriere)
+  /** Admin et manager COP ; pas les conseillers ni le directeur */
+  const canView = !isDirecteur && (isAdmin || isManager)
   /** Tous les droits réservés au rôle admin métier (business_developer) */
   const canEdit = isAdmin
   const [loading, setLoading] = useState(true)
