@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  isAssistanceAdmin,
+  verifyAssistanceFromRequest,
+} from '@/lib/verifyAssistanceRequest'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -17,7 +21,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    // Gérer params qui peut être une Promise dans Next.js 15+
+    const auth = await verifyAssistanceFromRequest(request)
+    if ('error' in auth && auth.error) return auth.error
+
     const resolvedParams = params instanceof Promise ? await params : params
     
     const { data, error } = await supabase
@@ -39,6 +45,13 @@ export async function GET(
       )
     }
 
+    if (
+      !isAssistanceAdmin(auth.profile.role) &&
+      data.conseiller_id !== auth.profile.id
+    ) {
+      return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 })
+    }
+
     return NextResponse.json({
       success: true,
       data
@@ -58,7 +71,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    // Gérer params qui peut être une Promise dans Next.js 15+
+    const auth = await verifyAssistanceFromRequest(request)
+    if ('error' in auth && auth.error) return auth.error
+
+    const isAdmin = isAssistanceAdmin(auth.profile.role)
     const resolvedParams = params instanceof Promise ? await params : params
     
     // Vérifier que params.id est valide
@@ -67,6 +83,23 @@ export async function PUT(
       return NextResponse.json(
         { error: 'ID de demande invalide dans l\'URL' },
         { status: 400 }
+      )
+    }
+
+    const { data: existingDemande, error: existingError } = await supabase
+      .from('demandes_assistance_stagiaires')
+      .select('id, conseiller_id')
+      .eq('id', resolvedParams.id)
+      .single()
+
+    if (existingError || !existingDemande) {
+      return NextResponse.json({ error: 'Demande non trouvée' }, { status: 404 })
+    }
+
+    if (!isAdmin && existingDemande.conseiller_id !== auth.profile.id) {
+      return NextResponse.json(
+        { error: 'Vous ne pouvez modifier que vos propres demandes' },
+        { status: 403 }
       )
     }
 
@@ -93,8 +126,8 @@ export async function PUT(
     
     if (body.statut) updateData.statut = body.statut
     
-    // Valider et ajouter conseiller_id seulement s'il est défini et valide
-    if (body.conseiller_id) {
+    // Valider et ajouter conseiller_id seulement s'il est défini et valide (admin uniquement)
+    if (body.conseiller_id && isAdmin) {
       const conseillerId = String(body.conseiller_id).trim()
       if (conseillerId && conseillerId !== 'undefined' && conseillerId !== 'null' && conseillerId.length > 0) {
         // Vérifier que c'est un UUID valide (format basique)
@@ -272,7 +305,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    // Gérer params qui peut être une Promise dans Next.js 15+
+    const auth = await verifyAssistanceFromRequest(request)
+    if ('error' in auth && auth.error) return auth.error
+
+    if (!isAssistanceAdmin(auth.profile.role)) {
+      return NextResponse.json(
+        { error: 'Suppression réservée aux administrateurs' },
+        { status: 403 }
+      )
+    }
+
     const resolvedParams = params instanceof Promise ? await params : params
     
     const { error } = await supabase

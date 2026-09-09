@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   Search, 
   Filter, 
@@ -18,6 +18,10 @@ import {
   X
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { getRoleLabel } from '@/utils/constants'
+import { getAssistanceAuthHeaders } from '@/lib/assistanceAuthClient'
 
 interface DemandeAssistance {
   id: string
@@ -62,7 +66,14 @@ const statuts = {
   terminee: { label: 'Terminée', color: 'bg-green-100 text-green-800', icon: CheckCircle }
 }
 
+const CONSEILLER_ROLES = new Set(['conseiller_cop', 'conseillere_carriere'])
+
 export default function InterfaceConseiller() {
+  const router = useRouter()
+  const { profile, loading: authLoading } = useAuth()
+  const conseillerId = profile?.id || ''
+  const isConseiller = profile?.role ? CONSEILLER_ROLES.has(profile.role) : false
+
   const [demandes, setDemandes] = useState<DemandeAssistance[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -79,16 +90,21 @@ export default function InterfaceConseiller() {
   const [selectedDemande, setSelectedDemande] = useState<DemandeAssistance | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
-  const [conseillerConnecte, setConseillerConnecte] = useState<string>('')
-  const [showConseillerSelect, setShowConseillerSelect] = useState(true)
   const [notes, setNotes] = useState<string>('')
   const [savingNotes, setSavingNotes] = useState(false)
-
-  // Liste des conseillers disponibles avec leurs vrais IDs de la base de données
-  const [conseillers, setConseillers] = useState<Array<{id: string, nom: string, role: string}>>([])
-  const [conseillersLoading, setConseillersLoading] = useState(true)
   const [poles, setPoles] = useState<any[]>([])
   const [filieres, setFilieres] = useState<any[]>([])
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!profile) {
+      router.replace('/login')
+      return
+    }
+    if (!isConseiller) {
+      router.replace('/dashboard-full')
+    }
+  }, [authLoading, profile, isConseiller, router])
 
   // Charger les pôles et filières
   const loadPolesFilieres = async () => {
@@ -108,161 +124,42 @@ export default function InterfaceConseiller() {
     }
   }
 
-  // Charger les IDs des conseillers depuis la base de données
-  const loadConseillers = async () => {
-    try {
-      setConseillersLoading(true)
-      const response = await fetch('/api/assistance-stagiaires')
-      const result = await response.json()
-      
-      if (result.success && result.conseillers) {
-        const conseillersAutorises = ['ABDELHAMID INAJJAREN', 'SIHAM EL OMARI', 'IMANE IDRISSI', 'SARA HANZAZE', 'FATIMAEZZAHRA AMORI']
-        const conseillersFiltres = result.conseillers.filter((conseiller: any) => {
-          const nomComplet = `${conseiller.prenom} ${conseiller.nom}`.toUpperCase()
-          return conseillersAutorises.some(autorise => 
-            nomComplet.includes(autorise.toUpperCase()) || 
-            autorise.toUpperCase().includes(nomComplet)
-          )
-        })
-        
-        const conseillersAvecIds = conseillersFiltres
-          .filter((conseiller: any) => {
-            // Filtrer les conseillers avec des IDs valides
-            if (!conseiller.id || conseiller.id === 'undefined' || conseiller.id.trim() === '') {
-              console.warn('Conseiller sans ID valide ignoré:', conseiller)
-              return false
-            }
-            // Vérifier que c'est un UUID valide
-            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-            if (!uuidRegex.test(conseiller.id.trim())) {
-              console.warn('Conseiller avec ID non-UUID ignoré:', conseiller.id, conseiller)
-              return false
-            }
-            return true
-          })
-          .map((conseiller: any) => ({
-            id: conseiller.id.trim(),
-            nom: `${conseiller.prenom} ${conseiller.nom}`.toUpperCase(),
-            role: conseiller.role === 'conseiller_cop' 
-              ? (conseiller.prenom?.toUpperCase().includes('SARA') ? 'Conseillère d\'orientation' : 'Conseiller d\'orientation')
-              : 'Conseillère Carrière'
-          }))
-        
-        console.log('Conseillers chargés:', conseillersAvecIds)
-        setConseillers(conseillersAvecIds)
-        
-        // Vérifier que le conseiller connecté existe toujours dans la liste
-        if (conseillerConnecte && conseillerConnecte.trim() !== '') {
-          const conseillerExiste = conseillersAvecIds.some((c: {id: string, nom: string, role: string}) => c.id === conseillerConnecte.trim())
-          if (!conseillerExiste) {
-            console.warn('Conseiller connecté non trouvé dans la liste, déconnexion forcée')
-            setConseillerConnecte('')
-            setShowConseillerSelect(true)
-            localStorage.removeItem('conseillerConnecte')
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Erreur lors du chargement des conseillers:', err)
-    } finally {
-      setConseillersLoading(false)
-    }
-  }
+  const loadDemandes = useCallback(async () => {
+    if (!conseillerId) return
 
-  // Charger les demandes
-  const loadDemandes = async () => {
-    if (!conseillerConnecte || conseillerConnecte.trim() === '' || conseillerConnecte === 'undefined') {
-      console.warn('Conseiller non connecté, impossible de charger les demandes')
-      return
-    }
-    
     try {
       setLoading(true)
-      const response = await fetch('/api/assistance-stagiaires')
+      setError('')
+      const headers = await getAssistanceAuthHeaders()
+      const response = await fetch('/api/assistance-stagiaires', { headers })
       const result = await response.json()
-      
+
+      if (response.status === 401 || response.status === 403) {
+        setError(result.error || 'Accès non autorisé')
+        return
+      }
+
       if (result.success) {
-        // Filtrer les demandes : celles assignées à ce conseiller OU celles en attente (non assignées)
-        const demandesFiltrees = (result.data || []).filter((demande: DemandeAssistance) => {
-          // Afficher les demandes assignées à ce conseiller
-          if (demande.conseiller_id === conseillerConnecte) {
-            return true
-          }
-          // Afficher aussi les demandes en attente (non assignées) pour que le conseiller puisse les prendre
-          if (demande.statut === 'en_attente' && (!demande.conseiller_id || demande.conseiller_id.trim() === '')) {
-            return true
-          }
-          return false
-        })
-        console.log('Demandes chargées:', {
-          total: result.data?.length || 0,
-          filtrees: demandesFiltrees.length,
-          conseillerConnecte
-        })
-        setDemandes(demandesFiltrees)
+        setDemandes(result.data || [])
       } else {
-        setError('Erreur lors du chargement des demandes')
+        setError(result.error || 'Erreur lors du chargement des demandes')
       }
     } catch (err) {
-      setError('Erreur de connexion')
-      console.error('Erreur lors du chargement des demandes:', err)
+      setError(err instanceof Error ? err.message : 'Erreur de connexion')
     } finally {
       setLoading(false)
     }
-  }
+  }, [conseillerId])
 
-  // Charger les conseillers au démarrage
   useEffect(() => {
-    loadConseillers()
     loadPolesFilieres()
   }, [])
 
   useEffect(() => {
-    if (conseillerConnecte) {
+    if (conseillerId && isConseiller) {
       loadDemandes()
     }
-  }, [conseillerConnecte])
-
-  // Fonction pour se connecter en tant que conseiller
-  const handleConseillerLogin = (conseillerId: string) => {
-    console.log('handleConseillerLogin appelé avec:', conseillerId)
-    if (!conseillerId || conseillerId.trim() === '' || conseillerId === 'undefined') {
-      console.error('ID conseiller invalide:', conseillerId)
-      setActionError('Erreur: ID conseiller invalide')
-      return
-    }
-    const idTrimmed = conseillerId.trim()
-    console.log('Conseiller ID validé:', idTrimmed)
-    setConseillerConnecte(idTrimmed)
-    setShowConseillerSelect(false)
-    localStorage.setItem('conseillerConnecte', idTrimmed)
-    console.log('Conseiller connecté et sauvegardé:', idTrimmed)
-  }
-
-  // Vérifier si un conseiller est déjà connecté
-  useEffect(() => {
-    const conseillerSauvegarde = localStorage.getItem('conseillerConnecte')
-    if (conseillerSauvegarde && conseillerSauvegarde.trim() !== '' && conseillerSauvegarde !== 'undefined') {
-      const idTrimmed = conseillerSauvegarde.trim()
-      // Vérifier que c'est un UUID valide (format basique)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (uuidRegex.test(idTrimmed)) {
-        setConseillerConnecte(idTrimmed)
-        setShowConseillerSelect(false)
-        console.log('Conseiller restauré depuis localStorage:', idTrimmed)
-      } else {
-        console.error('ID conseiller invalide dans localStorage:', idTrimmed)
-        localStorage.removeItem('conseillerConnecte')
-        setConseillerConnecte('')
-        setShowConseillerSelect(true)
-      }
-    } else {
-      // Nettoyer localStorage si la valeur est invalide
-      localStorage.removeItem('conseillerConnecte')
-      setConseillerConnecte('')
-      setShowConseillerSelect(true)
-    }
-  }, [])
+  }, [conseillerId, isConseiller, loadDemandes])
 
   // Filtrer les demandes
   const filteredDemandes = demandes.filter(demande => {
@@ -303,99 +200,16 @@ export default function InterfaceConseiller() {
         return
       }
       
-      // Si l'action est "prendre", vérifier que le conseiller est connecté
-      if (action === 'prendre') {
-        // Vérifier que conseillerConnecte existe et est valide
-        if (!conseillerConnecte || conseillerConnecte === 'undefined' || conseillerConnecte.trim() === '') {
-          console.error('Conseiller non connecté:', conseillerConnecte)
-          setActionError('Erreur: Aucun conseiller sélectionné. Veuillez vous reconnecter.')
-          setActionLoading(false)
-          return
-        }
-        
-        // Vérifier que c'est un UUID valide
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        const conseillerIdTrimmed = conseillerConnecte.trim()
-        if (!uuidRegex.test(conseillerIdTrimmed)) {
-          console.error('Format UUID invalide pour conseiller:', conseillerIdTrimmed)
-          setActionError('Erreur: ID conseiller invalide. Veuillez vous reconnecter.')
-          setActionLoading(false)
-          return
-        }
-        
-        // Vérifier que le conseiller existe dans la liste des conseillers chargés
-        const conseillerExiste = conseillers.some((c: {id: string, nom: string, role: string}) => c.id === conseillerIdTrimmed)
-        if (!conseillerExiste) {
-          console.error('Conseiller non trouvé dans la liste:', conseillerIdTrimmed, 'Liste:', conseillers)
-          setActionError('Erreur: Conseiller non trouvé. Veuillez vous reconnecter.')
-          setActionLoading(false)
-          return
-        }
-      }
-      
-      // Préparer les données de mise à jour
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         statut: action === 'prendre' ? 'en_cours' : action === 'terminer' ? 'terminee' : data?.statut,
-        ...data
+        ...data,
       }
-      
-      // Si l'action est "prendre", ajouter le conseiller_id
-      if (action === 'prendre') {
-        const conseillerIdTrimmed = conseillerConnecte.trim()
-        // Double vérification avant d'ajouter
-        if (conseillerIdTrimmed && conseillerIdTrimmed !== 'undefined' && conseillerIdTrimmed !== '') {
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-          if (uuidRegex.test(conseillerIdTrimmed)) {
-            updateData.conseiller_id = conseillerIdTrimmed
-            console.log('✅ Conseiller ID validé et ajouté à updateData:', conseillerIdTrimmed)
-          } else {
-            console.error('❌ Format UUID invalide après validation:', conseillerIdTrimmed)
-            setActionError('Erreur: Format ID conseiller invalide. Veuillez vous reconnecter.')
-            setActionLoading(false)
-            return
-          }
-        } else {
-          console.error('❌ Conseiller ID invalide après validation:', conseillerIdTrimmed)
-          setActionError('Erreur: ID conseiller invalide. Veuillez vous reconnecter.')
-          setActionLoading(false)
-          return
-        }
-      }
-      
-      // Vérifier que updateData.conseiller_id existe si l'action est "prendre"
-      if (action === 'prendre' && !updateData.conseiller_id) {
-        console.error('❌ conseiller_id manquant dans updateData après validation')
-        setActionError('Erreur: Impossible de déterminer l\'ID du conseiller. Veuillez vous reconnecter.')
-        setActionLoading(false)
-        return
-      }
-      
-      const bodyJson = JSON.stringify(updateData)
-      console.log('📤 Envoi requête PUT:', { 
-        url: `/api/assistance-stagiaires/${demandeId}`,
-        demandeId, 
-        action, 
-        updateData, 
-        bodyJson,
-        conseillerConnecte,
-        hasConseillerId: !!updateData.conseiller_id,
-        conseillerIdValue: updateData.conseiller_id
-      })
-      
-      // Vérifier que le JSON ne contient pas "undefined"
-      if (bodyJson.includes('"undefined"') || bodyJson.includes('undefined')) {
-        console.error('❌ Le JSON contient "undefined":', bodyJson)
-        setActionError('Erreur: Données invalides détectées. Veuillez vous reconnecter.')
-        setActionLoading(false)
-        return
-      }
-      
+
+      const headers = await getAssistanceAuthHeaders(true)
       const response = await fetch(`/api/assistance-stagiaires/${demandeId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: bodyJson
+        headers,
+        body: JSON.stringify(updateData),
       })
       
       const result = await response.json()
@@ -434,119 +248,17 @@ export default function InterfaceConseiller() {
     })
   }
 
-  // Interface de sélection du conseiller
-  if (showConseillerSelect) {
+  const conseillerNom = profile
+    ? `${profile.prenom || ''} ${profile.nom || ''}`.trim().toUpperCase()
+    : ''
+  const conseillerRoleLabel = profile?.role
+    ? getRoleLabel(profile.role, profile.prenom)
+    : ''
+
+  if (authLoading || !profile || !isConseiller) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                🆘 Interface Conseiller
-              </h1>
-              <p className="text-gray-600">
-                Sélectionnez votre profil pour accéder à vos demandes d'assistance
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {conseillersLoading ? (
-                <div className="col-span-full flex justify-center items-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-gray-600">Chargement des conseillers...</span>
-                </div>
-              ) : (
-                conseillers.map((conseiller) => (
-                  <button
-                    key={conseiller.id}
-                    onClick={() => handleConseillerLogin(conseiller.id)}
-                    className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                        <User className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {conseiller.nom}
-                        </h3>
-                        <p className="text-gray-600">{conseiller.role}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-
-            <div className="mt-8 text-center">
-              <Link
-                href="/assistance-stagiaires"
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ← Retour à l'accueil
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const conseillerActuel = conseillers.find((c: {id: string, nom: string, role: string}) => c.id === conseillerConnecte)
-  
-  // Log pour déboguer
-  console.log('🔍 État actuel:', {
-    conseillerConnecte,
-    conseillerActuel,
-    conseillersCount: conseillers.length,
-    showConseillerSelect
-  })
-
-  // Vérifier que le conseiller est bien connecté avant d'afficher l'interface
-  if (!conseillerConnecte || conseillerConnecte.trim() === '' || conseillerConnecte === 'undefined') {
-    console.warn('⚠️ Conseiller non connecté, affichage de la sélection')
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                🆘 Interface Conseiller
-              </h1>
-              <p className="text-gray-600">
-                Veuillez sélectionner votre profil pour accéder à vos demandes d'assistance
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {conseillersLoading ? (
-                <div className="col-span-full flex justify-center items-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-gray-600">Chargement des conseillers...</span>
-                </div>
-              ) : (
-                conseillers.map((conseiller) => (
-                  <button
-                    key={conseiller.id}
-                    onClick={() => handleConseillerLogin(conseiller.id)}
-                    className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                        <User className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {conseiller.nom}
-                        </h3>
-                        <p className="text-gray-600">{conseiller.role}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
       </div>
     )
   }
@@ -559,35 +271,19 @@ export default function InterfaceConseiller() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                🆘 Interface Conseiller - {conseillerActuel?.nom || 'Non connecté'}
+                🆘 Interface Conseiller — {conseillerNom}
               </h1>
               <p className="text-gray-600">
-                Gérez vos demandes d'assistance assignées
+                {conseillerRoleLabel} — vos demandes d&apos;assistance assignées uniquement
               </p>
-              {conseillerConnecte && (
-                <p className="text-xs text-gray-400 mt-1">
-                  ID: {conseillerConnecte.substring(0, 8)}...
-                </p>
-              )}
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  localStorage.removeItem('conseillerConnecte')
-                  setConseillerConnecte('')
-                  setShowConseillerSelect(true)
-                }}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                Changer de conseiller
-              </button>
               <Link
-                href="/assistance-stagiaires"
+                href="/stagiaires?tab=assistance-conseiller"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <User className="w-4 h-4" />
-                Retour à l'accueil
+                Retour
               </Link>
             </div>
           </div>
@@ -974,12 +670,11 @@ export default function InterfaceConseiller() {
                         if (!selectedDemande) return
                         setSavingNotes(true)
                         try {
+                          const noteHeaders = await getAssistanceAuthHeaders(true)
                           const response = await fetch(`/api/assistance-stagiaires/${selectedDemande.id}`, {
                             method: 'PUT',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ notes })
+                            headers: noteHeaders,
+                            body: JSON.stringify({ notes }),
                           })
                           
                           if (!response.ok) {

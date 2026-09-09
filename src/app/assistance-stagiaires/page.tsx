@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { useRole } from '@/hooks/useRole'
+import { getAssistanceAuthHeaders } from '@/lib/assistanceAuthClient'
 import { 
   MessageSquare, 
   Clock, 
@@ -53,32 +57,50 @@ const statuts = {
   terminee: { label: 'Terminée', color: 'bg-green-100 text-green-800', icon: CheckCircle }
 }
 
+const CONSEILLER_ROLES = new Set(['conseiller_cop', 'conseillere_carriere'])
+
 export default function AssistanceStagiaires() {
+  const router = useRouter()
+  const { profile, loading: authLoading } = useAuth()
+  const { isAdmin } = useRole()
+  const isConseiller = profile?.role ? CONSEILLER_ROLES.has(profile.role) : false
+
   const [demandes, setDemandes] = useState<DemandeAssistance[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    if (authLoading) return
+    if (isConseiller && !isAdmin) {
+      router.replace('/assistance-stagiaires/conseiller')
+    }
+  }, [authLoading, isConseiller, isAdmin, router])
+
   const loadDemandes = async () => {
+    if (!isAdmin) return
     try {
       setLoading(true)
-      const response = await fetch('/api/assistance-stagiaires')
+      const headers = await getAssistanceAuthHeaders()
+      const response = await fetch('/api/assistance-stagiaires', { headers })
       const result = await response.json()
       
       if (result.success) {
         setDemandes(result.data || [])
       } else {
-        setError('Erreur lors du chargement des demandes')
+        setError(result.error || 'Erreur lors du chargement des demandes')
       }
     } catch (err) {
-      setError('Erreur de connexion')
+      setError(err instanceof Error ? err.message : 'Erreur de connexion')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadDemandes()
-  }, [])
+    if (isAdmin) {
+      loadDemandes()
+    }
+  }, [isAdmin])
 
   const getStatutIcon = (statut: string) => {
     const IconComponent = statuts[statut as keyof typeof statuts]?.icon || Clock
@@ -215,20 +237,22 @@ export default function AssistanceStagiaires() {
             </div>
           </Link>
 
-          <Link
-            href="/assistance-stagiaires/admin"
-            className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
-                <BarChart3 className="w-6 h-6 text-purple-600" />
+          {isAdmin && (
+            <Link
+              href="/assistance-stagiaires/admin"
+              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
+                  <BarChart3 className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Tableau de bord admin</h3>
+                  <p className="text-gray-600">Vue d&apos;ensemble de toutes les demandes</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Tableau de bord admin</h3>
-                <p className="text-gray-600">Vue d'ensemble de toutes les demandes</p>
-              </div>
-            </div>
-          </Link>
+            </Link>
+          )}
         </div>
 
         {/* Liste des demandes récentes */}

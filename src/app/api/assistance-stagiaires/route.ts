@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  isAssistanceAdmin,
+  verifyAssistanceFromRequest,
+} from '@/lib/verifyAssistanceRequest'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -148,12 +152,17 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await verifyAssistanceFromRequest(request)
+    if ('error' in auth && auth.error) return auth.error
+
+    const { profile } = auth
+    const isAdmin = isAssistanceAdmin(profile.role)
+
     const { searchParams } = new URL(request.url)
     const statut = searchParams.get('statut')
     const conseiller_id = searchParams.get('conseiller_id')
     const type_assistance = searchParams.get('type_assistance')
 
-    // Construire la requête avec filtres optionnels
     let query = supabase
       .from('demandes_assistance_stagiaires')
       .select(`
@@ -164,12 +173,14 @@ export async function GET(request: NextRequest) {
       `)
       .order('created_at', { ascending: false })
 
-    // Appliquer les filtres
+    if (!isAdmin) {
+      query = query.eq('conseiller_id', profile.id)
+    } else if (conseiller_id) {
+      query = query.eq('conseiller_id', conseiller_id)
+    }
+
     if (statut) {
       query = query.eq('statut', statut)
-    }
-    if (conseiller_id) {
-      query = query.eq('conseiller_id', conseiller_id)
     }
     if (type_assistance) {
       query = query.eq('type_assistance', type_assistance)
@@ -185,23 +196,27 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Récupérer aussi les conseillers disponibles
-    const { data: conseillersData, error: conseillersError } = await supabase
-      .from('profiles')
-      .select('id, nom, prenom, email, role, telephone, poste')
-      .in('role', ['conseiller_cop', 'conseillere_carriere'])
-      .eq('actif', true)
-      .order('nom')
+    let conseillersData: unknown[] = []
+    if (isAdmin) {
+      const { data: conseillers, error: conseillersError } = await supabase
+        .from('profiles')
+        .select('id, nom, prenom, email, role, telephone, poste')
+        .in('role', ['conseiller_cop', 'conseillere_carriere'])
+        .eq('actif', true)
+        .order('nom')
 
-    if (conseillersError) {
-      console.error('Erreur récupération conseillers:', conseillersError)
+      if (conseillersError) {
+        console.error('Erreur récupération conseillers:', conseillersError)
+      } else {
+        conseillersData = conseillers || []
+      }
     }
 
     return NextResponse.json({
       success: true,
       data: data || [],
-      conseillers: conseillersData || [],
-      count: data?.length || 0
+      conseillers: conseillersData,
+      count: data?.length || 0,
     }, { status: 200 })
 
   } catch (error) {

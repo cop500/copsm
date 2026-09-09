@@ -45,7 +45,8 @@ export default function StagiairesPage() {
   const { candidatures: candidaturesStagiaires, updateStatutCandidature, deleteCandidature, loadCandidatures, refreshCandidatures, newCandidatureCount, clearNewCandidatureCount, isRealtimeConnected } = useCandidatures()
   const { demandes, loading: demandesLoading, updateStatutCandidature: updateStatutDemande, updateCvTriStatut, markCvsTelecharges, deleteCandidature: deleteCandidatureDemande, refreshDemandes, cvTriPersistenceWarning } = useDemandesEntreprises()
   const { poles, filieres, loading: settingsLoading } = useSettings()
-  const { isAdmin, isDirecteur } = useRole()
+  const { isAdmin, isDirecteur, isConseiller, isCarriere } = useRole()
+  const canAccessAssistanceConseiller = isAdmin || isConseiller || isCarriere
   const { profile } = useAuth()
   
   const canDownloadAllDemandesCV = isAdmin || profile?.role === 'conseillere_carriere'
@@ -98,7 +99,10 @@ export default function StagiairesPage() {
     if (isDirecteur && activeTab === 'assistance-conseiller') {
       setActiveTab('candidatures')
     }
-  }, [isAdmin, isDirecteur, activeTab])
+    if (!canAccessAssistanceConseiller && activeTab === 'assistance-conseiller') {
+      setActiveTab('candidatures')
+    }
+  }, [isAdmin, isDirecteur, canAccessAssistanceConseiller, activeTab])
 
   React.useEffect(() => {
     if (activeTab === 'candidatures-par-demande') {
@@ -576,8 +580,8 @@ export default function StagiairesPage() {
                 </button>
               )}
 
-              {/* Onglet Assistance Conseiller - Masqué pour le directeur */}
-              {!isDirecteur && (
+              {/* Onglet Assistance Conseiller - Conseillers et admin uniquement */}
+              {canAccessAssistanceConseiller && !isDirecteur && (
                 <button
                   onClick={() => setActiveTab('assistance-conseiller')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
@@ -1646,7 +1650,7 @@ export default function StagiairesPage() {
         )}
 
         {/* Assistance Conseiller Tab - Masqué pour le directeur */}
-        {activeTab === 'assistance-conseiller' && !isDirecteur && (
+        {activeTab === 'assistance-conseiller' && canAccessAssistanceConseiller && !isDirecteur && (
           <div className="space-y-6">
             {/* Header */}
             <div className="bg-white rounded-lg shadow p-6">

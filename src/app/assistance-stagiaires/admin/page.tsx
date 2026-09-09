@@ -1,6 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { useRole } from '@/hooks/useRole'
+import { getAssistanceAuthHeaders } from '@/lib/assistanceAuthClient'
 import { 
   Search, 
   Filter, 
@@ -67,6 +71,10 @@ const statuts = {
 }
 
 export default function InterfaceAdmin() {
+  const router = useRouter()
+  const { profile, loading: authLoading } = useAuth()
+  const { isAdmin } = useRole()
+
   const [demandes, setDemandes] = useState<DemandeAssistance[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -106,29 +114,47 @@ export default function InterfaceAdmin() {
     }
   }
 
-  // Charger toutes les demandes (vue admin)
-  const loadDemandes = async () => {
+  useEffect(() => {
+    if (authLoading) return
+    if (!profile) {
+      router.replace('/login')
+      return
+    }
+    if (!isAdmin) {
+      router.replace('/assistance-stagiaires/conseiller')
+    }
+  }, [authLoading, profile, isAdmin, router])
+
+  const loadDemandes = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/assistance-stagiaires')
+      const headers = await getAssistanceAuthHeaders()
+      const response = await fetch('/api/assistance-stagiaires', { headers })
       const result = await response.json()
-      
+
+      if (response.status === 403) {
+        setError(result.error || 'Accès réservé aux administrateurs')
+        return
+      }
+
       if (result.success) {
         setDemandes(result.data || [])
       } else {
-        setError('Erreur lors du chargement des demandes')
+        setError(result.error || 'Erreur lors du chargement des demandes')
       }
     } catch (err) {
-      setError('Erreur de connexion')
+      setError(err instanceof Error ? err.message : 'Erreur de connexion')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    loadDemandes()
-    loadPolesFilieres()
-  }, [])
+    if (isAdmin && profile) {
+      loadDemandes()
+      loadPolesFilieres()
+    }
+  }, [isAdmin, profile, loadDemandes])
 
   // Fonction pour supprimer une demande (admin uniquement)
   const handleDeleteDemande = async (demandeId: string) => {
@@ -138,8 +164,10 @@ export default function InterfaceAdmin() {
 
     try {
       setActionLoading(true)
+      const headers = await getAssistanceAuthHeaders()
       const response = await fetch(`/api/assistance-stagiaires/${demandeId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers,
       })
       
       const result = await response.json()
@@ -279,6 +307,14 @@ export default function InterfaceAdmin() {
       entretiens: demandes.filter(d => d.type_assistance === 'entretiens').length,
       developpement: demandes.filter(d => d.type_assistance === 'developpement').length
     }
+  }
+
+  if (authLoading || !profile || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600" />
+      </div>
+    )
   }
 
   return (
@@ -744,12 +780,11 @@ export default function InterfaceAdmin() {
                         if (!selectedDemande) return
                         setSavingNotes(true)
                         try {
+                          const noteHeaders = await getAssistanceAuthHeaders(true)
                           const response = await fetch(`/api/assistance-stagiaires/${selectedDemande.id}`, {
                             method: 'PUT',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ notes })
+                            headers: noteHeaders,
+                            body: JSON.stringify({ notes }),
                           })
                           const result = await response.json()
                           if (result.success) {
