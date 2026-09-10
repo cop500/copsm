@@ -32,7 +32,7 @@ export const GOT_TALENT_CATEGORIES: {
     subtitle: 'Arts & citoyenneté',
     color: 'from-violet-500 to-purple-600',
     border: 'border-violet-200',
-    activities: ['Cinéma', 'Peinture et dessin', 'Musique', 'Autre'],
+    activities: ['Théâtre', 'Peinture et dessin', 'Musique', 'Autre'],
   },
   {
     id: 'environnementales',

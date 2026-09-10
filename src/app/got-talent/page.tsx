@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import { useSettings } from '@/hooks/useSettings'
 import {
   GOT_TALENT_CATEGORIES,
   GotTalentActivite,
@@ -15,7 +14,6 @@ import {
   Leaf,
   Lightbulb,
   Loader2,
-  MapPin,
   Palette,
   ShieldCheck,
   Sparkles,
@@ -88,8 +86,14 @@ function validatePhone(value: string) {
   return value.replace(/\D/g, '').length >= 9
 }
 
+type RefPole = { id: string; nom: string; actif?: boolean }
+type RefFiliere = { id: string; nom: string; pole_id: string; actif?: boolean }
+
 export default function GotTalentPage() {
-  const { poles, filieres, loading: settingsLoading } = useSettings()
+  const [poles, setPoles] = useState<RefPole[]>([])
+  const [filieres, setFilieres] = useState<RefFiliere[]>([])
+  const [referentielsLoading, setReferentielsLoading] = useState(true)
+  const [referentielsError, setReferentielsError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [reference, setReference] = useState<string | null>(null)
@@ -105,7 +109,6 @@ export default function GotTalentPage() {
   const [groupe, setGroupe] = useState('')
   const [telephone, setTelephone] = useState('')
   const [email, setEmail] = useState('')
-  const [lieuFait, setLieuFait] = useState('')
   const [consentement, setConsentement] = useState(false)
   const [selected, setSelected] = useState<SelectedActivite[]>([])
   const [autreDraft, setAutreDraft] = useState<Record<string, string>>({})
@@ -119,8 +122,30 @@ export default function GotTalentPage() {
   const filieresFiltered = useMemo(() => {
     if (!pole) return []
     const p = poles.find((x) => x.nom === pole)
-    return p ? filieres.filter((f) => f.pole_id === p.id && f.actif !== false) : []
+    return p ? filieres.filter((f) => f.pole_id === p.id) : []
   }, [pole, poles, filieres])
+
+  useEffect(() => {
+    const loadReferentiels = async () => {
+      try {
+        setReferentielsLoading(true)
+        setReferentielsError(null)
+        const res = await fetch('/api/got-talent/referentiels')
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error || 'Impossible de charger les pôles et filières.')
+        }
+        setPoles(data.poles ?? [])
+        setFilieres(data.filieres ?? [])
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Erreur de chargement des référentiels.'
+        setReferentielsError(msg)
+      } finally {
+        setReferentielsLoading(false)
+      }
+    }
+    loadReferentiels()
+  }, [])
 
   const validateField = useCallback((key: FieldKey, values?: {
     nom: string; prenom: string; groupe: string; telephone: string; email: string; pole: string; filliere: string
@@ -166,7 +191,6 @@ export default function GotTalentPage() {
       if (typeof draft.groupe === 'string') setGroupe(draft.groupe)
       if (typeof draft.telephone === 'string') setTelephone(draft.telephone)
       if (typeof draft.email === 'string') setEmail(draft.email)
-      if (typeof draft.lieuFait === 'string') setLieuFait(draft.lieuFait)
       if (typeof draft.consentement === 'boolean') setConsentement(draft.consentement)
       if (Array.isArray(draft.selected)) setSelected(draft.selected as SelectedActivite[])
       if (draft.autreDraft && typeof draft.autreDraft === 'object') {
@@ -190,7 +214,6 @@ export default function GotTalentPage() {
             groupe,
             telephone,
             email,
-            lieuFait,
             consentement,
             selected,
             autreDraft,
@@ -201,7 +224,7 @@ export default function GotTalentPage() {
       }
     }, 400)
     return () => clearTimeout(timer)
-  }, [nom, prenom, pole, filliere, groupe, telephone, email, lieuFait, consentement, selected, autreDraft])
+  }, [nom, prenom, pole, filliere, groupe, telephone, email, consentement, selected, autreDraft])
 
   useEffect(() => {
     const sections = [
@@ -345,7 +368,6 @@ export default function GotTalentPage() {
           groupe: groupe.trim(),
           telephone: telephone.trim(),
           email: email.trim(),
-          lieu_fait: lieuFait.trim(),
           consentement: true,
           activites,
         }),
@@ -566,19 +588,6 @@ export default function GotTalentPage() {
                 />
               )}
               {renderField(
-                'groupe',
-                'Groupe',
-                true,
-                <input
-                  id="gt-groupe"
-                  type="text"
-                  value={groupe}
-                  onChange={(e) => setGroupe(e.target.value)}
-                  onBlur={() => markTouched('groupe')}
-                  className={touched.groupe && fieldErrors.groupe ? inputErr : inputOk}
-                />
-              )}
-              {renderField(
                 'telephone',
                 'Téléphone',
                 true,
@@ -608,24 +617,6 @@ export default function GotTalentPage() {
                   className={touched.email && fieldErrors.email ? inputErr : inputOk}
                 />
               )}
-              <div>
-                <label htmlFor="gt-lieu" className="block text-sm font-medium text-slate-700">
-                  Fait à
-                </label>
-                <div className="relative">
-                  <MapPin
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none mt-0.5"
-                    aria-hidden="true"
-                  />
-                  <input
-                    id="gt-lieu"
-                    type="text"
-                    value={lieuFait}
-                    onChange={(e) => setLieuFait(e.target.value)}
-                    className={`${inputOk} pl-10`}
-                  />
-                </div>
-              </div>
               {renderField(
                 'pole',
                 'Pôle',
@@ -639,17 +630,17 @@ export default function GotTalentPage() {
                     markTouched('pole')
                   }}
                   onBlur={() => markTouched('pole')}
-                  disabled={settingsLoading}
+                  disabled={referentielsLoading}
                   className={`${touched.pole && fieldErrors.pole ? inputErr : inputOk} appearance-none cursor-pointer disabled:bg-slate-50 disabled:cursor-not-allowed`}
                 >
-                  <option value="">Sélectionner un pôle</option>
-                  {poles
-                    .filter((p) => p.actif !== false)
-                    .map((p) => (
-                      <option key={p.id} value={p.nom}>
-                        {p.nom}
-                      </option>
-                    ))}
+                  <option value="">
+                    {referentielsLoading ? 'Chargement…' : 'Sélectionner un pôle'}
+                  </option>
+                  {poles.map((p) => (
+                    <option key={p.id} value={p.nom}>
+                      {p.nom}
+                    </option>
+                  ))}
                 </select>
               )}
               {renderField(
@@ -664,10 +655,16 @@ export default function GotTalentPage() {
                     markTouched('filliere')
                   }}
                   onBlur={() => markTouched('filliere')}
-                  disabled={!pole || settingsLoading}
+                  disabled={!pole || referentielsLoading}
                   className={`${touched.filliere && fieldErrors.filliere ? inputErr : inputOk} appearance-none cursor-pointer disabled:bg-slate-50 disabled:cursor-not-allowed`}
                 >
-                  <option value="">Sélectionner une filière</option>
+                  <option value="">
+                    {!pole
+                      ? 'Choisissez d\'abord un pôle'
+                      : referentielsLoading
+                        ? 'Chargement…'
+                        : 'Sélectionner une filière'}
+                  </option>
                   {filieresFiltered.map((f) => (
                     <option key={f.id} value={f.nom}>
                       {f.nom}
@@ -675,7 +672,26 @@ export default function GotTalentPage() {
                   ))}
                 </select>
               )}
+              {renderField(
+                'groupe',
+                'Groupe',
+                true,
+                <input
+                  id="gt-groupe"
+                  type="text"
+                  value={groupe}
+                  onChange={(e) => setGroupe(e.target.value)}
+                  onBlur={() => markTouched('groupe')}
+                  className={touched.groupe && fieldErrors.groupe ? inputErr : inputOk}
+                />
+              )}
             </div>
+            {referentielsError && (
+              <div className="mx-5 sm:mx-6 mb-5 flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                {referentielsError}
+              </div>
+            )}
           </section>
 
           {/* 2. Activités */}
@@ -842,8 +858,7 @@ export default function GotTalentPage() {
               </label>
               <p className="text-xs text-slate-500 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
-                Fait le {new Date().toLocaleDateString('fr-FR')}
-                {lieuFait ? ` à ${lieuFait}` : ''}.
+                Fait le {new Date().toLocaleDateString('fr-FR')}.
               </p>
             </div>
           </section>
