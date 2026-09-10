@@ -13,7 +13,8 @@ const PUBLIC_PAGES = [
   '/candidature',
   '/inscription-ateliers',
   '/evenements',
-  '/ambassadeurs'
+  '/ambassadeurs',
+  '/got-talent'
 ]
 
 interface AuthGuardProps {

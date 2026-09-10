@@ -13,8 +13,9 @@ import {
   Loader2, AlertCircle, CheckCircle, XCircle,
   Clock, Award, Target, BookOpen, Mail, Phone,
   ChevronRight, UserCircle, Star, Zap, Plus,
-  FileText, X, UploadCloud
+  FileText, X, UploadCloud, Sparkles
 } from 'lucide-react'
+import { GotTalentInscriptionsPanel } from '@/components/GotTalentInscriptionsPanel'
 
 interface StagiaireAmbassadeur {
   id: string
@@ -465,7 +466,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
   const [showEvaluationModal, setShowEvaluationModal] = useState(false)
   const [allStagiaires, setAllStagiaires] = useState<any[]>([])
   const [loadingStagiaires, setLoadingStagiaires] = useState(false)
-  const [activeSection, setActiveSection] = useState<'stagiaires' | 'actions'>('stagiaires')
+  const [activeSection, setActiveSection] = useState<'stagiaires' | 'actions' | 'got-talent'>('stagiaires')
   const [showActionForm, setShowActionForm] = useState(false)
   const [showStagiaireForm, setShowStagiaireForm] = useState(false)
   const [stagiaireFormData, setStagiaireFormData] = useState({
@@ -1300,7 +1301,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Section principale : Deux cartes pour choisir l'option */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Carte 1 : Les Stagiaires Ambassadeurs */}
         <div
           onClick={() => setActiveSection('stagiaires')}
@@ -1377,6 +1378,44 @@ export const EspaceAmbassadeurs: React.FC = () => {
               <span className="text-sm font-semibold">
                 {stats.totalActions} action{stats.totalActions > 1 ? 's' : ''}
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Carte 3 : Inscriptions Got Talent */}
+        <div
+          onClick={() => setActiveSection('got-talent')}
+          className={`relative overflow-hidden rounded-2xl shadow-lg cursor-pointer transition-all duration-300 transform hover:scale-105 ${
+            activeSection === 'got-talent'
+              ? 'ring-4 ring-amber-500 bg-gradient-to-br from-amber-500 to-orange-600'
+              : 'bg-gradient-to-br from-amber-50 to-orange-100 hover:from-amber-100 hover:to-orange-200'
+          }`}
+        >
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${
+                activeSection === 'got-talent' ? 'bg-white/20' : 'bg-amber-500'
+              }`}>
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              {activeSection === 'got-talent' && (
+                <div className="w-3 h-3 bg-white rounded-full"></div>
+              )}
+            </div>
+            <h3 className={`text-2xl font-bold mb-2 ${
+              activeSection === 'got-talent' ? 'text-white' : 'text-gray-900'
+            }`}>
+              Inscriptions Got Talent
+            </h3>
+            <p className={`text-sm mb-4 ${
+              activeSection === 'got-talent' ? 'text-amber-100' : 'text-gray-600'
+            }`}>
+              Clubs parascolaires OFPPT — formulaire public et liste des inscriptions
+            </p>
+            <div className={`flex items-center gap-2 ${
+              activeSection === 'got-talent' ? 'text-white' : 'text-amber-700'
+            }`}>
+              <span className="text-sm font-semibold">Lien public /got-talent</span>
             </div>
           </div>
         </div>
@@ -1705,7 +1744,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
             )}
           </div>
         </div>
-      ) : (
+      ) : activeSection === 'actions' ? (
         <div className="space-y-6">
           {/* SECTION ACTIONS : Affiche uniquement les actions saisies via le formulaire public */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1796,6 +1835,8 @@ export const EspaceAmbassadeurs: React.FC = () => {
             </div>
           </div>
         </div>
+      ) : (
+        <GotTalentInscriptionsPanel poles={poles} filieres={filieres} isAdmin={isAdmin} />
       )}
 
       {/* Modal de détail du stagiaire */}

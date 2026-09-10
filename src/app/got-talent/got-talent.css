@@ -1,0 +1,92 @@
+.got-talent-page {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+.got-talent-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Photo légèrement renforcée — la structure du bâtiment reste visible */
+.got-talent-bg-image {
+  object-fit: cover;
+  object-position: center 18%;
+  filter: brightness(0.88) saturate(1.12) contrast(1.04);
+  transform: scale(1.03);
+}
+
+/*
+ * Overlay en 3 zones :
+ * - haut : léger (architecture visible + texte blanc sur bandeau glass)
+ * - milieu : teal/navy harmonisé avec la verrière
+ * - bas : plus dense derrière les cartes blanches
+ */
+.got-talent-bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.38) 0%,
+      rgba(15, 23, 42, 0.32) 22%,
+      rgba(8, 47, 73, 0.48) 48%,
+      rgba(15, 23, 42, 0.72) 72%,
+      rgba(15, 23, 42, 0.88) 100%
+    ),
+    linear-gradient(125deg, rgba(6, 78, 99, 0.28) 0%, transparent 42%),
+    radial-gradient(ellipse 85% 55% at 50% 8%, rgba(124, 58, 237, 0.2) 0%, transparent 58%),
+    radial-gradient(ellipse 55% 45% at 95% 92%, rgba(249, 115, 22, 0.14) 0%, transparent 52%),
+    radial-gradient(ellipse 100% 70% at 50% 85%, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+}
+
+.got-talent-header-glass {
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 32px rgba(15, 23, 42, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.got-talent-content {
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 768px) {
+  .got-talent-bg-image {
+    object-position: center 22%;
+    transform: scale(1.06);
+  }
+
+  .got-talent-bg-overlay {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(15, 23, 42, 0.5) 0%,
+        rgba(8, 47, 73, 0.55) 40%,
+        rgba(15, 23, 42, 0.9) 100%
+      ),
+      radial-gradient(ellipse 100% 70% at 50% 15%, rgba(124, 58, 237, 0.18) 0%, transparent 62%);
+  }
+
+  .got-talent-header-glass {
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .got-talent-bg-image {
+    transform: none !important;
+  }
+}
