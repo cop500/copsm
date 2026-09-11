@@ -4,20 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="color-scheme" content="dark" />
-  <title>OFPPT Got Talent — Inscription — COP CMC Souss-Massa</title>
+  <title>OFPPT Got Talent — Écran kiosque — COP CMC Souss-Massa</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       height: 100%;
+      min-height: 100dvh;
       font-family: Arial, Helvetica, sans-serif;
       -webkit-text-size-adjust: 100%;
-      overflow: hidden;
+      overflow-x: hidden;
     }
     .page {
       position: relative;
-      min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
       color: #fff;
     }
     .bg {
@@ -31,169 +34,99 @@
       inset: 0;
       z-index: 1;
       background:
-        linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.75) 100%),
-        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124, 58, 237, 0.2) 0%, transparent 55%);
+        linear-gradient(180deg, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.82) 100%),
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124, 58, 237, 0.22) 0%, transparent 55%);
     }
-    .top-bar {
-      position: relative;
-      z-index: 3;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 16px;
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .top-bar h1 {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .top-bar p {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-top: 2px;
-    }
-    .btn-bar {
-      border: none;
-      border-radius: 10px;
-      padding: 10px 16px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      min-height: 44px;
-      white-space: nowrap;
-    }
-    .btn-home {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .btn-open {
-      background: linear-gradient(135deg, #f97316, #ea580c);
-      color: #fff;
-    }
-    .btn-bar:active { filter: brightness(0.92); }
-    .frame-wrap {
+    .card {
       position: relative;
       z-index: 2;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-    .splash {
-      position: absolute;
-      inset: 0;
-      z-index: 5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(6px);
-      transition: opacity 0.35s ease, visibility 0.35s ease;
-    }
-    .splash.hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    .splash-card {
-      max-width: 520px;
       width: 100%;
+      max-width: 640px;
       text-align: center;
-      padding: 32px 24px;
-      border-radius: 24px;
-      background: rgba(15, 23, 42, 0.72);
+      padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 40px);
+      border-radius: 28px;
+      background: rgba(15, 23, 42, 0.78);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
     }
     .logos {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      margin-bottom: 20px;
+      gap: clamp(16px, 3vw, 32px);
+      margin-bottom: 24px;
       flex-wrap: wrap;
     }
     .logos img {
-      height: 64px;
+      height: clamp(72px, 10vw, 110px);
       width: auto;
       filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
     }
     .badge {
       display: inline-block;
-      padding: 6px 14px;
+      padding: 8px 18px;
       border-radius: 999px;
-      background: rgba(124, 58, 237, 0.25);
+      background: rgba(124, 58, 237, 0.28);
       border: 1px solid rgba(167, 139, 250, 0.35);
       color: #e9d5ff;
-      font-size: 13px;
+      font-size: clamp(14px, 2vw, 16px);
       font-weight: 600;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
-    .splash-card h2 {
-      font-size: clamp(26px, 5vw, 36px);
+    h1 {
+      font-size: clamp(32px, 5vw, 48px);
       font-weight: 800;
-      margin-bottom: 10px;
-      line-height: 1.15;
+      line-height: 1.1;
+      margin-bottom: 12px;
     }
-    .splash-card h2 span { color: #fdba74; }
-    .splash-card .desc {
-      font-size: 16px;
-      line-height: 1.5;
-      color: rgba(255, 255, 255, 0.85);
-      margin-bottom: 24px;
+    h1 span { color: #fdba74; }
+    .desc {
+      font-size: clamp(16px, 2.2vw, 20px);
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.88);
+      margin-bottom: 28px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .btn-start {
       width: 100%;
-      min-height: 58px;
+      max-width: 420px;
+      min-height: 64px;
       border: none;
-      border-radius: 14px;
+      border-radius: 16px;
       background: linear-gradient(135deg, #f97316, #ea580c);
       color: #fff;
-      font-size: 20px;
+      font-size: clamp(20px, 3vw, 26px);
       font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+      box-shadow: 0 10px 28px rgba(249, 115, 22, 0.4);
+      margin: 0 auto;
+      display: block;
     }
     .btn-start:active { transform: scale(0.98); }
     .qr-block {
-      margin-top: 22px;
-      padding-top: 20px;
+      margin-top: 28px;
+      padding-top: 24px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
     .qr-block p {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.65);
-      margin-bottom: 10px;
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 12px;
     }
     .qr-block img {
-      width: 140px;
-      height: 140px;
-      border-radius: 12px;
+      width: clamp(140px, 18vw, 180px);
+      height: clamp(140px, 18vw, 180px);
+      border-radius: 14px;
       background: #fff;
-      padding: 8px;
+      padding: 10px;
     }
     .qr-url {
-      margin-top: 8px;
-      font-size: 12px;
+      margin-top: 10px;
+      font-size: 13px;
       color: #fdba74;
       word-break: break-all;
-    }
-    iframe {
-      flex: 1;
-      width: 100%;
-      border: 0;
-      background: #0f172a;
-      min-height: 0;
-    }
-    @media (max-width: 640px) {
-      .top-bar { flex-wrap: wrap; }
-      .btn-open { width: 100%; text-align: center; }
     }
   </style>
 </head>
@@ -202,76 +135,44 @@
     <div class="bg" aria-hidden="true"></div>
     <div class="overlay" aria-hidden="true"></div>
 
-    <header class="top-bar">
-      <div>
-        <h1>OFPPT GOT TALENTS</h1>
-        <p>Inscription clubs parascolaires — COP CMC Souss-Massa</p>
+    <div class="card">
+      <div class="logos">
+        <img src="/logo%20CMC-01.png" alt="Logo CMC" />
+        <img src="/LOGO%20CMC%20COP-01.png" alt="Logo CMC COP" />
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button type="button" class="btn-bar btn-home" id="btnHome">Accueil écran</button>
-        <button type="button" class="btn-bar btn-open" id="btnReload">Recharger</button>
+      <span class="badge">Clubs parascolaires</span>
+      <h1>OFPPT <span>GOT TALENTS</span></h1>
+      <p class="desc">
+        Inscrivez-vous aux activités parascolaires : sport, culture, environnement et innovation.
+      </p>
+      <button type="button" class="btn-start" id="btnStart">Commencer l'inscription</button>
+      <div class="qr-block">
+        <p>Ou scannez le QR code avec votre téléphone</p>
+        <img id="qrImg" alt="QR code inscription Got Talent" width="160" height="160" />
+        <div class="qr-url" id="qrUrl"></div>
       </div>
-    </header>
-
-    <div class="frame-wrap">
-      <div class="splash" id="splash">
-        <div class="splash-card">
-          <div class="logos">
-            <img src="/logo%20CMC-01.png" alt="Logo CMC" />
-            <img src="/LOGO%20CMC%20COP-01.png" alt="Logo CMC COP" />
-          </div>
-          <span class="badge">Clubs parascolaires</span>
-          <h2>OFPPT <span>GOT TALENTS</span></h2>
-          <p class="desc">
-            Inscrivez-vous aux activités parascolaires : sport, culture, environnement et innovation.
-          </p>
-          <button type="button" class="btn-start" id="btnStart">Commencer l'inscription</button>
-          <div class="qr-block">
-            <p>Ou scannez le QR code avec votre téléphone</p>
-            <img id="qrImg" alt="QR code inscription Got Talent" width="140" height="140" />
-            <div class="qr-url" id="qrUrl"></div>
-          </div>
-        </div>
-      </div>
-      <iframe id="formFrame" title="Formulaire OFPPT Got Talent" src="about:blank"></iframe>
     </div>
   </div>
 
   <script>
     (function () {
-      var FORM_URL = (window.location.origin || 'https://copsm.space') + '/got-talent/';
-      var splash = document.getElementById('splash');
-      var frame = document.getElementById('formFrame');
+      var origin = window.location.origin || 'https://copsm.space';
+      var FORM_URL = origin + '/got-talent/?kiosk=1';
       var qrImg = document.getElementById('qrImg');
       var qrUrl = document.getElementById('qrUrl');
 
       qrImg.src =
-        'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' +
-        encodeURIComponent(FORM_URL);
-      qrUrl.textContent = FORM_URL;
+        'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' +
+        encodeURIComponent(origin + '/got-talent/');
+      qrUrl.textContent = origin + '/got-talent/';
 
       function openForm() {
-        splash.classList.add('hidden');
-        if (frame.src === 'about:blank' || !frame.src) {
-          frame.src = FORM_URL;
-        }
-      }
-
-      function showHome() {
-        splash.classList.remove('hidden');
-        frame.src = 'about:blank';
-      }
-
-      function reloadForm() {
-        splash.classList.add('hidden');
-        frame.src = FORM_URL + '?t=' + Date.now();
+        window.location.href = FORM_URL;
       }
 
       document.getElementById('btnStart').addEventListener('click', openForm);
-      document.getElementById('btnHome').addEventListener('click', showHome);
-      document.getElementById('btnReload').addEventListener('click', reloadForm);
 
-      /* Kiosque : démarrer directement si ?auto=1 dans l'URL */
+      /* Kiosque : ouvrir directement le formulaire plein écran */
       if (window.location.search.indexOf('auto=1') !== -1) {
         openForm();
       }

@@ -61,6 +61,65 @@
   z-index: 2;
 }
 
+/* Mode kiosque : plein écran, barre fixe, défilement naturel */
+.got-talent-kiosk {
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+.got-talent-kiosk-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.got-talent-kiosk-bar a,
+.got-talent-kiosk-bar button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.got-talent-kiosk-bar a {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.got-talent-kiosk-bar button {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+}
+
+.got-talent-kiosk .got-talent-content {
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+
+.got-talent-kiosk .got-talent-header-glass {
+  padding: 1.25rem 1.5rem;
+}
+
+.got-talent-kiosk .got-talent-header-glass img {
+  height: 3.5rem !important;
+}
+
 @media (max-width: 768px) {
   .got-talent-bg-image {
     object-position: center 22%;

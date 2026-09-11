@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 import {
   GOT_TALENT_CATEGORIES,
   GotTalentActivite,
@@ -89,7 +90,9 @@ function validatePhone(value: string) {
 type RefPole = { id: string; nom: string; actif?: boolean }
 type RefFiliere = { id: string; nom: string; pole_id: string; actif?: boolean }
 
-export default function GotTalentPage() {
+function GotTalentPageContent() {
+  const searchParams = useSearchParams()
+  const isKiosk = searchParams.get('kiosk') === '1'
   const [poles, setPoles] = useState<RefPole[]>([])
   const [filieres, setFilieres] = useState<RefFiliere[]>([])
   const [referentielsLoading, setReferentielsLoading] = useState(true)
@@ -415,7 +418,7 @@ export default function GotTalentPage() {
 
   if (success) {
     return (
-      <div className="got-talent-page flex items-center justify-center p-4">
+      <div className={`got-talent-page${isKiosk ? ' got-talent-kiosk' : ''} flex items-center justify-center p-4`}>
         <GotTalentBackground />
         <div
           className="got-talent-content w-full max-w-lg bg-white/98 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 p-8 sm:p-10 text-center"
@@ -441,7 +444,9 @@ export default function GotTalentPage() {
           )}
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              window.location.href = isKiosk ? '/got-talent/ecran' : window.location.pathname
+            }}
             className="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500/40"
           >
             Terminer
@@ -452,8 +457,17 @@ export default function GotTalentPage() {
   }
 
   return (
-    <div className="got-talent-page">
+    <div className={`got-talent-page${isKiosk ? ' got-talent-kiosk' : ''}`}>
       <GotTalentBackground />
+      {isKiosk && (
+        <div className="got-talent-kiosk-bar">
+          <a href="/got-talent/ecran">← Accueil écran</a>
+          <span className="text-white text-sm font-semibold hidden sm:inline">OFPPT GOT TALENTS</span>
+          <button type="button" onClick={() => window.location.reload()}>
+            Recharger
+          </button>
+        </div>
+      )}
       <div className="got-talent-content mx-auto w-full max-w-[1024px] px-4 sm:px-6 py-6 sm:py-10">
         {/* Header — bandeau verre pour lisibilité sur la photo */}
         <header className="text-center mb-6 sm:mb-8">
@@ -897,5 +911,19 @@ export default function GotTalentPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function GotTalentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-orange-400" />
+        </div>
+      }
+    >
+      <GotTalentPageContent />
+    </Suspense>
   )
 }
