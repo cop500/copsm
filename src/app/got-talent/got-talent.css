@@ -61,10 +61,16 @@
   z-index: 2;
 }
 
-/* Mode kiosque : plein écran, barre fixe, défilement naturel */
+/* Mode kiosque : fond clair, formulaire lisible sur grand écran tactile */
 .got-talent-kiosk {
   min-height: 100dvh;
   overflow-x: hidden;
+  background: #eef2f7;
+}
+
+.got-talent-kiosk .got-talent-bg,
+.got-talent-kiosk .got-talent-bg-overlay {
+  display: none;
 }
 
 .got-talent-kiosk-bar {
@@ -108,16 +114,106 @@
 }
 
 .got-talent-kiosk .got-talent-content {
-  padding-top: 1rem;
-  padding-bottom: 2rem;
+  max-width: 1360px;
 }
 
-.got-talent-kiosk .got-talent-header-glass {
-  padding: 1.25rem 1.5rem;
+.got-talent-kiosk .got-talent-section > div:first-child {
+  padding: 0.85rem 1.25rem !important;
 }
 
-.got-talent-kiosk .got-talent-header-glass img {
-  height: 3.5rem !important;
+.got-talent-kiosk .got-talent-section .p-5 {
+  padding: 1rem 1.25rem !important;
+}
+
+.got-talent-kiosk .got-talent-kiosk-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.got-talent-kiosk .got-talent-kiosk-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.got-talent-kiosk .got-talent-kiosk-step.active {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+}
+
+.got-talent-kiosk .got-talent-kiosk-step.done {
+  color: #059669;
+}
+
+.got-talent-kiosk .got-talent-section {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.got-talent-kiosk .gt-identification-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.got-talent-kiosk .gt-activities-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.got-talent-kiosk input,
+.got-talent-kiosk select {
+  min-height: 52px !important;
+  font-size: 17px !important;
+}
+
+.got-talent-kiosk label[class*="font-medium"] {
+  font-size: 15px !important;
+}
+
+.got-talent-kiosk .gt-submit-btn {
+  width: 100%;
+  max-width: 480px;
+  min-height: 56px !important;
+  font-size: 1.15rem !important;
+}
+
+@media (min-width: 900px) {
+  .got-talent-kiosk .gt-identification-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .got-talent-kiosk .gt-identification-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .got-talent-kiosk .gt-activities-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.got-talent-kiosk .gt-activity-label {
+  min-height: 48px !important;
+  font-size: 15px !important;
+}
+
+.got-talent-kiosk .gt-activity-card-title {
+  font-size: 16px !important;
 }
 
 @media (max-width: 768px) {

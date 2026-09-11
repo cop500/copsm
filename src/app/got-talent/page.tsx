@@ -419,9 +419,9 @@ function GotTalentPageContent() {
   if (success) {
     return (
       <div className={`got-talent-page${isKiosk ? ' got-talent-kiosk' : ''} flex items-center justify-center p-4`}>
-        <GotTalentBackground />
+        {!isKiosk && <GotTalentBackground />}
         <div
-          className="got-talent-content w-full max-w-lg bg-white/98 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 p-8 sm:p-10 text-center"
+          className={`got-talent-content w-full max-w-lg rounded-2xl shadow-xl p-8 sm:p-10 text-center${isKiosk ? ' bg-white border border-slate-200' : ' bg-white/98 backdrop-blur-sm border border-white/60'}`}
           role="status"
           aria-live="polite"
         >
@@ -458,18 +458,37 @@ function GotTalentPageContent() {
 
   return (
     <div className={`got-talent-page${isKiosk ? ' got-talent-kiosk' : ''}`}>
-      <GotTalentBackground />
+      {!isKiosk && <GotTalentBackground />}
       {isKiosk && (
         <div className="got-talent-kiosk-bar">
           <a href="/got-talent/ecran">← Accueil écran</a>
-          <span className="text-white text-sm font-semibold hidden sm:inline">OFPPT GOT TALENTS</span>
+          <span className="text-white text-base font-bold tracking-wide">OFPPT GOT TALENTS</span>
           <button type="button" onClick={() => window.location.reload()}>
             Recharger
           </button>
         </div>
       )}
-      <div className="got-talent-content mx-auto w-full max-w-[1024px] px-4 sm:px-6 py-6 sm:py-10">
-        {/* Header — bandeau verre pour lisibilité sur la photo */}
+      <div
+        className={`got-talent-content mx-auto w-full${isKiosk ? ' px-4 py-3 sm:py-4' : ' px-4 sm:px-6 py-6 sm:py-10 max-w-[1024px]'}`}
+      >
+        {isKiosk ? (
+          <nav className="got-talent-kiosk-steps" aria-label="Progression du formulaire">
+            {STEPS.map((step) => {
+              const done = activeStep > step.id
+              const current = activeStep === step.id
+              return (
+                <div
+                  key={step.id}
+                  className={`got-talent-kiosk-step${current ? ' active' : ''}${done ? ' done' : ''}`}
+                  aria-current={current ? 'step' : undefined}
+                >
+                  <span>{done ? '✓' : `0${step.id}`}</span>
+                  <span>{step.label}</span>
+                </div>
+              )
+            })}
+          </nav>
+        ) : (
         <header className="text-center mb-6 sm:mb-8">
           <div className="got-talent-header-glass rounded-2xl sm:rounded-3xl px-4 sm:px-8 py-6 sm:py-8 max-w-3xl mx-auto">
             <div className="flex items-center justify-center gap-5 sm:gap-8 mb-5">
@@ -555,24 +574,25 @@ function GotTalentPageContent() {
             </p>
           </div>
         </header>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6" noValidate>
           {/* 1. Identification */}
           <section
             ref={sectionIdentificationRef}
             id="section-identification"
-            className="bg-white/98 backdrop-blur-sm rounded-2xl shadow-sm border border-white/70 overflow-hidden"
+            className={`rounded-2xl shadow-sm overflow-hidden got-talent-section ${isKiosk ? 'bg-white border border-slate-200' : 'bg-white/98 backdrop-blur-sm border border-white/70'}`}
             aria-labelledby="gt-heading-id"
           >
             <div className="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/80">
-              <h2 id="gt-heading-id" className="text-lg font-semibold text-slate-900">
+              <h2 id="gt-heading-id" className={`font-semibold text-slate-900 ${isKiosk ? 'text-xl' : 'text-lg'}`}>
                 1. Identification
               </h2>
               <p className="text-sm text-slate-500 mt-0.5">
                 Renseignez vos informations personnelles
               </p>
             </div>
-            <div className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div className={`p-5 sm:p-6 grid gap-4 sm:gap-5 gt-identification-grid ${isKiosk ? '' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
               {renderField(
                 'nom',
                 'Nom',
@@ -712,12 +732,12 @@ function GotTalentPageContent() {
           <section
             ref={sectionActivitesRef}
             id="section-activites"
-            className="bg-white/98 backdrop-blur-sm rounded-2xl shadow-sm border border-white/70 overflow-hidden"
+            className={`rounded-2xl shadow-sm overflow-hidden got-talent-section ${isKiosk ? 'bg-white border border-slate-200' : 'bg-white/98 backdrop-blur-sm border border-white/70'}`}
             aria-labelledby="gt-heading-act"
           >
             <div className="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <h2 id="gt-heading-act" className="text-lg font-semibold text-slate-900">
+                <h2 id="gt-heading-act" className={`font-semibold text-slate-900 ${isKiosk ? 'text-xl' : 'text-lg'}`}>
                   2. Choisissez vos activités
                 </h2>
                 <p className="text-sm text-slate-500 mt-0.5">Sélectionnez 1 à 2 activités</p>
@@ -733,7 +753,7 @@ function GotTalentPageContent() {
                 {selected.length} / {MAX_ACTIVITES} sélectionnée(s)
               </div>
             </div>
-            <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`p-5 sm:p-6 grid gap-4 gt-activities-grid ${isKiosk ? '' : 'grid-cols-1 md:grid-cols-2'}`}>
               {GOT_TALENT_CATEGORIES.map((cat) => {
                 const Icon = CATEGORY_ICONS[cat.id]
                 const hasSelectionInCat = selected.some((s) => s.categorie === cat.id)
@@ -755,7 +775,7 @@ function GotTalentPageContent() {
                         <Icon className="w-5 h-5" aria-hidden="true" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-900 text-[15px] leading-snug">
+                        <h3 className="gt-activity-card-title font-semibold text-slate-900 text-[15px] leading-snug">
                           {cat.label}
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">{cat.subtitle}</p>
@@ -771,7 +791,7 @@ function GotTalentPageContent() {
                           <li key={activite}>
                             <label
                               htmlFor={inputId}
-                              className={`flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-xl cursor-pointer transition-colors ${
+                              className={`gt-activity-label flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-xl cursor-pointer transition-colors ${
                                 checked
                                   ? 'bg-violet-50 border border-violet-200'
                                   : atMax
@@ -836,11 +856,11 @@ function GotTalentPageContent() {
           <section
             ref={sectionValidationRef}
             id="section-validation"
-            className="bg-white/98 backdrop-blur-sm rounded-2xl shadow-sm border border-white/70 overflow-hidden"
+            className={`rounded-2xl shadow-sm overflow-hidden got-talent-section ${isKiosk ? 'bg-white border border-slate-200' : 'bg-white/98 backdrop-blur-sm border border-white/70'}`}
             aria-labelledby="gt-heading-consent"
           >
             <div className="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/80">
-              <h2 id="gt-heading-consent" className="text-lg font-semibold text-slate-900">
+              <h2 id="gt-heading-consent" className={`font-semibold text-slate-900 ${isKiosk ? 'text-xl' : 'text-lg'}`}>
                 3. Consentement
               </h2>
             </div>
@@ -888,12 +908,12 @@ function GotTalentPageContent() {
             </div>
           )}
 
-          <div className="pb-6 sm:pb-8 flex flex-col items-center gap-3">
+          <div className={`pb-6 sm:pb-8 flex flex-col items-center gap-3${isKiosk ? ' w-full' : ''}`}>
             <button
               type="submit"
               disabled={!canSubmit}
               aria-busy={submitting}
-              className="w-full sm:w-auto min-w-[280px] min-h-[52px] px-8 inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold text-base shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+              className={`inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold text-base shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-orange-500/40 gt-submit-btn ${isKiosk ? '' : 'w-full sm:w-auto min-w-[280px] min-h-[52px] px-8'}`}
             >
               {submitting ? (
                 <>
