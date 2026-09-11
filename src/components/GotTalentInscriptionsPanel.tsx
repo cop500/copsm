@@ -54,6 +54,10 @@ export function GotTalentInscriptionsPanel({
     typeof window !== 'undefined'
       ? `${window.location.origin}/got-talent`
       : 'https://copsm.space/got-talent'
+  const ecranUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/got-talent/ecran`
+      : 'https://copsm.space/got-talent/ecran'
 
   const loadInscriptions = useCallback(async () => {
     try {
@@ -210,6 +214,31 @@ export function GotTalentInscriptionsPanel({
               >
                 <ExternalLink className="w-4 h-4" />
                 Ouvrir
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(ecranUrl)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  } catch {
+                    window.prompt('Lien écran kiosque :', ecranUrl)
+                  }
+                }}
+                className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 text-sm"
+              >
+                <Copy className="w-4 h-4" />
+                Lien écran
+              </button>
+              <a
+                href="/got-talent/ecran"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 flex items-center gap-2 text-sm"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Écran
               </a>
               <button
                 type="button"

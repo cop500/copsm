@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="color-scheme" content="dark" />
+  <title>OFPPT Got Talent — Inscription — COP CMC Souss-Massa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      overflow: hidden;
+    }
+    .page {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #fff;
+    }
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: url('/bg-entreprise.jpg') center/cover no-repeat;
+    }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.75) 100%),
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124, 58, 237, 0.2) 0%, transparent 55%);
+    }
+    .top-bar {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .top-bar h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .top-bar p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 2px;
+    }
+    .btn-bar {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 44px;
+      white-space: nowrap;
+    }
+    .btn-home {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .btn-open {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: #fff;
+    }
+    .btn-bar:active { filter: brightness(0.92); }
+    .frame-wrap {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .splash {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(6px);
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+    .splash.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .splash-card {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      padding: 32px 24px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+    .logos {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .logos img {
+      height: 64px;
+      width: auto;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.25);
+      border: 1px solid rgba(167, 139, 250, 0.35);
+      color: #e9d5ff;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .splash-card h2 {
+      font-size: clamp(26px, 5vw, 36px);
+      font-weight: 800;
+      margin-bottom: 10px;
+      line-height: 1.15;
+    }
+    .splash-card h2 span { color: #fdba74; }
+    .splash-card .desc {
+      font-size: 16px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 24px;
+    }
+    .btn-start {
+      width: 100%;
+      min-height: 58px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+    }
+    .btn-start:active { transform: scale(0.98); }
+    .qr-block {
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .qr-block p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 10px;
+    }
+    .qr-block img {
+      width: 140px;
+      height: 140px;
+      border-radius: 12px;
+      background: #fff;
+      padding: 8px;
+    }
+    .qr-url {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #fdba74;
+      word-break: break-all;
+    }
+    iframe {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      background: #0f172a;
+      min-height: 0;
+    }
+    @media (max-width: 640px) {
+      .top-bar { flex-wrap: wrap; }
+      .btn-open { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="bg" aria-hidden="true"></div>
+    <div class="overlay" aria-hidden="true"></div>
+
+    <header class="top-bar">
+      <div>
+        <h1>OFPPT GOT TALENTS</h1>
+        <p>Inscription clubs parascolaires — COP CMC Souss-Massa</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn-bar btn-home" id="btnHome">Accueil écran</button>
+        <button type="button" class="btn-bar btn-open" id="btnReload">Recharger</button>
+      </div>
+    </header>
+
+    <div class="frame-wrap">
+      <div class="splash" id="splash">
+        <div class="splash-card">
+          <div class="logos">
+            <img src="/logo%20CMC-01.png" alt="Logo CMC" />
+            <img src="/LOGO%20CMC%20COP-01.png" alt="Logo CMC COP" />
+          </div>
+          <span class="badge">Clubs parascolaires</span>
+          <h2>OFPPT <span>GOT TALENTS</span></h2>
+          <p class="desc">
+            Inscrivez-vous aux activités parascolaires : sport, culture, environnement et innovation.
+          </p>
+          <button type="button" class="btn-start" id="btnStart">Commencer l'inscription</button>
+          <div class="qr-block">
+            <p>Ou scannez le QR code avec votre téléphone</p>
+            <img id="qrImg" alt="QR code inscription Got Talent" width="140" height="140" />
+            <div class="qr-url" id="qrUrl"></div>
+          </div>
+        </div>
+      </div>
+      <iframe id="formFrame" title="Formulaire OFPPT Got Talent" src="about:blank"></iframe>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var FORM_URL = (window.location.origin || 'https://copsm.space') + '/got-talent/';
+      var splash = document.getElementById('splash');
+      var frame = document.getElementById('formFrame');
+      var qrImg = document.getElementById('qrImg');
+      var qrUrl = document.getElementById('qrUrl');
+
+      qrImg.src =
+        'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' +
+        encodeURIComponent(FORM_URL);
+      qrUrl.textContent = FORM_URL;
+
+      function openForm() {
+        splash.classList.add('hidden');
+        if (frame.src === 'about:blank' || !frame.src) {
+          frame.src = FORM_URL;
+        }
+      }
+
+      function showHome() {
+        splash.classList.remove('hidden');
+        frame.src = 'about:blank';
+      }
+
+      function reloadForm() {
+        splash.classList.add('hidden');
+        frame.src = FORM_URL + '?t=' + Date.now();
+      }
+
+      document.getElementById('btnStart').addEventListener('click', openForm);
+      document.getElementById('btnHome').addEventListener('click', showHome);
+      document.getElementById('btnReload').addEventListener('click', reloadForm);
+
+      /* Kiosque : démarrer directement si ?auto=1 dans l'URL */
+      if (window.location.search.indexOf('auto=1') !== -1) {
+        openForm();
+      }
+    })();
+  </script>
+</body>
+</html>

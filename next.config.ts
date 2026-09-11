@@ -42,6 +42,11 @@ const nextConfig = {
         destination: '/ecran-enquete-insertion.html',
         permanent: false,
       },
+      {
+        source: '/got-talent/ecran',
+        destination: '/ecran-got-talent.html',
+        permanent: false,
+      },
     ]
   },
   // Forcer l'export de toutes les pages
