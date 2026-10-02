@@ -4,8 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { Profile } from "@/types";
 import { useUser } from '@/contexts/UserContext';
 import { useSettings } from '@/hooks/useSettings';
-import { MessageSquare, Send, User, Calendar, Download, Printer, Trash2 } from 'lucide-react';
+import { MessageSquare, Send, User, Calendar, Download, Printer, Trash2, FileSpreadsheet } from 'lucide-react';
 import { downloadDemandePDF, printDemande } from '@/components/ui/PDFGenerator';
+import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel';
 
 interface DemandeEntreprise {
   id: string;
@@ -328,6 +329,17 @@ const DashboardAdmin = () => {
     } catch (error) {
       console.error('Erreur téléchargement PDF:', error);
       setMessage('Erreur lors du téléchargement du PDF');
+    }
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  const handleDownloadExcel = async (demande: DemandeEntreprise) => {
+    try {
+      await downloadDossierTraitementExcel(demande);
+      setMessage('Dossier Excel téléchargé avec succès !');
+    } catch (error) {
+      console.error('Erreur téléchargement Excel:', error);
+      setMessage('Erreur lors du téléchargement du dossier Excel');
     }
     setTimeout(() => setMessage(""), 3000);
   };
@@ -916,6 +928,16 @@ const DashboardAdmin = () => {
                                 </svg>
                                 PDF
                                         </button>
+                            )}
+                            {(isAdmin || isCarriere) && (
+                              <button
+                                onClick={() => void handleDownloadExcel(demande)}
+                                className="px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                                title="Télécharger le dossier de traitement (Excel)"
+                              >
+                                <FileSpreadsheet className="w-5 h-5" />
+                                Excel
+                              </button>
                             )}
                             
                                       <button

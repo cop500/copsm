@@ -8,7 +8,7 @@ import {
   MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck
 } from 'lucide-react'
 import JSZip from 'jszip'
-import * as XLSX from 'xlsx'
+import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel'
 import {
   getCvTriColor,
   getCvTriLabel,
@@ -99,6 +99,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const [showCandidatureDetail, setShowCandidatureDetail] = useState(false)
   const [candidatureNotes, setCandidatureNotes] = useState('')
   const [downloadingCVs, setDownloadingCVs] = useState<string | null>(null)
+  const [exportingDossierId, setExportingDossierId] = useState<string | null>(null)
   const [updatingCvTriId, setUpdatingCvTriId] = useState<string | null>(null)
 
   const toggleFolder = (demandeId: string) => {
@@ -423,26 +424,16 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     })
   }
 
-  // Fonction pour exporter les candidatures (nom, prénom, email, téléphone) en Excel
-  const handleExportExcel = (demande: DemandeEntreprise) => {
-    if (!demande.candidatures || demande.candidatures.length === 0) {
-      alert('Aucune candidature à exporter pour cette demande.')
-      return
+  const handleExportDossier = async (demande: DemandeEntreprise) => {
+    setExportingDossierId(demande.id)
+    try {
+      await downloadDossierTraitementExcel(demande, demande.candidatures || [])
+    } catch (error) {
+      console.error('Erreur export dossier traitement:', error)
+      alert("Impossible de générer le dossier Excel. Veuillez réessayer.")
+    } finally {
+      setExportingDossierId(null)
     }
-
-    const data = demande.candidatures.map((c) => ({
-      Nom: c.nom || '',
-      Prénom: c.prenom || '',
-      Email: c.email || '',
-      'Téléphone': c.telephone || ''
-    }))
-
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Candidatures')
-    const entrepriseName = demande.entreprise_nom.replace(/[^a-zA-Z0-9_-]/g, '_')
-    const fileName = `Candidatures_${entrepriseName}_${new Date().toISOString().split('T')[0]}.xlsx`
-    XLSX.writeFile(wb, fileName)
   }
 
   const renderCandidatureCard = (candidature: Candidature) => {
@@ -709,16 +700,23 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  {isAdmin && demande.candidatures && demande.candidatures.length > 0 && (
+                  {isAdmin && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleExportExcel(demande)
+                        void handleExportDossier(demande)
                       }}
-                      className="p-2 text-gray-400 hover:text-emerald-600 transition-colors"
-                      title="Exporter la liste (Excel)"
+                      disabled={exportingDossierId === demande.id}
+                      className={`p-2 text-gray-400 hover:text-emerald-600 transition-colors ${
+                        exportingDossierId === demande.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      title="Télécharger le dossier de traitement (Excel)"
                     >
-                      <FileSpreadsheet className="w-5 h-5" />
+                      {exportingDossierId === demande.id ? (
+                        <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <FileSpreadsheet className="w-5 h-5" />
+                      )}
                     </button>
                   )}
                   {canDownloadAllCVs && demande.candidatures && demande.candidatures.some((c) => c.cv_url) && (

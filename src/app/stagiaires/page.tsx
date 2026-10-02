@@ -8,6 +8,7 @@ import { useSettings } from '@/hooks/useSettings'
 import { useRole } from '@/hooks/useRole'
 import { useAuth } from '@/hooks/useAuth'
 import { buildDuplicateMap, countHiddenDuplicates } from '@/lib/candidaturesDuplicates'
+import { downloadCandidaturesRecuesExcel } from '@/lib/dossierTraitementExcel'
 import { 
   X, Save, Trash2, Eye, Clock, CheckCircle, AlertTriangle,
   Search, Filter, User, Mail, Phone, MapPin, Calendar, Target, Award,
@@ -16,6 +17,7 @@ import {
   Send, Printer, CalendarDays, PhoneCall, Mail as MailIcon, Star as StarIcon,
   EyeOff, CheckSquare, XSquare, Clock as ClockIcon, Users as UsersIcon,
   FileDown, Share2, MoreHorizontal, Edit, Archive, RefreshCw,
+  FileSpreadsheet,
   ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileText as FileTextIcon,
   Upload, HelpCircle, Settings, Smartphone
 } from 'lucide-react'
@@ -824,6 +826,22 @@ export default function StagiairesPage() {
                 {showAcceptedInMainList ? 'Acceptées affichées' : 'Acceptées masquées'}
               </span>
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  if (filteredCandidatures.length === 0) {
+                    alert('Aucune candidature à exporter avec les filtres actuels.')
+                    return
+                  }
+                  downloadCandidaturesRecuesExcel(filteredCandidatures)
+                }}
+                className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded text-sm hover:bg-emerald-200 flex items-center gap-1"
+                title="Télécharger le détail des candidatures reçues (Excel)"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Excel
+              </button>
+            )}
             <button
               onClick={() => {
                 refreshCandidatures()
