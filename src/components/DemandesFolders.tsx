@@ -78,6 +78,8 @@ interface DemandesFoldersProps {
   ) => Promise<{ success: boolean; error?: string }>
   onMarkCvsTelecharges: (candidatureIds: string[]) => Promise<{ success: boolean; error?: string; marked?: number }>
   onDeleteCandidature: (candidatureId: string) => Promise<{success: boolean}>
+  onUpdateTraitePar?: (demandeId: string, userId: string | null) => Promise<{ success: boolean; error?: string }>
+  staffProfiles?: { id: string; nom: string; prenom: string; role?: string }[]
   isAdmin?: boolean
   canDownloadAllCVs?: boolean
 }
@@ -90,6 +92,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   onUpdateCvTriStatut,
   onMarkCvsTelecharges,
   onDeleteCandidature,
+  onUpdateTraitePar,
+  staffProfiles = [],
   isAdmin = false,
   canDownloadAllCVs = false
 }) => {
@@ -101,6 +105,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const [downloadingCVs, setDownloadingCVs] = useState<string | null>(null)
   const [exportingDossierId, setExportingDossierId] = useState<string | null>(null)
   const [updatingCvTriId, setUpdatingCvTriId] = useState<string | null>(null)
+  const [assigningDemandeId, setAssigningDemandeId] = useState<string | null>(null)
 
   const toggleFolder = (demandeId: string) => {
     const newExpanded = new Set(expandedFolders)
@@ -424,6 +429,16 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     })
   }
 
+  const handleAssignSuivi = async (demandeId: string, userId: string) => {
+    if (!onUpdateTraitePar) return
+    setAssigningDemandeId(demandeId)
+    const result = await onUpdateTraitePar(demandeId, userId || null)
+    if (!result.success) {
+      alert(result.error || "Impossible de modifier le suivi du dossier.")
+    }
+    setAssigningDemandeId(null)
+  }
+
   const handleExportDossier = async (demande: DemandeEntreprise) => {
     setExportingDossierId(demande.id)
     try {
@@ -659,7 +674,31 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatutColor(demande.statut)}`}>
                         {getStatutLabel(demande.statut)}
                       </span>
-                      {demande.traite_par_nom ? (
+                      {isAdmin && onUpdateTraitePar ? (
+                        <label
+                          className="inline-flex items-center gap-1.5"
+                          title="Changer la personne qui suit ce dossier"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <UserCheck className="w-3.5 h-3.5 text-indigo-700" />
+                          <select
+                            value={demande.traite_par || ''}
+                            disabled={assigningDemandeId === demande.id}
+                            onChange={(e) => {
+                              e.stopPropagation()
+                              void handleAssignSuivi(demande.id, e.target.value)
+                            }}
+                            className="text-xs font-medium bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-full px-2 py-1 max-w-[220px] focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                          >
+                            <option value="">Non assignée</option>
+                            {staffProfiles.map((profile) => (
+                              <option key={profile.id} value={profile.id}>
+                                {`${profile.prenom || ''} ${profile.nom || ''}`.trim()}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : demande.traite_par_nom ? (
                         <span
                           className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-800 border border-indigo-200"
                           title="Personne en charge du suivi de cette demande"

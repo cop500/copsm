@@ -41,7 +41,7 @@ interface DemandeEntreprise {
   candidatures?: Candidature[]
 }
 
-type ProfileRef = { id: string; nom: string; prenom: string }
+type ProfileRef = { id: string; nom: string; prenom: string; role?: string }
 
 function resolveTraiteParNom(
   traiteParId: string | null | undefined,
@@ -95,6 +95,7 @@ export const useDemandesEntreprises = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [cvTriPersistenceWarning, setCvTriPersistenceWarning] = useState<string | null>(null)
+  const [staffProfiles, setStaffProfiles] = useState<ProfileRef[]>([])
 
   const getStaffAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
     const {
@@ -164,7 +165,8 @@ export const useDemandesEntreprises = () => {
 
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, nom, prenom')
+        .select('id, nom, prenom, role')
+        .order('prenom', { ascending: true })
 
       if (profilesError) {
         console.warn('Erreur chargement profils (assignation demandes):', profilesError)
@@ -174,6 +176,14 @@ export const useDemandesEntreprises = () => {
         (profilesData || []).map((p) => [p.id, p as ProfileRef])
       )
       profileMapRef.current = profileMap
+      setStaffProfiles(
+        (profilesData || []).map((p) => ({
+          id: p.id,
+          nom: p.nom,
+          prenom: p.prenom,
+          role: p.role,
+        }))
+      )
 
       // Charger les candidatures (pagination pour dépasser la limite Supabase de 1000)
       const candidaturesData = await fetchAllPages<Candidature>((from, to) =>
@@ -358,6 +368,34 @@ export const useDemandesEntreprises = () => {
     } catch (err: unknown) {
       setDemandes(previousDemandes)
       console.error('Erreur suppression candidature:', err)
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      return { success: false, error: message }
+    }
+  }
+
+  const updateTraitePar = async (demandeId: string, userId: string | null) => {
+    const previousDemandes = demandes
+    const nextNom = resolveTraiteParNom(userId, profileMapRef.current)
+
+    setDemandes((prev) =>
+      prev.map((d) =>
+        d.id === demandeId
+          ? { ...d, traite_par: userId, traite_par_nom: nextNom }
+          : d
+      )
+    )
+
+    try {
+      const { error } = await supabase
+        .from('demandes_entreprises')
+        .update({ traite_par: userId })
+        .eq('id', demandeId)
+
+      if (error) throw error
+      return { success: true }
+    } catch (err: unknown) {
+      setDemandes(previousDemandes)
+      console.error('Erreur assignation suivi:', err)
       const message = err instanceof Error ? err.message : 'Erreur inconnue'
       return { success: false, error: message }
     }
@@ -583,6 +621,8 @@ export const useDemandesEntreprises = () => {
     updateCvTriStatut,
     markCvsTelecharges,
     deleteCandidature,
+    updateTraitePar,
+    staffProfiles,
     refreshDemandes,
     isRealtimeConnected: isConnected,
     cvTriPersistenceWarning,

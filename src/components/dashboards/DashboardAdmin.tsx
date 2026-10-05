@@ -135,25 +135,29 @@ const DashboardAdmin = () => {
     loadAllData();
   }, []);
 
-  // Assigner une demande à un membre
+  // Assigner ou réassigner le suivi d'une demande
   const handleAssign = async (demandeId: string, userId: string) => {
     setAssigning(demandeId);
-    
-    // Mise à jour optimiste
-    setDemandes(prev => prev.map(d => 
-      d.id === demandeId ? { ...d, traite_par: userId } : d
+    const nextUserId = userId || null;
+
+    setDemandes(prev => prev.map(d =>
+      d.id === demandeId ? { ...d, traite_par: nextUserId } : d
     ));
-    
+    setSelectedDemande(prev =>
+      prev?.id === demandeId ? { ...prev, traite_par: nextUserId } : prev
+    );
+
     try {
     const { error } = await supabase
       .from("demandes_entreprises")
-      .update({ traite_par: userId })
+      .update({ traite_par: nextUserId })
       .eq("id", demandeId);
-    
+
     if (!error) {
-        setMessage("Demande assignée avec succès.");
+        setMessage(nextUserId ? "Suivi du dossier mis à jour." : "Suivi du dossier retiré.");
     } else {
         setMessage("Erreur lors de l'assignation.");
+        await loadDemandes();
       }
     } catch (error) {
       setMessage("Erreur lors de l'assignation.");
@@ -957,7 +961,30 @@ const DashboardAdmin = () => {
                         {!isDirecteur && (
                           <div className="mt-6 bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                             <h4 className="text-lg font-semibold text-gray-800 mb-4">Suivi du dossier</h4>
-                            {demande.traite_par ? (
+                            {isAdmin ? (
+                            <div className="flex flex-wrap items-center gap-4">
+                                <span className="font-medium text-gray-700">Suivi par :</span>
+                              <select
+                                value={demande.traite_par || ""}
+                                onChange={(e) => handleAssign(demande.id, e.target.value)}
+                                disabled={assigning === demande.id}
+                                  className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent bg-white shadow-sm transition-all duration-200 min-w-[260px]"
+                              >
+                                <option value="">Non suivi</option>
+                                {profiles.map((profile) => (
+                                  <option key={profile.id} value={profile.id}>
+                                    {profile.prenom} {profile.nom} ({profile.role})
+                                  </option>
+                                ))}
+                              </select>
+                              {assigning === demande.id && (
+                                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-500 rounded-full animate-spin"></div>
+                                    Mise à jour...
+                                  </div>
+                              )}
+                            </div>
+                            ) : demande.traite_par ? (
                               <div className="flex items-center gap-4">
                                 <span className="font-medium text-gray-700">Suivi par :</span>
                                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
@@ -967,8 +994,8 @@ const DashboardAdmin = () => {
                                   <span className="text-gray-800 font-semibold">
                                     {assignedProfile ? `${assignedProfile.prenom} ${assignedProfile.nom}` : <span className="text-gray-400">Non suivi</span>}
                                   </span>
-                              </div>
                                 </div>
+                              </div>
                             ) : (
                             <div className="flex items-center gap-4">
                                 <span className="font-medium text-gray-700">Assigner à :</span>
