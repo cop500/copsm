@@ -5,7 +5,7 @@ import {
   Archive, ArchiveRestore, Building2, Users, Calendar, 
   ChevronRight, ChevronDown, FileText, Eye, Edit3, 
   Trash2, CheckCircle, AlertTriangle, Clock, XCircle,
-  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck
+  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck, FilePlus
 } from 'lucide-react'
 import JSZip from 'jszip'
 import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel'
@@ -82,6 +82,10 @@ interface DemandesFoldersProps {
   staffProfiles?: { id: string; nom: string; prenom: string; role?: string }[]
   isAdmin?: boolean
   canDownloadAllCVs?: boolean
+}
+
+function hasNewCv(c: Candidature) {
+  return Boolean(c.cv_url) && !hasPremierEnvoi(c.cv_telecharge_le)
 }
 
 export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
@@ -280,19 +284,30 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     downloadKey: string,
     options?: {
       zipLabel?: string
-      variant?: 'tous' | 'acceptes'
+      variant?: 'tous' | 'acceptes' | 'nouveaux' | 'acceptes-nouveaux'
     }
   ) => {
     const variant = options?.variant ?? 'tous'
     const zipLabel = options?.zipLabel
     const candidaturesWithCV = candidatures.filter((c) => {
       if (!c.cv_url) return false
-      if (variant === 'acceptes') return isCvAcceptedForDownload(c.cv_tri_statut)
+      if (variant === 'nouveaux' || variant === 'acceptes-nouveaux') {
+        if (hasPremierEnvoi(c.cv_telecharge_le)) return false
+      }
+      if (variant === 'acceptes' || variant === 'acceptes-nouveaux') {
+        return isCvAcceptedForDownload(c.cv_tri_statut)
+      }
       return true
     })
 
     if (candidaturesWithCV.length === 0) {
-      if (variant === 'acceptes') {
+      if (variant === 'nouveaux' || variant === 'acceptes-nouveaux') {
+        alert(
+          zipLabel
+            ? `Aucun nouveau CV à télécharger pour le poste « ${zipLabel} ». Tous les CV de ce poste ont déjà été envoyés.`
+            : 'Aucun nouveau CV à télécharger. Tous les CV de cette demande ont déjà été envoyés.'
+        )
+      } else if (variant === 'acceptes') {
         alert(
           zipLabel
             ? `Aucun CV accepté à télécharger pour le poste « ${zipLabel} ». Utilisez le bouton « CV accepté » sur chaque candidature.`
@@ -358,7 +373,14 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       a.href = url
       const entrepriseName = demande.entreprise_nom.replace(/[^a-zA-Z0-9_-]/g, '_')
       const posteSuffix = zipLabel ? `_${zipLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}` : ''
-      const zipPrefix = variant === 'acceptes' ? 'CV_acceptes_' : 'CV_'
+      const zipPrefix =
+        variant === 'acceptes-nouveaux'
+          ? 'CV_acceptes_nouveaux_'
+          : variant === 'nouveaux'
+            ? 'CV_nouveaux_'
+            : variant === 'acceptes'
+              ? 'CV_acceptes_'
+              : 'CV_'
       a.download = `${zipPrefix}${entrepriseName}${posteSuffix}_${new Date().toISOString().split('T')[0]}.zip`
       document.body.appendChild(a)
       a.click()
@@ -377,6 +399,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
 
       if (failedCount > 0) {
         alert(`${downloadedCount} CV téléchargé(s) avec succès. ${failedCount} CV n'ont pas pu être téléchargés.`)
+      } else if (variant === 'nouveaux' || variant === 'acceptes-nouveaux') {
+        alert(`${downloadedCount} nouveau(x) CV téléchargé(s) avec succès dans le fichier ZIP.`)
       } else {
         alert(`${downloadedCount} CV téléchargé(s) avec succès dans le fichier ZIP.`)
       }
@@ -408,6 +432,28 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     })
   }
 
+  const handleDownloadNewCVs = async (demande: DemandeEntreprise) => {
+    if (!demande.candidatures || demande.candidatures.length === 0) {
+      alert('Aucune candidature avec CV disponible pour cette demande.')
+      return
+    }
+
+    await downloadCVsAsZip(demande, demande.candidatures, `${demande.id}-nouveaux`, {
+      variant: 'nouveaux',
+    })
+  }
+
+  const handleDownloadNewAcceptedCVs = async (demande: DemandeEntreprise) => {
+    if (!demande.candidatures || demande.candidatures.length === 0) {
+      alert('Aucune candidature disponible pour cette demande.')
+      return
+    }
+
+    await downloadCVsAsZip(demande, demande.candidatures, `${demande.id}-acceptes-nouveaux`, {
+      variant: 'acceptes-nouveaux',
+    })
+  }
+
   const handleDownloadPosteCVs = async (
     demande: DemandeEntreprise,
     candidatures: Candidature[],
@@ -426,6 +472,30 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}-acceptes`, {
       zipLabel: posteName,
       variant: 'acceptes',
+    })
+  }
+
+  const handleDownloadPosteNewCVs = async (
+    demande: DemandeEntreprise,
+    candidatures: Candidature[],
+    posteName: string,
+    posteKey: string
+  ) => {
+    await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}-nouveaux`, {
+      zipLabel: posteName,
+      variant: 'nouveaux',
+    })
+  }
+
+  const handleDownloadPosteNewAcceptedCVs = async (
+    demande: DemandeEntreprise,
+    candidatures: Candidature[],
+    posteName: string,
+    posteKey: string
+  ) => {
+    await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}-acceptes-nouveaux`, {
+      zipLabel: posteName,
+      variant: 'acceptes-nouveaux',
     })
   }
 
@@ -648,6 +718,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       {demandes.map((demande) => {
         const isExpanded = expandedFolders.has(demande.id)
         const candidaturesCount = demande.candidatures_count || 0
+        const nouveauxCvCount = (demande.candidatures || []).filter(hasNewCv).length
+        const nouveauxAcceptesCount = (demande.candidatures || []).filter(
+          (c) => hasNewCv(c) && isCvAcceptedForDownload(c.cv_tri_statut)
+        ).length
         
         return (
           <div key={demande.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -758,6 +832,30 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       )}
                     </button>
                   )}
+                  {canDownloadAllCVs && nouveauxCvCount > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void handleDownloadNewCVs(demande)
+                      }}
+                      disabled={downloadingCVs === `${demande.id}-nouveaux`}
+                      className={`relative p-2 text-orange-500 hover:text-orange-700 transition-colors ${
+                        downloadingCVs === `${demande.id}-nouveaux` ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      title={`Télécharger uniquement les ${nouveauxCvCount} nouveau(x) CV (jamais envoyés)`}
+                    >
+                      {downloadingCVs === `${demande.id}-nouveaux` ? (
+                        <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <FilePlus className="w-5 h-5" />
+                          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
+                            {nouveauxCvCount}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   {canDownloadAllCVs && demande.candidatures && demande.candidatures.some((c) => c.cv_url) && (
                     <button
                       onClick={(e) => {
@@ -799,6 +897,32 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                           <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                         ) : (
                           <CheckCircle className="w-5 h-5" />
+                        )}
+                      </button>
+                    )}
+                  {canDownloadAllCVs && nouveauxAcceptesCount > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void handleDownloadNewAcceptedCVs(demande)
+                        }}
+                        disabled={downloadingCVs === `${demande.id}-acceptes-nouveaux`}
+                        className={`relative p-2 text-orange-500 hover:text-orange-700 transition-colors ${
+                          downloadingCVs === `${demande.id}-acceptes-nouveaux`
+                            ? 'opacity-50 cursor-not-allowed'
+                            : ''
+                        }`}
+                        title={`Télécharger uniquement les ${nouveauxAcceptesCount} CV accepté(s) non encore envoyés`}
+                      >
+                        {downloadingCVs === `${demande.id}-acceptes-nouveaux` ? (
+                          <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
+                              {nouveauxAcceptesCount}
+                            </span>
+                          </>
                         )}
                       </button>
                     )}
@@ -877,6 +1001,12 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                         const posteHasAcceptedCvs = candidatures.some(
                           (c) => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)
                         )
+                        const posteNewCvCount = candidatures.filter(hasNewCv).length
+                        const posteNewAcceptedCount = candidatures.filter(
+                          (c) => hasNewCv(c) && isCvAcceptedForDownload(c.cv_tri_statut)
+                        ).length
+                        const posteNewDownloadKey = `${demande.id}-${posteKey}-nouveaux`
+                        const posteNewAcceptedDownloadKey = `${demande.id}-${posteKey}-acceptes-nouveaux`
                         
                         return (
                           <div key={posteKey} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -916,7 +1046,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                     {candidatures.filter((c) => c.cv_tri_statut === 'refuse').length > 0 &&
                                       ` · ${candidatures.filter((c) => c.cv_tri_statut === 'refuse').length} refusé`}
                                     {candidatures.filter((c) => hasPremierEnvoi(c.cv_telecharge_le)).length > 0 &&
-                                      ` · ${candidatures.filter((c) => hasPremierEnvoi(c.cv_telecharge_le)).length} avec 1er envoi`}
+                                      ` · ${candidatures.filter((c) => hasPremierEnvoi(c.cv_telecharge_le)).length} déjà envoyés`}
+                                    {posteNewCvCount > 0 && ` · ${posteNewCvCount} nouveau${posteNewCvCount > 1 ? 'x' : ''}`}
                                   </p>
                                 </div>
                               </div>
@@ -937,6 +1068,30 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                       <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
                                     ) : (
                                       <Download className="w-5 h-5" />
+                                    )}
+                                  </button>
+                                )}
+                                {canDownloadAllCVs && posteNewCvCount > 0 && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      void handleDownloadPosteNewCVs(demande, candidatures, posteName, posteKey)
+                                    }}
+                                    disabled={downloadingCVs === posteNewDownloadKey}
+                                    className={`relative p-2 text-orange-500 hover:text-orange-700 transition-colors rounded-lg hover:bg-white/70 ${
+                                      downloadingCVs === posteNewDownloadKey ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                    title={`Télécharger les ${posteNewCvCount} nouveau(x) CV du poste « ${posteName} »`}
+                                  >
+                                    {downloadingCVs === posteNewDownloadKey ? (
+                                      <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <>
+                                        <FilePlus className="w-5 h-5" />
+                                        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                          {posteNewCvCount}
+                                        </span>
+                                      </>
                                     )}
                                   </button>
                                 )}
@@ -963,6 +1118,37 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                       <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                                     ) : (
                                       <CheckCircle className="w-5 h-5" />
+                                    )}
+                                  </button>
+                                )}
+                                {canDownloadAllCVs && posteNewAcceptedCount > 0 && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      void handleDownloadPosteNewAcceptedCVs(
+                                        demande,
+                                        candidatures,
+                                        posteName,
+                                        posteKey
+                                      )
+                                    }}
+                                    disabled={downloadingCVs === posteNewAcceptedDownloadKey}
+                                    className={`relative p-2 text-orange-500 hover:text-orange-700 transition-colors rounded-lg hover:bg-white/70 ${
+                                      downloadingCVs === posteNewAcceptedDownloadKey
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : ''
+                                    }`}
+                                    title={`Télécharger les ${posteNewAcceptedCount} CV accepté(s) non encore envoyés du poste « ${posteName} »`}
+                                  >
+                                    {downloadingCVs === posteNewAcceptedDownloadKey ? (
+                                      <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="w-5 h-5" />
+                                        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                          {posteNewAcceptedCount}
+                                        </span>
+                                      </>
                                     )}
                                   </button>
                                 )}
