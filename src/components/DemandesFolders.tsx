@@ -94,15 +94,12 @@ function getPremierEnvoiMs(candidatures: Candidature[] | undefined): number | nu
   return Math.min(...times)
 }
 
-/** CV jamais envoyés à l'entreprise, hors refus, et arrivés après le premier envoi s'il a déjà eu lieu. */
-function isNouveauCv(c: Candidature, premierEnvoiMs: number | null) {
+/** CV encore à traiter : fichier présent, jamais envoyé à l'entreprise, pas accepté ni refusé. */
+function isNouveauCv(c: Candidature) {
   if (!c.cv_url) return false
   if (hasPremierEnvoi(c.cv_telecharge_le)) return false
-  if (c.cv_tri_statut === 'refuse') return false
-  if (premierEnvoiMs == null) return true
-  const created = new Date(c.created_at || c.date_candidature || '').getTime()
-  if (Number.isNaN(created)) return true
-  return created > premierEnvoiMs
+  if (c.cv_tri_statut === 'accepte' || c.cv_tri_statut === 'refuse') return false
+  return true
 }
 
 export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
@@ -306,14 +303,13 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   ) => {
     const variant = options?.variant ?? 'tous'
     const zipLabel = options?.zipLabel
-    const premierEnvoiMs = getPremierEnvoiMs(demande.candidatures)
     const candidaturesWithCV = candidatures.filter((c) => {
       if (!c.cv_url) return false
       if (variant === 'nouveaux') {
-        return isNouveauCv(c, premierEnvoiMs)
+        return isNouveauCv(c)
       }
       if (variant === 'acceptes-nouveaux') {
-        return isNouveauCv(c, premierEnvoiMs) && isCvAcceptedForDownload(c.cv_tri_statut)
+        return !hasPremierEnvoi(c.cv_telecharge_le) && isCvAcceptedForDownload(c.cv_tri_statut)
       }
       if (variant === 'acceptes') return isCvAcceptedForDownload(c.cv_tri_statut)
       return true
@@ -324,7 +320,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
         alert(
           zipLabel
             ? `Aucun nouveau CV à télécharger pour le poste « ${zipLabel} ». Tous les CV de ce poste ont déjà été envoyés.`
-            : 'Aucun nouveau CV à télécharger. Il n’y a pas de candidature reçue après le premier envoi (les CV refusés et déjà envoyés sont exclus).'
+            : 'Aucun nouveau CV à télécharger. Tous les CV non encore traités ont déjà été envoyés (ou il n’y a plus de CV à trier).'
         )
       } else if (variant === 'acceptes') {
         alert(
@@ -728,9 +724,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
         const candidaturesCount = demande.candidatures_count || 0
         const premierEnvoiMs = getPremierEnvoiMs(demande.candidatures)
         const aDejaUnPremierEnvoi = premierEnvoiMs != null
-        const nouveauxCvCount = (demande.candidatures || []).filter((c) =>
-          isNouveauCv(c, premierEnvoiMs)
-        ).length
+        const nouveauxCvCount = (demande.candidatures || []).filter(isNouveauCv).length
         
         return (
           <div key={demande.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -851,7 +845,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors ${
                         downloadingCVs === `${demande.id}-nouveaux` ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
-                      title="Télécharger seulement les CV reçus après le premier envoi à l'entreprise (hors refusés)"
+                      title="Télécharger les CV pas encore triés et jamais envoyés à l'entreprise"
                     >
                       {downloadingCVs === `${demande.id}-nouveaux` ? (
                         <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
@@ -983,12 +977,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                         const posteHasAcceptedCvs = candidatures.some(
                           (c) => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)
                         )
-                        const posteNewCvCount = candidatures.filter((c) =>
-                          isNouveauCv(c, premierEnvoiMs)
-                        ).length
+                        const posteNewCvCount = candidatures.filter(isNouveauCv).length
                         const posteNewAcceptedCount = candidatures.filter(
                           (c) =>
-                            isNouveauCv(c, premierEnvoiMs) &&
+                            !hasPremierEnvoi(c.cv_telecharge_le) &&
                             isCvAcceptedForDownload(c.cv_tri_statut)
                         ).length
                         const posteNewDownloadKey = `${demande.id}-${posteKey}-nouveaux`
