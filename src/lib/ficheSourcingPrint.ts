@@ -217,9 +217,10 @@ function buildJobDayHtml(d: FicheDonnees): string {
 
 export function openFicheSourcingValideePrint(
   fiche: FicheSourcing,
-  typeFiche?: FicheSourcingType
+  typeFiche?: FicheSourcingType,
+  options?: { allowDraft?: boolean }
 ) {
-  if (fiche.statut !== 'validee') {
+  if (fiche.statut !== 'validee' && !options?.allowDraft) {
     alert('La fiche doit être validée par l’administrateur avant impression pour le dossier.')
     return
   }
@@ -227,7 +228,10 @@ export function openFicheSourcingValideePrint(
   const type = typeFiche || fiche.type_fiche
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const title = `Fiche sourcing — ${d.entreprise || ''}`
-  const stamp = `Validée COP Space le ${esc(fmtDate(fiche.validee_le))}`
+  const stamp =
+    fiche.statut === 'validee'
+      ? `Validée COP Space le ${esc(fmtDate(fiche.validee_le))}`
+      : 'Document interne — non validé (admin)'
   const html = `<!DOCTYPE html><html lang="fr"><head>
     <meta charset="utf-8" />
     <title>${esc(title)}</title>
@@ -248,8 +252,11 @@ export function openFicheSourcingValideePrint(
     </div>
     ${type === 'job_day' ? buildJobDayHtml(d) : buildCvHtml(d)}
     <div class="footer">
-      Fiche validée dans COP Space le ${esc(fmtDate(fiche.validee_le))}
-      — document à classer dans le dossier papier.
+      ${
+        fiche.statut === 'validee'
+          ? `Fiche validée dans COP Space le ${esc(fmtDate(fiche.validee_le))} — document à classer dans le dossier papier.`
+          : 'Impression interne COP Space (admin) — fiche non encore validée, ne pas classer au dossier officiel.'
+      }
     </div>
   </body></html>`
   const win = window.open('', '_blank', 'width=980,height=760')

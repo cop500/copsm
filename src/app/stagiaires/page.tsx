@@ -1600,6 +1600,7 @@ export default function StagiairesPage() {
               isAdmin={isAdmin}
               canDownloadAllCVs={canDownloadAllDemandesCV}
               canManageFiche={isAdmin || isCarriere || isConseiller}
+              currentUserId={profile?.id}
             />
           </div>
         )}

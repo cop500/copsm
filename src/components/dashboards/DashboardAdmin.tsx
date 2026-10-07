@@ -986,11 +986,15 @@ const DashboardAdmin = () => {
                                 Excel
                               </button>
                             )}
-                            {(isAdmin || isCarriere) && (
+                            {(isAdmin || (isCarriere && currentUser?.id === demande.traite_par)) && (
                               <button
                                 onClick={() => handleOpenFicheSourcing(demande)}
                                 className="px-6 py-3 bg-[#0f3d6c] text-white rounded-xl hover:bg-[#0c3258] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
-                                title="Saisir, valider ou imprimer la fiche sourcing"
+                                title={
+                                  isAdmin
+                                    ? 'Saisir, modifier, valider ou imprimer toutes les fiches'
+                                    : 'Fiche de votre dossier : saisir et imprimer si validée'
+                                }
                               >
                                 <Printer className="w-5 h-5" />
                                 Fiche sourcing

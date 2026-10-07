@@ -89,6 +89,7 @@ interface DemandesFoldersProps {
   isAdmin?: boolean
   canDownloadAllCVs?: boolean
   canManageFiche?: boolean
+  currentUserId?: string | null
 }
 
 function getDernierEnvoiMs(candidatures: Candidature[] | undefined): number | null {
@@ -128,7 +129,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   staffProfiles = [],
   isAdmin = false,
   canDownloadAllCVs = false,
-  canManageFiche = false
+  canManageFiche = false,
+  currentUserId = null
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [expandedPostes, setExpandedPostes] = useState<Set<string>>(new Set())
@@ -141,7 +143,12 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const [assigningDemandeId, setAssigningDemandeId] = useState<string | null>(null)
   const [ficheDemande, setFicheDemande] = useState<DemandeEntreprise | null>(null)
   const [fichesResumes, setFichesResumes] = useState<Record<string, FicheSourcingResume>>({})
-  const showFiche = canManageFiche || isAdmin || canDownloadAllCVs
+  const showFicheList = canManageFiche || isAdmin || canDownloadAllCVs
+  const canAccessFiche = (demande: DemandeEntreprise) => {
+    if (isAdmin) return true
+    if (!showFicheList) return false
+    return Boolean(currentUserId && demande.traite_par === currentUserId)
+  }
 
   const reloadFiches = async () => {
     const { data } = await fetchFichesResumes()
@@ -153,9 +160,9 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   }
 
   useEffect(() => {
-    if (!showFiche) return
+    if (!showFicheList) return
     void reloadFiches()
-  }, [showFiche])
+  }, [showFicheList])
 
   const toggleFolder = (demandeId: string) => {
     const newExpanded = new Set(expandedFolders)
@@ -786,7 +793,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatutColor(demande.statut)}`}>
                         {getStatutLabel(demande.statut)}
                       </span>
-                      {showFiche && (
+                      {canAccessFiche(demande) && (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${ficheBadgeClass(fichesResumes[demande.id]?.statut)}`}>
                           Fiche : {ficheStatutLabel(fichesResumes[demande.id]?.statut)}
                         </span>
@@ -875,14 +882,18 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       )}
                     </button>
                   )}
-                  {showFiche && (
+                  {canAccessFiche(demande) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         setFicheDemande(demande)
                       }}
                       className="p-2 text-gray-400 hover:text-[#0f3d6c] transition-colors"
-                      title="Fiche sourcing : saisir, envoyer à l’admin, imprimer si validée"
+                      title={
+                        isAdmin
+                          ? 'Fiche sourcing : saisir, modifier, valider ou imprimer'
+                          : 'Fiche sourcing de votre dossier : saisir et imprimer si validée'
+                      }
                     >
                       <Printer className="w-5 h-5" />
                     </button>

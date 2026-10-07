@@ -61,11 +61,11 @@ export function FicheSourcingEditor({ demande, conseillerNom, isAdmin, onClose, 
   const [commentaireAdmin, setCommentaireAdmin] = useState('')
 
   const statut = existing?.statut || 'brouillon'
-  const locked = statut === 'validee' || (statut === 'soumise' && !isAdmin)
+  const locked = isAdmin ? false : statut === 'validee' || statut === 'soumise'
   const canFill = !locked
   const canSubmit = canFill && (statut === 'brouillon' || statut === 'a_revoir' || !existing)
   const canValidate = isAdmin && statut === 'soumise'
-  const canPrint = statut === 'validee' && existing
+  const canPrint = Boolean(existing) && (isAdmin || statut === 'validee')
 
   useEffect(() => {
     let cancelled = false
@@ -154,7 +154,18 @@ export function FicheSourcingEditor({ demande, conseillerNom, isAdmin, onClose, 
               <button
                 type="button"
                 disabled={saving}
-                onClick={() => void persist({ statut: statut === 'soumise' ? 'soumise' : existing?.statut === 'a_revoir' ? 'a_revoir' : 'brouillon' })}
+                onClick={() =>
+                  void persist({
+                    statut:
+                      statut === 'validee'
+                        ? 'validee'
+                        : statut === 'soumise'
+                          ? 'soumise'
+                          : existing?.statut === 'a_revoir'
+                            ? 'a_revoir'
+                            : 'brouillon',
+                  })
+                }
                 className="inline-flex items-center gap-1 bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-sm font-semibold"
               >
                 <Save className="w-4 h-4" /> Enregistrer
@@ -193,7 +204,7 @@ export function FicheSourcingEditor({ demande, conseillerNom, isAdmin, onClose, 
             {canPrint && existing && (
               <button
                 type="button"
-                onClick={() => openFicheSourcingValideePrint(existing, typeFiche)}
+                onClick={() => openFicheSourcingValideePrint(existing, typeFiche, { allowDraft: isAdmin })}
                 className="inline-flex items-center gap-1 bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-sm font-semibold"
               >
                 <Printer className="w-4 h-4" /> Imprimer
@@ -214,10 +225,14 @@ export function FicheSourcingEditor({ demande, conseillerNom, isAdmin, onClose, 
             </div>
           )}
           {locked && statut === 'soumise' && (
-            <p className="text-sm text-slate-600">En attente de validation administrateur. Impression possible uniquement après validation.</p>
+            <p className="text-sm text-slate-600">En attente de validation administrateur. Vous pourrez imprimer cette fiche (votre dossier) une fois validée.</p>
           )}
           {statut === 'validee' && (
-            <p className="text-sm text-emerald-800">Fiche validée — imprimable pour le dossier papier.</p>
+            <p className="text-sm text-emerald-800">
+              {isAdmin
+                ? 'Fiche validée — vous pouvez encore la modifier, puis imprimer.'
+                : 'Fiche validée — vous pouvez l’imprimer pour le dossier papier.'}
+            </p>
           )}
 
           <div className="flex flex-wrap gap-4 items-center">
