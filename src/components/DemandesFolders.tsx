@@ -84,22 +84,29 @@ interface DemandesFoldersProps {
   canDownloadAllCVs?: boolean
 }
 
-function getPremierEnvoiMs(candidatures: Candidature[] | undefined): number | null {
+function getDernierEnvoiMs(candidatures: Candidature[] | undefined): number | null {
   const times = (candidatures || [])
-    .map((c) => c.cv_telecharge_le)
+    .map((c) => c.cv_dernier_envoi_le || c.cv_telecharge_le)
     .filter((iso): iso is string => Boolean(iso))
     .map((iso) => new Date(iso).getTime())
     .filter((t) => !Number.isNaN(t))
   if (times.length === 0) return null
-  return Math.min(...times)
+  return Math.max(...times)
 }
 
-/** CV encore à traiter : fichier présent, jamais envoyé à l'entreprise, pas accepté ni refusé. */
-function isNouveauCv(c: Candidature) {
+/**
+ * CV à envoyer dans le lot suivant : acceptés après le dernier envoi à l'entreprise,
+ * avec fichier, et pas encore inclus dans un ZIP d'envoi.
+ */
+function isNouveauCv(c: Candidature, dernierEnvoiMs: number | null) {
   if (!c.cv_url) return false
   if (hasPremierEnvoi(c.cv_telecharge_le)) return false
-  if (c.cv_tri_statut === 'accepte' || c.cv_tri_statut === 'refuse') return false
-  return true
+  if (c.cv_tri_statut !== 'accepte') return false
+  if (dernierEnvoiMs == null) return false
+  if (!c.cv_tri_le) return true
+  const triLe = new Date(c.cv_tri_le).getTime()
+  if (Number.isNaN(triLe)) return true
+  return triLe > dernierEnvoiMs
 }
 
 export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
@@ -303,13 +310,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   ) => {
     const variant = options?.variant ?? 'tous'
     const zipLabel = options?.zipLabel
+    const dernierEnvoiMs = getDernierEnvoiMs(demande.candidatures)
     const candidaturesWithCV = candidatures.filter((c) => {
       if (!c.cv_url) return false
-      if (variant === 'nouveaux') {
-        return isNouveauCv(c)
-      }
-      if (variant === 'acceptes-nouveaux') {
-        return !hasPremierEnvoi(c.cv_telecharge_le) && isCvAcceptedForDownload(c.cv_tri_statut)
+      if (variant === 'nouveaux' || variant === 'acceptes-nouveaux') {
+        return isNouveauCv(c, dernierEnvoiMs)
       }
       if (variant === 'acceptes') return isCvAcceptedForDownload(c.cv_tri_statut)
       return true
@@ -320,7 +325,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
         alert(
           zipLabel
             ? `Aucun nouveau CV à télécharger pour le poste « ${zipLabel} ». Tous les CV de ce poste ont déjà été envoyés.`
-            : 'Aucun nouveau CV à télécharger. Tous les CV non encore traités ont déjà été envoyés (ou il n’y a plus de CV à trier).'
+            : 'Aucun nouveau CV à télécharger. Aucun CV n’a été accepté depuis le dernier envoi à l’entreprise.'
         )
       } else if (variant === 'acceptes') {
         alert(
@@ -488,18 +493,6 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}-nouveaux`, {
       zipLabel: posteName,
       variant: 'nouveaux',
-    })
-  }
-
-  const handleDownloadPosteNewAcceptedCVs = async (
-    demande: DemandeEntreprise,
-    candidatures: Candidature[],
-    posteName: string,
-    posteKey: string
-  ) => {
-    await downloadCVsAsZip(demande, candidatures, `${demande.id}-${posteKey}-acceptes-nouveaux`, {
-      zipLabel: posteName,
-      variant: 'acceptes-nouveaux',
     })
   }
 
@@ -722,9 +715,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       {demandes.map((demande) => {
         const isExpanded = expandedFolders.has(demande.id)
         const candidaturesCount = demande.candidatures_count || 0
-        const premierEnvoiMs = getPremierEnvoiMs(demande.candidatures)
-        const aDejaUnPremierEnvoi = premierEnvoiMs != null
-        const nouveauxCvCount = (demande.candidatures || []).filter(isNouveauCv).length
+        const dernierEnvoiMs = getDernierEnvoiMs(demande.candidatures)
+        const aDejaUnPremierEnvoi = dernierEnvoiMs != null
+        const nouveauxCvCount = (demande.candidatures || []).filter((c) =>
+          isNouveauCv(c, dernierEnvoiMs)
+        ).length
         
         return (
           <div key={demande.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -845,7 +840,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors ${
                         downloadingCVs === `${demande.id}-nouveaux` ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
-                      title="Télécharger les CV pas encore triés et jamais envoyés à l'entreprise"
+                      title="Télécharger les CV acceptés après le dernier envoi, pas encore envoyés à l'entreprise"
                     >
                       {downloadingCVs === `${demande.id}-nouveaux` ? (
                         <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
@@ -977,14 +972,10 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                         const posteHasAcceptedCvs = candidatures.some(
                           (c) => c.cv_url && isCvAcceptedForDownload(c.cv_tri_statut)
                         )
-                        const posteNewCvCount = candidatures.filter(isNouveauCv).length
-                        const posteNewAcceptedCount = candidatures.filter(
-                          (c) =>
-                            !hasPremierEnvoi(c.cv_telecharge_le) &&
-                            isCvAcceptedForDownload(c.cv_tri_statut)
+                        const posteNewCvCount = candidatures.filter((c) =>
+                          isNouveauCv(c, dernierEnvoiMs)
                         ).length
                         const posteNewDownloadKey = `${demande.id}-${posteKey}-nouveaux`
-                        const posteNewAcceptedDownloadKey = `${demande.id}-${posteKey}-acceptes-nouveaux`
                         
                         return (
                           <div key={posteKey} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -1096,37 +1087,6 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                                       <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                                     ) : (
                                       <CheckCircle className="w-5 h-5" />
-                                    )}
-                                  </button>
-                                )}
-                                {canDownloadAllCVs && posteNewAcceptedCount > 0 && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      void handleDownloadPosteNewAcceptedCVs(
-                                        demande,
-                                        candidatures,
-                                        posteName,
-                                        posteKey
-                                      )
-                                    }}
-                                    disabled={downloadingCVs === posteNewAcceptedDownloadKey}
-                                    className={`relative p-2 text-orange-500 hover:text-orange-700 transition-colors rounded-lg hover:bg-white/70 ${
-                                      downloadingCVs === posteNewAcceptedDownloadKey
-                                        ? 'opacity-50 cursor-not-allowed'
-                                        : ''
-                                    }`}
-                                    title={`Télécharger les ${posteNewAcceptedCount} CV accepté(s) non encore envoyés du poste « ${posteName} »`}
-                                  >
-                                    {downloadingCVs === posteNewAcceptedDownloadKey ? (
-                                      <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                      <>
-                                        <CheckCircle className="w-5 h-5" />
-                                        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
-                                          {posteNewAcceptedCount}
-                                        </span>
-                                      </>
                                     )}
                                   </button>
                                 )}
