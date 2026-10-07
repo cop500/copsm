@@ -1599,6 +1599,7 @@ export default function StagiairesPage() {
               staffProfiles={staffProfiles}
               isAdmin={isAdmin}
               canDownloadAllCVs={canDownloadAllDemandesCV}
+              canManageFiche={isAdmin || isCarriere || isConseiller}
             />
           </div>
         )}

@@ -1,14 +1,20 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { 
   Archive, ArchiveRestore, Building2, Users, Calendar, 
   ChevronRight, ChevronDown, FileText, Eye, Edit3, 
   Trash2, CheckCircle, AlertTriangle, Clock, XCircle,
-  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck, FilePlus
+  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck, FilePlus, Printer
 } from 'lucide-react'
 import JSZip from 'jszip'
 import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel'
+import { FicheSourcingEditor } from '@/components/FicheSourcingEditor'
+import {
+  fetchFichesResumes,
+  ficheStatutLabel,
+  type FicheSourcingResume,
+} from '@/lib/fichesSourcing'
 import {
   getCvTriColor,
   getCvTriLabel,
@@ -82,6 +88,7 @@ interface DemandesFoldersProps {
   staffProfiles?: { id: string; nom: string; prenom: string; role?: string }[]
   isAdmin?: boolean
   canDownloadAllCVs?: boolean
+  canManageFiche?: boolean
 }
 
 function getDernierEnvoiMs(candidatures: Candidature[] | undefined): number | null {
@@ -120,7 +127,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   onUpdateTraitePar,
   staffProfiles = [],
   isAdmin = false,
-  canDownloadAllCVs = false
+  canDownloadAllCVs = false,
+  canManageFiche = false
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [expandedPostes, setExpandedPostes] = useState<Set<string>>(new Set())
@@ -131,6 +139,23 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const [exportingDossierId, setExportingDossierId] = useState<string | null>(null)
   const [updatingCvTriId, setUpdatingCvTriId] = useState<string | null>(null)
   const [assigningDemandeId, setAssigningDemandeId] = useState<string | null>(null)
+  const [ficheDemande, setFicheDemande] = useState<DemandeEntreprise | null>(null)
+  const [fichesResumes, setFichesResumes] = useState<Record<string, FicheSourcingResume>>({})
+  const showFiche = canManageFiche || isAdmin || canDownloadAllCVs
+
+  const reloadFiches = async () => {
+    const { data } = await fetchFichesResumes()
+    const map: Record<string, FicheSourcingResume> = {}
+    data.forEach((f) => {
+      map[f.demande_id] = f
+    })
+    setFichesResumes(map)
+  }
+
+  useEffect(() => {
+    if (!showFiche) return
+    void reloadFiches()
+  }, [showFiche])
 
   const toggleFolder = (demandeId: string) => {
     const newExpanded = new Set(expandedFolders)
@@ -518,6 +543,21 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     }
   }
 
+  const ficheBadgeClass = (statut?: string) => {
+    switch (statut) {
+      case 'validee':
+        return 'bg-emerald-50 text-emerald-800 border-emerald-200'
+      case 'soumise':
+        return 'bg-orange-50 text-orange-800 border-orange-200'
+      case 'a_revoir':
+        return 'bg-red-50 text-red-800 border-red-200'
+      case 'brouillon':
+        return 'bg-slate-50 text-slate-700 border-slate-200'
+      default:
+        return 'bg-gray-50 text-gray-600 border-gray-200'
+    }
+  }
+
   const renderCandidatureCard = (candidature: Candidature) => {
     const cvTri = candidature.cv_tri_statut || 'en_attente'
     const isUpdatingTri = updatingCvTriId === candidature.id
@@ -746,6 +786,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatutColor(demande.statut)}`}>
                         {getStatutLabel(demande.statut)}
                       </span>
+                      {showFiche && (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${ficheBadgeClass(fichesResumes[demande.id]?.statut)}`}>
+                          Fiche : {ficheStatutLabel(fichesResumes[demande.id]?.statut)}
+                        </span>
+                      )}
                       {isAdmin && onUpdateTraitePar ? (
                         <label
                           className="inline-flex items-center gap-1.5"
@@ -828,6 +873,18 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       ) : (
                         <FileSpreadsheet className="w-5 h-5" />
                       )}
+                    </button>
+                  )}
+                  {showFiche && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setFicheDemande(demande)
+                      }}
+                      className="p-2 text-gray-400 hover:text-[#0f3d6c] transition-colors"
+                      title="Fiche sourcing : saisir, envoyer à l’admin, imprimer si validée"
+                    >
+                      <Printer className="w-5 h-5" />
                     </button>
                   )}
                   {canDownloadAllCVs && nouveauxCvCount > 0 && (
@@ -1304,6 +1361,16 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {ficheDemande && (
+        <FicheSourcingEditor
+          demande={ficheDemande}
+          conseillerNom={ficheDemande.traite_par_nom}
+          isAdmin={isAdmin}
+          onClose={() => setFicheDemande(null)}
+          onChanged={() => void reloadFiches()}
+        />
       )}
     </div>
   )

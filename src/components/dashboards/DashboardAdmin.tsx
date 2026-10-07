@@ -7,6 +7,8 @@ import { useSettings } from '@/hooks/useSettings';
 import { MessageSquare, Send, User, Calendar, Download, Printer, Trash2, FileSpreadsheet } from 'lucide-react';
 import { downloadDemandePDF, printDemande } from '@/components/ui/PDFGenerator';
 import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel';
+import { FicheSourcingEditor } from '@/components/FicheSourcingEditor';
+import { fetchFichesResumes, ficheStatutLabel, type FicheSourcingResume } from '@/lib/fichesSourcing';
 
 interface DemandeEntreprise {
   id: string;
@@ -60,6 +62,8 @@ const DashboardAdmin = () => {
   
   // États pour les notifications
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [ficheEditorDemande, setFicheEditorDemande] = useState<DemandeEntreprise | null>(null);
+  const [fichesResumes, setFichesResumes] = useState<FicheSourcingResume[]>([]);
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -348,6 +352,19 @@ const DashboardAdmin = () => {
     setTimeout(() => setMessage(""), 3000);
   };
 
+  const reloadFiches = async () => {
+    const { data } = await fetchFichesResumes();
+    setFichesResumes(data);
+  };
+
+  useEffect(() => {
+    void reloadFiches();
+  }, []);
+
+  const handleOpenFicheSourcing = (demande: DemandeEntreprise) => {
+    setFicheEditorDemande(demande);
+  };
+
   // Imprimer la demande
   const handlePrint = (demande: DemandeEntreprise) => {
     try {
@@ -391,6 +408,7 @@ const DashboardAdmin = () => {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-white">
     <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-0">
         <div className="text-center mb-8">
@@ -402,6 +420,31 @@ const DashboardAdmin = () => {
           </p>
         </div>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
+      {isAdmin && fichesResumes.filter((f) => f.statut === 'soumise').length > 0 && (
+        <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <p className="font-semibold text-orange-900 mb-2">
+            {fichesResumes.filter((f) => f.statut === 'soumise').length} fiche(s) sourcing à valider
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {fichesResumes
+              .filter((f) => f.statut === 'soumise')
+              .map((f) => {
+                const d = demandes.find((x) => x.id === f.demande_id);
+                if (!d) return null;
+                return (
+                  <button
+                    key={f.demande_id}
+                    type="button"
+                    onClick={() => setFicheEditorDemande(d)}
+                    className="px-3 py-1.5 bg-white border border-orange-300 rounded-lg text-sm text-orange-900 hover:bg-orange-100"
+                  >
+                    {d.entreprise_nom}
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      )}
       
       {/* Section Notifications */}
       {notifications.length > 0 && (
@@ -943,6 +986,19 @@ const DashboardAdmin = () => {
                                 Excel
                               </button>
                             )}
+                            {(isAdmin || isCarriere) && (
+                              <button
+                                onClick={() => handleOpenFicheSourcing(demande)}
+                                className="px-6 py-3 bg-[#0f3d6c] text-white rounded-xl hover:bg-[#0c3258] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                                title="Saisir, valider ou imprimer la fiche sourcing"
+                              >
+                                <Printer className="w-5 h-5" />
+                                Fiche sourcing
+                                <span className="text-xs font-normal opacity-90">
+                                  ({ficheStatutLabel(fichesResumes.find((f) => f.demande_id === demande.id)?.statut)})
+                                </span>
+                              </button>
+                            )}
                             
                                       <button
                               onClick={() => handlePrint(demande)}
@@ -1032,6 +1088,20 @@ const DashboardAdmin = () => {
         )}
       </div>
       </div>
+      {ficheEditorDemande ? (
+        <FicheSourcingEditor
+          demande={ficheEditorDemande}
+          conseillerNom={
+            profiles.find((p) => p.id === ficheEditorDemande.traite_par)
+              ? `${profiles.find((p) => p.id === ficheEditorDemande.traite_par)?.prenom || ''} ${profiles.find((p) => p.id === ficheEditorDemande.traite_par)?.nom || ''}`.trim()
+              : null
+          }
+          isAdmin={isAdmin}
+          onClose={() => setFicheEditorDemande(null)}
+          onChanged={() => void reloadFiches()}
+        />
+      ) : null}
+    </>
     );
 };
 
