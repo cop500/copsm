@@ -401,6 +401,24 @@ export const useDemandesEntreprises = () => {
     }
   }
 
+  const updateProfils = async (demandeId: string, profils: any[]) => {
+    const previousDemandes = demandes
+    setDemandes((prev) => prev.map((d) => (d.id === demandeId ? { ...d, profils } : d)))
+    try {
+      const { error } = await supabase
+        .from('demandes_entreprises')
+        .update({ profils })
+        .eq('id', demandeId)
+      if (error) throw error
+      return { success: true }
+    } catch (err: unknown) {
+      setDemandes(previousDemandes)
+      console.error('Erreur mise à jour pôle/filière:', err)
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      return { success: false, error: message }
+    }
+  }
+
   // Charger au montage du composant
   useEffect(() => {
     void loadDemandes()
@@ -622,6 +640,7 @@ export const useDemandesEntreprises = () => {
     markCvsTelecharges,
     deleteCandidature,
     updateTraitePar,
+    updateProfils,
     staffProfiles,
     refreshDemandes,
     isRealtimeConnected: isConnected,

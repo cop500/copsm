@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import JSZip from 'jszip'
 import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel'
+import { useSettings } from '@/hooks/useSettings'
 import { FicheSourcingEditor } from '@/components/FicheSourcingEditor'
 import {
   fetchFichesResumes,
@@ -85,6 +86,7 @@ interface DemandesFoldersProps {
   onMarkCvsTelecharges: (candidatureIds: string[]) => Promise<{ success: boolean; error?: string; marked?: number }>
   onDeleteCandidature: (candidatureId: string) => Promise<{success: boolean}>
   onUpdateTraitePar?: (demandeId: string, userId: string | null) => Promise<{ success: boolean; error?: string }>
+  onUpdateProfils?: (demandeId: string, profils: any[]) => Promise<{ success: boolean; error?: string }>
   staffProfiles?: { id: string; nom: string; prenom: string; role?: string }[]
   isAdmin?: boolean
   canDownloadAllCVs?: boolean
@@ -126,6 +128,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   onMarkCvsTelecharges,
   onDeleteCandidature,
   onUpdateTraitePar,
+  onUpdateProfils,
   staffProfiles = [],
   isAdmin = false,
   canDownloadAllCVs = false,
@@ -143,6 +146,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const [assigningDemandeId, setAssigningDemandeId] = useState<string | null>(null)
   const [ficheDemande, setFicheDemande] = useState<DemandeEntreprise | null>(null)
   const [fichesResumes, setFichesResumes] = useState<Record<string, FicheSourcingResume>>({})
+  const [savingProfilKey, setSavingProfilKey] = useState<string | null>(null)
+  const { poles, filieres } = useSettings()
   const showFicheList = canManageFiche || isAdmin || canDownloadAllCVs
   const canAccessFiche = (demande: DemandeEntreprise) => {
     if (isAdmin) return true
@@ -536,6 +541,35 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
       alert(result.error || "Impossible de modifier le suivi du dossier.")
     }
     setAssigningDemandeId(null)
+  }
+
+  const handleUpdateProfilPoleFiliere = async (
+    demande: DemandeEntreprise,
+    index: number,
+    poleId: string,
+    filiereId: string
+  ) => {
+    if (!onUpdateProfils) return
+    const key = `${demande.id}-${index}`
+    const pole = poles.find((p) => p.id === poleId)
+    const filiere = filieres.find((f) => f.id === filiereId)
+    const profils = (demande.profils || []).map((profil, i) =>
+      i === index
+        ? {
+            ...profil,
+            pole_id: poleId,
+            filiere_id: filiereId,
+            filiere: filiere?.nom || '',
+            pole_nom: pole?.nom || '',
+          }
+        : profil
+    )
+    setSavingProfilKey(key)
+    const result = await onUpdateProfils(demande.id, profils)
+    if (!result.success) {
+      alert(result.error || "Impossible d'enregistrer le pôle / la filière.")
+    }
+    setSavingProfilKey(null)
   }
 
   const handleExportDossier = async (demande: DemandeEntreprise) => {
@@ -989,6 +1023,62 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
             {/* Contenu du dossier (candidatures organisées par poste) */}
             {isExpanded && (
               <div className="border-t border-gray-200 p-6">
+                {isAdmin && onUpdateProfils && Array.isArray(demande.profils) && demande.profils.length > 0 && (
+                  <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+                    <h4 className="text-sm font-semibold text-indigo-900 mb-3">Corriger pôle et filière (admin)</h4>
+                    <div className="space-y-3">
+                      {demande.profils.map((profil, index) => (
+                        <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white rounded-lg p-3 border border-indigo-100">
+                          <div className="text-sm font-medium text-gray-800 self-center">
+                            {profil.poste_intitule || profil.poste || profil.titre || `Profil ${index + 1}`}
+                          </div>
+                          <select
+                            value={profil.pole_id || ''}
+                            disabled={savingProfilKey === `${demande.id}-${index}`}
+                            onChange={(e) => {
+                              const poleId = e.target.value
+                              const stillValid = filieres.some(
+                                (f) => f.id === profil.filiere_id && f.pole_id === poleId
+                              )
+                              void handleUpdateProfilPoleFiliere(
+                                demande,
+                                index,
+                                poleId,
+                                stillValid ? (profil.filiere_id || '') : ''
+                              )
+                            }}
+                            className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                          >
+                            <option value="">Pôle...</option>
+                            {poles.filter((p) => p.actif !== false).map((p) => (
+                              <option key={p.id} value={p.id}>{p.nom}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={profil.filiere_id || ''}
+                            disabled={!profil.pole_id || savingProfilKey === `${demande.id}-${index}`}
+                            onChange={(e) =>
+                              void handleUpdateProfilPoleFiliere(
+                                demande,
+                                index,
+                                profil.pole_id || '',
+                                e.target.value
+                              )
+                            }
+                            className="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:bg-gray-100"
+                          >
+                            <option value="">Filière...</option>
+                            {filieres
+                              .filter((f) => f.pole_id === profil.pole_id && f.actif !== false)
+                              .map((f) => (
+                                <option key={f.id} value={f.id}>{f.nom}</option>
+                              ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {candidaturesCount === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />

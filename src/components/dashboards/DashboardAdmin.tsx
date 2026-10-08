@@ -64,6 +64,7 @@ const DashboardAdmin = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [ficheEditorDemande, setFicheEditorDemande] = useState<DemandeEntreprise | null>(null);
   const [fichesResumes, setFichesResumes] = useState<FicheSourcingResume[]>([]);
+  const [savingProfilKey, setSavingProfilKey] = useState<string | null>(null);
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -363,6 +364,45 @@ const DashboardAdmin = () => {
 
   const handleOpenFicheSourcing = (demande: DemandeEntreprise) => {
     setFicheEditorDemande(demande);
+  };
+
+  const handleUpdateProfilPoleFiliere = async (
+    demande: DemandeEntreprise,
+    index: number,
+    poleId: string,
+    filiereId: string
+  ) => {
+    const key = `${demande.id}-${index}`;
+    const pole = poles?.find((p) => p.id === poleId);
+    const filiere = filieres?.find((f) => f.id === filiereId);
+    const profils = (demande.profils || []).map((profil, i) => {
+      if (i !== index) return profil;
+      return {
+        ...profil,
+        pole_id: poleId,
+        filiere_id: filiereId,
+        filiere: filiere?.nom || '',
+        pole_nom: pole?.nom || '',
+      };
+    });
+    setSavingProfilKey(key);
+    setDemandes((prev) => prev.map((d) => (d.id === demande.id ? { ...d, profils } : d)));
+    try {
+      const { error } = await supabase
+        .from("demandes_entreprises")
+        .update({ profils })
+        .eq("id", demande.id);
+      if (error) {
+        setMessage("Impossible d'enregistrer le pôle / la filière.");
+        await loadDemandes();
+      } else {
+        setMessage("Pôle et filière mis à jour.");
+      }
+    } catch {
+      setMessage("Impossible d'enregistrer le pôle / la filière.");
+    }
+    setSavingProfilKey(null);
+    setTimeout(() => setMessage(""), 3000);
   };
 
   // Imprimer la demande
@@ -689,7 +729,62 @@ const DashboardAdmin = () => {
                             {demande.profils.map((profil, index) => (
                               <div key={index} className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 rounded-xl border border-purple-100">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                                  {/* Pôle */}
+                                  {isAdmin ? (
+                                    <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      <label className="block text-xs font-semibold text-[#1E40AF] uppercase tracking-wide">
+                                        Pôle
+                                        <select
+                                          value={profil.pole_id || ''}
+                                          disabled={savingProfilKey === `${demande.id}-${index}` || loadingSettings}
+                                          onChange={(e) => {
+                                            const poleId = e.target.value;
+                                            const stillValid = filieres?.some(
+                                              (f) => f.id === profil.filiere_id && f.pole_id === poleId
+                                            );
+                                            void handleUpdateProfilPoleFiliere(
+                                              demande,
+                                              index,
+                                              poleId,
+                                              stillValid ? (profil.filiere_id || '') : ''
+                                            );
+                                          }}
+                                          className="mt-1 w-full px-3 py-2 text-sm font-medium normal-case text-gray-800 border border-indigo-200 rounded-lg bg-white focus:ring-2 focus:ring-[#1E40AF]"
+                                        >
+                                          <option value="">Sélectionner un pôle...</option>
+                                          {(poles || []).filter((p) => p.actif !== false).map((p) => (
+                                            <option key={p.id} value={p.id}>{p.nom}</option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                      <label className="block text-xs font-semibold text-[#1E40AF] uppercase tracking-wide">
+                                        Filière
+                                        <select
+                                          value={profil.filiere_id || ''}
+                                          disabled={!profil.pole_id || savingProfilKey === `${demande.id}-${index}` || loadingSettings}
+                                          onChange={(e) => {
+                                            void handleUpdateProfilPoleFiliere(
+                                              demande,
+                                              index,
+                                              profil.pole_id || '',
+                                              e.target.value
+                                            );
+                                          }}
+                                          className="mt-1 w-full px-3 py-2 text-sm font-medium normal-case text-gray-800 border border-indigo-200 rounded-lg bg-white focus:ring-2 focus:ring-[#1E40AF] disabled:bg-gray-100"
+                                        >
+                                          <option value="">Sélectionner une filière...</option>
+                                          {(filieres || [])
+                                            .filter((f) => f.pole_id === profil.pole_id && f.actif !== false)
+                                            .map((f) => (
+                                              <option key={f.id} value={f.id}>{f.nom}</option>
+                                            ))}
+                                        </select>
+                                      </label>
+                                      {savingProfilKey === `${demande.id}-${index}` && (
+                                        <p className="text-xs text-indigo-600 md:col-span-2">Enregistrement...</p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <>
                                   {profil.pole_id && (
                                     <div className="flex items-center gap-2">
                                       <svg className="w-4 h-4 text-[#1E40AF]" fill="currentColor" viewBox="0 0 20 20">
@@ -702,7 +797,6 @@ const DashboardAdmin = () => {
                                     </div>
                                   )}
                                   
-                                  {/* Filière */}
                                   {(profil.filiere || profil.filiere_id) && (
                                     <div className="flex items-center gap-2">
                                       <svg className="w-4 h-4 text-[#1E40AF]" fill="currentColor" viewBox="0 0 20 20">
@@ -718,6 +812,8 @@ const DashboardAdmin = () => {
                                         </p>
                               </div>
                                     </div>
+                                  )}
+                                    </>
                                   )}
                                   
                                   {/* Poste/Titre/Fonction */}
