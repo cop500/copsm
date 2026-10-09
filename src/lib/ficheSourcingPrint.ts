@@ -35,11 +35,11 @@ function fmtDate(iso?: string | null): string {
 
 const PRINT_STYLES = `
   * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 10mm; color: #111; font-size: 11px; }
+  body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; color: #111; font-size: 11px; }
   .fs-toolbar {
     position: sticky; top: 0; z-index: 5;
     display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-    background: #0f3d6c; color: #fff; padding: 10px 12px; margin: -10mm -10mm 10px;
+    background: #0f3d6c; color: #fff; padding: 10px 12px;
     font-size: 13px;
   }
   .fs-toolbar button {
@@ -50,9 +50,63 @@ const PRINT_STYLES = `
     border: 2px solid #15803d; color: #15803d; font-weight: 700;
     padding: 4px 10px; border-radius: 6px; text-transform: uppercase; font-size: 11px;
   }
+  .fs-cover {
+    position: relative;
+    overflow: hidden;
+    min-height: 190mm;
+    padding: 14mm 16mm 22mm;
+    background: #fff;
+    page-break-after: always;
+    break-after: page;
+  }
+  .fs-cover-top {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 18mm;
+  }
+  .fs-cover-top img { height: 58px; width: auto; object-fit: contain; }
+  .fs-cover-brand { display: flex; align-items: center; gap: 14px; }
+  .fs-myway {
+    border: 2px solid #0f3d6c; border-radius: 8px; padding: 6px 10px;
+    font-weight: 900; letter-spacing: 0.5px; color: #0f3d6c; font-size: 16px; line-height: 1.1;
+  }
+  .fs-myway span { color: #0aa3a8; }
+  .fs-cover-title { color: #0f3d6c; font-size: 22px; font-weight: 800; line-height: 1.15; }
+  .fs-cover-title em { color: #0aa3a8; font-style: normal; }
+  .fs-cover-hero { display: flex; align-items: center; gap: 16px; margin: 8mm 0 8mm; }
+  .fs-folder {
+    width: 86px; height: 72px; background: #163a73; border-radius: 8px 8px 10px 10px;
+    position: relative; flex-shrink: 0;
+  }
+  .fs-folder:before {
+    content: ''; position: absolute; left: 10px; top: -10px; width: 28px; height: 14px;
+    background: #163a73; border-radius: 4px 8px 0 0;
+  }
+  .fs-folder svg { position: absolute; inset: 18px 0 0; margin: auto; }
+  .fs-cover-h1 { font-size: 42px; line-height: 0.95; font-weight: 900; color: #0aa3a8; margin: 0; letter-spacing: -0.5px; text-align: left; }
+  .fs-cover-steps { color: #5b6b7c; font-size: 15px; margin: 4mm 0 8mm; letter-spacing: 0.2px; }
+  .fs-cover-steps b { color: #0aa3a8; }
+  .fs-resp {
+    display: flex; align-items: center; gap: 14px;
+    background: #e7f6f8; border-radius: 10px; padding: 12px 16px; max-width: 62%;
+  }
+  .fs-resp-ico {
+    width: 44px; height: 44px; border-radius: 50%; border: 2px solid #0aa3a8;
+    display: flex; align-items: center; justify-content: center; color: #0aa3a8; flex-shrink: 0;
+  }
+  .fs-resp label { display: block; font-size: 13px; color: #4b5b6b; margin-bottom: 4px; }
+  .fs-resp .name {
+    border-bottom: 1px solid #9aa8b5; min-height: 22px; font-size: 16px; font-weight: 700;
+    color: #0f3d6c; padding-bottom: 2px;
+  }
+  .fs-cover-tag {
+    margin-top: 14mm; font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic; font-size: 22px; color: #163a73; line-height: 1.15;
+  }
+  .fs-cover-tag u { text-decoration: none; border-bottom: 3px solid #f97316; }
+  .fs-waves { position: absolute; left: 0; right: 0; bottom: 0; height: 78px; }
   .fs-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
   .fs-header img { height: 48px; width: auto; object-fit: contain; }
   .fs-org { text-align: center; flex: 1; font-size: 10px; line-height: 1.4; color: #1e3a5f; }
+  .fs-body { padding: 10mm; }
   h1 { text-align: center; font-size: 16px; margin: 8px 0 10px; color: #0f3d6c; }
   h2 { font-size: 12px; background: #0f3d6c; color: #fff; padding: 5px 8px; margin: 12px 0 0; }
   table { width: 100%; border-collapse: collapse; }
@@ -64,10 +118,12 @@ const PRINT_STYLES = `
   .obs { width: 100%; min-height: 64px; border: 1px solid #1e3a5f; border-top: none; padding: 8px; white-space: pre-wrap; }
   .footer { margin-top: 10px; font-size: 8px; color: #444; text-align: center; border-top: 1px solid #999; padding-top: 6px; line-height: 1.4; }
   @media print {
-    body { padding: 8mm; }
-    @page { size: A4 portrait; margin: 8mm; }
     .fs-toolbar { display: none !important; }
-    h2, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .fs-cover, .fs-waves, h2, th, .fs-myway, .fs-folder { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .fs-cover { min-height: 277mm; }
+    .fs-body { padding: 8mm; }
+    @page { size: A4 portrait; margin: 0; }
+    @page :first { margin: 0; }
   }
 `
 
@@ -215,6 +271,48 @@ function buildJobDayHtml(d: FicheDonnees): string {
   `
 }
 
+function buildCoverHtml(origin: string, conseiller: string): string {
+  return `
+    <section class="fs-cover">
+      <div class="fs-cover-top">
+        <img src="${origin}/logo%20CMC-01.png" alt="CMC Souss-Massa" />
+        <div class="fs-cover-brand">
+          <div class="fs-myway">MY<span>&gt;</span>WAY</div>
+          <div class="fs-cover-title">Centre d’Orientation<br/>Professionnelle.<em>COP</em></div>
+        </div>
+      </div>
+      <div class="fs-cover-hero">
+        <div class="fs-folder" aria-hidden="true">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8">
+            <circle cx="9" cy="8" r="2.2"/><circle cx="15" cy="8" r="2.2"/>
+            <path d="M5.5 17c.4-2.2 2.3-3.6 4.5-3.6s4.1 1.4 4.5 3.6"/>
+            <path d="M13.2 13.6c.7-.4 1.6-.6 2.5-.6 2.1 0 3.9 1.2 4.3 3.2"/>
+          </svg>
+        </div>
+        <h1 class="fs-cover-h1">DOSSIER<br/>SOURCING</h1>
+      </div>
+      <p class="fs-cover-steps">Identifier <b>•</b> Mobiliser <b>•</b> Sélectionner <b>•</b> Accompagner</p>
+      <div class="fs-resp">
+        <div class="fs-resp-ico">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="8" r="3"/><path d="M5 19c.8-3.2 3.4-5 7-5s6.2 1.8 7 5"/>
+          </svg>
+        </div>
+        <div style="flex:1">
+          <label>Responsable du dossier / projet :</label>
+          <div class="name">${cell(conseiller)}</div>
+        </div>
+      </div>
+      <p class="fs-cover-tag">Ensemble pour<br/><u>les talents de demain</u></p>
+      <svg class="fs-waves" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,80 C240,20 420,110 700,55 C920,12 1080,70 1200,30 L1200,120 L0,120 Z" fill="#163a73"/>
+        <path d="M0,95 C280,50 520,115 780,70 C980,35 1100,85 1200,55 L1200,120 L0,120 Z" fill="#0aa3a8"/>
+        <path d="M620,90 C820,40 980,95 1200,48 L1200,120 L620,120 Z" fill="#f97316"/>
+      </svg>
+    </section>
+  `
+}
+
 export function openFicheSourcingValideePrint(
   fiche: FicheSourcing,
   typeFiche?: FicheSourcingType,
@@ -241,6 +339,8 @@ export function openFicheSourcingValideePrint(
       <button type="button" onclick="window.print()">Imprimer / PDF</button>
       <span class="stamp">${stamp}</span>
     </div>
+    ${buildCoverHtml(origin, d.conseiller)}
+    <div class="fs-body">
     <div class="fs-header">
       <img src="${origin}/logo%20CMC-01.png" alt="CMC" />
       <div class="fs-org">
@@ -257,6 +357,7 @@ export function openFicheSourcingValideePrint(
           ? `Fiche validée dans COP Space le ${esc(fmtDate(fiche.validee_le))} — document à classer dans le dossier papier.`
           : 'Impression interne COP Space (admin) — fiche non encore validée, ne pas classer au dossier officiel.'
       }
+    </div>
     </div>
   </body></html>`
   const win = window.open('', '_blank', 'width=980,height=760')
