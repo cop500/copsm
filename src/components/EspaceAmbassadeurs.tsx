@@ -451,6 +451,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
   const { poles, filieres } = useSettings()
   const { profile } = useAuth()
   const isAdmin = profile?.role === 'business_developer' || profile?.role === 'manager_cop' || profile?.role === 'directeur' || profile?.role === 'conseiller_cop'
+  const isSuperAdmin = profile?.role === 'business_developer'
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('tous')
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
@@ -482,6 +483,8 @@ export const EspaceAmbassadeurs: React.FC = () => {
   const [editingStagiaire, setEditingStagiaire] = useState<StagiaireAmbassadeur | null>(null)
   const [editingPhotoFile, setEditingPhotoFile] = useState<File | null>(null)
   const [editingPhotoPreview, setEditingPhotoPreview] = useState<string | null>(null)
+  const [clearingListe, setClearingListe] = useState(false)
+  const [listeRefreshKey, setListeRefreshKey] = useState(0)
   const [evaluationForm, setEvaluationForm] = useState({
     note_presence: '',
     note_implication: '',
@@ -828,12 +831,12 @@ export const EspaceAmbassadeurs: React.FC = () => {
     if (!actionsLoading) {
       loadData()
     }
-  }, [actions, actionsLoading])
+  }, [actions, actionsLoading, listeRefreshKey])
 
   // Fonction pour forcer le rechargement des stagiaires
   const reloadStagiairesData = useCallback(async () => {
-    // Recharger les actions pour déclencher le useEffect
     await fetchActions()
+    setListeRefreshKey((k) => k + 1)
   }, [fetchActions])
 
   const filteredStagiaires = useMemo(() => {
@@ -1042,7 +1045,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
 
   // Supprimer un stagiaire ambassadeur (admin seulement)
   const handleDeleteStagiaire = async (stagiaireId: string, e: React.MouseEvent) => {
-    e.stopPropagation() // Empêcher l'ouverture du modal
+    e.stopPropagation()
     
     if (!isAdmin) {
       alert('Vous n\'avez pas les permissions pour supprimer un stagiaire.')
@@ -1054,7 +1057,6 @@ export const EspaceAmbassadeurs: React.FC = () => {
     }
 
     try {
-      // Supprimer le stagiaire de la table stagiaires
       const { error } = await supabase
         .from('stagiaires')
         .delete()
@@ -1062,14 +1064,47 @@ export const EspaceAmbassadeurs: React.FC = () => {
 
       if (error) throw error
 
-      alert('Stagiaire supprimé avec succès !')
-      // Recharger les données
-      await fetchActions()
-      setLoading(true)
-      setTimeout(() => setLoading(false), 100)
+      setStagiaires((prev) => prev.filter((s) => s.id !== stagiaireId))
+      await reloadStagiairesData()
     } catch (err: any) {
       console.error('Erreur suppression stagiaire:', err)
       alert(`Erreur lors de la suppression: ${err.message}`)
+    }
+  }
+
+  const handleClearStagiairesListe = async () => {
+    if (!isSuperAdmin) {
+      alert('Seul l’administrateur peut vider toute la liste.')
+      return
+    }
+    if (!stagiaires.length) {
+      alert('La liste est déjà vide.')
+      return
+    }
+    const ok = confirm(
+      `Supprimer les ${stagiaires.length} stagiaires de la liste ambassadeurs ?\nVous pourrez ensuite importer ou saisir une nouvelle liste.`
+    )
+    if (!ok) return
+    const ok2 = confirm('Confirmation : cette action est définitive.')
+    if (!ok2) return
+
+    setClearingListe(true)
+    try {
+      const ids = stagiaires.map((s) => s.id).filter(Boolean)
+      const chunkSize = 100
+      for (let i = 0; i < ids.length; i += chunkSize) {
+        const chunk = ids.slice(i, i + chunkSize)
+        const { error } = await supabase.from('stagiaires').delete().in('id', chunk)
+        if (error) throw error
+      }
+      setStagiaires([])
+      await reloadStagiairesData()
+      alert('Liste vidée. Vous pouvez importer ou ajouter les nouveaux stagiaires.')
+    } catch (err: any) {
+      console.error('Erreur vidage liste stagiaires:', err)
+      alert(`Impossible de vider la liste : ${err.message}`)
+    } finally {
+      setClearingListe(false)
     }
   }
 
@@ -1430,6 +1465,18 @@ export const EspaceAmbassadeurs: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900">Gestion des Stagiaires Ambassadeurs</h3>
               <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => void handleClearStagiairesListe()}
+                    disabled={clearingListe || stagiaires.length === 0}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Vider la liste pour en importer une nouvelle"
+                  >
+                    {clearingListe ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Vider la liste
+                  </button>
+                )}
                 {isAdmin && (
                   <label className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 cursor-pointer">
                     <FileText className="w-4 h-4" />
