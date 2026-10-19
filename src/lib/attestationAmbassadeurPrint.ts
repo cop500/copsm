@@ -9,7 +9,7 @@ function esc(value: unknown): string {
 const STYLES = `
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #eef2f6; }
-  body { font-family: Georgia, 'Times New Roman', Times, serif; color: #1d4f8a; }
+  body { font-family: Georgia, 'Times New Roman', Times, serif; color: #1d4f8a; overflow: auto; }
   p { margin: 0; }
   .bar {
     position: sticky; top: 0; z-index: 3;
@@ -22,9 +22,11 @@ const STYLES = `
   }
   .sheet {
     width: 297mm; height: 210mm; max-height: 210mm; overflow: hidden;
-    margin: 0 auto; padding: 5mm; background: #fff;
+    margin: 0 auto 8mm; padding: 5mm; background: #fff;
     break-inside: avoid; page-break-inside: avoid;
+    page-break-after: always; break-after: page;
   }
+  .sheet:last-of-type { page-break-after: auto; break-after: auto; margin-bottom: 0; }
   .lace {
     height: 100%;
     padding: 4.2mm;
@@ -92,8 +94,8 @@ const STYLES = `
   .sign, .cachet { width: 52mm; height: 32mm; }
   @media print {
     html, body {
-      background: #fff; width: 297mm; height: 210mm;
-      overflow: hidden; margin: 0;
+      background: #fff; width: 297mm; height: auto;
+      overflow: visible; margin: 0;
     }
     .bar { display: none !important; }
     .sheet {
@@ -113,24 +115,16 @@ function serialFromStagiaire(id?: string, prenom?: string, nom?: string): string
   return `COP-AMB-2026-${n}`
 }
 
-export function printAttestationAmbassadeur(stagiaire: {
+type StagiaireAttestation = {
   id?: string
   prenom?: string
   nom?: string
-}) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+}
+
+function sheetMarkup(stagiaire: StagiaireAttestation, origin: string): string {
   const fullName = `${stagiaire.prenom || ''} ${stagiaire.nom || ''}`.trim() || '________________'
   const serial = serialFromStagiaire(stagiaire.id, stagiaire.prenom, stagiaire.nom)
-  const html = `<!DOCTYPE html><html lang="fr"><head>
-    <meta charset="utf-8" />
-    <title>Attestation — ${esc(fullName)}</title>
-    <style>${STYLES}</style>
-  </head><body>
-    <div class="bar">
-      <button type="button" onclick="window.print()">Imprimer / PDF</button>
-      <span>Attestation de participation — ${esc(fullName)}</span>
-    </div>
-    <div class="sheet">
+  return `<div class="sheet">
       <div class="lace">
         <div class="inner">
           <div class="head">
@@ -169,15 +163,56 @@ export function printAttestationAmbassadeur(stagiaire: {
           </div>
         </div>
       </div>
+    </div>`
+}
+
+function openAttestationsWindow(title: string, barLabel: string, sheetsHtml: string) {
+  const html = `<!DOCTYPE html><html lang="fr"><head>
+    <meta charset="utf-8" />
+    <title>${esc(title)}</title>
+    <style>${STYLES}</style>
+  </head><body>
+    <div class="bar">
+      <button type="button" onclick="window.print()">Imprimer / PDF</button>
+      <span>${esc(barLabel)}</span>
     </div>
+    ${sheetsHtml}
   </body></html>`
 
   const win = window.open('', '_blank', 'width=1100,height=780')
   if (!win) {
-    alert("Impossible d'ouvrir l'attestation. Autorisez les pop-ups pour ce site.")
+    alert("Impossible d'ouvrir les attestations. Autorisez les pop-ups pour ce site.")
     return
   }
   win.document.write(html)
   win.document.close()
   win.focus()
+}
+
+export function printAttestationAmbassadeur(stagiaire: StagiaireAttestation) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const fullName = `${stagiaire.prenom || ''} ${stagiaire.nom || ''}`.trim() || '________________'
+  openAttestationsWindow(
+    `Attestation — ${fullName}`,
+    `Attestation de participation — ${fullName}`,
+    sheetMarkup(stagiaire, origin)
+  )
+}
+
+export function printAllAttestationsAmbassadeurs(stagiaires: StagiaireAttestation[]) {
+  const list = [...stagiaires].sort((a, b) => {
+    const an = `${a.nom || ''} ${a.prenom || ''}`.localeCompare(`${b.nom || ''} ${b.prenom || ''}`, 'fr')
+    return an
+  })
+  if (list.length === 0) {
+    alert("Aucun stagiaire ambassadeur à imprimer.")
+    return
+  }
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const sheets = list.map((s) => sheetMarkup(s, origin)).join('')
+  openAttestationsWindow(
+    `Attestations ambassadeurs (${list.length})`,
+    `${list.length} attestation${list.length > 1 ? 's' : ''} — Imprimer / enregistrer en PDF`,
+    sheets
+  )
 }

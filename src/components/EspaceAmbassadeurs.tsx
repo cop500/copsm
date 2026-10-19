@@ -16,7 +16,7 @@ import {
   FileText, X, UploadCloud, Sparkles
 } from 'lucide-react'
 import { GotTalentInscriptionsPanel } from '@/components/GotTalentInscriptionsPanel'
-import { printAttestationAmbassadeur } from '@/lib/attestationAmbassadeurPrint'
+import { printAllAttestationsAmbassadeurs, printAttestationAmbassadeur } from '@/lib/attestationAmbassadeurPrint'
 
 interface StagiaireAmbassadeur {
   id: string
@@ -453,6 +453,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
   const { profile } = useAuth()
   const isAdmin = profile?.role === 'business_developer' || profile?.role === 'manager_cop' || profile?.role === 'directeur' || profile?.role === 'conseiller_cop'
   const isSuperAdmin = profile?.role === 'business_developer'
+  const canPrintAttestations = isAdmin
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('tous')
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
@@ -1466,6 +1467,18 @@ export const EspaceAmbassadeurs: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900">Gestion des Stagiaires Ambassadeurs</h3>
               <div className="flex items-center gap-2">
+                {canPrintAttestations && (
+                  <button
+                    type="button"
+                    onClick={() => printAllAttestationsAmbassadeurs(stagiaires)}
+                    disabled={stagiaires.length === 0}
+                    className="px-4 py-2 bg-[#0f3d6c] text-white rounded-lg hover:bg-[#0c3258] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Ouvrir toutes les attestations dans un seul fichier pour impression / PDF"
+                  >
+                    <Download className="w-4 h-4" />
+                    Télécharger tout
+                  </button>
+                )}
                 {isSuperAdmin && (
                   <button
                     type="button"
@@ -1764,8 +1777,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
                         <Eye className="w-4 h-4" />
                         Voir le profil
                       </button>
-                      {isAdmin && (
-                        <>
+                      {canPrintAttestations && (
                           <button
                             className="px-4 py-2 bg-[#0f3d6c] text-white rounded-lg hover:bg-[#0c3258] transition-colors flex items-center justify-center gap-2 text-sm font-medium"
                             onClick={(e) => {
@@ -1776,6 +1788,9 @@ export const EspaceAmbassadeurs: React.FC = () => {
                           >
                             <Award className="w-4 h-4" />
                           </button>
+                      )}
+                      {isAdmin && (
+                        <>
                           <button
                             className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
                             onClick={(e) => {
@@ -1906,8 +1921,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
                 {editingStagiaire ? 'Modifier le Stagiaire' : 'Profil Ambassadeur'}
               </h2>
               <div className="flex items-center gap-2">
-                {isAdmin && !editingStagiaire && (
-                  <>
+                {canPrintAttestations && !editingStagiaire && (
                   <button
                     onClick={() => printAttestationAmbassadeur(selectedStagiaire)}
                     className="px-4 py-2 bg-[#0f3d6c] text-white rounded-lg hover:bg-[#0c3258] transition-colors flex items-center gap-2 text-sm"
@@ -1915,6 +1929,9 @@ export const EspaceAmbassadeurs: React.FC = () => {
                     <Award className="w-4 h-4" />
                     Attestation
                   </button>
+                )}
+                {isAdmin && !editingStagiaire && (
+                  <>
                   <button
                     onClick={() => {
                       setEditingStagiaire({ ...selectedStagiaire })
