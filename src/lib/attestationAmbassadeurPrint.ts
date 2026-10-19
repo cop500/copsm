@@ -71,6 +71,7 @@ const STYLES = `
   .name {
     font-size: 24px; font-weight: 800; color: #0f3d6c; margin: 0;
     font-family: Arial, Helvetica, sans-serif; letter-spacing: 0.3px;
+    text-transform: uppercase;
   }
   .missions {
     display: grid; grid-template-columns: 1fr 1fr; gap: 1.2mm 10mm;
@@ -121,8 +122,13 @@ type StagiaireAttestation = {
   nom?: string
 }
 
+function fullNameOf(stagiaire: StagiaireAttestation): string {
+  const raw = `${stagiaire.prenom || ''} ${stagiaire.nom || ''}`.trim()
+  return raw ? raw.toLocaleUpperCase('fr-FR') : '________________'
+}
+
 function sheetMarkup(stagiaire: StagiaireAttestation, origin: string): string {
-  const fullName = `${stagiaire.prenom || ''} ${stagiaire.nom || ''}`.trim() || '________________'
+  const fullName = fullNameOf(stagiaire)
   const serial = serialFromStagiaire(stagiaire.id, stagiaire.prenom, stagiaire.nom)
   return `<div class="sheet">
       <div class="lace">
@@ -191,7 +197,7 @@ function openAttestationsWindow(title: string, barLabel: string, sheetsHtml: str
 
 export function printAttestationAmbassadeur(stagiaire: StagiaireAttestation) {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const fullName = `${stagiaire.prenom || ''} ${stagiaire.nom || ''}`.trim() || '________________'
+  const fullName = fullNameOf(stagiaire)
   openAttestationsWindow(
     `Attestation — ${fullName}`,
     `Attestation de participation — ${fullName}`,
