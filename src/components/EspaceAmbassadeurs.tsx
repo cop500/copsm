@@ -16,6 +16,7 @@ import {
   FileText, X, UploadCloud, Sparkles
 } from 'lucide-react'
 import { GotTalentInscriptionsPanel } from '@/components/GotTalentInscriptionsPanel'
+import { printAttestationAmbassadeur } from '@/lib/attestationAmbassadeurPrint'
 
 interface StagiaireAmbassadeur {
   id: string
@@ -1766,6 +1767,16 @@ export const EspaceAmbassadeurs: React.FC = () => {
                       {isAdmin && (
                         <>
                           <button
+                            className="px-4 py-2 bg-[#0f3d6c] text-white rounded-lg hover:bg-[#0c3258] transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              printAttestationAmbassadeur(stagiaire)
+                            }}
+                            title="Générer et imprimer l'attestation de participation"
+                          >
+                            <Award className="w-4 h-4" />
+                          </button>
+                          <button
                             className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
                             onClick={(e) => {
                               e.stopPropagation()
@@ -1896,6 +1907,14 @@ export const EspaceAmbassadeurs: React.FC = () => {
               </h2>
               <div className="flex items-center gap-2">
                 {isAdmin && !editingStagiaire && (
+                  <>
+                  <button
+                    onClick={() => printAttestationAmbassadeur(selectedStagiaire)}
+                    className="px-4 py-2 bg-[#0f3d6c] text-white rounded-lg hover:bg-[#0c3258] transition-colors flex items-center gap-2 text-sm"
+                  >
+                    <Award className="w-4 h-4" />
+                    Attestation
+                  </button>
                   <button
                     onClick={() => {
                       setEditingStagiaire({ ...selectedStagiaire })
@@ -1907,6 +1926,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
                     <Edit3 className="w-4 h-4" />
                     Modifier
                   </button>
+                  </>
                 )}
                 <button
                   onClick={() => {
