@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { fetchAllPages } from '@/lib/supabaseFetchAll'
+import { duplicateDemandeEntreprise } from '@/lib/duplicateDemandeEntreprise'
 import { useRealTime } from './useRealTime'
 import type { CvTriStatut } from '@/lib/cvTriStatut'
 import {
@@ -401,6 +402,21 @@ export const useDemandesEntreprises = () => {
     }
   }
 
+  const duplicateDemande = async (demandeId: string, nombreParProfil: number[]) => {
+    const source = demandes.find((d) => d.id === demandeId)
+    if (!source) {
+      return { success: false as const, error: 'Demande introuvable' }
+    }
+    try {
+      const created = await duplicateDemandeEntreprise(source as unknown as Record<string, unknown>, nombreParProfil)
+      await loadDemandes({ silent: true })
+      return { success: true as const, demande: created }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      return { success: false as const, error: message }
+    }
+  }
+
   const updateProfils = async (demandeId: string, profils: any[]) => {
     const previousDemandes = demandes
     setDemandes((prev) => prev.map((d) => (d.id === demandeId ? { ...d, profils } : d)))
@@ -641,6 +657,7 @@ export const useDemandesEntreprises = () => {
     deleteCandidature,
     updateTraitePar,
     updateProfils,
+    duplicateDemande,
     staffProfiles,
     refreshDemandes,
     isRealtimeConnected: isConnected,

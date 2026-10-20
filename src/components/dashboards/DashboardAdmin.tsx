@@ -4,7 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { Profile } from "@/types";
 import { useUser } from '@/contexts/UserContext';
 import { useSettings } from '@/hooks/useSettings';
-import { MessageSquare, Send, User, Calendar, Download, Printer, Trash2, FileSpreadsheet } from 'lucide-react';
+import { MessageSquare, Send, User, Calendar, Download, Printer, Trash2, FileSpreadsheet, Copy } from 'lucide-react';
+import { DupliquerDemandeModal } from '@/components/DupliquerDemandeModal';
+import { duplicateDemandeEntreprise } from '@/lib/duplicateDemandeEntreprise';
 import { downloadDemandePDF, printDemande } from '@/components/ui/PDFGenerator';
 import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel';
 import { FicheSourcingEditor } from '@/components/FicheSourcingEditor';
@@ -65,6 +67,7 @@ const DashboardAdmin = () => {
   const [ficheEditorDemande, setFicheEditorDemande] = useState<DemandeEntreprise | null>(null);
   const [fichesResumes, setFichesResumes] = useState<FicheSourcingResume[]>([]);
   const [savingProfilKey, setSavingProfilKey] = useState<string | null>(null);
+  const [duplicateDemande, setDuplicateDemande] = useState<DemandeEntreprise | null>(null);
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -608,6 +611,15 @@ const DashboardAdmin = () => {
                           {selectedDemande?.id === demande.id ? 'Masquer détails' : 'Voir détails'}
                           </button>
                           
+                          {isAdmin && (
+                            <button
+                              onClick={() => setDuplicateDemande(demande)}
+                              className="px-6 py-3 bg-[#0f3d6c] text-white rounded-xl hover:bg-[#0c3258] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                            >
+                              <Copy className="w-5 h-5" />
+                              Dupliquer
+                            </button>
+                          )}
                           {isAdmin && (
                             <button
                               onClick={() => handleDelete(demande.id)}
@@ -1199,6 +1211,24 @@ const DashboardAdmin = () => {
           isAdmin={isAdmin}
           onClose={() => setFicheEditorDemande(null)}
           onChanged={() => void reloadFiches()}
+        />
+      ) : null}
+      {duplicateDemande ? (
+        <DupliquerDemandeModal
+          demande={duplicateDemande}
+          onClose={() => setDuplicateDemande(null)}
+          onConfirm={async (nombres) => {
+            const created = await duplicateDemandeEntreprise(
+              duplicateDemande as unknown as Record<string, unknown>,
+              nombres
+            )
+            setDuplicateDemande(null)
+            await loadDemandes()
+            setMessage(
+              `Demande dupliquée${created.reference ? ` — ${created.reference}` : ''}. Notification email envoyée.`
+            )
+            setTimeout(() => setMessage(''), 5000)
+          }}
         />
       ) : null}
     </>

@@ -5,8 +5,9 @@ import {
   Archive, ArchiveRestore, Building2, Users, Calendar, 
   ChevronRight, ChevronDown, FileText, Eye, Edit3, 
   Trash2, CheckCircle, AlertTriangle, Clock, XCircle,
-  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck, FilePlus, Printer
+  MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck,   FilePlus, Printer, Copy
 } from 'lucide-react'
+import { DupliquerDemandeModal } from '@/components/DupliquerDemandeModal'
 import JSZip from 'jszip'
 import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel'
 import { useSettings } from '@/hooks/useSettings'
@@ -46,6 +47,9 @@ interface DemandeEntreprise {
   traite_par_nom?: string | null
   created_at: string
   updated_at?: string
+  reference?: string
+  entreprise_adresse?: string
+  entreprise_email?: string
   candidatures_count?: number
   candidatures?: any[]
 }
@@ -87,6 +91,10 @@ interface DemandesFoldersProps {
   onDeleteCandidature: (candidatureId: string) => Promise<{success: boolean}>
   onUpdateTraitePar?: (demandeId: string, userId: string | null) => Promise<{ success: boolean; error?: string }>
   onUpdateProfils?: (demandeId: string, profils: any[]) => Promise<{ success: boolean; error?: string }>
+  onDuplicateDemande?: (
+    demandeId: string,
+    nombreParProfil: number[]
+  ) => Promise<{ success: boolean; error?: string; demande?: { id: string; reference?: string } }>
   staffProfiles?: { id: string; nom: string; prenom: string; role?: string }[]
   isAdmin?: boolean
   canDownloadAllCVs?: boolean
@@ -129,6 +137,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   onDeleteCandidature,
   onUpdateTraitePar,
   onUpdateProfils,
+  onDuplicateDemande,
   staffProfiles = [],
   isAdmin = false,
   canDownloadAllCVs = false,
@@ -147,6 +156,8 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
   const [ficheDemande, setFicheDemande] = useState<DemandeEntreprise | null>(null)
   const [fichesResumes, setFichesResumes] = useState<Record<string, FicheSourcingResume>>({})
   const [savingProfilKey, setSavingProfilKey] = useState<string | null>(null)
+  const [duplicateDemande, setDuplicateDemande] = useState<DemandeEntreprise | null>(null)
+  const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null)
   const { poles, filieres } = useSettings()
   const showFicheList = canManageFiche || isAdmin || canDownloadAllCVs
   const canAccessFiche = (demande: DemandeEntreprise) => {
@@ -792,6 +803,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
 
   return (
     <div className="space-y-4">
+      {duplicateMessage && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          {duplicateMessage}
+        </div>
+      )}
       {/* Liste des dossiers de demandes */}
       {demandes.map((demande) => {
         const isExpanded = expandedFolders.has(demande.id)
@@ -897,6 +913,18 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                 </div>
                 
                 <div className="flex items-center space-x-2">
+                  {isAdmin && onDuplicateDemande && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDuplicateDemande(demande)
+                      }}
+                      className="p-2 text-gray-400 hover:text-blue-700 transition-colors"
+                      title="Dupliquer la demande (nouvelle référence)"
+                    >
+                      <Copy className="w-5 h-5" />
+                    </button>
+                  )}
                   {isAdmin && (
                     <button
                       onClick={(e) => {
@@ -1471,6 +1499,23 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
           isAdmin={isAdmin}
           onClose={() => setFicheDemande(null)}
           onChanged={() => void reloadFiches()}
+        />
+      )}
+      {duplicateDemande && onDuplicateDemande && (
+        <DupliquerDemandeModal
+          demande={duplicateDemande}
+          onClose={() => setDuplicateDemande(null)}
+          onConfirm={async (nombres) => {
+            const result = await onDuplicateDemande(duplicateDemande.id, nombres)
+            if (!result.success) {
+              throw new Error(result.error || 'Duplication impossible')
+            }
+            setDuplicateDemande(null)
+            setDuplicateMessage(
+              `Demande dupliquée${result.demande?.reference ? ` — référence ${result.demande.reference}` : ''}. Notification email envoyée.`
+            )
+            window.setTimeout(() => setDuplicateMessage(null), 6000)
+          }}
         />
       )}
     </div>
