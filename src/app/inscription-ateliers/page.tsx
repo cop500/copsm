@@ -73,21 +73,8 @@ export default function InscriptionAteliersPage() {
         .select('*')
         .eq('type_evenement', 'atelier')
         .eq('visible_inscription', true)
-        .in('statut', ['planifie', 'en_cours'])
-        .order('created_at', { ascending: false })
-      
-      // Trier ensuite par date_debut côté client pour les ateliers créés le même jour
-      if (data) {
-        data.sort((a, b) => {
-          // D'abord par created_at (déjà trié par la requête)
-          const createdDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          if (Math.abs(createdDiff) > 24 * 60 * 60 * 1000) { // Si différence > 24h, garder l'ordre created_at
-            return createdDiff
-          }
-          // Sinon, trier par date_debut croissant
-          return new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime()
-        })
-      }
+        .in('statut', ['planifie', 'en_cours', 'termine'])
+        .order('date_debut', { ascending: false })
 
       if (error) {
         console.error('❌ Erreur chargement ateliers:', error)
@@ -107,7 +94,14 @@ export default function InscriptionAteliersPage() {
         });
       }
       
-      setAteliers((data || []).filter((atelier: Atelier) => !isAtelierDatePassee(atelier.date_debut, atelier.date_fin)))
+      const list = data || []
+      list.sort((a: Atelier, b: Atelier) => {
+        const aPasse = isAtelierDatePassee(a.date_debut, a.date_fin) ? 1 : 0
+        const bPasse = isAtelierDatePassee(b.date_debut, b.date_fin) ? 1 : 0
+        if (aPasse !== bPasse) return aPasse - bPasse
+        return new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
+      })
+      setAteliers(list)
     } catch (err: any) {
       console.error('❌ Erreur chargement ateliers:', err)
       setError(err.message)
@@ -289,7 +283,7 @@ export default function InscriptionAteliersPage() {
   // Obtenir le statut de l'atelier
   const getAtelierStatus = (atelier: Atelier) => {
     if (isAtelierDatePassee(atelier.date_debut, atelier.date_fin)) {
-      return { text: 'Passé', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '⚪' }
+      return { text: 'Non disponible pour inscription', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '⚪' }
     }
     if (isAtelierComplet(atelier.capacite_maximale, atelier.capacite_actuelle)) {
       return { text: 'Complet', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: '🟡' }
@@ -371,8 +365,14 @@ export default function InscriptionAteliersPage() {
                 return (
                   <div 
                     key={atelier.id} 
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer group"
-                    onClick={() => openInscriptionForm(atelier)}
+                    className={`bg-white rounded-xl shadow-sm border p-6 transition-all duration-300 ${
+                      canInscrire
+                        ? 'border-gray-200 hover:shadow-lg hover:scale-105 cursor-pointer group'
+                        : 'border-gray-200 opacity-90'
+                    }`}
+                    onClick={() => {
+                      if (canInscrire) openInscriptionForm(atelier)
+                    }}
                   >
                     {/* Badge de statut */}
                     <div className="flex justify-between items-start mb-4">
@@ -462,7 +462,7 @@ export default function InscriptionAteliersPage() {
                         {canInscrire
                           ? "S'inscrire"
                           : isAtelierDatePassee(atelier.date_debut, atelier.date_fin)
-                            ? 'Passé'
+                            ? 'Non disponible pour inscription'
                             : 'Complet'}
                       </span>
                     </button>

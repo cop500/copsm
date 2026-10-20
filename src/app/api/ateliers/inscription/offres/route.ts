@@ -24,8 +24,8 @@ export async function GET() {
         )
         .eq('type_evenement', 'atelier')
         .eq('visible_inscription', true)
-        .in('statut', ['planifie', 'en_cours'])
-        .order('created_at', { ascending: false }),
+        .in('statut', ['planifie', 'en_cours', 'termine'])
+        .order('date_debut', { ascending: false }),
       supabase.from('poles').select('id, nom'),
       supabase.from('filieres').select('id, nom'),
     ])
@@ -38,16 +38,15 @@ export async function GET() {
     const filiereById = new Map((filieresRes.data ?? []).map((f) => [f.id, f.nom]))
 
     const ateliers = (data ?? [])
-      .filter((row) => !isAtelierDatePassee(row.date_debut, row.date_fin))
       .map((row) => ({
       ...row,
       pole: row.pole_id ? poleById.get(row.pole_id) ?? null : null,
       filliere: row.filiere_id ? filiereById.get(row.filiere_id) ?? null : null,
     })).sort(function (a, b) {
-      const createdDiff =
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      if (Math.abs(createdDiff) > 24 * 60 * 60 * 1000) return createdDiff
-      return new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime()
+      const aPasse = isAtelierDatePassee(a.date_debut, a.date_fin) ? 1 : 0
+      const bPasse = isAtelierDatePassee(b.date_debut, b.date_fin) ? 1 : 0
+      if (aPasse !== bPasse) return aPasse - bPasse
+      return new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
     })
 
     return NextResponse.json(
