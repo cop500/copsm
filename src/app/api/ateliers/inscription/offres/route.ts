@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isAtelierDatePassee } from '@/lib/atelierInscriptionDisponible'
 
 export async function GET() {
   try {
@@ -36,7 +37,9 @@ export async function GET() {
     const poleById = new Map((polesRes.data ?? []).map((p) => [p.id, p.nom]))
     const filiereById = new Map((filieresRes.data ?? []).map((f) => [f.id, f.nom]))
 
-    const ateliers = (data ?? []).map((row) => ({
+    const ateliers = (data ?? [])
+      .filter((row) => !isAtelierDatePassee(row.date_debut, row.date_fin))
+      .map((row) => ({
       ...row,
       pole: row.pole_id ? poleById.get(row.pole_id) ?? null : null,
       filliere: row.filiere_id ? filiereById.get(row.filiere_id) ?? null : null,

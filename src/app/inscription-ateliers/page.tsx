@@ -8,6 +8,7 @@ import {
   AlertCircle, Loader2, ArrowRight, Star, Zap, Target, Award, Search,
   User, ChevronRight
 } from 'lucide-react'
+import { isAtelierComplet, isAtelierDatePassee, peutSInscrireAtelier } from '@/lib/atelierInscriptionDisponible'
 
 interface Atelier {
   id: string
@@ -106,7 +107,7 @@ export default function InscriptionAteliersPage() {
         });
       }
       
-      setAteliers(data || [])
+      setAteliers((data || []).filter((atelier: Atelier) => !isAtelierDatePassee(atelier.date_debut, atelier.date_fin)))
     } catch (err: any) {
       console.error('❌ Erreur chargement ateliers:', err)
       setError(err.message)
@@ -184,8 +185,12 @@ export default function InscriptionAteliersPage() {
 
       if (countError) throw countError
 
+      if (isAtelierDatePassee(selectedAtelier!.date_debut, selectedAtelier!.date_fin)) {
+        throw new Error('Les inscriptions sont closes : cet atelier est déjà passé.')
+      }
+
       const activeCount = activeInscriptions?.length || 0
-      if (activeCount >= selectedAtelier!.capacite_maximale) {
+      if (isAtelierComplet(selectedAtelier!.capacite_maximale, activeCount)) {
         throw new Error('Cet atelier est complet')
       }
 
@@ -258,8 +263,11 @@ export default function InscriptionAteliersPage() {
 
   // Ouvrir le formulaire d'inscription
   const openInscriptionForm = (atelier: Atelier) => {
-    // Vérifier si l'atelier est complet (seulement si capacité maximale définie)
-    if (atelier.capacite_maximale && (atelier.capacite_actuelle || 0) >= atelier.capacite_maximale) {
+    if (isAtelierDatePassee(atelier.date_debut, atelier.date_fin)) {
+      setError('Les inscriptions sont closes : cet atelier est déjà passé.')
+      return
+    }
+    if (isAtelierComplet(atelier.capacite_maximale, atelier.capacite_actuelle)) {
       setError('Cet atelier est complet. Aucune place disponible.')
       return
     }
@@ -280,21 +288,16 @@ export default function InscriptionAteliersPage() {
 
   // Obtenir le statut de l'atelier
   const getAtelierStatus = (atelier: Atelier) => {
-    const capaciteActuelle = atelier.capacite_actuelle || 0
-    const capaciteMaximale = atelier.capacite_maximale || 0
-    
-    // Si pas de capacité maximale définie, considérer comme disponible
-    if (capaciteMaximale === 0) {
-      return { text: 'Places disponibles', color: 'bg-green-100 text-green-800 border-green-200', icon: '🟢' }
+    if (isAtelierDatePassee(atelier.date_debut, atelier.date_fin)) {
+      return { text: 'Passé', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: '⚪' }
     }
-    
-    if (capaciteActuelle >= capaciteMaximale) {
+    if (isAtelierComplet(atelier.capacite_maximale, atelier.capacite_actuelle)) {
       return { text: 'Complet', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: '🟡' }
-    } else if (atelier.statut === 'planifie') {
-      return { text: 'Places disponibles', color: 'bg-green-100 text-green-800 border-green-200', icon: '🟢' }
-    } else {
-      return { text: 'Planifié', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '🔵' }
     }
+    if (atelier.statut === 'planifie') {
+      return { text: 'Places disponibles', color: 'bg-green-100 text-green-800 border-green-200', icon: '🟢' }
+    }
+    return { text: 'Planifié', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '🔵' }
   }
 
   useEffect(() => {
@@ -364,6 +367,7 @@ export default function InscriptionAteliersPage() {
             ) : (
               filteredAteliers.map(atelier => {
                 const status = getAtelierStatus(atelier)
+                const canInscrire = peutSInscrireAtelier(atelier)
                 return (
                   <div 
                     key={atelier.id} 
@@ -446,16 +450,20 @@ export default function InscriptionAteliersPage() {
                         e.stopPropagation()
                         openInscriptionForm(atelier)
                       }}
-                      disabled={atelier.capacite_maximale && (atelier.capacite_actuelle || 0) >= atelier.capacite_maximale}
+                      disabled={!canInscrire}
                       className={`w-full px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-                        !atelier.capacite_maximale || (atelier.capacite_actuelle || 0) < atelier.capacite_maximale
+                        canInscrire
                           ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:scale-105'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                     >
                       <ArrowRight className="w-4 h-4" />
                       <span>
-                        {!atelier.capacite_maximale || (atelier.capacite_actuelle || 0) < atelier.capacite_maximale ? 'S\'inscrire' : 'Complet'}
+                        {canInscrire
+                          ? "S'inscrire"
+                          : isAtelierDatePassee(atelier.date_debut, atelier.date_fin)
+                            ? 'Passé'
+                            : 'Complet'}
                       </span>
                     </button>
                   </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isAtelierComplet, isAtelierDatePassee } from '@/lib/atelierInscriptionDisponible'
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const { data: atelier, error: atelierError } = await supabase
       .from('evenements')
-      .select('id, titre, capacite_maximale, capacite_actuelle, statut, visible_inscription')
+      .select('id, titre, capacite_maximale, capacite_actuelle, statut, visible_inscription, date_debut, date_fin')
       .eq('id', atelierId)
       .eq('type_evenement', 'atelier')
       .single()
@@ -56,6 +57,13 @@ export async function POST(request: NextRequest) {
     if (!atelier.visible_inscription) {
       return NextResponse.json(
         { error: 'Les inscriptions ne sont pas ouvertes pour cet atelier' },
+        { status: 400 }
+      )
+    }
+
+    if (isAtelierDatePassee(atelier.date_debut, atelier.date_fin)) {
+      return NextResponse.json(
+        { error: 'Les inscriptions sont closes : cet atelier est déjà passé.' },
         { status: 400 }
       )
     }
@@ -83,8 +91,7 @@ export async function POST(request: NextRequest) {
     if (countError) throw countError
 
     const activeCount = activeInscriptions?.length ?? 0
-    const capaciteMax = atelier.capacite_maximale ?? 0
-    if (capaciteMax > 0 && activeCount >= capaciteMax) {
+    if (isAtelierComplet(atelier.capacite_maximale, activeCount)) {
       return NextResponse.json({ error: 'Cet atelier est complet' }, { status: 400 })
     }
 
