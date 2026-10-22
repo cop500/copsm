@@ -139,3 +139,52 @@ export async function verifyStaffFromRequest(request: Request) {
 
   return { user, profile, supabaseAdmin }
 }
+
+const PLANNING_JPO_ROLES = new Set([
+  'business_developer',
+  'conseiller_cop',
+  'manager_cop',
+  'directeur',
+])
+
+/** Staff autorisé à confirmer les visites JPO sur le planning. */
+export async function verifyPlanningStaffFromRequest(request: Request) {
+  if (!supabaseAdmin) {
+    return {
+      error: NextResponse.json(
+        { error: 'SUPABASE_SERVICE_ROLE_KEY manquant côté serveur' },
+        { status: 500 }
+      ),
+    }
+  }
+
+  const authHeader = request.headers.get('authorization') || ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : null
+  if (!token) {
+    return { error: NextResponse.json({ error: 'Token manquant' }, { status: 401 }) }
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabaseAdmin.auth.getUser(token)
+  if (userError || !user) {
+    return { error: NextResponse.json({ error: 'Utilisateur non authentifié' }, { status: 401 }) }
+  }
+
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, role, nom, prenom, email')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: NextResponse.json({ error: 'Profil introuvable' }, { status: 403 }) }
+  }
+
+  if (!PLANNING_JPO_ROLES.has(profile.role)) {
+    return { error: NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 }) }
+  }
+
+  return { user, profile, supabaseAdmin }
+}

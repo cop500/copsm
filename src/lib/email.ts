@@ -1,4 +1,5 @@
-import { getEmailConfig } from './email-config'
+import { getEmailConfig, getJpoEmailConfig, type JpoEmailConfig } from './email-config'
+import { creneauLabel, formatDateVisiteFr } from './visitesJpo'
 import emailjs from '@emailjs/browser'
 import emailjsNode from '@emailjs/nodejs'
 
@@ -501,4 +502,102 @@ L'équipe du Centre d'Orientation Professionnelle CMC SM
     console.error('❌ Erreur envoi email certificat:', error)
     throw error
   }
+}
+
+type VisiteJpoEmailPayload = {
+  nom_prenom: string
+  telephone: string
+  email: string
+  fonction: string
+  etablissement: string
+  date_visite: string
+  creneau: string
+  nombre_participants: number
+  nombre_accompagnateurs: number
+}
+
+function formatJpoEmailText(template: string, visite: VisiteJpoEmailPayload, lien: string) {
+  return template
+    .replace(/\{etablissement\}/g, visite.etablissement || 'Non renseigné')
+    .replace(/\{nom_prenom\}/g, visite.nom_prenom || 'Non renseigné')
+    .replace(/\{fonction\}/g, visite.fonction || 'Non renseigné')
+    .replace(/\{email\}/g, visite.email || 'Non renseigné')
+    .replace(/\{telephone\}/g, visite.telephone || 'Non renseigné')
+    .replace(/\{date_visite\}/g, formatDateVisiteFr(visite.date_visite))
+    .replace(/\{creneau\}/g, creneauLabel(visite.creneau))
+    .replace(/\{nombre_participants\}/g, String(visite.nombre_participants ?? ''))
+    .replace(/\{nombre_accompagnateurs\}/g, String(visite.nombre_accompagnateurs ?? ''))
+    .replace(/\{lien\}/g, lien)
+}
+
+async function sendEmailJsNotice(to: string, subject: string, message: string) {
+  const templateParams = {
+    email: to,
+    to_email: to,
+    subject,
+    message,
+    nom_entreprise: 'Visite JPO',
+    nom_contact: '',
+    email_contact: to,
+    telephone: '',
+    type_demande: 'Visite JPO',
+    lien: '',
+  }
+
+  if (typeof window !== 'undefined') {
+    return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY)
+  }
+
+  return emailjsNode.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, {
+    publicKey: EMAILJS_PUBLIC_KEY,
+  })
+}
+
+async function sendJpoEmailsToConseillers(
+  visite: VisiteJpoEmailPayload,
+  config: Pick<JpoEmailConfig, 'enabled' | 'subject' | 'message' | 'recipient_emails'>,
+  subjectPrefix = ''
+) {
+  if (!config.enabled) {
+    return { success: false, reason: 'notifications_disabled' }
+  }
+
+  const recipients = Array.from(
+    new Set(
+      (config.recipient_emails || [])
+        .map((email) => String(email || '').trim().toLowerCase())
+        .filter((email) => email.includes('@'))
+    )
+  )
+
+  if (recipients.length === 0) {
+    return { success: false, reason: 'no_recipients' }
+  }
+
+  const lien = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/evenements`
+  const subject = `${subjectPrefix}${formatJpoEmailText(config.subject, visite, lien)}`
+  const message = formatJpoEmailText(config.message, visite, lien)
+
+  await Promise.all(recipients.map((to) => sendEmailJsNotice(to, subject, message)))
+  console.log('✅ Notification JPO conseillers envoyée à', recipients)
+  return { success: true }
+}
+
+/** Notification conseillers uniquement (jamais le lycée). */
+export async function sendVisiteJpoStaffNotification(visite: VisiteJpoEmailPayload) {
+  try {
+    const config = await getJpoEmailConfig()
+    if (!config) {
+      console.warn('⚠️ Configuration email JPO introuvable')
+      return { success: false, reason: 'config_not_found' }
+    }
+    return await sendJpoEmailsToConseillers(visite, config)
+  } catch (error) {
+    console.error('⚠️ Erreur notification JPO conseillers (non bloquant):', error)
+    return { success: false, reason: 'send_failed' }
+  }
+}
+
+export async function sendTestJpoEmail(visite: VisiteJpoEmailPayload & { config: JpoEmailConfig }) {
+  return sendJpoEmailsToConseillers(visite, visite.config, '[TEST] ')
 }

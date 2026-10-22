@@ -5,6 +5,7 @@ import { Calendar, Plus, Edit2, Trash2, Clock, User, ChevronLeft, ChevronRight, 
 import { useCalendrierCollaboratif, CalendrierEvent } from '@/hooks/useCalendrierCollaboratif'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
+import { PlanningVisitesJpo } from '@/components/PlanningVisitesJpo'
 
 type ViewMode = 'month' | 'week'
 
@@ -480,6 +481,7 @@ const CalendrierCollaboratif: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <PlanningVisitesJpo />
       {/* En-tête avec navigation et sélecteur de vue */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
