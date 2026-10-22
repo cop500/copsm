@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { sendVisiteJpoStaffNotification } from '@/lib/email'
 import {
   VISITES_JPO_CRENEAUX,
   creneauEstOccupe,
@@ -103,10 +102,6 @@ export async function POST(request: NextRequest) {
       }
       throw error
     }
-
-    void sendVisiteJpoStaffNotification(data).catch((emailError) => {
-      console.error('⚠️ Erreur email JPO (non bloquant):', emailError)
-    })
 
     return NextResponse.json({
       success: true,

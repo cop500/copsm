@@ -81,6 +81,29 @@ export default function VisitesJpoPage() {
       if (!res.ok) {
         throw new Error(data.error || 'Erreur lors de l’envoi')
       }
+      const visite = {
+        nom_prenom: form.nom_prenom,
+        telephone: form.telephone,
+        email: form.email,
+        fonction: form.fonction,
+        etablissement: form.etablissement,
+        date_visite: form.date_visite,
+        creneau: form.creneau,
+        nombre_participants: Number(form.nombre_participants),
+        nombre_accompagnateurs: Number(form.nombre_accompagnateurs),
+      }
+      void Promise.race([
+        (async () => {
+          const cfgRes = await fetch('/api/visites-jpo/notification-config/', { cache: 'no-store' })
+          const cfg = await cfgRes.json()
+          if (!cfgRes.ok || !cfg?.enabled) return
+          const { sendTestJpoEmail } = await import('@/lib/email')
+          await sendTestJpoEmail({ ...visite, config: cfg })
+        })(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout envoi email')), 8000)),
+      ]).catch((emailError) => {
+        console.error('⚠️ Erreur email JPO (non bloquant):', emailError)
+      })
       setSuccess(data.message)
       setForm({
         nom_prenom: '',
