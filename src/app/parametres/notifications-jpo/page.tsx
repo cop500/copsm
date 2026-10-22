@@ -184,6 +184,9 @@ export default function NotificationsJpoPage() {
         <p className="text-gray-600">
           Emails envoyés uniquement aux conseillers COP lorsqu’une demande de visite est déposée. Le lycée ne reçoit pas d’email.
         </p>
+        <p className="mt-2 text-sm text-teal-800 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
+          Envoi via le template EmailJS des demandes d’assistance <code className="font-mono">template_9fbr18k</code> — aucun nouveau template à créer.
+        </p>
       </div>
 
       {message && (

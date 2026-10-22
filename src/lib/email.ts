@@ -28,7 +28,7 @@ interface EmailConfig {
 // Configuration EmailJS
 const EMAILJS_SERVICE_ID = 'service_exp84pb'
 const EMAILJS_TEMPLATE_ID = 'template_rjxiwdp' // Template pour demandes entreprises
-const EMAILJS_TEMPLATE_ASSISTANCE_ID = 'template_9fbr18k' // Template pour demandes assistance
+const EMAILJS_TEMPLATE_ASSISTANCE_ID = 'template_9fbr18k' // Template demandes assistance — aussi utilisé pour les visites JPO
 const EMAILJS_TEMPLATE_CERTIFICAT_ID = 'template_certificat_atelier' // Template pour certificats ateliers (à créer dans EmailJS)
 const EMAILJS_PUBLIC_KEY = 'bnj9zb9qdXb4RjnvB'
 
@@ -530,25 +530,36 @@ function formatJpoEmailText(template: string, visite: VisiteJpoEmailPayload, lie
     .replace(/\{lien\}/g, lien)
 }
 
-async function sendEmailJsNotice(to: string, subject: string, message: string) {
+async function sendJpoViaTemplateAssistance(
+  to: string,
+  subject: string,
+  message: string,
+  visite: VisiteJpoEmailPayload,
+  lien: string
+) {
   const templateParams = {
-    email: to,
     to_email: to,
+    email: to,
     subject,
     message,
-    nom_entreprise: 'Visite JPO',
-    nom_contact: '',
-    email_contact: to,
-    telephone: '',
-    type_demande: 'Visite JPO',
-    lien: '',
+    conseiller_nom: 'Conseiller COP',
+    nom_stagiaire: `${visite.nom_prenom} — ${visite.etablissement}`,
+    telephone_stagiaire: visite.telephone,
+    type_assistance: `Visite JPO · ${formatDateVisiteFr(visite.date_visite)} · ${creneauLabel(visite.creneau)}`,
+    statut: 'En attente de confirmation',
+    lien,
   }
 
   if (typeof window !== 'undefined') {
-    return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY)
+    return emailjs.send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ASSISTANCE_ID,
+      templateParams,
+      EMAILJS_PUBLIC_KEY
+    )
   }
 
-  return emailjsNode.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, {
+  return emailjsNode.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ASSISTANCE_ID, templateParams, {
     publicKey: EMAILJS_PUBLIC_KEY,
   })
 }
@@ -578,7 +589,9 @@ async function sendJpoEmailsToConseillers(
   const subject = `${subjectPrefix}${formatJpoEmailText(config.subject, visite, lien)}`
   const message = formatJpoEmailText(config.message, visite, lien)
 
-  await Promise.all(recipients.map((to) => sendEmailJsNotice(to, subject, message)))
+  await Promise.all(
+    recipients.map((to) => sendJpoViaTemplateAssistance(to, subject, message, visite, lien))
+  )
   console.log('✅ Notification JPO conseillers envoyée à', recipients)
   return { success: true }
 }
