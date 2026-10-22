@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendVisiteJpoStaffNotification } from '@/lib/email'
 import {
-  CRENEAU_RESERVE_MESSAGE,
   VISITES_JPO_CRENEAUX,
+  creneauEstOccupe,
   inscriptionsOuvertes,
   isWeekendDate,
+  messageCreneauReserve,
 } from '@/lib/visitesJpo'
 
 export async function POST(request: NextRequest) {
@@ -65,16 +66,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Impossible de réserver une date déjà passée.' }, { status: 400 })
     }
 
-    const { data: existing } = await supabaseAdmin
+    const { data: existingDuJour } = await supabaseAdmin
       .from('reservations_visites_jpo')
-      .select('id')
+      .select('id, creneau')
       .eq('date_visite', dateVisite)
-      .eq('creneau', creneau)
       .in('statut', ['en_attente', 'confirmee'])
-      .maybeSingle()
 
-    if (existing) {
-      return NextResponse.json({ error: CRENEAU_RESERVE_MESSAGE }, { status: 409 })
+    if (creneauEstOccupe(existingDuJour || [], creneau)) {
+      return NextResponse.json({ error: messageCreneauReserve(dateVisite, creneau) }, { status: 409 })
     }
 
     const { data, error } = await supabaseAdmin
@@ -100,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       if (error.code === '23505') {
-        return NextResponse.json({ error: CRENEAU_RESERVE_MESSAGE }, { status: 409 })
+        return NextResponse.json({ error: messageCreneauReserve(dateVisite, creneau) }, { status: 409 })
       }
       throw error
     }

@@ -1,17 +1,19 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
-  CRENEAU_RESERVE_MESSAGE,
+  JOURNEE_COMPLETE_MESSAGE,
   VISITES_JPO_CRENEAUX,
+  creneauEstOccupe,
   inscriptionsOuvertes,
   isWeekendDate,
+  messageCreneauReserve,
 } from '@/lib/visitesJpo'
 
 const INTRO_TITLE = 'Les portes de la CMC s’ouvrent pour vous'
 const INTRO_BODY = `Venez découvrir les métiers, les formations et l’esprit de la Cité des Métiers et des Compétences Souss-Massa.
 
-Pour préparer votre accueil, réservez votre visite avant le 1er mai 2027 à 23h45. Deux créneaux seulement : 09h00 ou 13h00 — un créneau, une délégation.
+Pour préparer votre accueil, réservez votre visite avant le 1er mai 2027 à 23h45. Deux créneaux : 09h00 et 13h00. Deux délégations peuvent venir le même jour, à condition de prendre des créneaux différents.
 
 L’équipe du Centre d’Orientation Professionnelle (COP) reste à vos côtés :`
 
@@ -44,12 +46,9 @@ export default function VisitesJpoPage() {
       .catch(() => setOccupe([]))
   }, [form.date_visite])
 
-  const creneauPris = useMemo(() => {
-    const set = new Set(occupe.map((o) => o.creneau))
-    return set
-  }, [occupe])
-
-  const slotChoisiPris = Boolean(form.creneau && creneauPris.has(form.creneau))
+  const journeeComplete = VISITES_JPO_CRENEAUX.every((slot) => creneauEstOccupe(occupe, slot.id))
+  const slotChoisiPris = Boolean(form.creneau && creneauEstOccupe(occupe, form.creneau))
+  const creneauLibre = VISITES_JPO_CRENEAUX.find((slot) => !creneauEstOccupe(occupe, slot.id))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,7 +63,7 @@ export default function VisitesJpoPage() {
       return
     }
     if (slotChoisiPris) {
-      setError(CRENEAU_RESERVE_MESSAGE)
+      setError(messageCreneauReserve(form.date_visite, form.creneau))
       return
     }
     setSubmitting(true)
@@ -179,7 +178,7 @@ export default function VisitesJpoPage() {
             <legend className="text-sm font-semibold text-slate-800">Créneau horaire</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {VISITES_JPO_CRENEAUX.map((slot) => {
-                const pris = creneauPris.has(slot.id)
+                const pris = creneauEstOccupe(occupe, slot.id)
                 return (
                   <label
                     key={slot.id}
@@ -199,21 +198,35 @@ export default function VisitesJpoPage() {
                       checked={form.creneau === slot.id}
                       onChange={() => setForm({ ...form, creneau: slot.id })}
                     />
-                    {slot.label}
-                    {pris && <span className="block text-xs mt-1">Réservé</span>}
+                    <span className="block font-semibold">{slot.label}</span>
+                    <span className="block text-xs mt-0.5">
+                      {slot.start} – {slot.end}
+                    </span>
+                    {pris ? (
+                      <span className="mt-1 block text-xs font-medium text-red-600">
+                        Déjà réservé
+                      </span>
+                    ) : (
+                      <span className="mt-1 block text-xs text-teal-700">Disponible</span>
+                    )}
                   </label>
                 )
               })}
             </div>
           </fieldset>
-          {slotChoisiPris && (
+          {form.date_visite && journeeComplete && (
             <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
-              {CRENEAU_RESERVE_MESSAGE}
+              {JOURNEE_COMPLETE_MESSAGE}
             </p>
           )}
-          {form.date_visite && VISITES_JPO_CRENEAUX.every((s) => creneauPris.has(s.id)) && (
+          {form.date_visite && !journeeComplete && occupe.length > 0 && creneauLibre && (
+            <p className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-900">
+              Un créneau est déjà pris ce jour-là. Le créneau {creneauLibre.label} ({creneauLibre.start}–{creneauLibre.end}) reste disponible.
+            </p>
+          )}
+          {slotChoisiPris && (
             <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
-              {CRENEAU_RESERVE_MESSAGE}
+              {messageCreneauReserve(form.date_visite, form.creneau)}
             </p>
           )}
           <div className="grid gap-4 sm:grid-cols-2">

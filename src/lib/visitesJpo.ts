@@ -26,7 +26,29 @@ export function peutValiderVisiteJpo(person: {
 }
 
 export const CRENEAU_RESERVE_MESSAGE =
-  'Cette journée et ce créneau sont déjà réservés. Merci de réserver une autre date sur le planning.'
+  'Ce créneau est déjà réservé pour cette date. Vous pouvez choisir l’autre créneau du même jour, ou une autre date.'
+
+export const JOURNEE_COMPLETE_MESSAGE =
+  'Les deux créneaux de cette journée (09h00 et 13h00) sont déjà réservés. Merci de choisir une autre date.'
+
+export function creneauGroupe(id: string): 'matin' | 'apres-midi' {
+  const slot = VISITES_JPO_CRENEAUX.find((c) => c.id === id)
+  const start = slot?.start || id.slice(0, 5)
+  return start < '12:00' ? 'matin' : 'apres-midi'
+}
+
+export function creneauEstOccupe(occupe: { creneau: string }[], slotId: string): boolean {
+  const groupe = creneauGroupe(slotId)
+  return occupe.some((item) => creneauGroupe(item.creneau) === groupe)
+}
+
+export function messageCreneauReserve(isoDate: string, creneauId: string): string {
+  const dateLabel = formatDateVisiteFr(isoDate)
+  const autre = VISITES_JPO_CRENEAUX.find((c) => creneauGroupe(c.id) !== creneauGroupe(creneauId))
+  return `Le créneau ${creneauLabel(creneauId)} du ${dateLabel} est déjà réservé. ${
+    autre ? `Vous pouvez encore réserver le créneau ${autre.label} le même jour.` : 'Merci de choisir une autre date.'
+  }`
+}
 
 export type VisiteJpoStatut = 'en_attente' | 'confirmee' | 'refusee'
 
