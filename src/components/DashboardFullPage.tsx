@@ -87,12 +87,14 @@ const DashboardFullPage: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             {/* Logo/Titre à gauche */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center shadow-sm">
-                <img src="/logo.png" alt="Logo COP" className="w-6 h-6 object-contain" />
-              </div>
-              <div>
+              <img
+                src="/cop-space-logo.jpg"
+                alt="COP Space"
+                className="h-12 w-auto object-contain"
+              />
+              <div className="hidden sm:block">
                 <h1 className="text-base font-semibold text-gray-900">
-                  Centre d'Orientation Professionnelle
+                  Centre d&apos;Orientation Professionnelle
                 </h1>
                 <p className="text-xs text-gray-500">Tableau de bord</p>
               </div>

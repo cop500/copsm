@@ -84,6 +84,13 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* En-tête avec titre principal - Animation fade-in */}
           <div className="text-center mb-8 animate-fade-in">
+            <div className="mx-auto mb-4 inline-flex rounded-2xl bg-white px-5 py-4 shadow-xl">
+              <img
+                src="/cop-space-logo.jpg"
+                alt="COP Space"
+                className="h-24 w-auto object-contain md:h-28"
+              />
+            </div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4 drop-shadow-lg leading-tight">
               Centre d&apos;Orientation Professionnelle CMC SM
             </h1>

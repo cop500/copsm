@@ -10,6 +10,8 @@ const RootLayout = memo(function RootLayout({ children }: { children: React.Reac
     <html lang="fr">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="icon" href="/cop-space-logo.jpg" />
+        <title>COP Space — Centre d&apos;Orientation Professionnelle</title>
       </head>
       <body>
         <UserProvider>

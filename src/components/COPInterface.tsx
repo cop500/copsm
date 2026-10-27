@@ -250,11 +250,14 @@ const COPInterface: React.FC = () => {
           {/* Logo */}
           <div className="flex items-center justify-between px-6 py-6 border-b border-gray-200">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                <img src="/logo.png" alt="Logo MyWay" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-              </div>
+              <img
+                src="/cop-space-logo.jpg"
+                alt="COP Space"
+                className="h-12 w-auto object-contain sm:h-14"
+              />
               <div>
-                <h1 className="text-xl font-bold text-black">Centre d’Orientation Professionnelle</h1>
+                <h1 className="text-base font-bold text-black sm:text-lg">Centre d’Orientation Professionnelle</h1>
+                <p className="text-xs text-gray-500">COP Space</p>
               </div>
             </div>
             <button

@@ -2,6 +2,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { sendNewDemandeNotification } from '@/lib/email';
+import { CopSpacePublicMark } from '@/components/CopSpacePublicMark';
 
 const BLEU_FONCE = "#004080";
 const dureesContrat = ["1 mois", "3 mois", "6 mois", "12 mois", "Autre"];
@@ -394,6 +395,9 @@ export default function DemandeEntreprisePage() {
       <div className="max-w-4xl mx-auto py-6 sm:py-12 px-4 sm:px-6">
         {/* Header avec design moderne */}
         <div className="text-center mb-8">
+          <div className="mb-5 flex justify-center">
+            <CopSpacePublicMark size="md" />
+          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
             Espace de gestion des demandes entreprises
           </h1>

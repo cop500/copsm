@@ -9,6 +9,7 @@ import {
   User, ChevronRight
 } from 'lucide-react'
 import { isAtelierComplet, isAtelierDatePassee, peutSInscrireAtelier } from '@/lib/atelierInscriptionDisponible'
+import { CopSpacePublicMark } from '@/components/CopSpacePublicMark'
 
 interface Atelier {
   id: string
@@ -316,6 +317,9 @@ export default function InscriptionAteliersPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-blue-700/20"></div>
         <div className="relative z-10 container mx-auto px-4 py-12 sm:py-16">
           <div className="text-center">
+            <div className="mb-6 flex justify-center">
+              <CopSpacePublicMark variant="onDark" size="md" />
+            </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
               Espace Ateliers
             </h1>

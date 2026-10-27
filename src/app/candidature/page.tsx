@@ -9,6 +9,7 @@ import {
   AlertCircle, AlertTriangle, Loader2, Target, GraduationCap
 } from 'lucide-react'
 import type { OffrePublique } from '@/lib/candidatureOffres'
+import { CopSpacePublicMark } from '@/components/CopSpacePublicMark'
 
 interface FormData {
   nom: string
@@ -381,6 +382,9 @@ export default function CandidaturePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* En-tête avec fond blanc simple */}
           <div className="text-center mb-10 pb-10 pt-8 px-6 bg-white rounded-b-2xl shadow-sm border-b-2 border-[#0f3d6c] relative">
+          <div className="mb-5 flex justify-center relative z-10">
+            <CopSpacePublicMark size="md" />
+          </div>
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 relative z-10">
             <div className="hidden lg:block lg:flex-1"></div>
             <h1 className="text-3xl lg:text-4xl font-bold text-[#0f3d6c] mb-4 lg:mb-0">
