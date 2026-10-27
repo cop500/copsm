@@ -38,6 +38,7 @@ interface DemandeEntreprise {
   traite_par_nom?: string | null
   created_at: string
   updated_at?: string
+  date_cloture?: string | null
   candidatures_count?: number
   candidatures?: Candidature[]
 }

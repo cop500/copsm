@@ -11,6 +11,8 @@ import { downloadDemandePDF, printDemande } from '@/components/ui/PDFGenerator';
 import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel';
 import { FicheSourcingEditor } from '@/components/FicheSourcingEditor';
 import { fetchFichesResumes, ficheStatutLabel, type FicheSourcingResume } from '@/lib/fichesSourcing';
+import { DelaiTraitementDemandeBadge } from '@/components/DelaiTraitementDemandeBadge';
+import { isDemandeCloturee } from '@/lib/delaiTraitementDemande';
 
 interface DemandeEntreprise {
   id: string;
@@ -28,6 +30,8 @@ interface DemandeEntreprise {
   fichier_url?: string;
   type_demande: string;
   created_at: string;
+  updated_at?: string;
+  date_cloture?: string | null;
   traite_par?: string | null;
   statut?: string;
   reference?: string;
@@ -175,20 +179,38 @@ const DashboardAdmin = () => {
   };
 
   const handleStatutChange = async (demandeId: string, newStatut: string) => {
-    // Mise à jour optimiste
-    setDemandes(prev => prev.map(d => 
-      d.id === demandeId ? { ...d, statut: newStatut } : d
+    const current = demandes.find((d) => d.id === demandeId)
+    const wasClosed = isDemandeCloturee(current?.statut)
+    const nowClosed = isDemandeCloturee(newStatut)
+    let dateCloture = current?.date_cloture || null
+    if (!wasClosed && nowClosed) dateCloture = new Date().toISOString()
+    if (wasClosed && !nowClosed) dateCloture = null
+
+    setDemandes(prev => prev.map(d =>
+      d.id === demandeId ? { ...d, statut: newStatut, date_cloture: dateCloture } : d
     ));
-    
+
     try {
-    const { error } = await supabase
+      const payload: { statut: string; date_cloture?: string | null } = {
+        statut: newStatut,
+        date_cloture: dateCloture,
+      }
+      let { error } = await supabase
         .from("demandes_entreprises")
-      .update({ statut: newStatut })
+        .update(payload)
         .eq("id", demandeId);
-    
-    if (!error) {
+
+      if (error && (error.message?.includes('date_cloture') || error.code === '42703')) {
+        const retry = await supabase
+          .from("demandes_entreprises")
+          .update({ statut: newStatut })
+          .eq("id", demandeId);
+        error = retry.error
+      }
+
+      if (!error) {
         setMessage("Statut mis à jour avec succès.");
-    } else {
+      } else {
         setMessage("Erreur lors de la mise à jour du statut.");
       }
     } catch (error) {
@@ -568,6 +590,7 @@ const DashboardAdmin = () => {
                               {currentStatut.label}
                             </span>
                           )}
+                          <DelaiTraitementDemandeBadge demande={demande} compact />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[#64748B]">
                           <div className="flex items-center gap-2">

@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabase'
 import { getCvTriLabel } from '@/lib/cvTriStatut'
+import { computeDelaiTraitement } from '@/lib/delaiTraitementDemande'
 
 export interface DossierDemande {
   id: string
@@ -22,6 +23,7 @@ export interface DossierDemande {
   traite_par_nom?: string | null
   created_at: string
   updated_at?: string
+  date_cloture?: string | null
   reference?: string
 }
 
@@ -222,6 +224,8 @@ export function downloadDossierTraitementWorkbook(
     { Champ: 'Statut', Valeur: STATUT_DEMANDE[demande.statut || ''] || demande.statut || '' },
     { Champ: 'Traité par', Valeur: demande.traite_par_nom || '' },
     { Champ: 'Date de réception', Valeur: formatDateTime(demande.created_at) },
+    { Champ: 'Date de clôture', Valeur: formatDateTime(demande.date_cloture) },
+    { Champ: 'Délai de traitement', Valeur: computeDelaiTraitement(demande)?.label || '' },
     { Champ: 'Dernière mise à jour', Valeur: formatDateTime(demande.updated_at) },
     { Champ: 'Fiche de poste (lien)', Valeur: demande.fichier_url || '' },
     { Champ: 'Export généré le', Valeur: formatDateTime(new Date().toISOString()) },

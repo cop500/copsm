@@ -8,6 +8,7 @@ import {
   MapPin, Phone, Mail, Briefcase, TrendingUp, Download, FileSpreadsheet, UserCheck,   FilePlus, Printer, Copy
 } from 'lucide-react'
 import { DupliquerDemandeModal } from '@/components/DupliquerDemandeModal'
+import { DelaiTraitementDemandeBadge } from '@/components/DelaiTraitementDemandeBadge'
 import JSZip from 'jszip'
 import { downloadDossierTraitementExcel } from '@/lib/dossierTraitementExcel'
 import { useSettings } from '@/hooks/useSettings'
@@ -47,6 +48,7 @@ interface DemandeEntreprise {
   traite_par_nom?: string | null
   created_at: string
   updated_at?: string
+  date_cloture?: string | null
   reference?: string
   entreprise_adresse?: string
   entreprise_email?: string
@@ -264,8 +266,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     switch (statut) {
       case 'en_attente': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'en_cours': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'termine': return 'bg-green-100 text-green-800 border-green-200'
-      case 'annule': return 'bg-red-100 text-red-800 border-red-200'
+      case 'termine':
+      case 'terminee': return 'bg-green-100 text-green-800 border-green-200'
+      case 'refusee':
+      case 'annule':
+      case 'annulee': return 'bg-red-100 text-red-800 border-red-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
@@ -274,8 +279,11 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
     switch (statut) {
       case 'en_attente': return 'En attente'
       case 'en_cours': return 'En cours'
-      case 'termine': return 'Terminé'
-      case 'annule': return 'Annulé'
+      case 'termine':
+      case 'terminee': return 'Terminée'
+      case 'refusee': return 'Refusée'
+      case 'annule':
+      case 'annulee': return 'Annulée'
       default: return statut
     }
   }
@@ -843,6 +851,7 @@ export const DemandesFolders: React.FC<DemandesFoldersProps> = ({
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatutColor(demande.statut)}`}>
                         {getStatutLabel(demande.statut)}
                       </span>
+                      <DelaiTraitementDemandeBadge demande={demande} />
                       {canAccessFiche(demande) && (
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${ficheBadgeClass(fichesResumes[demande.id]?.statut)}`}>
                           Fiche : {ficheStatutLabel(fichesResumes[demande.id]?.statut)}
