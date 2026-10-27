@@ -8,14 +8,14 @@ import { useAuth } from '@/hooks/useAuth'
 const PUBLIC_PAGES = [
   '/login',
   '/enquete-insertion/public',
-  '/enquete-satisfaction',
   '/cv-connect/public',
   '/candidature',
   '/inscription-ateliers',
   '/evenements',
   '/ambassadeurs',
-  '/got-talent',
   '/visites-jpo',
+  '/portes',
+  '/assistance-stagiaires',
 ]
 
 interface AuthGuardProps {

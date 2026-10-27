@@ -43,8 +43,23 @@ const nextConfig = {
         permanent: false,
       },
       {
-        source: '/got-talent/ecran',
-        destination: '/ecran-got-talent.html',
+        source: '/got-talent',
+        destination: '/',
+        permanent: false,
+      },
+      {
+        source: '/got-talent/:path*',
+        destination: '/',
+        permanent: false,
+      },
+      {
+        source: '/enquete-satisfaction',
+        destination: '/',
+        permanent: false,
+      },
+      {
+        source: '/enquete-satisfaction/:path*',
+        destination: '/',
         permanent: false,
       },
     ]

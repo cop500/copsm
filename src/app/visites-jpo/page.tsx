@@ -124,26 +124,29 @@ export default function VisitesJpoPage() {
   }
 
   const field =
-    'mt-1 w-full rounded-xl border border-white/70 bg-white/70 px-4 py-3 text-[15px] text-slate-900 placeholder:text-slate-500 focus:border-[#0f3d6c] focus:outline-none focus:ring-2 focus:ring-[#0f3d6c]/20'
+    'mt-1 min-h-[52px] w-full rounded-xl border border-white/70 bg-white/75 px-4 py-3 text-[18px] text-slate-900 placeholder:text-slate-500 focus:border-[#0f3d6c] focus:outline-none focus:ring-2 focus:ring-[#0f3d6c]/20'
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen min-h-[100dvh]">
       <div
-        className="pointer-events-none fixed inset-0 bg-cover bg-center"
+        className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/bg-entreprise.jpg')" }}
         aria-hidden="true"
       />
-      <div className="pointer-events-none fixed inset-0 bg-[#0b2744]/35" aria-hidden="true" />
+      <div
+        className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[#0b2744]/40 via-[#0b2744]/48 to-[#0b2744]/62"
+        aria-hidden="true"
+      />
 
       <div className="relative">
-      <div className="px-4 py-12 text-center text-white">
-        <p className="mb-2 text-sm font-semibold tracking-[0.2em] uppercase text-amber-200">Journées portes ouvertes</p>
-        <h1 className="text-3xl sm:text-5xl font-bold drop-shadow-lg">Visites CMC Souss-Massa</h1>
-        <p className="mt-3 text-blue-100">Centre d’Orientation Professionnelle · COP</p>
+      <div className="px-4 py-8 text-center text-white sm:py-12 lg:py-14">
+        <p className="mb-2 text-sm font-semibold tracking-[0.2em] uppercase text-amber-200 lg:text-base">Journées portes ouvertes</p>
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold drop-shadow-lg">Visites CMC Souss-Massa</h1>
+        <p className="mt-3 text-blue-100 lg:text-lg">Centre d’Orientation Professionnelle · COP</p>
       </div>
 
-      <div className="mx-auto max-w-3xl px-4 pb-12">
-        <div className="rounded-2xl border border-white/50 bg-white/55 backdrop-blur-xl p-6 shadow-xl mb-6 text-slate-800 leading-relaxed">
+      <div className="mx-auto max-w-3xl px-4 pb-12 lg:max-w-5xl lg:px-8">
+        <div className="rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl p-6 shadow-xl mb-6 text-slate-800 leading-relaxed lg:p-8 lg:text-[18px]">
           <h2 className="text-xl font-bold text-[#0f3d6c] mb-3">{INTRO_TITLE}</h2>
           <p className="whitespace-pre-line">{INTRO_BODY}</p>
           <div className="mt-4 space-y-1 text-slate-800">
@@ -165,7 +168,7 @@ export default function VisitesJpoPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-white/50 bg-white/50 backdrop-blur-xl p-6 shadow-xl space-y-4">
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-white/50 bg-white/58 backdrop-blur-xl p-6 shadow-xl space-y-5 lg:p-8">
           <label className="block">
             <span className="text-sm font-semibold text-slate-800">Nom & Prénom</span>
             <input className={field} required value={form.nom_prenom} onChange={(e) => setForm({ ...form, nom_prenom: e.target.value })} />
@@ -205,7 +208,7 @@ export default function VisitesJpoPage() {
                 return (
                   <label
                     key={slot.id}
-                    className={`rounded-xl border px-3 py-3 text-sm ${
+                    className={`min-h-[72px] rounded-xl border px-4 py-4 text-base ${
                       pris
                         ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
                         : form.creneau === slot.id
@@ -266,7 +269,7 @@ export default function VisitesJpoPage() {
           <button
             type="submit"
             disabled={submitting || !ouvert || slotChoisiPris}
-            className="w-full rounded-xl bg-[#0f3d6c] py-3 font-semibold text-white hover:bg-[#0c3258] disabled:opacity-50"
+            className="min-h-[56px] w-full rounded-xl bg-[#0f3d6c] py-3 text-lg font-semibold text-white hover:bg-[#0c3258] disabled:opacity-50"
           >
             {submitting ? 'Envoi…' : 'Envoyer la demande'}
           </button>
