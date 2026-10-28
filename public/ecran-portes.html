@@ -113,6 +113,19 @@
       border-radius: 12px;
     }
     .btn:active { background: #33b7e8; }
+    .btn-scan {
+      display: block;
+      width: 100%;
+      min-height: 56px;
+      padding: 12px 10px;
+      line-height: 1.25;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f3d6c;
+      background: #fde68a;
+      border-radius: 12px;
+    }
     .foot { clear: both; text-align: center; margin-top: 8px; color: #93c5d8; font-size: 13px; }
     @media (min-width: 720px) {
       .card { width: 48%; margin-right: 2%; }
@@ -142,7 +155,7 @@
       <div class="logo"><img src="/cop-space-logo.jpg" alt="COP Space" /></div>
       <span class="kicker">ESPACE STAGIAIRE</span>
       <h1>Toutes tes portes, un scan.</h1>
-      <p class="lead">Pas de compte. Scanne le QR avec ton téléphone, ou appuie sur Ouvrir.</p>
+      <p class="lead">Pas de compte. Scanne le QR avec ton téléphone. Pour CV Connect, scanne uniquement le QR (dépôt du CV depuis le téléphone).</p>
     </header>
     <h2>Les 4 essentielles</h2>
     <div class="row" id="essentielles"></div>
@@ -154,7 +167,7 @@
     var origin = window.location.origin || 'https://copsm.space';
     var portes = [
       { verbe: 'Je m’inscris', titre: 'Ateliers', resume: 'Réserver une place à un atelier d’orientation ou d’insertion.', path: '/inscription-ateliers/', ecran: '/inscription-ateliers/ecran/', essentielle: true },
-      { verbe: 'Je dépose', titre: 'CV Connect', resume: 'Envoyer mon CV au COP, avec mon pôle et ma filière.', path: '/cv-connect/public/', ecran: '/cv-connect/public/', essentielle: true },
+      { verbe: 'Je dépose', titre: 'CV Connect', resume: 'Envoyer mon CV au COP, avec mon pôle et ma filière.', path: '/cv-connect/public/', ecran: '/cv-connect/public/', essentielle: true, qrOnly: true },
       { verbe: 'Je postule', titre: 'Candidatures', resume: 'Voir les offres partenaires et déposer ma candidature.', path: '/candidature/', ecran: '/candidature/ecran/', essentielle: true },
       { verbe: 'Je demande', titre: 'Assistance', resume: 'Écrire à un conseiller pour une aide concrète.', path: '/assistance-stagiaires/demande/', ecran: '/assistance-stagiaires/demande/ecran/', essentielle: true },
       { verbe: 'Je rayonne', titre: 'Ambassadeurs', resume: 'Déclarer une action réalisée pour le COP.', path: '/ambassadeurs/', ecran: '/ambassadeurs/', essentielle: false },
@@ -167,13 +180,16 @@
       var phoneUrl = origin + p.path;
       var openUrl = origin + p.ecran;
       var shortUrl = phoneUrl.replace(/^https?:\/\//, '');
+      var action = p.qrOnly
+        ? '<span class="btn-scan">Merci de scanner le code QR</span>'
+        : '<a class="btn" href="' + openUrl + '">Ouvrir</a>';
       return '<article class="card">' +
         '<div class="qr"><img alt="QR ' + p.titre + '" src="' + qrSrc(phoneUrl) + '" /></div>' +
         '<span class="verbe">' + p.verbe + '</span>' +
         '<h3>' + p.titre + '</h3>' +
         '<p>' + p.resume + '</p>' +
         '<span class="url">' + shortUrl + '</span>' +
-        '<a class="btn" href="' + openUrl + '">Ouvrir</a>' +
+        action +
         '</article>';
     }
     function fill(id, list) {

@@ -43,11 +43,6 @@ const nextConfig = {
         permanent: false,
       },
       {
-        source: '/portes',
-        destination: '/ecran-portes.html',
-        permanent: false,
-      },
-      {
         source: '/portes/ecran',
         destination: '/ecran-portes.html',
         permanent: false,
