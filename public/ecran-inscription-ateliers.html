@@ -76,6 +76,44 @@
     .btn:active { background: #1d4ed8; }
     .btn-secondary { background: #e5e7eb; color: #333; }
     .btn:disabled { background: #d1d5db; color: #6b7280; cursor: not-allowed; }
+    .btn-noter {
+      background: #fff7ed;
+      color: #9a3412;
+      border: 2px solid #fdba74;
+      margin-top: 10px;
+    }
+    .btn-noter:active { background: #ffedd5; }
+    .stars { display: flex; gap: 8px; justify-content: flex-end; }
+    .star {
+      background: none;
+      border: none;
+      font-size: 36px;
+      line-height: 1;
+      color: #d1d5db;
+      min-width: 48px;
+      min-height: 48px;
+      padding: 0;
+      cursor: pointer;
+    }
+    .star.on { color: #f59e0b; }
+    .critere {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .critere span { font-size: 17px; flex: 1; min-width: 180px; }
+    .field textarea {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      min-height: 90px;
+      font-family: inherit;
+    }
     .loading, .empty, .error-box {
       text-align: center;
       padding: 40px 20px;
@@ -194,18 +232,80 @@
     </div>
   </div>
 
+  <div class="overlay" id="overlayNote">
+    <div class="modal">
+      <h2>Noter l'atelier</h2>
+      <div class="summary" id="noteSummary"></div>
+
+      <form id="formIdentite">
+        <p class="meta" style="margin-bottom:16px;">
+          Saisissez le nom et l’e-mail utilisés à l’inscription. La notation est ouverte
+          uniquement si votre présence a été validée par l’animateur.
+        </p>
+        <div class="field">
+          <label for="note_nom">Nom et prénom *</label>
+          <input type="text" id="note_nom" required />
+        </div>
+        <div class="field">
+          <label for="note_email">E-mail *</label>
+          <input type="email" id="note_email" required />
+        </div>
+        <div id="noteIdentiteError" class="error-box hidden" style="margin-top:12px;"></div>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" id="btnNoteCancel1">Annuler</button>
+          <button type="submit" class="btn" id="btnNoteContinuer">Continuer</button>
+        </div>
+      </form>
+
+      <form id="formNotes" class="hidden">
+        <p class="meta" style="margin-bottom:16px;">Notez chaque critère de 1 (faible) à 5 (excellent).</p>
+        <div id="criteres"></div>
+        <div class="field">
+          <label for="note_commentaire">Commentaire (facultatif)</label>
+          <textarea id="note_commentaire" maxlength="1000"></textarea>
+        </div>
+        <div id="noteNotesError" class="error-box hidden" style="margin-top:12px;"></div>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" id="btnNoteRetour">Retour</button>
+          <button type="submit" class="btn" id="btnNoteEnvoyer">Envoyer</button>
+        </div>
+      </form>
+
+      <div id="noteOk" class="success hidden">
+        <h2>Merci pour votre avis</h2>
+        <p>Votre notation aide le COP à mesurer l’impact des ateliers.</p>
+        <button type="button" class="btn" id="btnNoteFermer">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       var ateliers = [];
       var poles = [];
       var filieres = [];
       var selectedAtelier = null;
+      var atelierANoter = null;
+      var notesValues = {};
+      var CRITERES = [
+        { key: 'clarte', label: 'Clarté du contenu' },
+        { key: 'utilite', label: 'Utilité pour mon projet professionnel' },
+        { key: 'animation', label: 'Qualité de l’animation' },
+        { key: 'organisation', label: 'Organisation (durée, rythme, supports)' },
+        { key: 'recommandation', label: 'Je recommande cet atelier' }
+      ];
 
       var statusEl = document.getElementById('status');
       var listeEl = document.getElementById('liste');
       var overlay = document.getElementById('overlay');
+      var overlayNote = document.getElementById('overlayNote');
       var form = document.getElementById('formInscription');
       var formError = document.getElementById('formError');
+      var formIdentite = document.getElementById('formIdentite');
+      var formNotes = document.getElementById('formNotes');
+      var noteOk = document.getElementById('noteOk');
+      var noteIdentiteError = document.getElementById('noteIdentiteError');
+      var noteNotesError = document.getElementById('noteNotesError');
 
       function esc(s) {
         if (!s) return '';
@@ -331,6 +431,9 @@
               (a.animateur_role ? ' (' + esc(a.animateur_role) + ')' : '') + '</p>' : '') +
             '<button type="button" class="btn btn-inscrire" data-id="' + esc(a.id) + '" ' +
             (ouvert ? '' : 'disabled') + '>' + btnText + '</button>' +
+            (passe
+              ? '<button type="button" class="btn btn-noter" data-id="' + esc(a.id) + '">Noter l’atelier</button>'
+              : '') +
             '</div>';
         }
         listeEl.innerHTML = html;
@@ -338,6 +441,10 @@
         var btns = listeEl.querySelectorAll('.btn-inscrire');
         for (var j = 0; j < btns.length; j++) {
           btns[j].addEventListener('click', onInscrireClick);
+        }
+        var noteBtns = listeEl.querySelectorAll('.btn-noter');
+        for (var k = 0; k < noteBtns.length; k++) {
+          noteBtns[k].addEventListener('click', onNoterClick);
         }
       }
 
@@ -378,6 +485,142 @@
             filSelect.appendChild(opt);
           }
         }
+      });
+
+      function resetNotes() {
+        notesValues = {};
+        for (var i = 0; i < CRITERES.length; i++) notesValues[CRITERES[i].key] = 0;
+      }
+
+      function renderCriteres() {
+        var html = '';
+        for (var i = 0; i < CRITERES.length; i++) {
+          var c = CRITERES[i];
+          html += '<div class="critere"><span>' + esc(c.label) + '</span><div class="stars" data-key="' + c.key + '">';
+          for (var n = 1; n <= 5; n++) {
+            html += '<button type="button" class="star' + (notesValues[c.key] >= n ? ' on' : '') + '" data-n="' + n + '">★</button>';
+          }
+          html += '</div></div>';
+        }
+        document.getElementById('criteres').innerHTML = html;
+      }
+
+      function showNoteStep(step) {
+        formIdentite.className = step === 'identite' ? '' : 'hidden';
+        formNotes.className = step === 'notes' ? '' : 'hidden';
+        noteOk.className = step === 'ok' ? 'success' : 'success hidden';
+      }
+
+      function closeNote() {
+        overlayNote.className = 'overlay';
+        atelierANoter = null;
+      }
+
+      function onNoterClick(e) {
+        var id = e.currentTarget.getAttribute('data-id');
+        atelierANoter = null;
+        for (var i = 0; i < ateliers.length; i++) {
+          if (ateliers[i].id === id) {
+            atelierANoter = ateliers[i];
+            break;
+          }
+        }
+        if (!atelierANoter) return;
+        document.getElementById('noteSummary').innerHTML = '<strong>' + esc(atelierANoter.titre) + '</strong>';
+        formIdentite.reset();
+        document.getElementById('note_commentaire').value = '';
+        resetNotes();
+        renderCriteres();
+        noteIdentiteError.className = 'error-box hidden';
+        noteNotesError.className = 'error-box hidden';
+        showNoteStep('identite');
+        overlayNote.className = 'overlay open';
+      }
+
+      function postEvaluation(action, done) {
+        var payload = {
+          action: action,
+          atelier_id: atelierANoter.id,
+          nom: document.getElementById('note_nom').value.trim(),
+          email: document.getElementById('note_email').value.trim()
+        };
+        if (action === 'noter') {
+          payload.notes = notesValues;
+          payload.commentaire = document.getElementById('note_commentaire').value.trim();
+        }
+        fetch('/api/ateliers/evaluation/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) {
+            return r.json().then(function (j) { return { ok: r.ok, body: j }; });
+          })
+          .then(function (res) {
+            done(res);
+          })
+          .catch(function () {
+            done({ ok: false, body: { error: 'Connexion impossible. Réessayez.' } });
+          });
+      }
+
+      document.getElementById('criteres').addEventListener('click', function (e) {
+        var btn = e.target;
+        if (!btn || btn.className.indexOf('star') === -1) return;
+        var wrap = btn.parentNode;
+        var key = wrap.getAttribute('data-key');
+        var n = parseInt(btn.getAttribute('data-n'), 10);
+        notesValues[key] = n;
+        var stars = wrap.querySelectorAll('.star');
+        for (var i = 0; i < stars.length; i++) {
+          stars[i].className = (i + 1 <= n) ? 'star on' : 'star';
+        }
+      });
+
+      formIdentite.addEventListener('submit', function (e) {
+        e.preventDefault();
+        noteIdentiteError.className = 'error-box hidden';
+        var btn = document.getElementById('btnNoteContinuer');
+        btn.disabled = true;
+        postEvaluation('verifier', function (res) {
+          btn.disabled = false;
+          if (res.ok) {
+            showNoteStep('notes');
+            return;
+          }
+          noteIdentiteError.textContent = (res.body && res.body.error) || 'Une erreur est survenue.';
+          noteIdentiteError.className = 'error-box';
+        });
+      });
+
+      formNotes.addEventListener('submit', function (e) {
+        e.preventDefault();
+        noteNotesError.className = 'error-box hidden';
+        for (var i = 0; i < CRITERES.length; i++) {
+          if (!notesValues[CRITERES[i].key]) {
+            noteNotesError.textContent = 'Merci de noter chaque critère de 1 à 5.';
+            noteNotesError.className = 'error-box';
+            return;
+          }
+        }
+        var btn = document.getElementById('btnNoteEnvoyer');
+        btn.disabled = true;
+        postEvaluation('noter', function (res) {
+          btn.disabled = false;
+          if (res.ok) {
+            showNoteStep('ok');
+            return;
+          }
+          noteNotesError.textContent = (res.body && res.body.error) || 'Une erreur est survenue.';
+          noteNotesError.className = 'error-box';
+        });
+      });
+
+      document.getElementById('btnNoteCancel1').addEventListener('click', closeNote);
+      document.getElementById('btnNoteFermer').addEventListener('click', closeNote);
+      document.getElementById('btnNoteRetour').addEventListener('click', function () {
+        noteIdentiteError.className = 'error-box hidden';
+        showNoteStep('identite');
       });
 
       document.getElementById('btnCancel').addEventListener('click', function () {
