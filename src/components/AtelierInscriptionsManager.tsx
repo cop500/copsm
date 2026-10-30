@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { AtelierIndicateursBlock } from './AtelierIndicateursBlock'
+import type { AtelierIndicateurs, EvaluationStagiaire } from '@/lib/atelierEvaluation'
+import { CRITERES_ATELIER, moyenneGlobaleNotes } from '@/lib/atelierEvaluation'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 // Import du plugin autotable - il ajoute automatiquement la méthode autoTable à jsPDF
@@ -14,7 +17,7 @@ declare module 'jspdf' {
   }
 }
 import { 
-  Users, X, Download, Trash2, Search,
+  Users, X, Download, Trash2, Search, Star,
   GraduationCap, FileText, XCircle, CheckCircle2, Mail, Check, Send, RefreshCw
 } from 'lucide-react'
 
@@ -43,6 +46,8 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedInscriptions, setSelectedInscriptions] = useState<string[]>([])
   const [validating, setValidating] = useState(false)
+  const [indicateurs, setIndicateurs] = useState<AtelierIndicateurs | undefined>(undefined)
+  const [notesParInscription, setNotesParInscription] = useState<Record<string, EvaluationStagiaire>>({})
   // Pour mailto:, on n'a pas besoin d'état "sending" car c'est instantané
   
   // La validation de présence est disponible pour tous les statuts d'atelier
@@ -104,6 +109,28 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   // Compter les présences validées (inscriptions actives avec présence validée)
   const presencesValidees = inscriptionsActives.filter(i => i.present === true).length
 
+  useEffect(() => {
+    if (!atelier?.id) return
+    let cancelled = false
+    fetch(`/api/ateliers/evaluation/indicateurs/?ids=${atelier.id}&details=1`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        setIndicateurs(data.indicateurs?.[atelier.id])
+        setNotesParInscription(data.notesParInscription || {})
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIndicateurs(undefined)
+          setNotesParInscription({})
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [atelier?.id, inscriptions.length, presencesValidees])
+
   // Obtenir le statut en français (seulement pour les annulées)
   const getStatusLabel = (status?: string) => {
     if (status === 'annule') return 'Annulée'
@@ -130,6 +157,8 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
         'Pôle': inscription.pole,
         'Filière': inscription.filliere,
         'Statut': inscription.statut === 'annule' ? 'Annulée' : 'Inscrit',
+        'A noté': notesParInscription[inscription.id] ? 'Oui' : 'Non',
+        'Moyenne notation': moyenneGlobaleNotes(notesParInscription[inscription.id] || {}) ?? '',
         'Date inscription': new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
@@ -737,6 +766,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             </div>
           </div>
         </div>
+        <AtelierIndicateursBlock stats={indicateurs} />
       </div>
 
         {/* Filtres et actions */}
@@ -857,6 +887,9 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                       Présent
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Notation
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date inscription
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -897,6 +930,12 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                               Présent
                             </span>
                           )}
+                          {notesParInscription[inscription.id] && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900">
+                              <Star className="w-3 h-3 mr-1" />
+                              A noté
+                            </span>
+                          )}
                       </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -929,6 +968,37 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                             })}
                           </div>
                         )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const note = notesParInscription[inscription.id]
+                          if (note) {
+                            const globale = moyenneGlobaleNotes(note)
+                            return (
+                              <div className="text-xs text-gray-800 space-y-1 min-w-[140px]">
+                                <div className="inline-flex items-center gap-1 font-medium text-amber-900">
+                                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                  {globale != null ? `${globale}/5` : 'Noté'}
+                                </div>
+                                {CRITERES_ATELIER.map(({ key, label }) => (
+                                  <div key={key} className="flex justify-between gap-2 text-gray-600">
+                                    <span className="truncate" title={label}>{label}</span>
+                                    <span className="tabular-nums font-medium text-gray-800">{note[key]}/5</span>
+                                  </div>
+                                ))}
+                                {note.commentaire && (
+                                  <p className="text-gray-500 italic line-clamp-2" title={note.commentaire}>
+                                    « {note.commentaire} »
+                                  </p>
+                                )}
+                              </div>
+                            )
+                          }
+                          if (inscription.present) {
+                            return <span className="text-xs text-gray-400">Pas encore noté</span>
+                          }
+                          return <span className="text-xs text-gray-300">—</span>
+                        })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(inscription.date_inscription).toLocaleDateString('fr-FR', {

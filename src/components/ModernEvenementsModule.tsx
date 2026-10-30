@@ -17,6 +17,8 @@ import AIContentGenerator from './AIContentGenerator'
 import { RapportsList } from './RapportsList'
 import { AtelierForm } from './AtelierForm'
 import AtelierInscriptionsManager from './AtelierInscriptionsManager'
+import { AtelierIndicateursBlock } from './AtelierIndicateursBlock'
+import type { AtelierIndicateurs } from '@/lib/atelierEvaluation'
 import * as XLSX from 'xlsx'
 import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole'
@@ -77,6 +79,30 @@ export const ModernEvenementsModule = () => {
     return allEvenements.filter(e => e && e.type_evenement === 'atelier')
   }, [allEvenements])
 
+  useEffect(() => {
+    const ids = ateliersData.map((a) => a.id).filter(Boolean)
+    if (ids.length === 0) {
+      setAtelierIndicateurs({})
+      return
+    }
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/ateliers/evaluation/indicateurs/?ids=${ids.join(',')}`)
+        const data = await res.json().catch(() => ({}))
+        if (!cancelled && data.indicateurs) {
+          setAtelierIndicateurs(data.indicateurs)
+        }
+      } catch {
+        if (!cancelled) setAtelierIndicateurs({})
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [ateliersData])
+
   // États du composant
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('tous')
@@ -95,6 +121,7 @@ export const ModernEvenementsModule = () => {
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
   const [selectedAtelierForInscriptions, setSelectedAtelierForInscriptions] = useState<any>(null)
+  const [atelierIndicateurs, setAtelierIndicateurs] = useState<Record<string, AtelierIndicateurs>>({})
   
   // États pour l'import Excel
   const [showImportModal, setShowImportModal] = useState(false)
@@ -1755,6 +1782,7 @@ export const ModernEvenementsModule = () => {
                         {/* Debug: actuelle={atelier.capacite_actuelle}, max={atelier.capacite_maximale} */}
                       </span>
                     </div>
+                    <AtelierIndicateursBlock stats={atelierIndicateurs[atelier.id]} compact />
                   </div>
                 </div>
               </div>

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { isAtelierComplet, isAtelierDatePassee, peutSInscrireAtelier } from '@/lib/atelierInscriptionDisponible'
 import { CopSpacePublicMark } from '@/components/CopSpacePublicMark'
+import { AtelierNotationModal } from '@/components/AtelierNotationModal'
 
 interface Atelier {
   id: string
@@ -58,6 +59,7 @@ export default function InscriptionAteliersPage() {
     telephone: ''
   })
   const [submitting, setSubmitting] = useState(false)
+  const [atelierANoter, setAtelierANoter] = useState<Atelier | null>(null)
 
   // Charger les ateliers disponibles
   const loadAteliers = async () => {
@@ -366,6 +368,7 @@ export default function InscriptionAteliersPage() {
               filteredAteliers.map(atelier => {
                 const status = getAtelierStatus(atelier)
                 const canInscrire = peutSInscrireAtelier(atelier)
+                const datePassee = isAtelierDatePassee(atelier.date_debut, atelier.date_fin)
                 return (
                   <div 
                     key={atelier.id} 
@@ -465,11 +468,24 @@ export default function InscriptionAteliersPage() {
                       <span>
                         {canInscrire
                           ? "S'inscrire"
-                          : isAtelierDatePassee(atelier.date_debut, atelier.date_fin)
+                          : datePassee
                             ? 'Non disponible pour inscription'
                             : 'Complet'}
                       </span>
                     </button>
+                    {datePassee && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAtelierANoter(atelier)
+                        }}
+                        className="mt-2 w-full px-6 py-3 rounded-lg font-semibold border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 flex items-center justify-center gap-2"
+                      >
+                        <Star className="w-4 h-4" />
+                        Noter l’atelier
+                      </button>
+                    )}
                   </div>
                 )
               })
@@ -658,6 +674,13 @@ export default function InscriptionAteliersPage() {
             </div>
           </div>
         </div>
+      )}
+      {atelierANoter && (
+        <AtelierNotationModal
+          atelierId={atelierANoter.id}
+          atelierTitre={atelierANoter.titre}
+          onClose={() => setAtelierANoter(null)}
+        />
       )}
      </div>
    )
