@@ -169,3 +169,20 @@ export function printAttestationAtelier(data: AtelierAttestation) {
     sheetMarkup(data, origin)
   )
 }
+
+export function printAllAttestationsAtelier(items: AtelierAttestation[]) {
+  const list = [...items].sort((a, b) =>
+    (a.stagiaireNom || '').localeCompare(b.stagiaireNom || '', 'fr', { sensitivity: 'base' })
+  )
+  if (list.length === 0) {
+    alert('Aucun présent à imprimer. Validez d’abord les présences.')
+    return
+  }
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const sheets = list.map((item) => sheetMarkup(item, origin)).join('')
+  openAttestationsWindow(
+    `Attestations atelier (${list.length})`,
+    `${list.length} attestation${list.length > 1 ? 's' : ''} — Imprimer / enregistrer en PDF`,
+    sheets
+  )
+}

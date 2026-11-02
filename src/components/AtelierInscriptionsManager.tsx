@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { printAllAttestationsAtelier, type AtelierAttestation } from '@/lib/attestationAtelierPrint'
 import { AtelierIndicateursBlock } from './AtelierIndicateursBlock'
 import type { AtelierIndicateurs, EvaluationStagiaire } from '@/lib/atelierEvaluation'
 import { CRITERES_ATELIER, moyenneGlobaleNotes } from '@/lib/atelierEvaluation'
@@ -108,6 +109,12 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   
   // Compter les présences validées (inscriptions actives avec présence validée)
   const presencesValidees = inscriptionsActives.filter(i => i.present === true).length
+  const presentsAvecAttestation = inscriptionsActives.filter(
+    (i) => i.present === true && Boolean(i.certificat_token)
+  )
+  const presentsAvecEmail = presentsAvecAttestation.filter(
+    (i) => Boolean((i.stagiaire_email || '').trim())
+  )
 
   useEffect(() => {
     if (!atelier?.id) return
@@ -561,77 +568,17 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     }
   }
 
-  // Générer le lien mailto: pour ouvrir Outlook avec l'email pré-rempli
-  const generateMailtoLink = (inscription: Inscription): string => {
-    if (!inscription.present || !inscription.certificat_token) {
-      return ''
-    }
+  const dateAtelierLabel = atelier.date_debut
+    ? new Date(atelier.date_debut).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+    : ''
 
-    // Construire l'URL du certificat
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://copsm.space'
-    const certificatUrl = `${baseUrl}/certificat/${inscription.certificat_token}`
-
-    // Formater la date de l'atelier
-    const dateAtelier = atelier.date_debut
-      ? new Date(atelier.date_debut).toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric'
-        })
-      : ''
-
-    // Construire le corps de l'email avec des sauts de ligne corrects
-    let emailBody = `Bonjour ${inscription.stagiaire_nom},\n\n`
-    emailBody += `Félicitations ! Vous avez participé avec succès à l'atelier :\n\n`
-    emailBody += `${atelier.titre}\n`
-    if (dateAtelier) {
-      emailBody += `Date : ${dateAtelier}\n`
-    }
-    if (atelier.animateur_nom) {
-      emailBody += `Animateur : ${atelier.animateur_nom}\n`
-    }
-    emailBody += `\nVotre certificat de participation est maintenant disponible. Vous pouvez le télécharger en cliquant sur le lien ci-dessous :\n\n`
-    emailBody += `${certificatUrl}\n\n`
-    emailBody += `Vous pourrez télécharger votre certificat autant de fois que nécessaire en utilisant ce lien.\n\n`
-    emailBody += `Cordialement,\n`
-    emailBody += `L'équipe du Centre d'Orientation Professionnelle CMC SM`
-
-    // Encoder les paramètres URL
-    const subject = encodeURIComponent(`Votre certificat de participation - ${atelier.titre}`)
-    const body = encodeURIComponent(emailBody)
-
-    // Construire le lien mailto
-    const mailtoLink = `mailto:${encodeURIComponent(inscription.stagiaire_email || '')}?subject=${subject}&body=${body}`
-    
-    return mailtoLink
-  }
-
-  // Ouvrir Outlook pour envoyer le certificat à un seul stagiaire
-  const handleSendCertificatEmail = (inscriptionId: string) => {
-    const inscription = inscriptions.find(i => i.id === inscriptionId)
-    if (!inscription) return
-
-    if (!inscription.present) {
-      alert('La présence doit être validée avant d\'envoyer le certificat')
-      return
-    }
-
-    if (!inscription.certificat_token) {
-      alert('Aucun token de certificat trouvé. Veuillez d\'abord valider la présence.')
-      return
-    }
-
-    // Générer le lien mailto: et ouvrir le client email (Outlook) dans un nouvel onglet
-    const mailtoLink = generateMailtoLink(inscription)
-    
-    if (!mailtoLink) {
-      alert('Impossible de générer le lien email. Vérifiez que la présence est validée.')
-      return
-    }
-    
-    // Créer un élément <a> temporaire pour ouvrir dans un nouvel onglet
+  const openMailto = (href: string) => {
     const link = document.createElement('a')
-    link.href = mailtoLink
+    link.href = href
     link.target = '_blank'
     link.rel = 'noopener noreferrer'
     document.body.appendChild(link)
@@ -639,58 +586,135 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     document.body.removeChild(link)
   }
 
-  // Ouvrir Outlook pour envoyer les certificats en lot
-  const handleSendCertificatsBatch = () => {
-    // Filtrer seulement les inscriptions avec présence validée
-    const inscriptionsAvecPresence = selectedInscriptions
-      .map(id => inscriptions.find(i => i.id === id))
-      .filter((inscription): inscription is Inscription => 
-        inscription !== undefined && 
-        inscription.present === true && 
-        inscription.certificat_token !== undefined
-      )
+  const resolveAnimateur = async (): Promise<{ nom: string; role: string }> => {
+    let nom = String(atelier.animateur_nom || '').trim()
+    let role = String(atelier.animateur_role || '').trim()
+    if (!nom && atelier.animateur_id) {
+      const { data: profil } = await supabase
+        .from('profiles')
+        .select('nom, prenom, role')
+        .eq('id', atelier.animateur_id)
+        .maybeSingle()
+      if (profil) {
+        nom = `${profil.prenom || ''} ${profil.nom || ''}`.trim()
+        role = role || profil.role || ''
+      }
+    }
+    return { nom, role }
+  }
 
-    if (inscriptionsAvecPresence.length === 0) {
-      alert('Veuillez sélectionner des inscriptions avec présence validée et token de certificat')
+  const attestationsDesPresents = async (): Promise<AtelierAttestation[]> => {
+    const { nom, role } = await resolveAnimateur()
+    return presentsAvecAttestation.map((inscription) => ({
+      inscriptionId: inscription.id,
+      stagiaireNom: inscription.stagiaire_nom,
+      titreAtelier: atelier.titre,
+      dateDebut: atelier.date_debut,
+      dateFin: atelier.date_fin,
+      animateurNom: nom,
+      animateurRole: role,
+    }))
+  }
+
+  const handlePrintAttestationsPresents = async () => {
+    if (presentsAvecAttestation.length === 0) {
+      alert('Aucun présent avec attestation. Validez d’abord les présences.')
+      return
+    }
+    printAllAttestationsAtelier(await attestationsDesPresents())
+  }
+
+  const generateMailtoLink = (inscription: Inscription): string => {
+    if (!inscription.present || !inscription.certificat_token) {
+      return ''
+    }
+
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://copsm.space'
+    const certificatUrl = `${baseUrl}/certificat/${inscription.certificat_token}`
+
+    let emailBody = `Bonjour ${inscription.stagiaire_nom},\n\n`
+    emailBody += `Félicitations ! Vous avez participé avec succès à l'atelier :\n\n`
+    emailBody += `${atelier.titre}\n`
+    if (dateAtelierLabel) {
+      emailBody += `Date : ${dateAtelierLabel}\n`
+    }
+    if (atelier.animateur_nom) {
+      emailBody += `Animateur : ${atelier.animateur_nom}\n`
+    }
+    emailBody += `\nVotre attestation de participation est maintenant disponible. Vous pouvez la télécharger en cliquant sur le lien ci-dessous :\n\n`
+    emailBody += `${certificatUrl}\n\n`
+    emailBody += `Vous pourrez télécharger votre attestation autant de fois que nécessaire en utilisant ce lien.\n\n`
+    emailBody += `Cordialement,\n`
+    emailBody += `L'équipe du Centre d'Orientation Professionnelle CMC SM`
+
+    const subject = encodeURIComponent(`Votre attestation de participation - ${atelier.titre}`)
+    const body = encodeURIComponent(emailBody)
+    return `mailto:${encodeURIComponent(inscription.stagiaire_email || '')}?subject=${subject}&body=${body}`
+  }
+
+  const handleSendCertificatEmail = (inscriptionId: string) => {
+    const inscription = inscriptions.find((i) => i.id === inscriptionId)
+    if (!inscription) return
+
+    if (!inscription.present) {
+      alert("La présence doit être validée avant d'envoyer l'attestation")
       return
     }
 
-    // Si une seule inscription, utiliser la fonction individuelle
-    if (inscriptionsAvecPresence.length === 1) {
-      handleSendCertificatEmail(inscriptionsAvecPresence[0].id)
+    if (!inscription.certificat_token) {
+      alert("Aucun lien d'attestation trouvé. Veuillez d'abord valider la présence.")
       return
     }
 
-    // Pour plusieurs inscriptions, on ouvre plusieurs fenêtres (ou on informe l'utilisateur)
-    // Option 1: Ouvrir le premier email et informer
-    const firstInscription = inscriptionsAvecPresence[0]
-    const mailtoLink = generateMailtoLink(firstInscription)
-    
-    // Pour plusieurs inscriptions, ouvrir chaque email une par une
-    // (les navigateurs peuvent bloquer plusieurs fenêtres, donc on informe l'utilisateur)
-    if (inscriptionsAvecPresence.length > 1) {
-      // Ouvrir le premier email dans un nouvel onglet via un élément <a>
-      const link = document.createElement('a')
-      link.href = mailtoLink
-      link.target = '_blank'
-      link.rel = 'noopener noreferrer'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      // Informer l'utilisateur
+    const mailtoLink = generateMailtoLink(inscription)
+    if (!mailtoLink) {
+      alert("Impossible de générer l'e-mail. Vérifiez que la présence est validée.")
+      return
+    }
+    openMailto(mailtoLink)
+  }
+
+  const handleSendUnSeulMailPresents = async () => {
+    if (presentsAvecEmail.length === 0) {
+      alert('Aucun présent avec e-mail. Validez d’abord les présences.')
+      return
+    }
+
+    const sansEmail = presentsAvecAttestation.length - presentsAvecEmail.length
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://copsm.space'
+    const bcc = presentsAvecEmail.map((i) => i.stagiaire_email.trim()).join(';')
+
+    const liens = presentsAvecEmail
+      .slice()
+      .sort((a, b) => a.stagiaire_nom.localeCompare(b.stagiaire_nom, 'fr', { sensitivity: 'base' }))
+      .map((i) => `${i.stagiaire_nom} : ${baseUrl}/certificat/${i.certificat_token}`)
+      .join('\n')
+
+    let emailBody = `Bonjour,\n\n`
+    emailBody += `Vous avez participé à l'atelier :\n${atelier.titre}\n`
+    if (dateAtelierLabel) emailBody += `Date : ${dateAtelierLabel}\n`
+    emailBody += `\nVotre attestation de participation est disponible via le lien correspondant à votre nom :\n\n`
+    emailBody += `${liens}\n\n`
+    emailBody += `Cordialement,\n`
+    emailBody += `L'équipe du Centre d'Orientation Professionnelle CMC SM`
+
+    const subject = encodeURIComponent(`Attestation de participation — ${atelier.titre}`)
+    const mailtoTropLong = encodeURIComponent(emailBody).length > 1800
+
+    if (mailtoTropLong) {
+      emailBody = `Bonjour,\n\nVous avez participé à l'atelier :\n${atelier.titre}\n`
+      if (dateAtelierLabel) emailBody += `Date : ${dateAtelierLabel}\n`
+      emailBody += `\nLes attestations de participation (une page par stagiaire) sont à joindre au format PDF.\nEnregistrez le document ouvert à l'écran (Imprimer → Enregistrer au format PDF), puis joignez-le à cet e-mail.\n\nCordialement,\nL'équipe du Centre d'Orientation Professionnelle CMC SM`
+      printAllAttestationsAtelier(await attestationsDesPresents())
+    }
+
+    const href = `mailto:?bcc=${encodeURIComponent(bcc)}&subject=${subject}&body=${encodeURIComponent(emailBody)}`
+    openMailto(href)
+
+    if (sansEmail > 0) {
       setTimeout(() => {
-        alert(`Outlook ouvert pour ${firstInscription.stagiaire_email}.\n\nPour les ${inscriptionsAvecPresence.length - 1} autres stagiaire(s), cliquez individuellement sur "Ouvrir Outlook" dans chaque ligne.`)
-      }, 500)
-    } else {
-      // Une seule inscription, ouvrir directement dans un nouvel onglet
-      const link = document.createElement('a')
-      link.href = mailtoLink
-      link.target = '_blank'
-      link.rel = 'noopener noreferrer'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+        alert(`${sansEmail} présent(s) sans e-mail n'ont pas été ajoutés à la copie cachée.`)
+      }, 400)
     }
   }
 
@@ -796,27 +820,28 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                 {validating ? 'Validation...' : `Valider présences (${selectedInscriptions.length})`}
               </button>
               
-              {/* Bouton ouvrir Outlook pour envoyer certificats */}
-              {(() => {
-                const inscriptionsValidees = selectedInscriptions.filter(id => {
-                  const ins = inscriptions.find(i => i.id === id)
-                  return ins?.present && ins?.certificat_token
-                })
-                return (
-                  <button
-                    onClick={handleSendCertificatsBatch}
-                    disabled={inscriptionsValidees.length === 0}
-                    className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    title="Ouvre Outlook avec l'email pré-rempli contenant le lien du certificat"
-                  >
-                    <Mail className="w-4 h-4" />
-                    {inscriptionsValidees.length > 0 
-                      ? `Envoyer certificats (${inscriptionsValidees.length})`
-                      : 'Envoyer certificats'
-                    }
-                  </button>
-                )
-              })()}
+              <button
+                onClick={handlePrintAttestationsPresents}
+                disabled={presentsAvecAttestation.length === 0}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                title="Ouvre toutes les attestations des présents pour imprimer ou enregistrer en PDF"
+              >
+                <FileText className="w-4 h-4" />
+                {presentsAvecAttestation.length > 0
+                  ? `Imprimer attestations (${presentsAvecAttestation.length})`
+                  : 'Imprimer attestations'}
+              </button>
+              <button
+                onClick={handleSendUnSeulMailPresents}
+                disabled={presentsAvecEmail.length === 0}
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                title="Ouvre un seul e-mail Outlook, en copie cachée à tous les présents"
+              >
+                <Mail className="w-4 h-4" />
+                {presentsAvecEmail.length > 0
+                  ? `Un seul mail aux présents (${presentsAvecEmail.length})`
+                  : 'Un seul mail aux présents'}
+              </button>
               
               <button
                 onClick={exportToExcel}
