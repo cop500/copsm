@@ -16,6 +16,7 @@ const PUBLIC_PAGES = [
   '/visites-jpo',
   '/portes',
   '/assistance-stagiaires',
+  '/certificat',
 ]
 
 interface AuthGuardProps {

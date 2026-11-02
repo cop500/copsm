@@ -1,4 +1,4 @@
-function esc(value: unknown): string {
+export function esc(value: unknown): string {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -6,7 +6,8 @@ function esc(value: unknown): string {
     .replace(/"/g, '&quot;')
 }
 
-const STYLES = `
+export const ATTESTATION_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #eef2f6; }
   body { font-family: Georgia, 'Times New Roman', Times, serif; color: #1d4f8a; overflow: auto; }
@@ -86,13 +87,27 @@ const STYLES = `
   .legal { font-style: italic; margin: 0; }
   .footer {
     flex: 1 1 auto;
-    min-height: 34mm;
+    min-height: 52mm;
     display: flex; align-items: flex-end; justify-content: space-between;
-    padding-top: 6mm;
+    padding-top: 4mm;
     font-family: Arial, Helvetica, sans-serif;
   }
   .serial { font-size: 11px; color: #4a6580; letter-spacing: 0.4px; align-self: flex-end; }
-  .sign, .cachet { width: 52mm; height: 32mm; }
+  .sign { width: 52mm; min-height: 28mm; align-self: flex-end; }
+  .sig-script {
+    font-family: 'Great Vibes', 'Segoe Script', 'Lucida Handwriting', cursive;
+    font-size: 34px;
+    color: #163a66;
+    line-height: 1;
+    margin: 2.5mm 0 1.5mm;
+    transform: rotate(-8deg);
+  }
+  .cachet {
+    width: 58mm; height: 58mm;
+    display: flex; align-items: flex-end; justify-content: flex-end;
+    flex-shrink: 0;
+  }
+  .cachet img { width: 56mm; height: 56mm; object-fit: contain; display: block; }
   @media print {
     html, body {
       background: #fff; width: 297mm; height: auto;
@@ -165,18 +180,20 @@ function sheetMarkup(stagiaire: StagiaireAttestation, origin: string): string {
           <div class="footer">
             <div class="serial">N° ${esc(serial)}</div>
             <div class="sign" aria-hidden="true"></div>
-            <div class="cachet" aria-hidden="true"></div>
+            <div class="cachet">
+              <img src="${origin}/cachet%20COP.png" alt="Cachet COP" />
+            </div>
           </div>
         </div>
       </div>
     </div>`
 }
 
-function openAttestationsWindow(title: string, barLabel: string, sheetsHtml: string) {
+export function openAttestationsWindow(title: string, barLabel: string, sheetsHtml: string) {
   const html = `<!DOCTYPE html><html lang="fr"><head>
     <meta charset="utf-8" />
     <title>${esc(title)}</title>
-    <style>${STYLES}</style>
+    <style>${ATTESTATION_STYLES}</style>
   </head><body>
     <div class="bar">
       <button type="button" onclick="window.print()">Imprimer / PDF</button>
@@ -185,13 +202,13 @@ function openAttestationsWindow(title: string, barLabel: string, sheetsHtml: str
     ${sheetsHtml}
   </body></html>`
 
-  const win = window.open('', '_blank', 'width=1100,height=780')
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const win = window.open(url, '_blank', 'width=1100,height=780')
   if (!win) {
-    alert("Impossible d'ouvrir les attestations. Autorisez les pop-ups pour ce site.")
+    window.location.assign(url)
     return
   }
-  win.document.write(html)
-  win.document.close()
   win.focus()
 }
 

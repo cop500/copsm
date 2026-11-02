@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Download, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
-import jsPDF from 'jspdf'
-import { generateCertificatPDF } from '@/components/CertificatGenerator'
+import { printAttestationAtelier } from '@/lib/attestationAtelierPrint'
 import { supabase } from '@/lib/supabase'
 
 interface InscriptionData {
@@ -16,7 +15,10 @@ interface InscriptionData {
   evenements?: {
     titre: string
     date_debut: string
+    date_fin?: string
+    animateur_id?: string
     animateur_nom?: string
+    animateur_role?: string
   }
 }
 
@@ -56,7 +58,10 @@ export default function CertificatPage() {
           evenements!atelier_id (
             titre,
             date_debut,
-            animateur_nom
+            date_fin,
+            animateur_id,
+            animateur_nom,
+            animateur_role
           )
         `)
         .eq('certificat_token', token)
@@ -73,7 +78,20 @@ export default function CertificatPage() {
         return
       }
 
-      setInscription(data as unknown as InscriptionData)
+      const row = data as unknown as InscriptionData
+      const evenement = row.evenements
+      if (evenement && !evenement.animateur_nom && evenement.animateur_id) {
+        const { data: profil } = await supabase
+          .from('profiles')
+          .select('nom, prenom, role')
+          .eq('id', evenement.animateur_id)
+          .maybeSingle()
+        if (profil) {
+          evenement.animateur_nom = `${profil.prenom || ''} ${profil.nom || ''}`.trim()
+          evenement.animateur_role = evenement.animateur_role || profil.role || undefined
+        }
+      }
+      setInscription(row)
     } catch (err: any) {
       console.error('Erreur chargement certificat:', err)
       setError('Une erreur est survenue lors du chargement du certificat.')
@@ -90,29 +108,15 @@ export default function CertificatPage() {
 
     try {
       setGenerating(true)
-
-      // Générer le PDF
-      const pdf = await generateCertificatPDF(
-        {
-          stagiaire_nom: inscription.stagiaire_nom,
-          certificat_token: inscription.certificat_token
-        },
-        {
-          titre: inscription.evenements.titre,
-          date_debut: inscription.evenements.date_debut,
-          animateur_nom: inscription.evenements.animateur_nom
-        }
-      )
-
-      if (!pdf) {
-        throw new Error('Erreur lors de la génération du certificat')
-      }
-
-      // Générer le nom du fichier
-      const fileName = `Certificat_${inscription.stagiaire_nom.replace(/\s+/g, '_')}_${inscription.evenements.titre.replace(/\s+/g, '_')}.pdf`
-
-      // Télécharger le PDF
-      pdf.save(fileName)
+      printAttestationAtelier({
+        inscriptionId: inscription.id,
+        stagiaireNom: inscription.stagiaire_nom,
+        titreAtelier: inscription.evenements.titre,
+        dateDebut: inscription.evenements.date_debut,
+        dateFin: inscription.evenements.date_fin,
+        animateurNom: inscription.evenements.animateur_nom,
+        animateurRole: inscription.evenements.animateur_role,
+      })
     } catch (err: any) {
       console.error('Erreur génération certificat:', err)
       setError('Erreur lors de la génération du certificat. Veuillez réessayer.')
@@ -227,7 +231,7 @@ export default function CertificatPage() {
             ) : (
               <>
                 <Download className="w-5 h-5" />
-                Télécharger mon certificat
+                Voir / imprimer l'attestation
               </>
             )}
           </button>
