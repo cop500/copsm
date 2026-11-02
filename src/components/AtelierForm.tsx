@@ -77,7 +77,10 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
   const [loading, setLoading] = useState(false)
   
   // État local pour les données du formulaire
+  const isUpdate = Boolean(atelier?.id)
+
   const [formData, setFormData] = useState({
+    id: atelier?.id || '',
     titre: atelier?.titre || '',
     description: atelier?.description || '',
     date_debut: atelier?.date_debut || '',
@@ -112,6 +115,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
 
   // Autosave avec debounce - Sauvegarde réelle en brouillon
   const autosave = useCallback(async () => {
+    if (isUpdate) return
     if (!formData.titre || formData.titre.trim().length < 3) return // Pas d'autosave si pas de titre valide
     if (loading) return // Pas d'autosave pendant la sauvegarde finale
 
@@ -136,7 +140,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
       setAutosaveStatus('error')
       setTimeout(() => setAutosaveStatus('idle'), 3000)
     }
-  }, [formData, loading])
+  }, [formData, loading, isUpdate])
 
   // Debounced autosave
   useEffect(() => {
@@ -173,6 +177,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
       const times = creneauToLocalDateTimes(dateJour, creneauId)
       setFormData(prev => ({
         ...prev,
+        id: atelier.id || prev.id,
         date_jour: dateJour,
         creneau_id: creneauId,
         date_debut: times.date_debut || atelier.date_debut || prev.date_debut,
@@ -270,9 +275,9 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     setErrors(prev => {
       const next = { ...prev }
       if (!dateJour) next.date_debut = 'La date est obligatoire'
-      else if (dateJour < aujourdHuiLocal()) next.date_debut = 'La date ne peut pas être dans le passé'
+      else if (!isUpdate && dateJour < aujourdHuiLocal()) next.date_debut = 'La date ne peut pas être dans le passé'
       else delete next.date_debut
-      if (!creneauId) next.creneau_id = 'Choisissez un créneau'
+      if (!creneauId && !isUpdate) next.creneau_id = 'Choisissez un créneau'
       else delete next.creneau_id
       return next
     })
@@ -334,9 +339,15 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     const newErrors: Record<string, string> = {}
     if (!formData.titre) newErrors.titre = 'Ce champ est obligatoire'
     if (!formData.date_jour) newErrors.date_debut = 'La date est obligatoire'
-    else if (formData.date_jour < aujourdHuiLocal()) newErrors.date_debut = 'La date ne peut pas être dans le passé'
-    if (!formData.creneau_id) newErrors.creneau_id = 'Choisissez un créneau'
+    else if (!isUpdate && formData.date_jour < aujourdHuiLocal()) newErrors.date_debut = 'La date ne peut pas être dans le passé'
+    if (!formData.creneau_id && !isUpdate) newErrors.creneau_id = 'Choisissez un créneau'
     if (!formData.lieu) newErrors.lieu = 'Ce champ est obligatoire'
+    const places = Number((formData as any).capacite_maximale || formData.capacite_max || 0)
+    const inscrits = Number(atelier?.capacite_actuelle || 0)
+    if (!places || places < 1) newErrors.capacite_maximale = 'Indiquez un nombre de places'
+    else if (isUpdate && places < inscrits) {
+      newErrors.capacite_maximale = `Au moins ${inscrits} places (inscriptions déjà enregistrées)`
+    }
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -347,27 +358,33 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     setAutosaveStatus('idle') // Arrêter l'autosave pendant la sauvegarde
     try {
       const times = creneauToLocalDateTimes(formData.date_jour, formData.creneau_id)
-      if (!times.date_debut || !times.date_fin) {
+      const dateDebut = times.date_debut || (isUpdate ? atelier.date_debut : '')
+      const dateFin = times.date_fin || (isUpdate ? atelier.date_fin : '')
+      if (!dateDebut || !dateFin) {
         setErrors({ ...newErrors, creneau_id: 'Choisissez un créneau' })
         setLoading(false)
         return
       }
       
       // Nettoyer les données avant sauvegarde (retirer isDraft, lastSaved, etc.)
-      const cleanData = {
+      const cleanData: Record<string, any> = {
         titre: formData.titre,
         description: formData.description,
-        date_debut: times.date_debut,
-        date_fin: times.date_fin,
+        date_debut: dateDebut,
+        date_fin: dateFin,
         lieu: formData.lieu,
-        capacite_maximale: (formData as any).capacite_maximale || formData.capacite_max || 20, // Valeur par défaut si non définie
-        capacite_actuelle: 0, // Nouvel atelier = 0 inscrits
+        capacite_maximale: (formData as any).capacite_maximale || formData.capacite_max || 20,
         statut: formData.statut,
-        animateur_id: formData.animateur_id,
+        animateur_id: formData.animateur_id || null,
         animateur_nom: formData.animateur_nom,
         animateur_role: formData.animateur_role,
         visible_inscription: (formData as any).visible_inscription || false,
-        type_evenement: 'atelier' // Marquer comme atelier
+        type_evenement: 'atelier'
+      }
+      if (isUpdate) {
+        cleanData.id = atelier.id
+      } else {
+        cleanData.capacite_actuelle = 0
       }
       
       console.log('🔍 Début de la sauvegarde finale:', cleanData)
@@ -379,13 +396,13 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
       console.log('✅ Brouillon nettoyé après sauvegarde')
       
       // Afficher un message de succès
-      alert('✅ Atelier créé avec succès !')
+      alert(isUpdate ? '✅ Atelier modifié avec succès !' : '✅ Atelier créé avec succès !')
       
       // Fermer le modal
       onCancel()
     } catch (err) {
       console.error('❌ Erreur sauvegarde:', err)
-      alert('❌ Erreur lors de la création de l\'atelier. Veuillez réessayer.')
+      alert(isUpdate ? '❌ Erreur lors de la modification de l\'atelier.' : '❌ Erreur lors de la création de l\'atelier. Veuillez réessayer.')
     } finally {
       setLoading(false)
     }
@@ -402,10 +419,12 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {atelier ? 'Modifier l\'atelier' : 'Nouvel atelier'}
+                {isUpdate ? 'Modifier l\'atelier' : 'Nouvel atelier'}
         </h2>
               <p className="text-gray-600 mt-1">
-                Créez un nouvel atelier d'insertion professionnelle
+                {isUpdate
+                  ? 'Mettez à jour le titre, les places, le créneau ou le lieu — sans dupliquer.'
+                  : 'Créez un nouvel atelier d\'insertion professionnelle'}
                 {localStorage.getItem('atelier_draft') && (
                   <span className="ml-2 text-blue-600 text-sm font-medium">
                     📄 Brouillon restauré
@@ -486,7 +505,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
               <input
                 type="number"
                 min="1"
-                    max="100"
+                    max="999"
                 value={(formData as any).capacite_maximale || formData.capacite_max || 20}
                     onChange={(e) => handleFieldChange('capacite_maximale', parseInt(e.target.value))}
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
@@ -757,7 +776,7 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg"
             >
               <Save className="w-4 h-4" />
-              {atelier ? 'Modifier' : 'Créer'} l'atelier
+              {isUpdate ? 'Enregistrer les modifications' : 'Créer l\'atelier'}
           </button>
         </div>
         </div>
