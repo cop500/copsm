@@ -3,6 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 // import { useSettings } from '@/hooks/useSettings'
 import { supabase } from '@/lib/supabase'
+import {
+  CRENEAUX_ATELIER,
+  aujourdHuiLocal,
+  creneauToLocalDateTimes,
+  isoToDateLocale,
+  matchCreneauId,
+} from '@/lib/atelierCreneaux'
 import { 
   Save, 
   X, 
@@ -75,6 +82,8 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     description: atelier?.description || '',
     date_debut: atelier?.date_debut || '',
     date_fin: atelier?.date_fin || '',
+    date_jour: atelier?.date_debut ? isoToDateLocale(atelier.date_debut) : '',
+    creneau_id: atelier?.date_debut ? matchCreneauId(atelier.date_debut, atelier.date_fin) : '',
     lieu: atelier?.lieu || '',
     capacite_max: atelier?.capacite_max || 20,
     capacite_maximale: atelier?.capacite_maximale || atelier?.capacite_max || 20,
@@ -156,28 +165,18 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     loadUsers()
   }, [loadUsers])
 
-  // Fonction helper pour convertir ISO string en format datetime-local
-  const convertISOToLocalDateTime = (isoString: string): string => {
-    if (!isoString) return ''
-    // Convertir l'ISO string en Date object
-    // Puis formater en "YYYY-MM-DDTHH:mm" pour datetime-local
-    const date = new Date(isoString)
-    // Récupérer les composants de date/heure en heure locale
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}`
-  }
-
-  // Initialiser les dates au format datetime-local si on est en mode édition
+  // Initialiser date + créneau si on est en mode édition
   useEffect(() => {
     if (atelier) {
+      const dateJour = atelier.date_debut ? isoToDateLocale(atelier.date_debut) : ''
+      const creneauId = matchCreneauId(atelier.date_debut, atelier.date_fin)
+      const times = creneauToLocalDateTimes(dateJour, creneauId)
       setFormData(prev => ({
         ...prev,
-        date_debut: atelier.date_debut ? convertISOToLocalDateTime(atelier.date_debut) : prev.date_debut,
-        date_fin: atelier.date_fin ? convertISOToLocalDateTime(atelier.date_fin) : prev.date_fin,
+        date_jour: dateJour,
+        creneau_id: creneauId,
+        date_debut: times.date_debut || atelier.date_debut || prev.date_debut,
+        date_fin: times.date_fin || atelier.date_fin || prev.date_fin,
       }))
     }
   }, [atelier])
@@ -231,13 +230,20 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
           delete newErrors.titre
         }
         break
-      case 'date_debut':
+      case 'date_jour':
         if (!value) {
-          newErrors.date_debut = 'La date de début est obligatoire'
-        } else if (new Date(value) < new Date()) {
+          newErrors.date_debut = 'La date est obligatoire'
+        } else if (value < aujourdHuiLocal()) {
           newErrors.date_debut = 'La date ne peut pas être dans le passé'
         } else {
           delete newErrors.date_debut
+        }
+        break
+      case 'creneau_id':
+        if (!value) {
+          newErrors.creneau_id = 'Choisissez un créneau'
+        } else {
+          delete newErrors.creneau_id
         }
         break
       case 'lieu':
@@ -252,7 +258,35 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     setErrors(newErrors)
   }
 
+  const applyDateEtCreneau = (dateJour: string, creneauId: string) => {
+    const times = creneauToLocalDateTimes(dateJour, creneauId)
+    setFormData(prev => ({
+      ...prev,
+      date_jour: dateJour,
+      creneau_id: creneauId,
+      date_debut: times.date_debut,
+      date_fin: times.date_fin,
+    }))
+    setErrors(prev => {
+      const next = { ...prev }
+      if (!dateJour) next.date_debut = 'La date est obligatoire'
+      else if (dateJour < aujourdHuiLocal()) next.date_debut = 'La date ne peut pas être dans le passé'
+      else delete next.date_debut
+      if (!creneauId) next.creneau_id = 'Choisissez un créneau'
+      else delete next.creneau_id
+      return next
+    })
+  }
+
   const handleFieldChange = (field: string, value: any) => {
+    if (field === 'date_jour') {
+      applyDateEtCreneau(value, formData.creneau_id)
+      return
+    }
+    if (field === 'creneau_id') {
+      applyDateEtCreneau(formData.date_jour, value)
+      return
+    }
     setFormData(prev => ({ ...prev, [field]: value }))
     validateField(field, value)
   }
@@ -291,30 +325,18 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     }
   }
 
-  // Fonction helper pour convertir datetime-local en ISO string en préservant l'heure locale
-  const convertLocalDateTimeToISO = (dateTimeLocal: string): string => {
-    if (!dateTimeLocal) return ''
-    // datetime-local retourne "YYYY-MM-DDTHH:mm" (sans timezone)
-    // On crée un Date object en interprétant cette valeur comme locale
-    // Puis on la convertit en ISO string (qui sera en UTC)
-    const date = new Date(dateTimeLocal)
-    return date.toISOString()
-  }
-
   // Fonction pour gérer la sauvegarde finale
   const handleFinalSave = async () => {
     console.log('🔍 === DÉBUT handleFinalSave ===')
     console.log('🔍 formData reçu:', formData)
     
     // Validation finale
-    const requiredFields = ['titre', 'date_debut', 'lieu']
     const newErrors: Record<string, string> = {}
-    
-    requiredFields.forEach(field => {
-      if (!formData[field as keyof typeof formData]) {
-        newErrors[field] = 'Ce champ est obligatoire'
-      }
-    })
+    if (!formData.titre) newErrors.titre = 'Ce champ est obligatoire'
+    if (!formData.date_jour) newErrors.date_debut = 'La date est obligatoire'
+    else if (formData.date_jour < aujourdHuiLocal()) newErrors.date_debut = 'La date ne peut pas être dans le passé'
+    if (!formData.creneau_id) newErrors.creneau_id = 'Choisissez un créneau'
+    if (!formData.lieu) newErrors.lieu = 'Ce champ est obligatoire'
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -324,16 +346,19 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
     setLoading(true)
     setAutosaveStatus('idle') // Arrêter l'autosave pendant la sauvegarde
     try {
-      // Convertir les dates datetime-local en ISO string pour la sauvegarde
-      const dateDebutISO = convertLocalDateTimeToISO(formData.date_debut)
-      const dateFinISO = formData.date_fin ? convertLocalDateTimeToISO(formData.date_fin) : null
+      const times = creneauToLocalDateTimes(formData.date_jour, formData.creneau_id)
+      if (!times.date_debut || !times.date_fin) {
+        setErrors({ ...newErrors, creneau_id: 'Choisissez un créneau' })
+        setLoading(false)
+        return
+      }
       
       // Nettoyer les données avant sauvegarde (retirer isDraft, lastSaved, etc.)
       const cleanData = {
         titre: formData.titre,
         description: formData.description,
-        date_debut: dateDebutISO,
-        date_fin: dateFinISO,
+        date_debut: times.date_debut,
+        date_fin: times.date_fin,
         lieu: formData.lieu,
         capacite_maximale: (formData as any).capacite_maximale || formData.capacite_max || 20, // Valeur par défaut si non définie
         capacite_actuelle: 0, // Nouvel atelier = 0 inscrits
@@ -529,12 +554,12 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Date de début *
+                  Date *
             </label>
               <input
-                  type="datetime-local"
-                  value={formData.date_debut || ''}
-                  onChange={(e) => handleFieldChange('date_debut', e.target.value)}
+                  type="date"
+                  value={(formData as any).date_jour || ''}
+                  onChange={(e) => handleFieldChange('date_jour', e.target.value)}
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                     errors.date_debut ? 'border-red-300 bg-red-50' : 'border-gray-300'
                   }`}
@@ -547,16 +572,39 @@ export const AtelierForm: React.FC<AtelierFormProps> = ({
                 )}
           </div>
 
-          <div>
+          <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Date de fin
+                  Créneau *
             </label>
-              <input
-                  type="datetime-local"
-                  value={formData.date_fin || ''}
-                  onChange={(e) => handleFieldChange('date_fin', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
+                <p className="text-xs text-gray-500 mb-3">
+                  Cliquez sur le créneau. Les heures sont celles du centre, sans décalage.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {CRENEAUX_ATELIER.map((c) => {
+                    const selected = (formData as any).creneau_id === c.id
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleFieldChange('creneau_id', c.id)}
+                        className={`px-4 py-4 rounded-xl border-2 text-center font-semibold transition-colors ${
+                          selected
+                            ? 'border-blue-600 bg-blue-50 text-blue-800'
+                            : 'border-gray-200 bg-white text-gray-800 hover:border-blue-300'
+                        }`}
+                      >
+                        <Clock className="w-5 h-5 mx-auto mb-1" />
+                        {c.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {errors.creneau_id && (
+                  <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.creneau_id}
+                  </p>
+                )}
               </div>
 
               <div className="md:col-span-2">
