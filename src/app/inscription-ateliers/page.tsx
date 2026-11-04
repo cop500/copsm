@@ -9,6 +9,7 @@ import {
   User, ChevronRight
 } from 'lucide-react'
 import { isAtelierComplet, isAtelierDatePassee, peutSInscrireAtelier } from '@/lib/atelierInscriptionDisponible'
+import { formatCreneauAtelier, formatDateAtelier } from '@/lib/atelierCreneaux'
 import { CopSpacePublicMark } from '@/components/CopSpacePublicMark'
 import { AtelierNotationModal } from '@/components/AtelierNotationModal'
 
@@ -404,15 +405,14 @@ export default function InscriptionAteliersPage() {
                       <div className="flex items-center gap-3 text-gray-700">
                         <Calendar className="w-5 h-5 text-blue-500" />
                         <span className="text-sm font-medium">
-                          {new Date(atelier.date_debut).toLocaleDateString('fr-FR')}
+                          {formatDateAtelier(atelier.date_debut)}
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-3 text-gray-700">
                         <Clock className="w-5 h-5 text-blue-500" />
                         <span className="text-sm font-medium">
-                          {new Date(atelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - 
-                          {new Date(atelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          {formatCreneauAtelier(atelier.date_debut, atelier.date_fin)}
                         </span>
                       </div>
                       
@@ -531,8 +531,8 @@ export default function InscriptionAteliersPage() {
                   <div className="bg-gray-50 rounded-lg p-4 mb-6">
                     <h3 className="font-semibold text-gray-900 mb-2">{selectedAtelier.titre}</h3>
                     <div className="text-gray-600 space-y-1 text-sm">
-                      <p>📅 {new Date(selectedAtelier.date_debut).toLocaleDateString('fr-FR')}</p>
-                      <p>🕐 {new Date(selectedAtelier.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedAtelier.date_fin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p>📅 {formatDateAtelier(selectedAtelier.date_debut)}</p>
+                      <p>🕐 {formatCreneauAtelier(selectedAtelier.date_debut, selectedAtelier.date_fin)}</p>
                       <p>📍 {selectedAtelier.lieu}</p>
                       <p>👥 {selectedAtelier.capacite_actuelle || 0} / {selectedAtelier.capacite_maximale || 'N/A'} places</p>
                       {selectedAtelier.animateur_nom && (

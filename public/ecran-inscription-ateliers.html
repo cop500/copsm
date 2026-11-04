@@ -314,22 +314,64 @@
         return d.innerHTML;
       }
 
+      var TZ_MAROC = 'Africa/Casablanca';
+      var CRENEAUX = [
+        { label: '09h00 – 11h00', dh: 9, dm: 0, fh: 11, fm: 0 },
+        { label: '10h30 – 13h00', dh: 10, dm: 30, fh: 13, fm: 0 },
+        { label: '13h30 – 15h30', dh: 13, dm: 30, fh: 15, fm: 30 }
+      ];
+
       function formatDate(iso) {
         if (!iso) return '—';
         try {
-          return new Date(iso).toLocaleDateString('fr-FR');
+          return new Date(iso).toLocaleDateString('fr-FR', { timeZone: TZ_MAROC });
         } catch (e) {
           return iso;
         }
       }
 
+      function hm(date, utc) {
+        if (utc) return { h: date.getUTCHours(), m: date.getUTCMinutes() };
+        var parts = new Intl.DateTimeFormat('en-GB', {
+          timeZone: TZ_MAROC,
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23'
+        }).formatToParts(date);
+        var get = function (t) {
+          return Number((parts.find(function (p) { return p.type === t; }) || {}).value || 0);
+        };
+        return { h: get('hour'), m: get('minute') };
+      }
+
       function formatTime(iso) {
         if (!iso) return '—';
         try {
-          return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          return new Date(iso).toLocaleTimeString('fr-FR', {
+            timeZone: TZ_MAROC,
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
         } catch (e) {
           return '';
         }
+      }
+
+      function formatCreneau(debutIso, finIso) {
+        var debut = debutIso ? new Date(debutIso) : null;
+        var fin = finIso ? new Date(finIso) : null;
+        if (!debut || isNaN(debut.getTime())) return '—';
+        function match(utc) {
+          var a = hm(debut, utc);
+          var b = fin && !isNaN(fin.getTime()) ? hm(fin, utc) : null;
+          for (var i = 0; i < CRENEAUX.length; i++) {
+            var c = CRENEAUX[i];
+            if (c.dh === a.h && c.dm === a.m && (!b || (c.fh === b.h && c.fm === b.m))) return c.label;
+          }
+          return '';
+        }
+        return match(false) || match(true) || (formatTime(debutIso) + (finIso ? ' – ' + formatTime(finIso) : ''));
       }
 
       function isComplet(a) {
@@ -424,7 +466,7 @@
             buildPoleFiliere(a) +
             (a.description ? '<p>' + esc(a.description) + '</p>' : '') +
             '<p class="meta">📅 <strong>Date :</strong> ' + formatDate(a.date_debut) + '</p>' +
-            '<p class="meta">🕐 <strong>Horaire :</strong> ' + formatTime(a.date_debut) + ' – ' + formatTime(a.date_fin) + '</p>' +
+            '<p class="meta">🕐 <strong>Horaire :</strong> ' + formatCreneau(a.date_debut, a.date_fin) + '</p>' +
             '<p class="meta">📍 <strong>Lieu :</strong> ' + esc(a.lieu || '—') + '</p>' +
             '<p class="meta">👥 <strong>Places :</strong> ' + (a.capacite_actuelle || 0) + ' / ' + (a.capacite_maximale || '—') + '</p>' +
             (a.animateur_nom ? '<p class="meta">👨‍🏫 <strong>Animateur :</strong> ' + esc(a.animateur_nom) +
@@ -461,8 +503,7 @@
         document.getElementById('atelier_id').value = id;
         document.getElementById('atelierSummary').innerHTML =
           '<strong>' + esc(selectedAtelier.titre) + '</strong><br>' +
-          '📅 ' + formatDate(selectedAtelier.date_debut) + ' · 🕐 ' + formatTime(selectedAtelier.date_debut) +
-          ' – ' + formatTime(selectedAtelier.date_fin) + '<br>' +
+          '📅 ' + formatDate(selectedAtelier.date_debut) + ' · 🕐 ' + formatCreneau(selectedAtelier.date_debut, selectedAtelier.date_fin) + '<br>' +
           '📍 ' + esc(selectedAtelier.lieu || '—') +
           (selectedAtelier.pole ? '<br>🎯 ' + esc(selectedAtelier.pole) + (selectedAtelier.filliere ? ' — ' + esc(selectedAtelier.filliere) : '') : '');
 
