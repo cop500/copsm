@@ -10,6 +10,11 @@ import {
 } from 'lucide-react'
 import { isAtelierComplet, isAtelierDatePassee, peutSInscrireAtelier } from '@/lib/atelierInscriptionDisponible'
 import { formatCreneauAtelier, formatDateAtelier } from '@/lib/atelierCreneaux'
+import {
+  appliquerComptesInscriptions,
+  compterInscriptionsActives,
+  synchroniserCapaciteAtelier,
+} from '@/lib/atelierInscriptionsCount'
 import { CopSpacePublicMark } from '@/components/CopSpacePublicMark'
 import { AtelierNotationModal } from '@/components/AtelierNotationModal'
 
@@ -99,13 +104,18 @@ export default function InscriptionAteliersPage() {
       }
       
       const list = data || []
-      list.sort((a: Atelier, b: Atelier) => {
+      const counts = await compterInscriptionsActives(
+        supabase,
+        list.map((a: Atelier) => a.id)
+      )
+      const withCounts = appliquerComptesInscriptions(list, counts)
+      withCounts.sort((a: Atelier, b: Atelier) => {
         const aPasse = isAtelierDatePassee(a.date_debut, a.date_fin) ? 1 : 0
         const bPasse = isAtelierDatePassee(b.date_debut, b.date_fin) ? 1 : 0
         if (aPasse !== bPasse) return aPasse - bPasse
         return new Date(b.date_debut).getTime() - new Date(a.date_debut).getTime()
       })
-      setAteliers(list)
+      setAteliers(withCounts)
     } catch (err: any) {
       console.error('❌ Erreur chargement ateliers:', err)
       setError(err.message)
@@ -213,13 +223,7 @@ export default function InscriptionAteliersPage() {
 
       if (insertError) throw insertError
 
-      // Mettre à jour la capacité de l'atelier dans evenements
-      const { error: updateError } = await supabase
-        .from('evenements')
-        .update({ capacite_actuelle: (selectedAtelier!.capacite_actuelle || 0) + 1 })
-        .eq('id', selectedAtelier!.id)
-
-      if (updateError) throw updateError
+      await synchroniserCapaciteAtelier(supabase, selectedAtelier!.id)
 
       setInscriptionSuccess(true)
       setFormData({

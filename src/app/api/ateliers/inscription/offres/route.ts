@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isAtelierDatePassee } from '@/lib/atelierInscriptionDisponible'
+import {
+  appliquerComptesInscriptions,
+  compterInscriptionsActives,
+} from '@/lib/atelierInscriptionsCount'
 
 export async function GET() {
   try {
@@ -37,12 +41,16 @@ export async function GET() {
     const poleById = new Map((polesRes.data ?? []).map((p) => [p.id, p.nom]))
     const filiereById = new Map((filieresRes.data ?? []).map((f) => [f.id, f.nom]))
 
-    const ateliers = (data ?? [])
-      .map((row) => ({
+    const mapped = (data ?? []).map((row) => ({
       ...row,
       pole: row.pole_id ? poleById.get(row.pole_id) ?? null : null,
       filliere: row.filiere_id ? filiereById.get(row.filiere_id) ?? null : null,
-    })).sort(function (a, b) {
+    }))
+    const counts = await compterInscriptionsActives(
+      supabase,
+      mapped.map((row) => row.id)
+    )
+    const ateliers = appliquerComptesInscriptions(mapped, counts).sort(function (a, b) {
       const aPasse = isAtelierDatePassee(a.date_debut, a.date_fin) ? 1 : 0
       const bPasse = isAtelierDatePassee(b.date_debut, b.date_fin) ? 1 : 0
       if (aPasse !== bPasse) return aPasse - bPasse

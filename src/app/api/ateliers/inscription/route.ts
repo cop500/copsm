@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isAtelierComplet, isAtelierDatePassee } from '@/lib/atelierInscriptionDisponible'
+import { compterInscriptionsActives, synchroniserCapaciteAtelier } from '@/lib/atelierInscriptionsCount'
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,15 +83,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: activeInscriptions, error: countError } = await supabase
-      .from('inscriptions_ateliers')
-      .select('id')
-      .eq('atelier_id', atelierId)
-      .or('statut.is.null,statut.neq.annule')
-
-    if (countError) throw countError
-
-    const activeCount = activeInscriptions?.length ?? 0
+    const counts = await compterInscriptionsActives(supabase, [atelierId])
+    const activeCount = counts[atelierId] ?? 0
     if (isAtelierComplet(atelier.capacite_maximale, activeCount)) {
       return NextResponse.json({ error: 'Cet atelier est complet' }, { status: 400 })
     }
@@ -109,12 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) throw insertError
 
-    const { error: updateError } = await supabase
-      .from('evenements')
-      .update({ capacite_actuelle: (atelier.capacite_actuelle ?? 0) + 1 })
-      .eq('id', atelierId)
-
-    if (updateError) throw updateError
+    await synchroniserCapaciteAtelier(supabase, atelierId)
 
     return NextResponse.json({
       success: true,

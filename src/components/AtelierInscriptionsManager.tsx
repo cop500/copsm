@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { synchroniserCapaciteAtelier } from '@/lib/atelierInscriptionsCount'
 import { printAllAttestationsAtelier, type AtelierAttestation } from '@/lib/attestationAtelierPrint'
 import { AtelierIndicateursBlock } from './AtelierIndicateursBlock'
 import type { AtelierIndicateurs, EvaluationStagiaire } from '@/lib/atelierEvaluation'
@@ -436,14 +437,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
       if (error) throw error
 
-      // Mettre à jour la capacité de l'atelier (décrémenter seulement si l'inscription n'était pas annulée)
-      const inscriptionToDelete = inscriptions.find(i => i.id === id)
-      if (inscriptionToDelete && inscriptionToDelete.statut !== 'annule') {
-        await supabase
-          .from('evenements')
-          .update({ capacite_actuelle: Math.max(0, (atelier.capacite_actuelle || 0) - 1) })
-          .eq('id', atelier.id)
-      }
+      await synchroniserCapaciteAtelier(supabase, atelier.id)
 
       await loadInscriptions()
     } catch (error) {
@@ -464,11 +458,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
       if (error) throw error
 
-      // Mettre à jour la capacité de l'atelier
-      await supabase
-        .from('evenements')
-        .update({ capacite_actuelle: Math.max(0, (atelier.capacite_actuelle || 0) - 1) })
-        .eq('id', atelier.id)
+      await synchroniserCapaciteAtelier(supabase, atelier.id)
 
       await loadInscriptions()
     } catch (error) {
