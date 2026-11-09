@@ -92,6 +92,18 @@ export interface Stagiaire {
   salaire_insertion?: number
   poste_insertion?: string
   photo_url?: string
+  internat?: boolean
+  date_naissance?: string
+  lieu_naissance?: string
+  sexe?: string
+  situation_familiale?: string
+  nationalite?: string
+  adresse?: string
+  province?: string
+  niveau_scolaire?: string
+  annee_scolaire?: string
+  type_formation?: string
+  groupe?: string
   cv_url?: string
   notes?: string
   conseiller_id?: string

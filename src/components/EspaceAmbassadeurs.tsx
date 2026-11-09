@@ -13,9 +13,13 @@ import {
   Loader2, AlertCircle, CheckCircle, XCircle,
   Clock, Award, Target, BookOpen, Mail, Phone,
   ChevronRight, UserCircle, Star, Zap, Plus,
-  FileText, X, UploadCloud
+  FileText, X, UploadCloud, Home
 } from 'lucide-react'
 import { printAllAttestationsAmbassadeurs, printAttestationAmbassadeur } from '@/lib/attestationAmbassadeurPrint'
+import {
+  downloadModeleImportAmbassadeurs,
+  lireLigneAmbassadeurExcel,
+} from '@/lib/ambassadeursImport'
 
 interface StagiaireAmbassadeur {
   id: string
@@ -28,6 +32,18 @@ interface StagiaireAmbassadeur {
   filiere_id?: string
   pole?: { nom: string; couleur?: string }
   filiere?: { nom: string; color?: string }
+  date_naissance?: string | null
+  lieu_naissance?: string | null
+  sexe?: string | null
+  situation_familiale?: string | null
+  nationalite?: string | null
+  adresse?: string | null
+  province?: string | null
+  niveau_scolaire?: string | null
+  annee_scolaire?: string | null
+  type_formation?: string | null
+  groupe?: string | null
+  internat?: boolean
   actions: ActionAmbassadeur[]
   stats: {
     totalActions: number
@@ -49,6 +65,23 @@ interface StagiaireAmbassadeur {
     periode_debut?: string
     periode_fin?: string
     evaluateur_nom?: string
+  }
+}
+
+function champsProfil(row: Record<string, any>) {
+  return {
+    date_naissance: row.date_naissance || null,
+    lieu_naissance: row.lieu_naissance || null,
+    sexe: row.sexe || null,
+    situation_familiale: row.situation_familiale || null,
+    nationalite: row.nationalite || null,
+    adresse: row.adresse || null,
+    province: row.province || null,
+    niveau_scolaire: row.niveau_scolaire || row.niveau_etude || null,
+    annee_scolaire: row.annee_scolaire || null,
+    type_formation: row.type_formation || null,
+    groupe: row.groupe || null,
+    internat: Boolean(row.internat),
   }
 }
 
@@ -74,6 +107,7 @@ const StagiaireFormInline: React.FC<{
     telephone: '',
     pole_id: '',
     filiere_id: '',
+    internat: false,
     photo: null as File | null,
     photoPreview: '' as string | null
   })
@@ -131,6 +165,7 @@ const StagiaireFormInline: React.FC<{
           pole_id: formData.pole_id || null,
           filiere_id: formData.filiere_id || null,
           photo_url: photoUrl,
+          internat: formData.internat,
           insere: false
         }])
         .select()
@@ -147,6 +182,7 @@ const StagiaireFormInline: React.FC<{
         telephone: '',
         pole_id: '',
         filiere_id: '',
+        internat: false,
         photo: null,
         photoPreview: null
       })
@@ -238,6 +274,17 @@ const StagiaireFormInline: React.FC<{
                   <option key={filiere.id} value={filiere.id}>{filiere.nom}</option>
                 ))}
             </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input
+                type="checkbox"
+                checked={formData.internat}
+                onChange={(e) => setFormData({ ...formData, internat: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Intern — résident à l’internat de la CMC
+            </label>
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Photo</label>
@@ -458,6 +505,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
   const [poleFilter, setPoleFilter] = useState<string>('')
   const [filiereFilter, setFiliereFilter] = useState<string>('')
+  const [internatFilter, setInternatFilter] = useState<string>('')
   const [selectedStagiaire, setSelectedStagiaire] = useState<StagiaireAmbassadeur | null>(null)
   const [showStagiaireDetail, setShowStagiaireDetail] = useState(false)
   const [stagiaires, setStagiaires] = useState<StagiaireAmbassadeur[]>([])
@@ -712,6 +760,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
             filiere_id: stagiaireData.filiere_id,
             pole: stagiaireData.poles as any,
             filiere: stagiaireData.filieres as any,
+            ...champsProfil(stagiaireData),
             actions: stagiaireActions,
             evaluation: evaluationData,
             stats: {
@@ -792,6 +841,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
               filiere_id: stagiaire.filiere_id,
               pole: stagiaire.poles as any,
               filiere: stagiaire.filieres as any,
+              ...champsProfil(stagiaire),
               actions: [], // Pas d'actions
               evaluation: evaluationData,
               stats: {
@@ -850,6 +900,10 @@ export const EspaceAmbassadeurs: React.FC = () => {
 
       const matchesPole = !poleFilter || stagiaire.pole_id === poleFilter
       const matchesFiliere = !filiereFilter || stagiaire.filiere_id === filiereFilter
+      const matchesInternat =
+        internatFilter === '' ||
+        (internatFilter === 'oui' && stagiaire.internat) ||
+        (internatFilter === 'non' && !stagiaire.internat)
 
       const matchesDate = (() => {
         if (dateFilter === 'tous' || !stagiaire.stats.dernierAction) return true
@@ -870,9 +924,9 @@ export const EspaceAmbassadeurs: React.FC = () => {
         }
       })()
 
-      return matchesSearch && matchesDate && matchesPole && matchesFiliere
+      return matchesSearch && matchesDate && matchesPole && matchesFiliere && matchesInternat
     })
-  }, [stagiaires, searchTerm, dateFilter, poleFilter, filiereFilter])
+  }, [stagiaires, searchTerm, dateFilter, poleFilter, filiereFilter, internatFilter])
 
   const handleViewStagiaire = (stagiaire: StagiaireAmbassadeur) => {
     setSelectedStagiaire(stagiaire)
@@ -932,7 +986,19 @@ export const EspaceAmbassadeurs: React.FC = () => {
           telephone: editingStagiaire.telephone || null,
           pole_id: editingStagiaire.pole_id || null,
           filiere_id: editingStagiaire.filiere_id || null,
-          photo_url: photoUrl
+          photo_url: photoUrl,
+          internat: Boolean(editingStagiaire.internat),
+          date_naissance: editingStagiaire.date_naissance || null,
+          lieu_naissance: editingStagiaire.lieu_naissance || null,
+          sexe: editingStagiaire.sexe || null,
+          situation_familiale: editingStagiaire.situation_familiale || null,
+          nationalite: editingStagiaire.nationalite || null,
+          adresse: editingStagiaire.adresse || null,
+          province: editingStagiaire.province || null,
+          niveau_scolaire: editingStagiaire.niveau_scolaire || null,
+          annee_scolaire: editingStagiaire.annee_scolaire || null,
+          type_formation: editingStagiaire.type_formation || null,
+          groupe: editingStagiaire.groupe || null,
         })
         .eq('id', editingStagiaire.id)
 
@@ -1116,10 +1182,10 @@ export const EspaceAmbassadeurs: React.FC = () => {
 
     try {
       const data = await file.arrayBuffer()
-      const workbook = XLSX.read(data, { type: 'array' })
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true })
       const sheetName = workbook.SheetNames[0]
       const worksheet = workbook.Sheets[sheetName]
-      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[]
 
       if (jsonData.length === 0) {
         alert('Le fichier Excel est vide.')
@@ -1131,45 +1197,53 @@ export const EspaceAmbassadeurs: React.FC = () => {
       const errors = []
 
       for (let i = 0; i < jsonData.length; i++) {
-        const row = jsonData[i]
-        const prenom = row['Prénom'] || row['prenom'] || row['Prenom'] || ''
-        const nom = row['Nom'] || row['nom'] || ''
-        const email = row['Email'] || row['email'] || ''
-        const telephone = row['Téléphone'] || row['telephone'] || row['Telephone'] || ''
-        const poleNom = row['Pôle'] || row['pole'] || row['Pole'] || ''
-        const filiereNom = row['Filière'] || row['filiere'] || row['Filiere'] || ''
+        const ligne = lireLigneAmbassadeurExcel(jsonData[i])
 
-        if (!prenom || !nom) {
+        if (!ligne.prenom || !ligne.nom) {
           errors.push(`Ligne ${i + 2}: Prénom et Nom sont requis`)
           continue
         }
 
-        // Trouver le pôle et la filière
-        let poleId = null
-        let filiereId = null
+        let poleId: string | null = null
+        let filiereId: string | null = null
 
-        if (poleNom) {
-          const pole = poles.find(p => p.nom.toLowerCase() === poleNom.toLowerCase())
-          if (pole) {
-            poleId = pole.id
-            if (filiereNom) {
-              const filiere = filieres.find(f => 
-                f.nom.toLowerCase() === filiereNom.toLowerCase() && 
-                f.pole_id === poleId
-              )
-              if (filiere) filiereId = filiere.id
-            }
+        if (ligne.poleNom) {
+          const pole = poles.find((p) => p.nom.toLowerCase() === ligne.poleNom.toLowerCase())
+          if (pole) poleId = pole.id
+        }
+        if (ligne.filiereNom) {
+          const filiere = filieres.find((f) => {
+            const sameName = f.nom.toLowerCase() === ligne.filiereNom.toLowerCase()
+            if (!sameName) return false
+            if (poleId) return f.pole_id === poleId
+            return true
+          })
+          if (filiere) {
+            filiereId = filiere.id
+            if (!poleId) poleId = filiere.pole_id
           }
         }
 
         stagiairesToImport.push({
-          nom,
-          prenom,
-          email: email || null,
-          telephone: telephone || null,
+          nom: ligne.nom,
+          prenom: ligne.prenom,
+          email: ligne.email,
+          telephone: ligne.telephone,
           pole_id: poleId,
           filiere_id: filiereId,
-          insere: false
+          date_naissance: ligne.date_naissance,
+          lieu_naissance: ligne.lieu_naissance,
+          sexe: ligne.sexe,
+          situation_familiale: ligne.situation_familiale,
+          nationalite: ligne.nationalite,
+          adresse: ligne.adresse,
+          province: ligne.province,
+          niveau_scolaire: ligne.niveau_scolaire,
+          annee_scolaire: ligne.annee_scolaire,
+          type_formation: ligne.type_formation,
+          groupe: ligne.groupe,
+          internat: ligne.internat,
+          insere: false,
         })
       }
 
@@ -1454,6 +1528,16 @@ export const EspaceAmbassadeurs: React.FC = () => {
                   </button>
                 )}
                 {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={downloadModeleImportAmbassadeurs}
+                    className="px-4 py-2 bg-white text-green-700 border border-green-600 rounded-lg hover:bg-green-50 transition-colors flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Modèle Excel
+                  </button>
+                )}
+                {isAdmin && (
                   <label className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 cursor-pointer">
                     <FileText className="w-4 h-4" />
                     Importer Excel
@@ -1498,7 +1582,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
             </div>
 
             {/* Filtres */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
                 <input
@@ -1542,6 +1626,18 @@ export const EspaceAmbassadeurs: React.FC = () => {
                 </select>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Internat</label>
+                <select
+                  value={internatFilter}
+                  onChange={(e) => setInternatFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">Tous</option>
+                  <option value="oui">Internes CMC</option>
+                  <option value="non">Externes</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Période</label>
                 <select
                   value={dateFilter}
@@ -1577,16 +1673,14 @@ export const EspaceAmbassadeurs: React.FC = () => {
                     className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
                     onClick={() => handleViewStagiaire(stagiaire)}
                   >
-                    {/* En-tête simplifié avec photo et informations */}
-                    <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-start gap-4 mb-4">
                       <div className="relative flex-shrink-0">
                         {stagiaire.photo_url ? (
                           <img 
                             src={stagiaire.photo_url} 
                             alt={`${stagiaire.prenom} ${stagiaire.nom}`}
-                            className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                            className="w-20 h-20 rounded-2xl object-cover border border-gray-200 shadow-sm"
                             onError={(e) => {
-                              // Si l'image ne charge pas, afficher l'avatar par défaut
                               e.currentTarget.style.display = 'none'
                               const parent = e.currentTarget.parentElement
                               if (parent) {
@@ -1596,32 +1690,67 @@ export const EspaceAmbassadeurs: React.FC = () => {
                             }}
                           />
                         ) : null}
-                        <div className={`w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-300 ${stagiaire.photo_url ? 'hidden photo-fallback' : ''}`}>
-                          <UserCircle className="w-8 h-8 text-blue-600" />
+                        <div className={`w-20 h-20 rounded-2xl bg-blue-100 flex items-center justify-center border border-blue-200 ${stagiaire.photo_url ? 'hidden photo-fallback' : ''}`}>
+                          <UserCircle className="w-10 h-10 text-blue-600" />
                         </div>
-                        {stagiaire.evaluation && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
-                            <Star className="w-3 h-3 text-white fill-white" />
+                        {stagiaire.internat && (
+                          <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-teal-600 rounded-full border-2 border-white flex items-center justify-center" title="Internat CMC">
+                            <Home className="w-3.5 h-3.5 text-white" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-1 truncate">
+                        <h4 className="text-lg font-semibold text-gray-900 leading-tight">
                           {stagiaire.prenom} {stagiaire.nom}
                         </h4>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {stagiaire.pole && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                              {stagiaire.pole.nom}
+                        <div className="flex items-center gap-2 flex-wrap mt-2">
+                          {stagiaire.internat && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-800 border border-teal-200">
+                              Internat CMC
                             </span>
                           )}
-                          {stagiaire.filiere && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              {stagiaire.filiere.nom}
+                          {stagiaire.sexe && (
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                              {stagiaire.sexe}
+                            </span>
+                          )}
+                          {stagiaire.groupe && (
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                              Groupe {stagiaire.groupe}
                             </span>
                           )}
                         </div>
                       </div>
+                    </div>
+                    <div className="space-y-1.5 text-sm text-gray-600 mb-4">
+                      {stagiaire.filiere?.nom && (
+                        <p className="flex items-start gap-2">
+                          <BookOpen className="w-4 h-4 mt-0.5 text-indigo-500 shrink-0" />
+                          <span>
+                            {stagiaire.filiere.nom}
+                            {stagiaire.pole?.nom ? ` · ${stagiaire.pole.nom}` : ''}
+                          </span>
+                        </p>
+                      )}
+                      {(stagiaire.niveau_scolaire || stagiaire.annee_scolaire || stagiaire.type_formation) && (
+                        <p className="text-xs text-gray-500">
+                          {[stagiaire.niveau_scolaire, stagiaire.annee_scolaire, stagiaire.type_formation]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      )}
+                      {stagiaire.telephone && (
+                        <p className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          {stagiaire.telephone}
+                        </p>
+                      )}
+                      {stagiaire.email && (
+                        <p className="flex items-center gap-2 truncate">
+                          <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                          <span className="truncate">{stagiaire.email}</span>
+                        </p>
+                      )}
                     </div>
 
                     {/* Critères de notation simplifiés */}
@@ -2030,6 +2159,26 @@ export const EspaceAmbassadeurs: React.FC = () => {
                         ))}
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Groupe</label>
+                      <input
+                        type="text"
+                        value={editingStagiaire.groupe || ''}
+                        onChange={(e) => setEditingStagiaire({ ...editingStagiaire, groupe: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(editingStagiaire.internat)}
+                          onChange={(e) => setEditingStagiaire({ ...editingStagiaire, internat: e.target.checked })}
+                          className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                        />
+                        Intern — résident à l’internat de la CMC
+                      </label>
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
@@ -2084,9 +2233,14 @@ export const EspaceAmbassadeurs: React.FC = () => {
                       )}
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-1">
                         {selectedStagiaire.prenom} {selectedStagiaire.nom}
                       </h3>
+                      {selectedStagiaire.internat && (
+                        <span className="inline-flex items-center gap-1 mb-2 px-2 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-800 border border-teal-200">
+                          <Home className="w-3.5 h-3.5" /> Internat CMC
+                        </span>
+                      )}
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                         {selectedStagiaire.pole && (
                           <div className="flex items-center gap-2">
@@ -2115,6 +2269,15 @@ export const EspaceAmbassadeurs: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700 mb-6">
+                {selectedStagiaire.date_naissance && <p><span className="text-gray-500">Né(e) le :</span> {new Date(selectedStagiaire.date_naissance).toLocaleDateString('fr-FR')}</p>}
+                {selectedStagiaire.groupe && <p><span className="text-gray-500">Groupe :</span> {selectedStagiaire.groupe}</p>}
+                {selectedStagiaire.niveau_scolaire && <p><span className="text-gray-500">Niveau :</span> {selectedStagiaire.niveau_scolaire}</p>}
+                {selectedStagiaire.annee_scolaire && <p><span className="text-gray-500">Année :</span> {selectedStagiaire.annee_scolaire}</p>}
+                {selectedStagiaire.type_formation && <p><span className="text-gray-500">Formation :</span> {selectedStagiaire.type_formation}</p>}
+                {selectedStagiaire.adresse && <p className="md:col-span-2"><span className="text-gray-500">Adresse :</span> {selectedStagiaire.adresse}</p>}
+              </div>
 
               {/* Statistiques */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
