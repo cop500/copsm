@@ -7,6 +7,7 @@ import {
   noteValide,
   type CritereAtelierKey,
 } from '@/lib/atelierEvaluation'
+import { isAtelierCommence } from '@/lib/atelierInscriptionDisponible'
 
 const MSG_NON_ELIGIBLE =
   'Vous n’êtes pas inscrit à cet atelier, ou votre présence n’a pas encore été validée par l’animateur.'
@@ -30,6 +31,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Indiquez votre nom et votre e-mail d’inscription.' },
         { status: 400 }
+      )
+    }
+
+    const { data: atelier, error: atelierErr } = await supabaseAdmin
+      .from('evenements')
+      .select('id, date_debut')
+      .eq('id', atelierId)
+      .eq('type_evenement', 'atelier')
+      .maybeSingle()
+
+    if (atelierErr) {
+      console.error('evaluation atelier', atelierErr)
+      return NextResponse.json({ error: 'Impossible de vérifier l’atelier.' }, { status: 500 })
+    }
+
+    if (!atelier) {
+      return NextResponse.json({ error: 'Atelier introuvable.' }, { status: 404 })
+    }
+
+    if (!isAtelierCommence(atelier.date_debut)) {
+      return NextResponse.json(
+        { error: 'La notation s’ouvre une fois l’atelier commencé.' },
+        { status: 403 }
       )
     }
 

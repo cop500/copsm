@@ -8,7 +8,7 @@ import {
   AlertCircle, Loader2, ArrowRight, Star, Zap, Target, Award, Search,
   User, ChevronRight
 } from 'lucide-react'
-import { isAtelierComplet, isAtelierDatePassee, peutSInscrireAtelier } from '@/lib/atelierInscriptionDisponible'
+import { isAtelierComplet, isAtelierDatePassee, peutNoterAtelier, peutSInscrireAtelier } from '@/lib/atelierInscriptionDisponible'
 import { formatCreneauAtelier, formatDateAtelier } from '@/lib/atelierCreneaux'
 import {
   appliquerComptesInscriptions,
@@ -374,6 +374,7 @@ export default function InscriptionAteliersPage() {
                 const status = getAtelierStatus(atelier)
                 const canInscrire = peutSInscrireAtelier(atelier)
                 const datePassee = isAtelierDatePassee(atelier.date_debut, atelier.date_fin)
+                const peutNoter = peutNoterAtelier(atelier)
                 return (
                   <div 
                     key={atelier.id} 
@@ -477,7 +478,7 @@ export default function InscriptionAteliersPage() {
                             : 'Complet'}
                       </span>
                     </button>
-                    {datePassee && (
+                    {peutNoter && (
                       <button
                         type="button"
                         onClick={(e) => {

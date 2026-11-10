@@ -132,8 +132,8 @@ export function AtelierNotationModal({ atelierId, atelierTitre, onClose }: Props
           ) : etape === 'identite' ? (
             <form onSubmit={verifier} className="space-y-4">
               <p className="text-sm text-gray-600">
-                Saisissez le nom et l’e-mail utilisés à l’inscription. La notation est ouverte
-                uniquement si votre présence a été validée par l’animateur.
+                Saisissez le nom et l’e-mail utilisés à l’inscription. La notation s’ouvre dès
+                le début de l’atelier, si votre présence a été validée par l’animateur.
               </p>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nom et prénom</label>

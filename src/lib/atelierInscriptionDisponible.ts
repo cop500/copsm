@@ -31,3 +31,15 @@ export function peutSInscrireAtelier(atelier: {
   if (isAtelierComplet(atelier.capacite_maximale, atelier.capacite_actuelle)) return false
   return true
 }
+
+/** Créneau déjà commencé (heure de début atteinte). */
+export function isAtelierCommence(dateDebut?: string | null): boolean {
+  if (!dateDebut) return false
+  const start = new Date(dateDebut)
+  if (Number.isNaN(start.getTime())) return false
+  return Date.now() >= start.getTime()
+}
+
+export function peutNoterAtelier(atelier: { date_debut?: string | null }): boolean {
+  return isAtelierCommence(atelier.date_debut)
+}

@@ -239,8 +239,8 @@
 
       <form id="formIdentite">
         <p class="meta" style="margin-bottom:16px;">
-          Saisissez le nom et l’e-mail utilisés à l’inscription. La notation est ouverte
-          uniquement si votre présence a été validée par l’animateur.
+          Saisissez le nom et l’e-mail utilisés à l’inscription. La notation s’ouvre dès
+          le début de l’atelier, si votre présence a été validée par l’animateur.
         </p>
         <div class="field">
           <label for="note_nom">Nom et prénom *</label>
@@ -389,6 +389,13 @@
         return Date.now() > end.getTime();
       }
 
+      function isCommence(a) {
+        if (!a.date_debut) return false;
+        var start = new Date(a.date_debut);
+        if (isNaN(start.getTime())) return false;
+        return Date.now() >= start.getTime();
+      }
+
       function peutInscrire(a) {
         return !isPasse(a) && !isComplet(a);
       }
@@ -473,7 +480,7 @@
               (a.animateur_role ? ' (' + esc(a.animateur_role) + ')' : '') + '</p>' : '') +
             '<button type="button" class="btn btn-inscrire" data-id="' + esc(a.id) + '" ' +
             (ouvert ? '' : 'disabled') + '>' + btnText + '</button>' +
-            (passe
+            (isCommence(a)
               ? '<button type="button" class="btn btn-noter" data-id="' + esc(a.id) + '">Noter l’atelier</button>'
               : '') +
             '</div>';
