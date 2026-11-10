@@ -20,7 +20,7 @@ declare module 'jspdf' {
 }
 import { 
   Users, X, Download, Trash2, Search, Star,
-  GraduationCap, FileText, XCircle, CheckCircle2, Mail, Check, Send, RefreshCw
+  GraduationCap, FileText, XCircle, CheckCircle2, Mail, Check, Send, RefreshCw, Pencil
 } from 'lucide-react'
 
 interface AtelierInscriptionsManagerProps {
@@ -50,7 +50,9 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
   const [validating, setValidating] = useState(false)
   const [indicateurs, setIndicateurs] = useState<AtelierIndicateurs | undefined>(undefined)
   const [notesParInscription, setNotesParInscription] = useState<Record<string, EvaluationStagiaire>>({})
-  // Pour mailto:, on n'a pas besoin d'état "sending" car c'est instantané
+  const [editingNomId, setEditingNomId] = useState<string | null>(null)
+  const [editingNomValue, setEditingNomValue] = useState('')
+  const [savingNom, setSavingNom] = useState(false)
   
   // La validation de présence est disponible pour tous les statuts d'atelier
   // (planifié, en_cours, termine) pour plus de flexibilité
@@ -443,6 +445,47 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     } catch (error) {
       console.error('Erreur suppression inscription:', error)
       alert('Erreur lors de la suppression')
+    }
+  }
+
+  const commencerCorrectionNom = (inscription: Inscription) => {
+    setEditingNomId(inscription.id)
+    setEditingNomValue(inscription.stagiaire_nom || '')
+  }
+
+  const annulerCorrectionNom = () => {
+    setEditingNomId(null)
+    setEditingNomValue('')
+  }
+
+  const enregistrerNomInscrit = async (id: string) => {
+    const nom = editingNomValue.replace(/\s+/g, ' ').trim()
+    if (!nom) {
+      alert('Le nom affiché sur l’attestation ne peut pas être vide.')
+      return
+    }
+
+    try {
+      setSavingNom(true)
+      const { error } = await supabase
+        .from('inscriptions_ateliers')
+        .update({ stagiaire_nom: nom })
+        .eq('id', id)
+
+      if (error) throw error
+
+      setInscriptions((prev) =>
+        prev.map((inscription) =>
+          inscription.id === id ? { ...inscription, stagiaire_nom: nom } : inscription
+        )
+      )
+      setEditingNomId(null)
+      setEditingNomValue('')
+    } catch (error) {
+      console.error('Erreur correction nom inscrit:', error)
+      alert('Impossible d’enregistrer le nom. Réessayez.')
+    } finally {
+      setSavingNom(false)
     }
   }
 
@@ -937,21 +980,70 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {inscription.stagiaire_nom}
-                          {inscription.present && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                              <CheckCircle2 className="w-3 h-3 mr-1" />
-                              Présent
+                        {editingNomId === inscription.id ? (
+                          <div className="flex items-center gap-2 min-w-[220px]">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={editingNomValue}
+                              disabled={savingNom}
+                              onChange={(e) => setEditingNomValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  void enregistrerNomInscrit(inscription.id)
+                                }
+                                if (e.key === 'Escape') annulerCorrectionNom()
+                              }}
+                              className="w-52 px-2 py-1 text-sm border border-purple-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              title="Nom tel qu’il apparaîtra sur l’attestation"
+                            />
+                            <button
+                              type="button"
+                              disabled={savingNom}
+                              onClick={() => void enregistrerNomInscrit(inscription.id)}
+                              className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                              title="Enregistrer le nom"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={savingNom}
+                              onClick={annulerCorrectionNom}
+                              className="text-gray-500 hover:text-gray-800 disabled:opacity-50"
+                              title="Annuler"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-sm font-medium text-gray-900">
+                            <span className="inline-flex items-center gap-1.5">
+                              {inscription.stagiaire_nom}
+                              <button
+                                type="button"
+                                onClick={() => commencerCorrectionNom(inscription)}
+                                className="text-gray-400 hover:text-purple-700"
+                                title="Corriger le nom pour l’attestation"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
                             </span>
-                          )}
-                          {notesParInscription[inscription.id] && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900">
-                              <Star className="w-3 h-3 mr-1" />
-                              A noté
-                            </span>
-                          )}
-                      </div>
+                            {inscription.present && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Présent
+                              </span>
+                            )}
+                            {notesParInscription[inscription.id] && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900">
+                                <Star className="w-3 h-3 mr-1" />
+                                A noté
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{inscription.stagiaire_email}</div>
