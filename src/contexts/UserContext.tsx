@@ -1,7 +1,13 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import {
+  USER_CACHE_KEY,
+  clearBrokenLocalSession,
+  isInvalidSessionError,
+  withTimeout,
+} from '@/lib/authBootstrap';
 
 interface Profile {
   id: string;
@@ -27,14 +33,9 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Clé pour le localStorage
-const USER_CACHE_KEY = 'cop_app_user_cache';
-const SESSION_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes (réduit pour améliorer les performances)
-
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isRefreshingRef = useRef(false);
 
   // Charger l'utilisateur depuis le cache au démarrage
@@ -59,104 +60,75 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loadUser = async (forceRefresh = false) => {
-    // Éviter les appels multiples simultanés
     if (isRefreshingRef.current && !forceRefresh) {
       return;
     }
-    
+
     isRefreshingRef.current = true;
-    
+
     try {
-      // Vérifier et rafraîchir la session si nécessaire
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('❌ Erreur session:', sessionError);
-        // Si erreur de session, essayer de récupérer depuis le cache
+      const { data: { session }, error: sessionError } = await withTimeout(
+        supabase.auth.getSession(),
+        6000,
+        'getSession'
+      );
+
+      if (sessionError || !session?.user) {
+        setCurrentUser(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(USER_CACHE_KEY);
+        }
+        if (sessionError && isInvalidSessionError(sessionError)) {
+          await clearBrokenLocalSession();
+        }
+        return;
+      }
+
+      const { data: profile, error: profileError } = await withTimeout(
+        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+        8000,
+        'profil'
+      );
+
+      if (profileError) {
+        if (isInvalidSessionError(profileError)) {
+          setCurrentUser(null);
+          await clearBrokenLocalSession();
+        }
+        return;
+      }
+
+      if (profile) {
+        const userProfile: Profile = {
+          id: String(profile.id || ''),
+          email: String(profile.email || ''),
+          nom: String(profile.nom || ''),
+          prenom: String(profile.prenom || ''),
+          telephone: profile.telephone ? String(profile.telephone) : undefined,
+          poste: profile.poste ? String(profile.poste) : undefined,
+          role: profile.role ? String(profile.role) : undefined,
+          created_at: profile.created_at ? String(profile.created_at) : undefined,
+          updated_at: profile.updated_at ? String(profile.updated_at) : undefined,
+        };
+
+        setCurrentUser(userProfile);
+
         if (typeof window !== 'undefined') {
           try {
-            const cached = localStorage.getItem(USER_CACHE_KEY);
-            if (cached) {
-              const cachedUser = JSON.parse(cached);
-              setCurrentUser(cachedUser.user);
-              return;
-            }
-          } catch (e) {
-            console.error('Erreur lecture cache:', e);
+            localStorage.setItem(
+              USER_CACHE_KEY,
+              JSON.stringify({ user: userProfile, timestamp: Date.now() })
+            );
+          } catch {
+            /* quota localStorage */
           }
-        }
-        return;
-      }
-
-      // Si pas de session, garder le cache si disponible
-      if (!session) {
-        console.warn('⚠️ Pas de session active');
-        return;
-      }
-
-      // Rafraîchir le token si nécessaire (Supabase le fait automatiquement mais on force)
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('❌ Erreur récupération utilisateur:', userError);
-        return;
-      }
-
-      if (user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (profileError) {
-          console.error('❌ Erreur récupération profil:', profileError);
-          return;
-        }
-        
-        if (profile) {
-          const userProfile: Profile = {
-            id: String(profile.id || ''),
-            email: String(profile.email || ''),
-            nom: String(profile.nom || ''),
-            prenom: String(profile.prenom || ''),
-            telephone: profile.telephone ? String(profile.telephone) : undefined,
-            poste: profile.poste ? String(profile.poste) : undefined,
-            role: profile.role ? String(profile.role) : undefined,
-            created_at: profile.created_at ? String(profile.created_at) : undefined,
-            updated_at: profile.updated_at ? String(profile.updated_at) : undefined
-          };
-          
-          setCurrentUser(userProfile);
-          
-          // Mettre en cache dans localStorage
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.setItem(USER_CACHE_KEY, JSON.stringify({
-                user: userProfile,
-                timestamp: Date.now()
-              }));
-            } catch (e) {
-              console.error('Erreur écriture cache:', e);
-            }
-          }
-          
-          console.log('✅ Utilisateur chargé:', userProfile.email);
         }
       }
     } catch (error) {
-      console.error('❌ Erreur lors du chargement du profil:', error);
-      // En cas d'erreur, essayer de garder le cache
-      if (typeof window !== 'undefined' && !currentUser) {
-        try {
-          const cached = localStorage.getItem(USER_CACHE_KEY);
-          if (cached) {
-            const cachedUser = JSON.parse(cached);
-            setCurrentUser(cachedUser.user);
-          }
-        } catch (e) {
-          console.error('Erreur lecture cache de secours:', e);
-        }
+      console.error('Erreur chargement profil:', error);
+      if (isInvalidSessionError(error)) {
+        setCurrentUser(null);
+        await clearBrokenLocalSession();
       }
     } finally {
       setIsLoading(false);
@@ -188,73 +160,41 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Charger l'utilisateur au montage
-    loadUser();
+    void loadUser();
 
-    // Écouter les changements d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔄 Événement auth:', event);
-        if (event === 'SIGNED_IN' && session?.user) {
-          await loadUser(true);
-        } else if (event === 'SIGNED_OUT') {
-          setCurrentUser(null);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem(USER_CACHE_KEY);
-          }
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Rafraîchir les données utilisateur après rafraîchissement du token
-          console.log('🔄 Token rafraîchi, rechargement utilisateur...');
-          await loadUser(true);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        void loadUser(true);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setIsLoading(false);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(USER_CACHE_KEY);
         }
       }
-    );
-
-    // Rafraîchir la session périodiquement seulement si l'utilisateur est actif
-    const setupRefreshInterval = () => {
-      refreshIntervalRef.current = setInterval(() => {
-        // Vérifier si la page est visible (utilisateur actif)
-        if (document.visibilityState === 'visible') {
-          console.log('🔄 Rafraîchissement périodique de la session...');
-          loadUser(true);
-        }
-      }, SESSION_REFRESH_INTERVAL);
-    };
-
-    setupRefreshInterval();
-
-    // Écouter les changements de visibilité pour optimiser le rafraîchissement
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Rafraîchir quand l'utilisateur revient sur la page
-        loadUser(true);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    });
 
     return () => {
       subscription.unsubscribe();
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
-  return (
-    <UserContext.Provider value={{
+  const value = useMemo(
+    () => ({
       currentUser,
       setCurrentUser,
       refreshUser,
       updateUserProfile,
       isLoading,
-      role: currentUser?.role ?? null, // Ajouté
-      profile: currentUser // Ajouté
-    }}>
-      {children}
-    </UserContext.Provider>
+      role: currentUser?.role ?? null,
+      profile: currentUser,
+    }),
+    [currentUser, isLoading]
   );
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
 export const useUser = () => {

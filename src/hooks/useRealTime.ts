@@ -19,24 +19,20 @@ export function useRealTime<T = unknown>(table: string, onChange: ChangeHandler<
   }, [onChange]);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
     try {
-      // Créer le canal avec un nom unique
-      const channelName = `realtime:${table}:${Date.now()}`;
-      
+      const channelName = `realtime:${table}`;
+
       const channel = supabase
         .channel(channelName)
         .on(
           'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: table 
+          {
+            event: '*',
+            schema: 'public',
+            table: table,
           },
           (payload) => {
             try {
-              console.log(`🔄 Événement Realtime reçu pour ${table}:`, payload.eventType);
               onChangeRef.current({
                 eventType: payload.eventType,
                 new: payload.new,
@@ -48,39 +44,16 @@ export function useRealTime<T = unknown>(table: string, onChange: ChangeHandler<
           }
         )
         .subscribe((status) => {
-          console.log(`📡 Statut Realtime pour ${table}:`, status);
-          
-          if (status === 'SUBSCRIBED') {
-            console.log(`✅ Canal temps réel connecté pour ${table}`);
-            setIsConnected(true);
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error(`❌ Erreur canal temps réel pour ${table}`);
-            setIsConnected(false);
-          } else if (status === 'TIMED_OUT') {
-            console.error(`⏰ Timeout canal temps réel pour ${table}`);
-            setIsConnected(false);
-          } else {
-            setIsConnected(false);
-          }
+          setIsConnected(status === 'SUBSCRIBED');
         });
 
       channelRef.current = channel;
 
-      // Timeout de sécurité pour détecter les connexions qui ne se font pas
-      timeoutId = setTimeout(() => {
-        if (!isConnected) {
-          console.warn(`⚠️ Timeout de connexion Realtime pour ${table}`);
-          setIsConnected(false);
-        }
-      }, 10000); // 10 secondes
-
       return () => {
         try {
-          if (timeoutId) clearTimeout(timeoutId);
           if (channelRef.current) {
             supabase.removeChannel(channelRef.current);
-            console.log(`🔌 Canal temps réel déconnecté pour ${table}`);
-            setIsConnected(false);
+            channelRef.current = null;
           }
         } catch (error) {
           console.error('Erreur lors de la déconnexion du canal:', error);
@@ -90,7 +63,7 @@ export function useRealTime<T = unknown>(table: string, onChange: ChangeHandler<
       console.error('Erreur lors de la création du canal temps réel:', error);
       setIsConnected(false);
     }
-  }, [table, isConnected]);
+  }, [table]);
 
   return { isConnected };
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -25,21 +25,32 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname()
-  const { loading, user } = useAuth()
+  const { loading, user, profile } = useAuth()
+  const authed = Boolean(user || profile)
 
   // Mémoriser le calcul pour éviter les re-renders
   const isPublicPage = useMemo(() => {
     return PUBLIC_PAGES.some(page => pathname?.startsWith(page))
   }, [pathname])
 
-  // Pour les pages publiques, ne pas bloquer le rendu
+  useEffect(() => {
+    if (isPublicPage || loading || authed) return
+    window.location.replace('/login/')
+  }, [isPublicPage, loading, authed])
+
   if (isPublicPage) {
     return <>{children}</>
   }
 
-  // Pour les pages privées, attendre l'authentification
-  // Mais ne pas bloquer indéfiniment si on a un user (même si le profil n'est pas encore chargé)
-  if (loading && !user) {
+  if (loading && !authed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

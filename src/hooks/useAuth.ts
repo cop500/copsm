@@ -25,36 +25,16 @@ export const useAuth = () => {
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
 
-  // Récupérer l'utilisateur Supabase une seule fois
   useEffect(() => {
     let mounted = true
 
-    const getAuthUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (mounted) {
-          setAuthUser(user)
-        }
-      } catch (error) {
-        console.error('Erreur récupération user auth:', error)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return
+      setAuthUser(session?.user ?? null)
+      if (event === 'SIGNED_OUT') {
+        router.push('/login')
       }
-    }
-
-    getAuthUser()
-
-    // Écouter les changements d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          setAuthUser(session.user)
-        } else if (event === 'SIGNED_OUT') {
-          setAuthUser(null)
-          router.push('/login')
-        }
-      }
-    )
+    })
 
     return () => {
       mounted = false

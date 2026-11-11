@@ -21,7 +21,28 @@ export const createSupabaseClient = () => {
         autoRefreshToken: true,
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         detectSessionInUrl: true,
-        flowType: 'pkce'
+        flowType: 'pkce',
+        // Un verrou d’onglet mort bloque sinon getSession/getUser indéfiniment
+        // (spinner jusqu’à navigation privée / déconnexion).
+        lock: async (_name, acquireTimeout, fn) => {
+          if (typeof navigator === 'undefined' || !navigator.locks?.request) {
+            return fn()
+          }
+          const timeoutMs = Math.min(acquireTimeout || 4000, 4000)
+          const ac = new AbortController()
+          const timer = setTimeout(() => ac.abort(), timeoutMs)
+          try {
+            return await navigator.locks.request(
+              _name,
+              { signal: ac.signal, mode: 'exclusive' },
+              fn
+            )
+          } catch {
+            return fn()
+          } finally {
+            clearTimeout(timer)
+          }
+        },
       }
     })
   }

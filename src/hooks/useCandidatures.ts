@@ -36,14 +36,6 @@ interface Candidature {
   updated_at?: string
 }
 
-const CACHE_KEY = 'candidatures_cache'
-const CACHE_DURATION = 4 * 60 * 60 * 1000 // 4 heures en millisecondes
-
-interface CacheData {
-  candidatures: Candidature[]
-  timestamp: number
-}
-
 export const useCandidatures = () => {
   const [candidatures, setCandidatures] = useState<Candidature[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,65 +43,13 @@ export const useCandidatures = () => {
   const [newCandidatureCount, setNewCandidatureCount] = useState(0)
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false)
 
-  // Charger le cache depuis localStorage
-  const loadFromCache = useCallback((): Candidature[] | null => {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY)
-      if (!cached) return null
-
-      const cacheData: CacheData = JSON.parse(cached)
-      const now = Date.now()
-      
-      // Vérifier si le cache est encore valide
-      if (now - cacheData.timestamp < CACHE_DURATION) {
-        console.log('✅ Cache candidatures valide, utilisation des données en cache')
-        return cacheData.candidatures
-      } else {
-        console.log('⏰ Cache candidatures expiré, suppression')
-        localStorage.removeItem(CACHE_KEY)
-        return null
-      }
-    } catch (err) {
-      console.error('Erreur lecture cache:', err)
-      return null
-    }
-  }, [])
-
-  // Sauvegarder dans le cache
-  const saveToCache = useCallback((data: Candidature[]) => {
-    try {
-      const cacheData: CacheData = {
-        candidatures: data,
-        timestamp: Date.now()
-      }
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData))
-      console.log('💾 Candidatures sauvegardées dans le cache')
-    } catch (err) {
-      console.error('Erreur sauvegarde cache:', err)
-    }
-  }, [])
-
-  // Charger toutes les candidatures
   const loadCandidatures = useCallback(async (forceRefresh = false) => {
     try {
-      // Vérifier le cache d'abord si pas de force refresh
-      if (!forceRefresh) {
-        const cachedData = loadFromCache()
-        if (cachedData && cachedData.length > 0) {
-          setCandidatures(cachedData)
-          setLoading(false)
-          // Charger en arrière-plan pour mettre à jour le cache
-          setTimeout(() => loadCandidatures(true), 100)
-          return
-        }
-      }
-
-      // Charger depuis la base de données seulement si nécessaire
-      if (candidatures.length === 0 || forceRefresh) {
+      if (forceRefresh || candidatures.length === 0) {
         setLoading(true)
       }
       setError(null)
-      
+
       const candidaturesData = await fetchAllPages<Candidature>((from, to) =>
         supabase
           .from('candidatures_stagiaires')
@@ -117,16 +57,20 @@ export const useCandidatures = () => {
           .order('created_at', { ascending: false })
           .range(from, to)
       )
-      
+
       setCandidatures(candidaturesData)
-      saveToCache(candidaturesData)
+      try {
+        localStorage.removeItem('candidatures_cache')
+      } catch {
+        /* ignore */
+      }
     } catch (err: any) {
       console.error('Erreur chargement candidatures:', err)
       setError(err.message)
     } finally {
       setLoading(false)
     }
-  }, [loadFromCache, saveToCache, candidatures.length])
+  }, [candidatures.length])
 
   // Mettre à jour le statut d'une candidature (optimistic update)
   const updateStatutCandidature = async (candidatureId: string, newStatut: string, notes?: string) => {
@@ -148,8 +92,6 @@ export const useCandidatures = () => {
           ? { ...c, ...updateData }
           : c
       )
-      // Mettre à jour le cache immédiatement
-      saveToCache(updated)
       return updated
     })
 
@@ -163,7 +105,6 @@ export const useCandidatures = () => {
       if (error) {
         // En cas d'erreur, restaurer l'état précédent
         setCandidatures(previousCandidatures)
-        saveToCache(previousCandidatures)
         throw error
       }
       
@@ -187,7 +128,6 @@ export const useCandidatures = () => {
       // Mettre à jour localement sans recharger complètement
       const updatedCandidatures = candidatures.filter(c => c.id !== candidatureId)
       setCandidatures(updatedCandidatures)
-      saveToCache(updatedCandidatures)
       
       return { success: true }
     } catch (err: any) {
@@ -241,14 +181,9 @@ export const useCandidatures = () => {
         updated = prev.filter((item) => item.id !== oldRow.id)
       }
       
-      // Mettre à jour le cache après chaque changement temps réel
-      if (updated !== prev) {
-        saveToCache(updated)
-      }
-      
       return updated
     })
-  }, [saveToCache])
+  }, [])
 
   // Synchronisation en temps réel
   const { isConnected } = useRealTime('candidatures_stagiaires', handleRealtimeChange)

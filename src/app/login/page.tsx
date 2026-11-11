@@ -23,9 +23,14 @@ export default function LoginPage() {
   
   const { signIn, loading: authLoading } = useAuth()
   const router = useRouter()
+  const [bootWait, setBootWait] = useState(true)
 
-  // Afficher un spinner si en cours de chargement
-  if (authLoading) {
+  useEffect(() => {
+    const t = window.setTimeout(() => setBootWait(false), 4000)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  if (authLoading && bootWait) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50">
         <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>

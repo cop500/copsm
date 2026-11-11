@@ -24,8 +24,6 @@ import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole'
 import { EspaceAmbassadeurs } from './EspaceAmbassadeurs'
 import CalendrierCollaboratif from './CalendrierCollaboratif'
-import { AffichesModule } from './AffichesModule'
-import { CertificatsModule } from './CertificatsModule'
 import RegistreVisiteursModule from './RegistreVisiteursModule'
 import PartenariatsConventionsModule from './PartenariatsConventionsModule'
 
@@ -116,7 +114,7 @@ export const ModernEvenementsModule = () => {
   const [showEventDetail, setShowEventDetail] = useState(false)
   const [showAtelierDetail, setShowAtelierDetail] = useState(false)
   const [eventDetailTab, setEventDetailTab] = useState<'details' | 'rapports'>('details')
-  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'planning' | 'enquete' | 'ambassadeurs' | 'affiches' | 'certificats' | 'registre-visiteurs' | 'partenariats-conventions'>('evenements')
+  const [activeTab, setActiveTab] = useState<'evenements' | 'ateliers' | 'planning' | 'enquete' | 'ambassadeurs' | 'registre-visiteurs' | 'partenariats-conventions'>('evenements')
   const [showAtelierForm, setShowAtelierForm] = useState(false)
   const [editingAtelier, setEditingAtelier] = useState<any>(null)
   const [showInscriptionsModal, setShowInscriptionsModal] = useState(false)
@@ -163,7 +161,7 @@ export const ModernEvenementsModule = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('cop_app_active_tab');
-      if (savedTab && ['evenements', 'ateliers', 'planning', 'enquete', 'ambassadeurs', 'affiches', 'certificats', 'registre-visiteurs', 'partenariats-conventions'].includes(savedTab)) {
+      if (savedTab && ['evenements', 'ateliers', 'planning', 'enquete', 'ambassadeurs', 'registre-visiteurs', 'partenariats-conventions'].includes(savedTab)) {
         setActiveTab(savedTab as any);
       }
     }
@@ -1218,7 +1216,7 @@ export const ModernEvenementsModule = () => {
                 )}
               </>
             )}
-            {!stableIsDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && activeTab !== 'registre-visiteurs' && activeTab !== 'partenariats-conventions' && (
+            {!stableIsDirecteur && activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'planning' && activeTab !== 'registre-visiteurs' && activeTab !== 'partenariats-conventions' && (
             <button
               onClick={() => {
                 if (activeTab === 'evenements') {
@@ -1317,32 +1315,6 @@ export const ModernEvenementsModule = () => {
                 Espace Ambassadeurs
               </button>
             )}
-            {(stableIsAdmin || stableIsManager || stableIsCarriere || stableIsConseillerCop) && (
-              <button
-                onClick={() => setActiveTab('affiches')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === 'affiches'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                Affiches
-              </button>
-            )}
-            {(stableIsAdmin || isAdmin) && (
-              <button
-                onClick={() => setActiveTab('certificats')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === 'certificats'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                Certificats
-              </button>
-            )}
             {canViewPartenariats && (
               <button
                 onClick={() => setActiveTab('partenariats-conventions')}
@@ -1374,7 +1346,7 @@ export const ModernEvenementsModule = () => {
       </div>
 
       {/* Statistiques */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && activeTab !== 'registre-visiteurs' && activeTab !== 'partenariats-conventions' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'planning' && activeTab !== 'registre-visiteurs' && activeTab !== 'partenariats-conventions' && (
         <>
           {activeTab === 'evenements' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1482,7 +1454,7 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Filtres et recherche */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && activeTab !== 'registre-visiteurs' && activeTab !== 'partenariats-conventions' && (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'planning' && activeTab !== 'registre-visiteurs' && activeTab !== 'partenariats-conventions' && (
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Recherche */}
@@ -1589,7 +1561,7 @@ export const ModernEvenementsModule = () => {
       )}
 
       {/* Liste des éléments selon l'onglet actif */}
-      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'planning' && activeTab !== 'affiches' && activeTab !== 'certificats' && activeTab !== 'registre-visiteurs' && activeTab !== 'partenariats-conventions' ? (
+      {activeTab !== 'enquete' && activeTab !== 'ambassadeurs' && activeTab !== 'planning' && activeTab !== 'registre-visiteurs' && activeTab !== 'partenariats-conventions' ? (
         hookLoading && evenementsData.length === 0 && ateliersData.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
           <div className="text-center">
@@ -2419,20 +2391,6 @@ export const ModernEvenementsModule = () => {
       {activeTab === 'planning' && (
         <div className="p-6">
           <CalendrierCollaboratif />
-        </div>
-      )}
-
-      {/* Onglet Affiches */}
-      {activeTab === 'affiches' && (
-        <div className="p-6">
-          <AffichesModule />
-        </div>
-      )}
-
-      {/* Onglet Certificats */}
-      {activeTab === 'certificats' && (
-        <div className="p-6">
-          <CertificatsModule />
         </div>
       )}
 
