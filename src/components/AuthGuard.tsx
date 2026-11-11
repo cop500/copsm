@@ -10,6 +10,8 @@ const PUBLIC_PAGES = [
   '/enquete-insertion/public',
   '/cv-connect/public',
   '/candidature',
+  '/entreprises',
+  '/demande-entreprise',
   '/inscription-ateliers',
   '/evenements',
   '/ambassadeurs',

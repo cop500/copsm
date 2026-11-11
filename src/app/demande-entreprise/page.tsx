@@ -3,6 +3,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { sendNewDemandeNotification } from '@/lib/email';
 import { CopSpacePublicMark } from '@/components/CopSpacePublicMark';
+import { DemandeEntrepriseCatalogue } from '@/components/DemandeEntrepriseCatalogue';
 
 const BLEU_FONCE = "#004080";
 const dureesContrat = ["1 mois", "3 mois", "6 mois", "12 mois", "Autre"];
@@ -47,12 +48,17 @@ type FormData = {
 type Pole = {
   id: string;
   nom: string;
+  description?: string | null;
+  couleur?: string | null;
+  actif?: boolean;
 };
 
 type Filiere = {
   id: string;
   nom: string;
   pole_id: string;
+  description?: string | null;
+  actif?: boolean;
 };
 
 const defaultProfil = {
@@ -201,7 +207,10 @@ export default function DemandeEntreprisePage() {
   }, []);
 
   const removeProfil = useCallback((idx: number) => {
-    setProfils(prev => prev.filter((_, i) => i !== idx));
+    setProfils((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length === 0 ? [{ ...defaultProfil }] : next;
+    });
     setIsFormDirty(true);
   }, []);
 
@@ -219,6 +228,23 @@ export default function DemandeEntreprisePage() {
 
   const getFilieresForPole = useCallback((pole_id: string) => {
     return filieres.filter(f => f.pole_id === pole_id);
+  }, [filieres]);
+
+  const choisirProfilCatalogue = useCallback((poleId: string, filiereId: string) => {
+    const filiere = filieres.find((f) => f.id === filiereId);
+    setProfils((prev) => {
+      const premierVide =
+        prev.length === 1 && !prev[0].filiere_id && !prev[0].poste_intitule;
+      const suivant = {
+        ...defaultProfil,
+        pole_id: poleId,
+        filiere_id: filiereId,
+        poste_intitule: filiere?.nom || '',
+      };
+      if (premierVide) return [suivant];
+      return [...prev, suivant];
+    });
+    setIsFormDirty(true);
   }, [filieres]);
 
   const steps = [
@@ -390,33 +416,58 @@ export default function DemandeEntreprisePage() {
     }
   }, [form, profils, handleReset]);
 
+  const profilsDemandes = profils.filter((p) => p.filiere_id)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="max-w-4xl mx-auto py-6 sm:py-12 px-4 sm:px-6">
-        {/* Header avec design moderne */}
-        <div className="text-center mb-8">
-          <div className="mb-5 flex justify-center">
-            <CopSpacePublicMark size="md" />
+    <div className="min-h-screen bg-[#f4f7fb]">
+      <div className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6">
+        <div className="mb-6 text-center">
+          <div className="flex justify-center">
+            <CopSpacePublicMark size="sm" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
-            Espace de gestion des demandes entreprises
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#004080] mt-4">
+            Recruter un talent CMC
           </h1>
-          <p className="text-lg text-gray-600 mb-6">
-            Centre d'Orientation Professionnelle Souss Massa
+          <p className="text-slate-600 mt-2 max-w-2xl mx-auto">
+            Consultez d’abord le catalogue des pôles et filières, puis déposez votre demande
+            au Centre d’Orientation Professionnelle Souss-Massa.
           </p>
-          
           {isFormDirty && (
-            <div className="inline-flex items-center gap-2 text-sm text-green-700 bg-green-100 px-4 py-2 rounded-full mb-4">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Données sauvegardées automatiquement
+            <div className="mt-3 inline-flex items-center gap-2 text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full">
+              Brouillon enregistré
             </div>
           )}
-          
-          <div className="max-w-2xl mx-auto text-sm text-gray-600 bg-white/70 backdrop-blur-sm px-4 py-3 rounded-xl border border-blue-200">
-            <strong className="text-blue-700">💡 Conseil :</strong> Vous pouvez copier-coller vos informations sans problème. 
-            Vos données sont sauvegardées automatiquement et restaurées si vous actualisez la page.
         </div>
-      </div>
+
+        <div
+          className={`grid grid-cols-1 gap-6 items-start ${
+            step < 3 ? 'lg:grid-cols-[minmax(280px,380px)_1fr]' : ''
+          }`}
+        >
+          {step < 3 && (
+          <div>
+            <DemandeEntrepriseCatalogue
+              poles={poles}
+              filieres={filieres}
+              selectedFiliereIds={profils.map((p) => p.filiere_id).filter(Boolean)}
+              peutDemander={step === 2}
+              onChoisir={choisirProfilCatalogue}
+            />
+          </div>
+          )}
+
+          <div id="formulaire-demande">
+        {step === 2 && profilsDemandes.length > 0 && (
+          <div className="mb-4 rounded-xl border border-[#004080]/20 bg-white px-4 py-3 text-sm text-slate-700">
+            {profilsDemandes.length} profil{profilsDemandes.length > 1 ? 's' : ''} :{' '}
+            <strong>
+              {profilsDemandes
+                .map((p) => filieres.find((f) => f.id === p.filiere_id)?.nom || p.poste_intitule)
+                .filter(Boolean)
+                .join(' · ')}
+            </strong>
+          </div>
+        )}
         {/* Barre de progression moderne avec icônes */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <div className="flex items-center justify-between relative">
@@ -668,7 +719,7 @@ export default function DemandeEntreprisePage() {
                       Profil {idx + 1}
                     </h3>
                       </div>
-                    {profils.length > 1 && (
+                    {(profils.length > 1 || Boolean(profil.filiere_id) || Boolean(profil.poste_intitule)) && (
                         <button 
                           type="button" 
                           onClick={() => removeProfil(idx)} 
@@ -999,6 +1050,8 @@ export default function DemandeEntreprisePage() {
           </div>
         </form>
       )}
+          </div>
+        </div>
       </div>
     </div>
   );
