@@ -180,6 +180,14 @@ const DashboardAdmin = () => {
 
   const handleStatutChange = async (demandeId: string, newStatut: string) => {
     const current = demandes.find((d) => d.id === demandeId)
+    const passerTerminee = newStatut === 'terminee' && current?.statut !== 'terminee'
+    if (passerTerminee && isAdmin) {
+      const ok = window.confirm(
+        'Passer cette demande en terminée ? Les PDF des CV seront retirés du stockage. Les fiches (noms, statuts, tri) restent consultables.'
+      )
+      if (!ok) return
+    }
+
     const wasClosed = isDemandeCloturee(current?.statut)
     const nowClosed = isDemandeCloturee(newStatut)
     let dateCloture = current?.date_cloture || null
@@ -209,7 +217,34 @@ const DashboardAdmin = () => {
       }
 
       if (!error) {
-        setMessage("Statut mis à jour avec succès.");
+        if (passerTerminee && isAdmin) {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession()
+            const token = sessionData.session?.access_token
+            const res = await fetch('/api/admin/liberer-cv-terminees/', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token || ''}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ demandeId }),
+            })
+            const data = await res.json()
+            if (!res.ok) {
+              setMessage(
+                `Statut terminée, mais les PDF n’ont pas pu être retirés : ${data.error || 'erreur'}.`
+              )
+            } else {
+              setMessage(
+                `Statut terminée. ${data.fichiersSupprimes || 0} PDF retiré(s). Les fiches restent.`
+              )
+            }
+          } catch {
+            setMessage('Statut terminée, mais le retrait des PDF a échoué. Utilisez Paramètres si besoin.')
+          }
+        } else {
+          setMessage("Statut mis à jour avec succès.");
+        }
       } else {
         setMessage("Erreur lors de la mise à jour du statut.");
       }

@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useRole } from '@/hooks/useRole';
 import { useRouter } from 'next/navigation';
 import GeneralSettingsModule from '@/components/GeneralSettingsModule';
+import { LibererStockageCvTerminees } from '@/components/LibererStockageCvTerminees';
 import { Settings, Mail, Users, CalendarDays } from 'lucide-react';
 
 export default function ParametresPage() {
@@ -57,6 +58,7 @@ export default function ParametresPage() {
           <p className="text-gray-600 mb-4">Configuration des pôles et filières de formation</p>
           <div className="mt-8">
             <GeneralSettingsModule />
+            <LibererStockageCvTerminees />
           </div>
         </div>
       )}
