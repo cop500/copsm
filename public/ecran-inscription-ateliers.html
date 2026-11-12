@@ -83,6 +83,13 @@
       margin-top: 10px;
     }
     .btn-noter:active { background: #ffedd5; }
+    .btn-annuler {
+      background: #fff;
+      color: #374151;
+      border: 2px solid #d1d5db;
+      margin-top: 10px;
+    }
+    .btn-annuler:active { background: #f3f4f6; }
     .stars { display: flex; gap: 8px; justify-content: flex-end; }
     .star {
       background: none;
@@ -279,6 +286,50 @@
     </div>
   </div>
 
+  <div class="overlay" id="overlayAnnul">
+    <div class="modal">
+      <h2>Annuler l’inscription</h2>
+      <div class="summary" id="annulSummary"></div>
+      <form id="formAnnul">
+        <p class="meta" style="margin-bottom:16px;">
+          Saisissez le nom et l’e-mail utilisés à l’inscription. Motifs possibles : empêchement,
+          changement d’emploi du temps, difficulté d’accès.
+        </p>
+        <div class="field">
+          <label for="annul_nom">Nom complet *</label>
+          <input type="text" id="annul_nom" required />
+        </div>
+        <div class="field">
+          <label for="annul_email">E-mail *</label>
+          <input type="email" id="annul_email" required />
+        </div>
+        <div class="field">
+          <label for="annul_motif">Motif *</label>
+          <select id="annul_motif" required>
+            <option value="empechement">Empêchement</option>
+            <option value="emploi_du_temps">Changement d’emploi du temps</option>
+            <option value="acces">Difficulté d’accès</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="annul_commentaire">Commentaire (facultatif)</label>
+          <textarea id="annul_commentaire"></textarea>
+        </div>
+        <div id="annulError" class="error-box hidden" style="margin-top:12px;"></div>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" id="btnAnnulClose">Fermer</button>
+          <button type="submit" class="btn" id="btnAnnulSubmit">Confirmer l’annulation</button>
+        </div>
+      </form>
+      <div id="annulOk" class="success hidden">
+        <h2>Inscription annulée</h2>
+        <p>Une place a été libérée.</p>
+        <button type="button" class="btn" id="btnAnnulOk">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       var ateliers = [];
@@ -286,6 +337,7 @@
       var filieres = [];
       var selectedAtelier = null;
       var atelierANoter = null;
+      var atelierAAnnuler = null;
       var notesValues = {};
       var CRITERES = [
         { key: 'clarte', label: 'Clarté du contenu' },
@@ -299,6 +351,10 @@
       var listeEl = document.getElementById('liste');
       var overlay = document.getElementById('overlay');
       var overlayNote = document.getElementById('overlayNote');
+      var overlayAnnul = document.getElementById('overlayAnnul');
+      var formAnnul = document.getElementById('formAnnul');
+      var annulError = document.getElementById('annulError');
+      var annulOk = document.getElementById('annulOk');
       var form = document.getElementById('formInscription');
       var formError = document.getElementById('formError');
       var formIdentite = document.getElementById('formIdentite');
@@ -480,6 +536,8 @@
               (a.animateur_role ? ' (' + esc(a.animateur_role) + ')' : '') + '</p>' : '') +
             '<button type="button" class="btn btn-inscrire" data-id="' + esc(a.id) + '" ' +
             (ouvert ? '' : 'disabled') + '>' + btnText + '</button>' +
+            (passe ? '' :
+              '<button type="button" class="btn btn-annuler" data-id="' + esc(a.id) + '">Annuler l’inscription</button>') +
             (isCommence(a)
               ? '<button type="button" class="btn btn-noter" data-id="' + esc(a.id) + '">Noter l’atelier</button>'
               : '') +
@@ -494,6 +552,10 @@
         var noteBtns = listeEl.querySelectorAll('.btn-noter');
         for (var k = 0; k < noteBtns.length; k++) {
           noteBtns[k].addEventListener('click', onNoterClick);
+        }
+        var annulBtns = listeEl.querySelectorAll('.btn-annuler');
+        for (var n = 0; n < annulBtns.length; n++) {
+          annulBtns[n].addEventListener('click', onAnnulerClick);
         }
       }
 
@@ -562,6 +624,32 @@
       function closeNote() {
         overlayNote.className = 'overlay';
         atelierANoter = null;
+      }
+
+      function closeAnnul() {
+        overlayAnnul.className = 'overlay';
+        atelierAAnnuler = null;
+        formAnnul.className = '';
+        annulOk.className = 'success hidden';
+        annulError.className = 'error-box hidden';
+      }
+
+      function onAnnulerClick(e) {
+        var id = e.currentTarget.getAttribute('data-id');
+        atelierAAnnuler = null;
+        for (var i = 0; i < ateliers.length; i++) {
+          if (ateliers[i].id === id) {
+            atelierAAnnuler = ateliers[i];
+            break;
+          }
+        }
+        if (!atelierAAnnuler || isPasse(atelierAAnnuler)) return;
+        document.getElementById('annulSummary').innerHTML = '<strong>' + esc(atelierAAnnuler.titre) + '</strong>';
+        formAnnul.reset();
+        formAnnul.className = '';
+        annulOk.className = 'success hidden';
+        annulError.className = 'error-box hidden';
+        overlayAnnul.className = 'overlay open';
       }
 
       function onNoterClick(e) {
@@ -669,6 +757,47 @@
       document.getElementById('btnNoteRetour').addEventListener('click', function () {
         noteIdentiteError.className = 'error-box hidden';
         showNoteStep('identite');
+      });
+
+      document.getElementById('btnAnnulClose').addEventListener('click', closeAnnul);
+      document.getElementById('btnAnnulOk').addEventListener('click', closeAnnul);
+      formAnnul.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!atelierAAnnuler) return;
+        annulError.className = 'error-box hidden';
+        var btn = document.getElementById('btnAnnulSubmit');
+        btn.disabled = true;
+        fetch('/api/ateliers/inscription/annuler/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            atelier_id: atelierAAnnuler.id,
+            nom: document.getElementById('annul_nom').value.trim(),
+            email: document.getElementById('annul_email').value.trim(),
+            motif: document.getElementById('annul_motif').value,
+            commentaire: document.getElementById('annul_commentaire').value.trim()
+          })
+        })
+          .then(function (r) {
+            return r.json().then(function (j) { return { ok: r.ok, body: j }; });
+          })
+          .then(function (res) {
+            if (res.ok) {
+              formAnnul.className = 'hidden';
+              annulOk.className = 'success';
+              loadAteliers();
+              return;
+            }
+            annulError.textContent = (res.body && res.body.error) || 'Annulation impossible.';
+            annulError.className = 'error-box';
+          })
+          .catch(function () {
+            annulError.textContent = 'Connexion impossible. Réessayez.';
+            annulError.className = 'error-box';
+          })
+          .then(function () {
+            btn.disabled = false;
+          });
       });
 
       document.getElementById('btnCancel').addEventListener('click', function () {

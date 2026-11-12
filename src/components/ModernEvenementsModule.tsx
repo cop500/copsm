@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { useSettings } from '@/hooks/useSettings'
 import { useEvenements } from '@/hooks/useEvenements'
 import { supabase } from '@/lib/supabase'
@@ -13,19 +14,35 @@ import {
 } from 'lucide-react'
 import { EvenementForm } from './EvenementForm'
 import { EventCard } from './EventCard'
-import AIContentGenerator from './AIContentGenerator'
-import { RapportsList } from './RapportsList'
 import { AtelierForm } from './AtelierForm'
-import AtelierInscriptionsManager from './AtelierInscriptionsManager'
 import { AtelierIndicateursBlock } from './AtelierIndicateursBlock'
 import type { AtelierIndicateurs } from '@/lib/atelierEvaluation'
-import * as XLSX from 'xlsx'
 import { useUser } from '@/contexts/UserContext'
 import { useRole } from '@/hooks/useRole'
-import { EspaceAmbassadeurs } from './EspaceAmbassadeurs'
-import CalendrierCollaboratif from './CalendrierCollaboratif'
-import RegistreVisiteursModule from './RegistreVisiteursModule'
-import PartenariatsConventionsModule from './PartenariatsConventionsModule'
+
+const tabLoading = () => (
+  <div className="p-10 text-center text-sm text-gray-500">Chargement…</div>
+)
+
+const AIContentGenerator = dynamic(() => import('./AIContentGenerator'), { ssr: false })
+const RapportsList = dynamic(() => import('./RapportsList').then((m) => m.RapportsList), { ssr: false })
+const AtelierInscriptionsManager = dynamic(() => import('./AtelierInscriptionsManager'), { ssr: false })
+const EspaceAmbassadeurs = dynamic(
+  () => import('./EspaceAmbassadeurs').then((m) => m.EspaceAmbassadeurs),
+  { ssr: false, loading: tabLoading }
+)
+const CalendrierCollaboratif = dynamic(() => import('./CalendrierCollaboratif'), {
+  ssr: false,
+  loading: tabLoading,
+})
+const RegistreVisiteursModule = dynamic(() => import('./RegistreVisiteursModule'), {
+  ssr: false,
+  loading: tabLoading,
+})
+const PartenariatsConventionsModule = dynamic(() => import('./PartenariatsConventionsModule'), {
+  ssr: false,
+  loading: tabLoading,
+})
 
 export const ModernEvenementsModule = () => {
   const { eventTypes } = useSettings()
@@ -146,15 +163,6 @@ export const ModernEvenementsModule = () => {
     { value: 'assistance_filiere', label: 'Assistance au choix de filière' }
   ]
 
-  // Debug logs (après toutes les déclarations d'état)
-  console.log('🔍 === DEBUG MODERN EVENEMENTS ===')
-  console.log('🔍 Current user:', currentUser)
-  console.log('🔍 User role:', currentUser?.role)
-  console.log('🔍 Is admin:', stableIsAdmin)
-  console.log('🔍 All evenements:', allEvenements)
-  console.log('🔍 Evenements data:', evenementsData)
-  console.log('🔍 Ateliers data:', ateliersData)
-  console.log('🔍 Active tab:', activeTab)
   // Utiliser le loading du hook directement, pas besoin de useEffect séparé
 
   // Persister l'onglet actif dans localStorage
@@ -481,7 +489,8 @@ export const ModernEvenementsModule = () => {
   }
 
   // Fonction pour télécharger le template Excel
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    const XLSX = await import('xlsx')
     const template = [
       {
         'Titre': 'Exemple événement',
@@ -568,41 +577,23 @@ export const ModernEvenementsModule = () => {
     XLSX.writeFile(wb, 'template_evenements.xlsx');
   };
 
-  // Fonction pour lire le fichier Excel
-  const handleFileUpload = (file: File) => {
-    console.log('📁 Fichier sélectionné:', file.name, file.size, 'bytes');
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        console.log('📊 Données Excel brutes:', data.length, 'bytes');
-        
-        const workbook = XLSX.read(data, { type: 'array' });
-        console.log('📋 Feuilles disponibles:', workbook.SheetNames);
-        
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-        
-        console.log('📄 Données JSON extraites:', jsonData);
-        
-        if (!jsonData || jsonData.length === 0) {
-          throw new Error('Le fichier Excel ne contient aucune donnée');
-        }
-        
-        // Utiliser la fonction normalizeVolet définie au niveau du composant
+  const handleFileUpload = async (file: File) => {
+    try {
+      const XLSX = await import('xlsx')
+      const data = new Uint8Array(await file.arrayBuffer())
+      const workbook = XLSX.read(data, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[]
 
-        // Mapper les colonnes Excel vers nos champs
-        const mappedData = jsonData.map((row: any, index: number) => {
-          console.log(`📝 Ligne ${index + 1}:`, row);
-          
-          const voletValue = row['Volet'] || row['volet'] || '';
-          const normalizedVolet = normalizeVolet(voletValue);
-          
-          console.log(`🔍 Volet original: "${voletValue}" → Normalisé: "${normalizedVolet}"`);
-          
-          const mapped = {
+      if (!jsonData || jsonData.length === 0) {
+        throw new Error('Le fichier Excel ne contient aucune donnée')
+      }
+
+      const mappedData = jsonData
+        .map((row: any) => {
+          const voletValue = row['Volet'] || row['volet'] || ''
+          return {
             titre: row['Titre'] || row['titre'] || '',
             type_evenement: row['Type d\'événement'] || row['Type'] || row['type_evenement'] || '',
             date_debut: row['Date de début'] || row['Date'] || row['date_debut'] || '',
@@ -610,38 +601,26 @@ export const ModernEvenementsModule = () => {
             description: row['Description'] || row['description'] || '',
             responsable_cop: row['Responsable COP'] || row['Responsable'] || row['responsable_cop'] || '',
             statut: (row['Statut'] || row['statut'] || 'planifie').toLowerCase(),
-            volet: normalizedVolet,
+            volet: normalizeVolet(voletValue),
             nombre_beneficiaires: parseInt(row['Nombre bénéficiaires'] || row['nombre_beneficiaires'] || '0') || 0,
             nombre_candidats: parseInt(row['Nombre candidats'] || row['nombre_candidats'] || '0') || 0,
-            nombre_candidats_retenus: parseInt(row['Nombre candidats retenus'] || row['nombre_candidats_retenus'] || '0') || 0
-          };
-          
-          console.log(`✅ Ligne ${index + 1} mappée:`, mapped);
-          return mapped;
-        }).filter(item => item.titre && item.titre.trim() !== ''); // Filtrer les lignes vides
+            nombre_candidats_retenus: parseInt(row['Nombre candidats retenus'] || row['nombre_candidats_retenus'] || '0') || 0,
+          }
+        })
+        .filter((item) => item.titre && item.titre.trim() !== '')
 
-        console.log('🎯 Données finales mappées:', mappedData);
-        
-        if (mappedData.length === 0) {
-          throw new Error('Aucune ligne valide trouvée dans le fichier Excel');
-        }
-
-        setImportPreview(mappedData);
-        setImportFile(file);
-        showMessage(`✅ Fichier lu avec succès : ${mappedData.length} événements détectés`, 'success');
-      } catch (error: any) {
-        console.error('❌ Erreur lecture Excel:', error);
-        showMessage(`Erreur lors de la lecture du fichier Excel : ${error.message}`, 'error');
+      if (mappedData.length === 0) {
+        throw new Error('Aucune ligne valide trouvée dans le fichier Excel')
       }
-    };
-    
-    reader.onerror = () => {
-      console.error('❌ Erreur lors de la lecture du fichier');
-      showMessage('Erreur lors de la lecture du fichier', 'error');
-    };
-    
-    reader.readAsArrayBuffer(file);
-  };
+
+      setImportPreview(mappedData)
+      setImportFile(file)
+      showMessage(`✅ Fichier lu avec succès : ${mappedData.length} événements détectés`, 'success')
+    } catch (error: any) {
+      console.error('Erreur lecture Excel:', error)
+      showMessage(`Erreur lors de la lecture du fichier Excel : ${error.message}`, 'error')
+    }
+  }
 
   // Fonctions de gestion de la suppression multiple
   const handleSelectEvent = (eventId: string) => {
@@ -757,6 +736,7 @@ export const ModernEvenementsModule = () => {
 
       // Utiliser une approche plus robuste pour lire le fichier Excel
       const arrayBuffer = await importFile.arrayBuffer();
+      const XLSX = await import('xlsx')
       const workbook = XLSX.read(arrayBuffer, { 
         type: 'array',
         cellDates: true,

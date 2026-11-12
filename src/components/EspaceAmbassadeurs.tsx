@@ -68,6 +68,28 @@ interface StagiaireAmbassadeur {
   }
 }
 
+function nomCompletKey(prenom?: string | null, nom?: string | null) {
+  return `${prenom || ''} ${nom || ''}`.trim().toLowerCase()
+}
+
+function mapEvaluation(evalData: any) {
+  if (!evalData) return null
+  return {
+    note_presence: evalData.note_presence,
+    note_implication: evalData.note_implication,
+    note_participation: evalData.note_participation,
+    note_qualite_actions: evalData.note_qualite_actions,
+    note_leadership: evalData.note_leadership,
+    note_globale: evalData.note_globale,
+    commentaires: evalData.commentaires,
+    points_forts: evalData.points_forts,
+    axes_amelioration: evalData.axes_amelioration,
+    periode_debut: evalData.periode_debut,
+    periode_fin: evalData.periode_fin,
+    evaluateur_nom: evalData.evaluateur_nom,
+  }
+}
+
 function champsProfil(row: Record<string, any>) {
   return {
     date_naissance: row.date_naissance || null,
@@ -547,14 +569,6 @@ export const EspaceAmbassadeurs: React.FC = () => {
     periode_fin: ''
   })
 
-  // Debug: afficher les actions chargées
-  useEffect(() => {
-    console.log('🔍 Actions ambassadeurs chargées:', actions.length)
-    if (actions.length > 0) {
-      console.log('🔍 Première action:', actions[0])
-    }
-  }, [actions])
-
   // Charger les données complètes
   useEffect(() => {
     const loadData = async () => {
@@ -564,8 +578,8 @@ export const EspaceAmbassadeurs: React.FC = () => {
         // Charger les inscriptions aux ateliers en premier
         const { data: inscriptionsData, error: inscriptionsError } = await supabase
           .from('inscriptions_ateliers')
-          .select('*')
-          .is('statut', null) // Inscriptions actives seulement
+          .select('stagiaire_nom, stagiaire_email, statut')
+          .is('statut', null)
 
         if (inscriptionsError) {
           console.error('Erreur chargement inscriptions:', inscriptionsError)
@@ -573,10 +587,9 @@ export const EspaceAmbassadeurs: React.FC = () => {
           setInscriptionsAteliers(inscriptionsData || [])
         }
 
-        // Charger les présences aux événements
         const { data: presencesData, error: presencesError } = await supabase
           .from('presences_evenements')
-          .select('*')
+          .select('stagiaire_nom, stagiaire_email')
 
         if (presencesError) {
           console.error('Erreur chargement présences:', presencesError)
@@ -584,7 +597,6 @@ export const EspaceAmbassadeurs: React.FC = () => {
           setPresencesEvenements(presencesData || [])
         }
 
-        // Charger TOUS les stagiaires de la table stagiaires (pas seulement ceux avec des actions)
         const { data: allStagiairesData, error: stagiairesError } = await supabase
           .from('stagiaires')
           .select(`
@@ -597,160 +609,78 @@ export const EspaceAmbassadeurs: React.FC = () => {
           console.error('Erreur chargement stagiaires:', stagiairesError)
         }
 
-        // Grouper les actions par stagiaire (normaliser les noms)
+        const { data: evaluationsData } = await supabase
+          .from('evaluations_ambassadeurs')
+          .select('*')
+          .eq('actif', true)
+          .order('created_at', { ascending: false })
+
+        const evalById = new Map<string, any>()
+        const evalByNom = new Map<string, any>()
+        for (const row of evaluationsData || []) {
+          if (row.stagiaire_id && !evalById.has(row.stagiaire_id)) evalById.set(row.stagiaire_id, row)
+          const nomEval = (row.stagiaire_nom_complet || '').trim().toLowerCase()
+          if (nomEval && !evalByNom.has(nomEval)) evalByNom.set(nomEval, row)
+        }
+
         const actionsByStagiaire = new Map<string, ActionAmbassadeur[]>()
-        
         if (actions && actions.length > 0) {
-          actions.forEach(action => {
-            if (!action.nom_prenom_stagiaire) {
-              console.warn('⚠️ Action sans nom_prenom_stagiaire:', action.id)
-              return
-            }
+          actions.forEach((action) => {
+            if (!action.nom_prenom_stagiaire) return
             const nomComplet = action.nom_prenom_stagiaire.trim().toLowerCase()
-            if (!actionsByStagiaire.has(nomComplet)) {
-              actionsByStagiaire.set(nomComplet, [])
-            }
+            if (!actionsByStagiaire.has(nomComplet)) actionsByStagiaire.set(nomComplet, [])
             actionsByStagiaire.get(nomComplet)!.push(action)
           })
         }
 
-        console.log('👥 Stagiaires uniques trouvés:', actionsByStagiaire.size)
-
-        // Récupérer les profils stagiaires depuis la table stagiaires
         const stagiairesData: StagiaireAmbassadeur[] = []
         const inscriptions = inscriptionsData || []
         const allStagiaires = allStagiairesData || []
-        const stagiairesProcessed = new Set<string>() // Pour éviter les doublons
-        
-        // Traiter UNIQUEMENT les stagiaires qui existent dans la table stagiaires
-        // Ne pas créer de stagiaires à partir des actions
-        for (const [nomCompletNormalized, stagiaireActions] of actionsByStagiaire.entries()) {
-          // Récupérer le nom original depuis la première action
-          const nomCompletOriginal = stagiaireActions[0].nom_prenom_stagiaire.trim()
-          const nameParts = nomCompletOriginal.split(' ').filter(p => p.length > 0)
-          const prenom = nameParts[0] || ''
-          const nom = nameParts.slice(1).join(' ') || ''
-          
-          let stagiaireData: any = null
-          
-          // Essayer de trouver le stagiaire dans la table stagiaires
-          // IMPORTANT : Si le stagiaire n'existe pas, on ne crée PAS de stagiaire fictif
-          if (prenom && nom) {
-            try {
-              const { data, error } = await supabase
-                .from('stagiaires')
-                .select(`
-                  *,
-                  poles(nom, couleur),
-                  filieres(nom, color)
-                `)
-                .or(`prenom.ilike.%${prenom}%,nom.ilike.%${nom}%`)
-                .limit(5) // Prendre plusieurs résultats pour mieux matcher
-              
-              if (!error && data && data.length > 0) {
-                // Trouver la meilleure correspondance
-                const bestMatch = data.find(s => {
-                  const sNomComplet = `${s.prenom} ${s.nom}`.toLowerCase()
-                  return sNomComplet.includes(nomCompletNormalized) || 
-                         nomCompletNormalized.includes(sNomComplet) ||
-                         (s.prenom.toLowerCase().includes(prenom.toLowerCase()) && 
-                          s.nom.toLowerCase().includes(nom.toLowerCase()))
-                })
-                stagiaireData = bestMatch || data[0]
-              }
-            } catch (err) {
-              console.error('Erreur recherche stagiaire:', err)
-            }
-          }
+        const stagiairesProcessed = new Set<string>()
 
-          // Si le stagiaire n'existe pas dans la table stagiaires, on ignore cette action
-          // Les actions sans stagiaire correspondant ne créent pas de stagiaire fictif
-          if (!stagiaireData) {
-            console.log(`⚠️ Action ignorée : stagiaire "${nomCompletOriginal}" n'existe pas dans la table stagiaires`)
-            continue
-          }
+        const trouverStagiaire = (prenom: string, nom: string, nomCompletNormalized: string) => {
+          const exact = allStagiaires.find(
+            (s) => nomCompletKey(s.prenom, s.nom) === nomCompletNormalized
+          )
+          if (exact) return exact
+          const p = prenom.toLowerCase()
+          const n = nom.toLowerCase()
+          return allStagiaires.find(
+            (s) =>
+              (s.prenom || '').toLowerCase().includes(p) &&
+              (s.nom || '').toLowerCase().includes(n)
+          )
+        }
 
-          // Calculer les statistiques
-          const totalActions = stagiaireActions.length
-          const totalParticipants = stagiaireActions.reduce((sum, a) => sum + a.nombre_participants, 0)
-          
-          // Compter les inscriptions aux ateliers
-          const participationAteliers = inscriptions.filter(ins => {
+        const compterAteliers = (nomComplet: string, email?: string | null) =>
+          inscriptions.filter((ins) => {
             const insNom = `${ins.stagiaire_nom || ''}`.toLowerCase()
             const insEmail = `${ins.stagiaire_email || ''}`.toLowerCase()
-            return insNom.includes(nomCompletNormalized) || 
-                   nomCompletNormalized.includes(insNom) ||
-                   (stagiaireData?.email && insEmail.includes(stagiaireData.email.toLowerCase()))
+            return (
+              insNom.includes(nomComplet) ||
+              nomComplet.includes(insNom) ||
+              (email && insEmail === email.toLowerCase())
+            )
           }).length
 
-          // Dernière action
-          const sortedActions = [...stagiaireActions].sort((a, b) => 
-            new Date(b.date_action).getTime() - new Date(a.date_action).getTime()
+        for (const [nomCompletNormalized, stagiaireActions] of actionsByStagiaire.entries()) {
+          const nomCompletOriginal = stagiaireActions[0].nom_prenom_stagiaire.trim()
+          const nameParts = nomCompletOriginal.split(' ').filter((p) => p.length > 0)
+          const prenom = nameParts[0] || ''
+          const nom = nameParts.slice(1).join(' ') || ''
+          const stagiaireData = trouverStagiaire(prenom, nom, nomCompletNormalized)
+          if (!stagiaireData) continue
+
+          const totalActions = stagiaireActions.length
+          const totalParticipants = stagiaireActions.reduce((sum, a) => sum + a.nombre_participants, 0)
+          const sortedActions = [...stagiaireActions].sort(
+            (a, b) => new Date(b.date_action).getTime() - new Date(a.date_action).getTime()
           )
-          const dernierAction = sortedActions[0]
+          const evalData =
+            evalById.get(stagiaireData.id) || evalByNom.get(nomCompletKey(prenom, nom))
 
-          // Charger l'évaluation du stagiaire
-          let evaluationData: any = null
-          const stagiaireId = stagiaireData?.id
-          const nomCompletForEval = `${prenom} ${nom}`.trim()
-          
-          try {
-            let evalData: any = null
-            let evalError: any = null
-
-            // Essayer d'abord par stagiaire_id si disponible
-            if (stagiaireId && !stagiaireId.startsWith('temp-')) {
-              const { data, error } = await supabase
-                .from('evaluations_ambassadeurs')
-                .select('*')
-                .eq('stagiaire_id', stagiaireId)
-                .eq('actif', true)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-              
-              evalData = data
-              evalError = error
-            }
-
-            // Si pas trouvé par ID, essayer par nom complet
-            if (!evalData && nomCompletForEval) {
-              const { data, error } = await supabase
-                .from('evaluations_ambassadeurs')
-                .select('*')
-                .eq('stagiaire_nom_complet', nomCompletForEval)
-                .eq('actif', true)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-              
-              evalData = data
-              evalError = error
-            }
-
-            if (!evalError && evalData) {
-              evaluationData = {
-                note_presence: evalData.note_presence,
-                note_implication: evalData.note_implication,
-                note_participation: evalData.note_participation,
-                note_qualite_actions: evalData.note_qualite_actions,
-                note_leadership: evalData.note_leadership,
-                note_globale: evalData.note_globale,
-                commentaires: evalData.commentaires,
-                points_forts: evalData.points_forts,
-                axes_amelioration: evalData.axes_amelioration,
-                periode_debut: evalData.periode_debut,
-                periode_fin: evalData.periode_fin,
-                evaluateur_nom: evalData.evaluateur_nom
-              }
-            }
-          } catch (evalErr) {
-            console.error('Erreur chargement évaluation:', evalErr)
-          }
-
-          // Utiliser uniquement l'ID du stagiaire réel (pas de stagiaire fictif)
           stagiairesData.push({
-            id: stagiaireData.id, // ID réel du stagiaire
+            id: stagiaireData.id,
             nom: stagiaireData.nom || 'Non renseigné',
             prenom: stagiaireData.prenom || 'Non renseigné',
             email: stagiaireData.email,
@@ -762,97 +692,53 @@ export const EspaceAmbassadeurs: React.FC = () => {
             filiere: stagiaireData.filieres as any,
             ...champsProfil(stagiaireData),
             actions: stagiaireActions,
-            evaluation: evaluationData,
+            evaluation: mapEvaluation(evalData),
             stats: {
               totalActions,
               totalParticipants,
-              presenceEvenements: stagiaireActions.length, // Approximation basée sur les actions
-              participationAteliers,
-              dernierAction: dernierAction?.date_action
-            }
+              presenceEvenements: stagiaireActions.length,
+              participationAteliers: compterAteliers(nomCompletNormalized, stagiaireData.email),
+              dernierAction: sortedActions[0]?.date_action,
+            },
           })
-          
-          // Marquer ce stagiaire comme traité
           stagiairesProcessed.add(stagiaireData.id)
         }
 
-        // Ajouter les stagiaires qui n'ont pas d'actions mais qui existent dans la table stagiaires
         for (const stagiaire of allStagiaires) {
-          // Si le stagiaire n'a pas déjà été ajouté (pas d'actions)
-          if (!stagiairesProcessed.has(stagiaire.id)) {
-            const nomComplet = `${stagiaire.prenom} ${stagiaire.nom}`.toLowerCase()
-            
-            // Charger l'évaluation si elle existe
-            let evaluationData = null
-            try {
-              const { data: evalData } = await supabase
-                .from('evaluations_ambassadeurs')
-                .select('*')
-                .or(`stagiaire_id.eq.${stagiaire.id},stagiaire_nom_complet.eq.${stagiaire.prenom} ${stagiaire.nom}`)
-                .eq('actif', true)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
+          if (stagiairesProcessed.has(stagiaire.id)) continue
+          const nomComplet = nomCompletKey(stagiaire.prenom, stagiaire.nom)
+          const evalData = evalById.get(stagiaire.id) || evalByNom.get(nomComplet)
+          const presenceEvenements = (presencesData || []).filter((p) => {
+            const pNom = `${p.stagiaire_nom || ''}`.toLowerCase()
+            return (
+              pNom.includes(nomComplet) ||
+              nomComplet.includes(pNom) ||
+              (stagiaire.email && p.stagiaire_email?.toLowerCase() === stagiaire.email.toLowerCase())
+            )
+          }).length
 
-              if (evalData) {
-                evaluationData = {
-                  note_presence: evalData.note_presence,
-                  note_implication: evalData.note_implication,
-                  note_participation: evalData.note_participation,
-                  note_qualite_actions: evalData.note_qualite_actions,
-                  note_leadership: evalData.note_leadership,
-                  note_globale: evalData.note_globale,
-                  commentaires: evalData.commentaires,
-                  points_forts: evalData.points_forts,
-                  axes_amelioration: evalData.axes_amelioration,
-                  periode_debut: evalData.periode_debut,
-                  periode_fin: evalData.periode_fin,
-                  evaluateur_nom: evalData.evaluateur_nom
-                }
-              }
-            } catch (evalErr) {
-              console.error('Erreur chargement évaluation:', evalErr)
-            }
-
-            // Compter les inscriptions et présences
-            const participationAteliers = inscriptions.filter(ins => {
-              const insNom = `${ins.stagiaire_nom || ''}`.toLowerCase()
-              const insEmail = `${ins.stagiaire_email || ''}`.toLowerCase()
-              return insNom.includes(nomComplet) || 
-                     nomComplet.includes(insNom) ||
-                     (stagiaire.email && insEmail === stagiaire.email.toLowerCase())
-            }).length
-
-            const presenceEvenements = presencesEvenements.filter(p => {
-              const pNom = `${p.stagiaire_nom || ''}`.toLowerCase()
-              return pNom.includes(nomComplet) || 
-                     nomComplet.includes(pNom) ||
-                     (stagiaire.email && p.stagiaire_email?.toLowerCase() === stagiaire.email.toLowerCase())
-            }).length
-
-            stagiairesData.push({
-              id: stagiaire.id,
-              nom: stagiaire.nom || 'Non renseigné',
-              prenom: stagiaire.prenom || 'Non renseigné',
-              email: stagiaire.email,
-              telephone: stagiaire.telephone,
-              photo_url: stagiaire.photo_url,
-              pole_id: stagiaire.pole_id,
-              filiere_id: stagiaire.filiere_id,
-              pole: stagiaire.poles as any,
-              filiere: stagiaire.filieres as any,
-              ...champsProfil(stagiaire),
-              actions: [], // Pas d'actions
-              evaluation: evaluationData,
-              stats: {
-                totalActions: 0,
-                totalParticipants: 0,
-                presenceEvenements,
-                participationAteliers,
-                dernierAction: undefined
-              }
-            })
-          }
+          stagiairesData.push({
+            id: stagiaire.id,
+            nom: stagiaire.nom || 'Non renseigné',
+            prenom: stagiaire.prenom || 'Non renseigné',
+            email: stagiaire.email,
+            telephone: stagiaire.telephone,
+            photo_url: stagiaire.photo_url,
+            pole_id: stagiaire.pole_id,
+            filiere_id: stagiaire.filiere_id,
+            pole: stagiaire.poles as any,
+            filiere: stagiaire.filieres as any,
+            ...champsProfil(stagiaire),
+            actions: [],
+            evaluation: mapEvaluation(evalData),
+            stats: {
+              totalActions: 0,
+              totalParticipants: 0,
+              presenceEvenements,
+              participationAteliers: compterAteliers(nomComplet, stagiaire.email),
+              dernierAction: undefined,
+            },
+          })
         }
 
         // Trier par nombre d'actions décroissant, puis par nom
@@ -862,13 +748,6 @@ export const EspaceAmbassadeurs: React.FC = () => {
           }
           return `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`)
         })
-        
-        console.log('✅ Stagiaires ambassadeurs créés:', stagiairesData.length)
-        console.log('📋 Détails:', stagiairesData.map(s => ({
-          nom: `${s.prenom} ${s.nom}`,
-          actions: s.stats.totalActions,
-          aProfil: !!s.pole || !!s.filiere
-        })))
         
         setStagiaires(stagiairesData)
       } catch (err: any) {
@@ -1679,6 +1558,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
                           <img 
                             src={stagiaire.photo_url} 
                             alt={`${stagiaire.prenom} ${stagiaire.nom}`}
+                            loading="lazy"
                             className="w-20 h-20 rounded-2xl object-cover border border-gray-200 shadow-sm"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
@@ -2483,7 +2363,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
                       >
                         <div className="flex items-center gap-4">
                           {stagiaire.photo_url ? (
-                            <img src={stagiaire.photo_url} alt={`${stagiaire.prenom} ${stagiaire.nom}`} className="w-12 h-12 rounded-full object-cover" />
+                            <img src={stagiaire.photo_url} alt={`${stagiaire.prenom} ${stagiaire.nom}`} loading="lazy" className="w-12 h-12 rounded-full object-cover" />
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
                               <UserCircle className="w-6 h-6 text-blue-600" />

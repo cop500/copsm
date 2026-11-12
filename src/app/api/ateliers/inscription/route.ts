@@ -69,14 +69,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: existing } = await supabase
+    const { data: existingRows } = await supabase
       .from('inscriptions_ateliers')
-      .select('id')
+      .select('id, statut')
       .eq('atelier_id', atelierId)
       .eq('stagiaire_email', email)
-      .maybeSingle()
 
-    if (existing) {
+    const activeExisting = (existingRows || []).find((row) => row.statut !== 'annule')
+    if (activeExisting) {
       return NextResponse.json(
         { error: 'duplicate', message: 'Vous êtes déjà inscrit à cet atelier.' },
         { status: 409 }
@@ -87,6 +87,27 @@ export async function POST(request: NextRequest) {
     const activeCount = counts[atelierId] ?? 0
     if (isAtelierComplet(atelier.capacite_maximale, activeCount)) {
       return NextResponse.json({ error: 'Cet atelier est complet' }, { status: 400 })
+    }
+
+    const cancelledExisting = (existingRows || []).find((row) => row.statut === 'annule')
+    if (cancelledExisting) {
+      const { error: reactivateError } = await supabase
+        .from('inscriptions_ateliers')
+        .update({
+          stagiaire_nom: nom,
+          pole,
+          filliere,
+          stagiaire_telephone: telephone,
+          statut: null,
+          date_inscription: new Date().toISOString(),
+        })
+        .eq('id', cancelledExisting.id)
+      if (reactivateError) throw reactivateError
+      await synchroniserCapaciteAtelier(supabase, atelierId)
+      return NextResponse.json({
+        success: true,
+        message: `Inscription confirmée pour l'atelier « ${atelier.titre} ».`,
+      })
     }
 
     const { error: insertError } = await supabase.from('inscriptions_ateliers').insert([

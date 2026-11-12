@@ -13,7 +13,6 @@ import { formatCreneauAtelier, formatDateAtelier } from '@/lib/atelierCreneaux'
 import {
   appliquerComptesInscriptions,
   compterInscriptionsActives,
-  synchroniserCapaciteAtelier,
 } from '@/lib/atelierInscriptionsCount'
 import { CopSpacePublicMark } from '@/components/CopSpacePublicMark'
 import { AtelierNotationModal } from '@/components/AtelierNotationModal'
@@ -66,6 +65,14 @@ export default function InscriptionAteliersPage() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [atelierANoter, setAtelierANoter] = useState<Atelier | null>(null)
+  const [atelierAAnnuler, setAtelierAAnnuler] = useState<Atelier | null>(null)
+  const [annulationOk, setAnnulationOk] = useState(false)
+  const [annulForm, setAnnulForm] = useState({
+    nom: '',
+    email: '',
+    motif: 'empechement',
+    commentaire: '',
+  })
 
   // Charger les ateliers disponibles
   const loadAteliers = async () => {
@@ -168,62 +175,26 @@ export default function InscriptionAteliersPage() {
         throw new Error('Le nom doit contenir au moins 2 caractères')
       }
 
-      // Vérifier si l'utilisateur n'est pas déjà inscrit
-      const { data: existingInscription, error: checkError } = await supabase
-        .from('inscriptions_ateliers')
-        .select('*')
-        .eq('atelier_id', selectedAtelier!.id)
-        .eq('stagiaire_email', formData.email)
-        .single()
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError
-      }
-
-      if (existingInscription) {
-        throw new Error('Vous êtes déjà inscrit à cet atelier')
-      }
-
-      // Vérifier la capacité en comptant les inscriptions actives (non annulées)
-      const { data: activeInscriptions, error: countError } = await supabase
-        .from('inscriptions_ateliers')
-        .select('id', { count: 'exact', head: false })
-        .eq('atelier_id', selectedAtelier!.id)
-        .or('statut.is.null,statut.neq.annule')
-
-      if (countError) throw countError
-
       if (isAtelierDatePassee(selectedAtelier!.date_debut, selectedAtelier!.date_fin)) {
         throw new Error('Les inscriptions sont closes : cet atelier est déjà passé.')
       }
 
-      const activeCount = activeInscriptions?.length || 0
-      if (isAtelierComplet(selectedAtelier!.capacite_maximale, activeCount)) {
-        throw new Error('Cet atelier est complet')
+      const res = await fetch('/api/ateliers/inscription/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          atelier_id: selectedAtelier!.id,
+          nom: formData.nom.trim(),
+          email: formData.email.trim().toLowerCase(),
+          pole: formData.pole,
+          filliere: formData.filliere,
+          telephone: formData.telephone?.trim() || null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'Une erreur est survenue lors de l\'inscription')
       }
-
-      // Créer l'inscription
-      // Ne pas inclure statut pour laisser la valeur par défaut NULL s'appliquer
-      const inscriptionData = {
-        atelier_id: selectedAtelier!.id,
-        stagiaire_nom: formData.nom.trim(),
-        stagiaire_email: formData.email.trim().toLowerCase(),
-        pole: formData.pole,
-        filliere: formData.filliere,
-        stagiaire_telephone: formData.telephone?.trim() || null,
-        date_inscription: new Date().toISOString()
-        // statut non inclus : la valeur par défaut NULL sera utilisée automatiquement
-      }
-
-      console.log('📝 Données d\'inscription:', inscriptionData)
-
-      const { error: insertError } = await supabase
-        .from('inscriptions_ateliers')
-        .insert([inscriptionData])
-
-      if (insertError) throw insertError
-
-      await synchroniserCapaciteAtelier(supabase, selectedAtelier!.id)
 
       setInscriptionSuccess(true)
       setFormData({
@@ -258,6 +229,35 @@ export default function InscriptionAteliersPage() {
       
       setError(errorMessage)
       console.error('Erreur inscription atelier:', err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleAnnulation = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!atelierAAnnuler) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/ateliers/inscription/annuler/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          atelier_id: atelierAAnnuler.id,
+          nom: annulForm.nom,
+          email: annulForm.email,
+          motif: annulForm.motif,
+          commentaire: annulForm.commentaire,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Annulation impossible')
+      setAnnulationOk(true)
+      setAnnulForm({ nom: '', email: '', motif: 'empechement', commentaire: '' })
+      await loadAteliers()
+    } catch (err: any) {
+      setError(err.message || 'Annulation impossible')
     } finally {
       setSubmitting(false)
     }
@@ -478,6 +478,21 @@ export default function InscriptionAteliersPage() {
                             : 'Complet'}
                       </span>
                     </button>
+                    {!datePassee && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAnnulationOk(false)
+                          setError(null)
+                          setAtelierAAnnuler(atelier)
+                        }}
+                        className="mt-2 w-full px-6 py-3 rounded-lg font-semibold border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Annuler l’inscription
+                      </button>
+                    )}
                     {peutNoter && (
                       <button
                         type="button"
@@ -671,6 +686,122 @@ export default function InscriptionAteliersPage() {
                             <span>Confirmer l'inscription</span>
                           </>
                         )}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {atelierAAnnuler && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg my-4">
+            <div className="p-6">
+              {annulationOk ? (
+                <div className="text-center">
+                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Inscription annulée</h3>
+                  <p className="text-gray-600 mb-6">Une place a été libérée sur « {atelierAAnnuler.titre} ».</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAtelierAAnnuler(null)
+                      setAnnulationOk(false)
+                      setError(null)
+                    }}
+                    className="px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Annuler l’inscription</h2>
+                      <p className="text-sm text-gray-600 mt-1">{atelierAAnnuler.titre}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAtelierAAnnuler(null)
+                        setError(null)
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <XCircle className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Saisissez le nom et l’e-mail utilisés à l’inscription. Motifs possibles : empêchement,
+                    changement d’emploi du temps, difficulté d’accès.
+                  </p>
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
+                  <form onSubmit={handleAnnulation} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet *</label>
+                      <input
+                        required
+                        value={annulForm.nom}
+                        onChange={(e) => setAnnulForm((p) => ({ ...p, nom: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                      <input
+                        required
+                        type="email"
+                        value={annulForm.email}
+                        onChange={(e) => setAnnulForm((p) => ({ ...p, email: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Motif *</label>
+                      <select
+                        value={annulForm.motif}
+                        onChange={(e) => setAnnulForm((p) => ({ ...p, motif: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="empechement">Empêchement</option>
+                        <option value="emploi_du_temps">Changement d’emploi du temps</option>
+                        <option value="acces">Difficulté d’accès</option>
+                        <option value="autre">Autre</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Commentaire (facultatif)</label>
+                      <textarea
+                        value={annulForm.commentaire}
+                        onChange={(e) => setAnnulForm((p) => ({ ...p, commentaire: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAtelierAAnnuler(null)
+                          setError(null)
+                        }}
+                        className="flex-1 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold"
+                      >
+                        Fermer
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white font-semibold disabled:opacity-50"
+                      >
+                        {submitting ? 'Annulation…' : 'Confirmer l’annulation'}
                       </button>
                     </div>
                   </form>

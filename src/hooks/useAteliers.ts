@@ -205,16 +205,26 @@ export const useAteliers = () => {
         throw new Error('Atelier complet')
       }
 
-      // Vérifier si l'utilisateur n'est pas déjà inscrit
-      const { data: existingInscription } = await supabase
+      const { data: existingRows } = await supabase
         .from('inscriptions_ateliers')
-        .select('id')
+        .select('id, statut')
         .eq('atelier_id', inscriptionData.atelier_id)
         .eq('stagiaire_email', inscriptionData.stagiaire_email)
-        .single()
 
-      if (existingInscription) {
+      const existingActive = (existingRows || []).find((row) => row.statut !== 'annule')
+      if (existingActive) {
         throw new Error('Vous êtes déjà inscrit à cet atelier')
+      }
+
+      const existingAnnulee = (existingRows || []).find((row) => row.statut === 'annule')
+      if (existingAnnulee) {
+        const { data, error } = await supabase
+          .from('inscriptions_ateliers')
+          .update({ ...inscriptionData, statut: null })
+          .eq('id', existingAnnulee.id)
+          .select()
+        if (error) throw error
+        return data?.[0]
       }
 
       const { data, error } = await supabase
