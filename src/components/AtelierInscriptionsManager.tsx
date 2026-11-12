@@ -4,6 +4,11 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { synchroniserCapaciteAtelier } from '@/lib/atelierInscriptionsCount'
 import { printAllAttestationsAtelier, type AtelierAttestation } from '@/lib/attestationAtelierPrint'
+import {
+  corpsMailTropLong,
+  ouvrirBrouillonMail,
+  type CompteMailAtelier,
+} from '@/lib/atelierCertificatMail'
 import { AtelierIndicateursBlock } from './AtelierIndicateursBlock'
 import type { AtelierIndicateurs, EvaluationStagiaire } from '@/lib/atelierEvaluation'
 import { CRITERES_ATELIER, moyenneGlobaleNotes } from '@/lib/atelierEvaluation'
@@ -609,14 +614,24 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
       })
     : ''
 
-  const openMailto = (href: string) => {
-    const link = document.createElement('a')
-    link.href = href
-    link.target = '_blank'
-    link.rel = 'noopener noreferrer'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const corpsMailIndividuel = (inscription: Inscription): string => {
+    let emailBody = `Bonjour ${inscription.stagiaire_nom},\n\n`
+    emailBody += `Félicitations ! Vous avez participé avec succès à l'atelier :\n\n`
+    emailBody += `${atelier.titre}\n`
+    if (dateAtelierLabel) {
+      emailBody += `Date : ${dateAtelierLabel}\n`
+    }
+    if (atelier.animateur_nom) {
+      emailBody += `Animateur : ${atelier.animateur_nom}\n`
+    }
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://copsm.space'
+    const certificatUrl = `${baseUrl}/certificat/${inscription.certificat_token}`
+    emailBody += `\nVotre attestation de participation est maintenant disponible. Vous pouvez la télécharger en cliquant sur le lien ci-dessous :\n\n`
+    emailBody += `${certificatUrl}\n\n`
+    emailBody += `Vous pourrez télécharger votre attestation autant de fois que nécessaire en utilisant ce lien.\n\n`
+    emailBody += `Cordialement,\n`
+    emailBody += `L'équipe du Centre d'Orientation Professionnelle CMC SM`
+    return emailBody
   }
 
   const resolveAnimateur = async (): Promise<{ nom: string; role: string }> => {
@@ -657,35 +672,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     printAllAttestationsAtelier(await attestationsDesPresents())
   }
 
-  const generateMailtoLink = (inscription: Inscription): string => {
-    if (!inscription.present || !inscription.certificat_token) {
-      return ''
-    }
-
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://copsm.space'
-    const certificatUrl = `${baseUrl}/certificat/${inscription.certificat_token}`
-
-    let emailBody = `Bonjour ${inscription.stagiaire_nom},\n\n`
-    emailBody += `Félicitations ! Vous avez participé avec succès à l'atelier :\n\n`
-    emailBody += `${atelier.titre}\n`
-    if (dateAtelierLabel) {
-      emailBody += `Date : ${dateAtelierLabel}\n`
-    }
-    if (atelier.animateur_nom) {
-      emailBody += `Animateur : ${atelier.animateur_nom}\n`
-    }
-    emailBody += `\nVotre attestation de participation est maintenant disponible. Vous pouvez la télécharger en cliquant sur le lien ci-dessous :\n\n`
-    emailBody += `${certificatUrl}\n\n`
-    emailBody += `Vous pourrez télécharger votre attestation autant de fois que nécessaire en utilisant ce lien.\n\n`
-    emailBody += `Cordialement,\n`
-    emailBody += `L'équipe du Centre d'Orientation Professionnelle CMC SM`
-
-    const subject = encodeURIComponent(`Votre attestation de participation - ${atelier.titre}`)
-    const body = encodeURIComponent(emailBody)
-    return `mailto:${encodeURIComponent(inscription.stagiaire_email || '')}?subject=${subject}&body=${body}`
-  }
-
-  const handleSendCertificatEmail = (inscriptionId: string) => {
+  const handleSendCertificatEmail = (inscriptionId: string, compte: CompteMailAtelier) => {
     const inscription = inscriptions.find((i) => i.id === inscriptionId)
     if (!inscription) return
 
@@ -699,15 +686,19 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
       return
     }
 
-    const mailtoLink = generateMailtoLink(inscription)
-    if (!mailtoLink) {
-      alert("Impossible de générer l'e-mail. Vérifiez que la présence est validée.")
+    if (!inscription.stagiaire_email?.trim()) {
+      alert("Ce stagiaire n'a pas d'e-mail.")
       return
     }
-    openMailto(mailtoLink)
+
+    ouvrirBrouillonMail(compte, {
+      to: inscription.stagiaire_email.trim(),
+      subject: `Votre attestation de participation - ${atelier.titre}`,
+      body: corpsMailIndividuel(inscription),
+    })
   }
 
-  const handleSendUnSeulMailPresents = async () => {
+  const handleSendUnSeulMailPresents = async (compte: CompteMailAtelier) => {
     if (presentsAvecEmail.length === 0) {
       alert('Aucun présent avec e-mail. Validez d’abord les présences.')
       return
@@ -715,7 +706,6 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
 
     const sansEmail = presentsAvecAttestation.length - presentsAvecEmail.length
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://copsm.space'
-    const bcc = presentsAvecEmail.map((i) => i.stagiaire_email.trim()).join(';')
 
     const liens = presentsAvecEmail
       .slice()
@@ -731,18 +721,18 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
     emailBody += `Cordialement,\n`
     emailBody += `L'équipe du Centre d'Orientation Professionnelle CMC SM`
 
-    const subject = encodeURIComponent(`Attestation de participation — ${atelier.titre}`)
-    const mailtoTropLong = encodeURIComponent(emailBody).length > 1800
-
-    if (mailtoTropLong) {
+    if (corpsMailTropLong(emailBody)) {
       emailBody = `Bonjour,\n\nVous avez participé à l'atelier :\n${atelier.titre}\n`
       if (dateAtelierLabel) emailBody += `Date : ${dateAtelierLabel}\n`
       emailBody += `\nLes attestations de participation (une page par stagiaire) sont à joindre au format PDF.\nEnregistrez le document ouvert à l'écran (Imprimer → Enregistrer au format PDF), puis joignez-le à cet e-mail.\n\nCordialement,\nL'équipe du Centre d'Orientation Professionnelle CMC SM`
       printAllAttestationsAtelier(await attestationsDesPresents())
     }
 
-    const href = `mailto:?bcc=${encodeURIComponent(bcc)}&subject=${subject}&body=${encodeURIComponent(emailBody)}`
-    openMailto(href)
+    ouvrirBrouillonMail(compte, {
+      bcc: presentsAvecEmail.map((i) => i.stagiaire_email.trim()),
+      subject: `Attestation de participation — ${atelier.titre}`,
+      body: emailBody,
+    })
 
     if (sansEmail > 0) {
       setTimeout(() => {
@@ -842,7 +832,7 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
             </div>
           </div>
 
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-start">
               {/* Bouton valider présences disponible pour tous les statuts */}
               <button
                 onClick={handleValidatePresencesBatch}
@@ -864,17 +854,30 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                   ? `Imprimer attestations (${presentsAvecAttestation.length})`
                   : 'Imprimer attestations'}
               </button>
-              <button
-                onClick={handleSendUnSeulMailPresents}
-                disabled={presentsAvecEmail.length === 0}
-                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                title="Ouvre un seul e-mail Outlook, en copie cachée à tous les présents"
-              >
-                <Mail className="w-4 h-4" />
-                {presentsAvecEmail.length > 0
-                  ? `Un seul mail aux présents (${presentsAvecEmail.length})`
-                  : 'Un seul mail aux présents'}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleSendUnSeulMailPresents('gmail')}
+                  disabled={presentsAvecEmail.length === 0}
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  title="Ouvre Gmail (compte connecté dans le navigateur), en copie cachée à tous les présents"
+                >
+                  <Mail className="w-4 h-4" />
+                  {presentsAvecEmail.length > 0
+                    ? `Gmail aux présents (${presentsAvecEmail.length})`
+                    : 'Gmail aux présents'}
+                </button>
+                <button
+                  onClick={() => handleSendUnSeulMailPresents('professionnel')}
+                  disabled={presentsAvecEmail.length === 0}
+                  className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  title="Ouvre Outlook professionnel (compte Office 365), en copie cachée à tous les présents"
+                >
+                  <Mail className="w-4 h-4" />
+                  {presentsAvecEmail.length > 0
+                    ? `Compte pro aux présents (${presentsAvecEmail.length})`
+                    : 'Compte pro aux présents'}
+                </button>
+              </div>
               
               <button
                 onClick={exportToExcel}
@@ -891,8 +894,11 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                 PDF
             </button>
           </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            Gmail ou compte professionnel : le message s’ouvre dans le navigateur avec le compte déjà connecté (conseillère carrière, COP, admin). Connectez-vous d’abord à Gmail ou Outlook 365.
+          </p>
         </div>
-      </div>
 
         {/* Liste des inscriptions */}
         <div className="p-6">
@@ -1116,17 +1122,26 @@ function AtelierInscriptionsManager({ atelier, onClose }: AtelierInscriptionsMan
                                 minute: '2-digit'
                         })}
                       </td>
-                      {/* Colonne Email - Bouton ouvrir Outlook */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         {inscription.present && inscription.certificat_token ? (
-                          <button
-                            onClick={() => handleSendCertificatEmail(inscription.id)}
-                            className="flex items-center gap-2 px-3 py-1 rounded-lg transition-colors bg-orange-100 text-orange-700 hover:bg-orange-200"
-                            title="Ouvre Outlook avec l'email pré-rempli pour envoyer le certificat"
-                          >
-                            <Mail className="w-3 h-3" />
-                            <span className="text-xs">Ouvrir Outlook</span>
-                          </button>
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => handleSendCertificatEmail(inscription.id, 'gmail')}
+                              className="flex items-center gap-2 px-3 py-1 rounded-lg transition-colors bg-red-50 text-red-700 hover:bg-red-100"
+                              title="Ouvre Gmail avec le message pré-rempli (votre compte Gmail)"
+                            >
+                              <Mail className="w-3 h-3" />
+                              <span className="text-xs">Gmail</span>
+                            </button>
+                            <button
+                              onClick={() => handleSendCertificatEmail(inscription.id, 'professionnel')}
+                              className="flex items-center gap-2 px-3 py-1 rounded-lg transition-colors bg-orange-100 text-orange-700 hover:bg-orange-200"
+                              title="Ouvre Outlook professionnel avec le message pré-rempli"
+                            >
+                              <Mail className="w-3 h-3" />
+                              <span className="text-xs">Compte pro</span>
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-xs text-gray-400">Présence requise</span>
                         )}
