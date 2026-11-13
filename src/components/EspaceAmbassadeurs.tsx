@@ -1372,88 +1372,39 @@ export const EspaceAmbassadeurs: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Section principale : Deux cartes pour choisir l'option */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Carte 1 : Les Stagiaires Ambassadeurs */}
-        <div
-          onClick={() => setActiveSection('stagiaires')}
-          className={`relative overflow-hidden rounded-2xl shadow-lg cursor-pointer transition-all duration-300 transform hover:scale-105 ${
-            activeSection === 'stagiaires'
-              ? 'ring-4 ring-blue-500 bg-gradient-to-br from-blue-500 to-blue-600'
-              : 'bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200'
-          }`}
-        >
-          <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${
-                activeSection === 'stagiaires' ? 'bg-white/20' : 'bg-blue-500'
-              }`}>
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              {activeSection === 'stagiaires' && (
-                <div className="w-3 h-3 bg-white rounded-full"></div>
-              )}
-            </div>
-            <h3 className={`text-2xl font-bold mb-2 ${
-              activeSection === 'stagiaires' ? 'text-white' : 'text-gray-900'
-            }`}>
-              Les Stagiaires Ambassadeurs
-            </h3>
-            <p className={`text-sm mb-4 ${
-              activeSection === 'stagiaires' ? 'text-blue-100' : 'text-gray-600'
-            }`}>
-              Gérez la liste des stagiaires ambassadeurs, leurs profils, statistiques et évaluations
-            </p>
-            <div className={`flex items-center gap-2 ${
-              activeSection === 'stagiaires' ? 'text-white' : 'text-blue-600'
-            }`}>
-              <span className="text-sm font-semibold">
-                {stats.totalStagiaires} stagiaire{stats.totalStagiaires > 1 ? 's' : ''}
-              </span>
-            </div>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setActiveSection('stagiaires')}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              activeSection === 'stagiaires'
+                ? 'bg-[#0f3d6c] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Stagiaires
+            <span className={`text-xs tabular-nums ${activeSection === 'stagiaires' ? 'text-white/80' : 'text-slate-500'}`}>
+              {stats.totalStagiaires}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('actions')}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              activeSection === 'actions'
+                ? 'bg-[#0f3d6c] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Actions
+            <span className={`text-xs tabular-nums ${activeSection === 'actions' ? 'text-white/80' : 'text-slate-500'}`}>
+              {stats.totalActions}
+            </span>
+          </button>
         </div>
-
-        {/* Carte 2 : Les Actions des Stagiaires Ambassadeurs */}
-        <div
-          onClick={() => setActiveSection('actions')}
-          className={`relative overflow-hidden rounded-2xl shadow-lg cursor-pointer transition-all duration-300 transform hover:scale-105 ${
-            activeSection === 'actions'
-              ? 'ring-4 ring-green-500 bg-gradient-to-br from-green-500 to-green-600'
-              : 'bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200'
-          }`}
-        >
-          <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${
-                activeSection === 'actions' ? 'bg-white/20' : 'bg-green-500'
-              }`}>
-                <Activity className="w-8 h-8 text-white" />
-              </div>
-              {activeSection === 'actions' && (
-                <div className="w-3 h-3 bg-white rounded-full"></div>
-              )}
-            </div>
-            <h3 className={`text-2xl font-bold mb-2 ${
-              activeSection === 'actions' ? 'text-white' : 'text-gray-900'
-            }`}>
-              Les Actions des Stagiaires Ambassadeurs
-            </h3>
-            <p className={`text-sm mb-4 ${
-              activeSection === 'actions' ? 'text-green-100' : 'text-gray-600'
-            }`}>
-              Consultez et gérez toutes les actions réalisées par les stagiaires ambassadeurs
-            </p>
-            <div className={`flex items-center gap-2 ${
-              activeSection === 'actions' ? 'text-white' : 'text-green-600'
-            }`}>
-              <span className="text-sm font-semibold">
-                {stats.totalActions} action{stats.totalActions > 1 ? 's' : ''}
-              </span>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* Contenu conditionnel selon la section active */}
@@ -1461,48 +1412,36 @@ export const EspaceAmbassadeurs: React.FC = () => {
         <div className="space-y-6">
           {/* SECTION STAGIAIRES AMBASSADEURS : Affiche uniquement les stagiaires avec leurs informations et critères de notation */}
           {/* Bouton et formulaire d'ajout de stagiaire */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">Gestion des Stagiaires Ambassadeurs</h3>
-              <div className="flex items-center gap-2">
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-[#0f3d6c]">Liste des ambassadeurs</h3>
+              <div className="flex flex-wrap items-center gap-2">
                 {canPrintAttestations && (
                   <button
                     type="button"
                     onClick={() => printAllAttestationsAmbassadeurs(stagiaires)}
                     disabled={stagiaires.length === 0}
-                    className="px-4 py-2 bg-[#0f3d6c] text-white rounded-lg hover:bg-[#0c3258] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Ouvrir toutes les attestations dans un seul fichier pour impression / PDF"
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 disabled:opacity-50"
+                    title="Attestations (impression / PDF)"
                   >
                     <Download className="w-4 h-4" />
-                    Télécharger tout
-                  </button>
-                )}
-                {isSuperAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => void handleClearStagiairesListe()}
-                    disabled={clearingListe || stagiaires.length === 0}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Vider la liste pour en importer une nouvelle"
-                  >
-                    {clearingListe ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                    Vider la liste
+                    Attestations
                   </button>
                 )}
                 {isAdmin && (
                   <button
                     type="button"
                     onClick={downloadModeleImportAmbassadeurs}
-                    className="px-4 py-2 bg-white text-green-700 border border-green-600 rounded-lg hover:bg-green-50 transition-colors flex items-center gap-2"
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
                   >
-                    <Download className="w-4 h-4" />
+                    <FileText className="w-4 h-4" />
                     Modèle Excel
                   </button>
                 )}
                 {isAdmin && (
-                  <label className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 cursor-pointer">
-                    <FileText className="w-4 h-4" />
-                    Importer Excel
+                  <label className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer">
+                    <UploadCloud className="w-4 h-4" />
+                    Importer
                     <input
                       type="file"
                       accept=".xlsx,.xls"
@@ -1513,11 +1452,23 @@ export const EspaceAmbassadeurs: React.FC = () => {
                 )}
                 <button
                   onClick={() => setShowStagiaireForm(!showStagiaireForm)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg bg-[#0f3d6c] text-white hover:bg-[#0c3258] flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
-                  {showStagiaireForm ? 'Masquer le formulaire' : 'Ajouter un Stagiaire Ambassadeur'}
+                  {showStagiaireForm ? 'Masquer' : 'Ajouter'}
                 </button>
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => void handleClearStagiairesListe()}
+                    disabled={clearingListe || stagiaires.length === 0}
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-700 hover:bg-red-50 flex items-center gap-1.5 disabled:opacity-50"
+                    title="Vider la liste pour en importer une nouvelle"
+                  >
+                    {clearingListe ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Vider
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1536,10 +1487,10 @@ export const EspaceAmbassadeurs: React.FC = () => {
           </div>
 
           {/* Liste des stagiaires en cartes */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Liste des Stagiaires Ambassadeurs ({filteredStagiaires.length})
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-slate-500">
+                {filteredStagiaires.length} fiche{filteredStagiaires.length > 1 ? 's' : ''}
               </h3>
             </div>
 
@@ -1820,15 +1771,15 @@ export const EspaceAmbassadeurs: React.FC = () => {
       ) : activeSection === 'actions' ? (
         <div className="space-y-6">
           {/* SECTION ACTIONS : Affiche uniquement les actions saisies via le formulaire public */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Les Actions des Stagiaires Ambassadeurs</h3>
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h3 className="text-base font-semibold text-[#0f3d6c]">Actions enregistrées</h3>
               <button
                 onClick={() => setShowActionForm(!showActionForm)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="px-3 py-1.5 text-sm font-medium rounded-lg bg-[#0f3d6c] text-white hover:bg-[#0c3258] flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
-                {showActionForm ? 'Masquer le formulaire' : 'Formulaire Public'}
+                {showActionForm ? 'Masquer' : 'Saisir une action'}
               </button>
             </div>
 
