@@ -21,9 +21,14 @@ import {
   lireLigneAmbassadeurExcel,
 } from '@/lib/ambassadeursImport'
 import {
-  extraireActionsEnregistrees,
   labelTypeAction,
 } from '@/lib/ambassadeursActions'
+import {
+  compresserPhotoAmbassadeur,
+  CONSIGNE_PHOTO_AMBASSADEUR,
+  pathPhotoAmbassadeur,
+  PHOTO_AMBASSADEUR,
+} from '@/lib/photoAmbassadeur'
 
 interface StagiaireAmbassadeur {
   id: string
@@ -74,6 +79,12 @@ interface StagiaireAmbassadeur {
 
 function nomCompletKey(prenom?: string | null, nom?: string | null) {
   return `${prenom || ''} ${nom || ''}`.trim().toLowerCase()
+}
+
+function dernieresActionsStagiaire(actions: ActionAmbassadeur[], n = 3) {
+  return [...actions]
+    .sort((a, b) => new Date(b.date_action).getTime() - new Date(a.date_action).getTime())
+    .slice(0, n)
 }
 
 function mapEvaluation(evalData: any) {
@@ -139,15 +150,19 @@ const StagiaireFormInline: React.FC<{
   })
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setFormData({ ...formData, photo: file })
+    if (!file) return
+    try {
+      const compressed = await compresserPhotoAmbassadeur(file)
+      setFormData((prev) => ({ ...prev, photo: compressed }))
       const reader = new FileReader()
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photoPreview: reader.result as string }))
+        setFormData((prev) => ({ ...prev, photoPreview: reader.result as string }))
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(compressed)
+    } catch (err: any) {
+      setError(err.message || 'Photo illisible.')
     }
   }
 
@@ -162,8 +177,7 @@ const StagiaireFormInline: React.FC<{
       // Upload photo si fournie
       if (formData.photo) {
         setUploadingPhoto(true)
-        const fileExt = formData.photo.name.split('.').pop()
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`
         const filePath = `stagiaires-ambassadeurs/${fileName}`
 
         const { error: uploadError } = await supabase.storage
@@ -313,18 +327,22 @@ const StagiaireFormInline: React.FC<{
             </label>
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Photo</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Photo identité</label>
+            <p className="text-xs text-gray-500 mb-2">
+              Carré {PHOTO_AMBASSADEUR.stockagePx}×{PHOTO_AMBASSADEUR.stockagePx} px, JPEG, environ {PHOTO_AMBASSADEUR.maxKo} Ko.
+              {CONSIGNE_PHOTO_AMBASSADEUR} Compression automatique à l’envoi.
+            </p>
             <div className="flex items-center gap-4">
               {formData.photoPreview && (
                 <img 
                   src={formData.photoPreview} 
                   alt="Preview" 
-                  className="w-20 h-20 rounded-full object-cover border-2 border-blue-200"
+                  className="w-24 h-24 rounded-xl object-cover object-[center_22%] border border-slate-200"
                 />
               )}
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handlePhotoChange}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
@@ -827,6 +845,68 @@ export const EspaceAmbassadeurs: React.FC = () => {
     setShowStagiaireDetail(true)
   }
 
+  const retirerFichierPhoto = async (url?: string | null) => {
+    const path = pathPhotoAmbassadeur(url)
+    if (!path) return
+    await supabase.storage.from('photos').remove([path])
+  }
+
+  const handleDeletePhoto = async (stagiaire: StagiaireAmbassadeur, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    if (!isAdmin) return
+    if (!stagiaire.photo_url) return
+    if (!confirm(`Supprimer la photo de ${stagiaire.prenom} ${stagiaire.nom} ?`)) return
+    try {
+      await retirerFichierPhoto(stagiaire.photo_url)
+      const { error } = await supabase
+        .from('stagiaires')
+        .update({ photo_url: null })
+        .eq('id', stagiaire.id)
+      if (error) throw error
+      setSelectedStagiaire((prev) =>
+        prev && prev.id === stagiaire.id ? { ...prev, photo_url: undefined } : prev
+      )
+      setEditingStagiaire((prev) =>
+        prev && prev.id === stagiaire.id ? { ...prev, photo_url: undefined } : prev
+      )
+      setEditingPhotoFile(null)
+      setEditingPhotoPreview(null)
+      await reloadStagiairesData()
+    } catch (err: any) {
+      alert(err.message || 'Impossible de supprimer la photo.')
+    }
+  }
+
+  const handleReplacePhoto = async (stagiaire: StagiaireAmbassadeur, file: File, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    if (!isAdmin) return
+    try {
+      const compressed = await compresserPhotoAmbassadeur(file)
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`
+      const filePath = `stagiaires-ambassadeurs/${fileName}`
+      const { error: uploadError } = await supabase.storage.from('photos').upload(filePath, compressed)
+      if (uploadError) throw uploadError
+      const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(filePath)
+      const { error } = await supabase
+        .from('stagiaires')
+        .update({ photo_url: publicUrl })
+        .eq('id', stagiaire.id)
+      if (error) throw error
+      await retirerFichierPhoto(stagiaire.photo_url)
+      setSelectedStagiaire((prev) =>
+        prev && prev.id === stagiaire.id ? { ...prev, photo_url: publicUrl } : prev
+      )
+      setEditingStagiaire((prev) =>
+        prev && prev.id === stagiaire.id ? { ...prev, photo_url: publicUrl } : prev
+      )
+      setEditingPhotoFile(null)
+      setEditingPhotoPreview(null)
+      await reloadStagiairesData()
+    } catch (err: any) {
+      alert(err.message || 'Impossible de remplacer la photo.')
+    }
+  }
+
   // Sauvegarder les modifications d'un stagiaire ambassadeur
   const handleSaveStagiaireEdit = async () => {
     if (!editingStagiaire || !isAdmin) {
@@ -840,8 +920,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
 
       // Upload de la nouvelle photo si fournie
       if (editingPhotoFile) {
-        const fileExt = editingPhotoFile.name.split('.').pop()
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`
         const filePath = `stagiaires-ambassadeurs/${fileName}`
 
         const { error: uploadError } = await supabase.storage
@@ -1550,20 +1629,29 @@ export const EspaceAmbassadeurs: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredStagiaires.map(stagiaire => (
+                {filteredStagiaires.map(stagiaire => {
+                  const dernieres = dernieresActionsStagiaire(stagiaire.actions, 3)
+                  const dateBrute = stagiaire.stats.dernierAction || dernieres[0]?.date_action
+                  const derniereDate = dateBrute
+                    ? new Date(dateBrute).toLocaleDateString('fr-FR')
+                    : null
+                  const note = stagiaire.evaluation?.note_globale
+                  return (
                   <div 
                     key={stagiaire.id} 
-                    className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
+                    className="bg-white border border-slate-200 rounded-2xl hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col"
                     onClick={() => handleViewStagiaire(stagiaire)}
                   >
-                    <div className="flex items-start gap-4 mb-4">
+                    <div className="bg-[#0f3d6c] px-5 py-5 flex items-center gap-4">
                       <div className="relative flex-shrink-0">
                         {stagiaire.photo_url ? (
                           <img 
                             src={stagiaire.photo_url} 
                             alt={`${stagiaire.prenom} ${stagiaire.nom}`}
                             loading="lazy"
-                            className="w-20 h-20 rounded-2xl object-cover border border-gray-200 shadow-sm"
+                            width={PHOTO_AMBASSADEUR.affichagePx}
+                            height={PHOTO_AMBASSADEUR.affichagePx}
+                            className="w-24 h-24 rounded-xl object-cover object-[center_22%] ring-2 ring-white shadow-md bg-slate-200"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none'
                               const parent = e.currentTarget.parentElement
@@ -1574,223 +1662,128 @@ export const EspaceAmbassadeurs: React.FC = () => {
                             }}
                           />
                         ) : null}
-                        <div className={`w-20 h-20 rounded-2xl bg-blue-100 flex items-center justify-center border border-blue-200 ${stagiaire.photo_url ? 'hidden photo-fallback' : ''}`}>
-                          <UserCircle className="w-10 h-10 text-blue-600" />
+                        <div className={`w-24 h-24 rounded-xl bg-white/15 flex items-center justify-center ring-2 ring-white/30 ${stagiaire.photo_url ? 'hidden photo-fallback' : ''}`}>
+                          <UserCircle className="w-12 h-12 text-white/80" />
                         </div>
-                        {stagiaire.internat && (
-                          <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-teal-600 rounded-full border-2 border-white flex items-center justify-center" title="Internat CMC">
-                            <Home className="w-3.5 h-3.5 text-white" />
+                        {isAdmin && (
+                          <div
+                            className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <label
+                              className="bg-white text-[#0f3d6c] rounded-full p-1.5 shadow cursor-pointer hover:bg-slate-100"
+                              title="Modifier la photo"
+                            >
+                              <UploadCloud className="w-3.5 h-3.5" />
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  e.target.value = ''
+                                  if (file) void handleReplacePhoto(stagiaire, file)
+                                }}
+                              />
+                            </label>
+                            {stagiaire.photo_url && (
+                              <button
+                                type="button"
+                                className="bg-white text-red-600 rounded-full p-1.5 shadow hover:bg-red-50"
+                                title="Supprimer la photo"
+                                onClick={(e) => void handleDeletePhoto(stagiaire, e)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-lg font-semibold text-gray-900 leading-tight">
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <h4 className="text-lg font-semibold text-white leading-tight">
                           {stagiaire.prenom} {stagiaire.nom}
                         </h4>
-                        <div className="flex items-center gap-2 flex-wrap mt-2">
-                          {stagiaire.internat && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-800 border border-teal-200">
-                              Internat CMC
-                            </span>
-                          )}
-                          {stagiaire.sexe && (
-                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                              {stagiaire.sexe}
-                            </span>
-                          )}
-                          {stagiaire.groupe && (
-                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
-                              Groupe {stagiaire.groupe}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5 text-sm text-gray-600 mb-4">
-                      {stagiaire.filiere?.nom && (
-                        <p className="flex items-start gap-2">
-                          <BookOpen className="w-4 h-4 mt-0.5 text-indigo-500 shrink-0" />
-                          <span>
-                            {stagiaire.filiere.nom}
-                            {stagiaire.pole?.nom ? ` · ${stagiaire.pole.nom}` : ''}
+                        <p className="text-sm text-blue-100 mt-1 truncate">
+                          {[stagiaire.filiere?.nom, stagiaire.pole?.nom].filter(Boolean).join(' · ') || 'Pôle / filière non renseignés'}
+                        </p>
+                        {stagiaire.internat && (
+                          <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/15 text-white">
+                            <Home className="w-3 h-3" />
+                            Internat CMC
                           </span>
-                        </p>
-                      )}
-                      {(stagiaire.niveau_scolaire || stagiaire.annee_scolaire || stagiaire.type_formation) && (
-                        <p className="text-xs text-gray-500">
-                          {[stagiaire.niveau_scolaire, stagiaire.annee_scolaire, stagiaire.type_formation]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      )}
-                      {stagiaire.telephone && (
-                        <p className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          {stagiaire.telephone}
-                        </p>
-                      )}
-                      {stagiaire.email && (
-                        <p className="flex items-center gap-2 truncate">
-                          <Mail className="w-4 h-4 text-gray-400 shrink-0" />
-                          <span className="truncate">{stagiaire.email}</span>
-                        </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-slate-50">
+                      <div className="px-3 py-3 text-center">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-500">Actions</p>
+                        <p className="text-lg font-semibold text-[#0f3d6c]">{stagiaire.stats.totalActions}</p>
+                      </div>
+                      <div className="px-3 py-3 text-center">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-500">Dernière</p>
+                        <p className="text-sm font-semibold text-[#0f3d6c] leading-tight">{derniereDate || '—'}</p>
+                      </div>
+                      <div className="px-3 py-3 text-center">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-500">Note</p>
+                        {note != null ? (
+                          <p className="text-lg font-semibold text-[#0f3d6c]">{note.toFixed(1)}<span className="text-xs font-normal text-slate-500">/20</span></p>
+                        ) : (
+                          <p className="text-sm font-semibold text-amber-700">À noter</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="px-5 py-4 flex-1">
+                      <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-2">Dernières actions</p>
+                      {dernieres.length === 0 ? (
+                        <p className="text-sm text-slate-400">Aucune action enregistrée</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {dernieres.map((action) => (
+                            <li key={action.id} className="text-sm">
+                              <span className={`inline-block mr-1.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                action.volet_action === 'collective' ? 'text-slate-600' : 'text-[#0f3d6c]'
+                              }`}>
+                                {labelTypeAction(action.volet_action) || 'Action'}
+                              </span>
+                              <span className="text-slate-800">
+                                {action.responsable_action || '—'}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </div>
-                    {stagiaire.actions.length > 0 && (
-                      <div className="mb-4 space-y-2">
-                        <p className="text-xs font-semibold text-gray-500 uppercase">Actions</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {Array.from(
-                            new Set(
-                              stagiaire.actions.flatMap((a) => [
-                                labelTypeAction(a.volet_action),
-                                ...extraireActionsEnregistrees(a.responsable_action),
-                              ])
-                            )
-                          )
-                            .filter(Boolean)
-                            .slice(0, 8)
-                            .map((label) => (
-                              <span
-                                key={label}
-                                className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  label === 'Collective'
-                                    ? 'bg-purple-50 text-purple-800 border border-purple-200'
-                                    : label === 'Individuelle'
-                                      ? 'bg-sky-50 text-sky-800 border border-sky-200'
-                                      : 'bg-indigo-50 text-indigo-800 border border-indigo-100'
-                                }`}
-                              >
-                                {label}
-                              </span>
-                            ))}
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Critères de notation simplifiés */}
-                    {stagiaire.evaluation ? (
-                      <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            <h5 className="text-sm font-semibold text-gray-900">Évaluation</h5>
-                          </div>
-                          {stagiaire.evaluation.note_globale !== undefined && (
-                            <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                              {stagiaire.evaluation.note_globale.toFixed(1)}/20
-                            </span>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          {stagiaire.evaluation.note_presence !== undefined && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-600">Présence</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-blue-500 rounded-full"
-                                    style={{ width: `${(stagiaire.evaluation.note_presence / 20) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs font-semibold text-gray-700 w-10 text-right">
-                                  {stagiaire.evaluation.note_presence.toFixed(1)}/20
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {stagiaire.evaluation.note_implication !== undefined && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-600">Implication</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-green-500 rounded-full"
-                                    style={{ width: `${(stagiaire.evaluation.note_implication / 20) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs font-semibold text-gray-700 w-10 text-right">
-                                  {stagiaire.evaluation.note_implication.toFixed(1)}/20
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {stagiaire.evaluation.note_participation !== undefined && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-600">Participation</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-purple-500 rounded-full"
-                                    style={{ width: `${(stagiaire.evaluation.note_participation / 20) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs font-semibold text-gray-700 w-10 text-right">
-                                  {stagiaire.evaluation.note_participation.toFixed(1)}/20
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {stagiaire.evaluation.note_qualite_actions !== undefined && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-600">Qualité Actions</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-orange-500 rounded-full"
-                                    style={{ width: `${(stagiaire.evaluation.note_qualite_actions / 20) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs font-semibold text-gray-700 w-10 text-right">
-                                  {stagiaire.evaluation.note_qualite_actions.toFixed(1)}/20
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {stagiaire.evaluation.note_leadership !== undefined && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-600">Leadership</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-red-500 rounded-full"
-                                    style={{ width: `${(stagiaire.evaluation.note_leadership / 20) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs font-semibold text-gray-700 w-10 text-right">
-                                  {stagiaire.evaluation.note_leadership.toFixed(1)}/20
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mb-4 p-2 bg-gray-50 rounded text-center">
-                        <p className="text-xs text-gray-500">Aucune évaluation</p>
-                      </div>
-                    )}
-
-                    {/* Boutons d'action */}
-                    <div className="flex gap-2 mt-4">
+                    <div className="px-4 py-3 border-t border-slate-200 flex items-center gap-2 bg-white">
                       <button 
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                        className="flex-1 px-3 py-2 bg-[#0f3d6c] text-white rounded-lg hover:bg-[#0c3258] transition-colors flex items-center justify-center gap-2 text-sm font-medium"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleViewStagiaire(stagiaire)
                         }}
                       >
                         <Eye className="w-4 h-4" />
-                        Voir le profil
+                        Profil / noter
+                      </button>
+                      <button
+                        className="px-3 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleOpenEvaluation(stagiaire)
+                        }}
+                      >
+                        <Star className="w-4 h-4" />
                       </button>
                       {canPrintAttestations && (
                           <button
-                            className="px-4 py-2 bg-[#0f3d6c] text-white rounded-lg hover:bg-[#0c3258] transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                            className="px-3 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50"
                             onClick={(e) => {
                               e.stopPropagation()
                               printAttestationAmbassadeur(stagiaire)
                             }}
-                            title="Générer et imprimer l'attestation de participation"
+                            title="Attestation"
                           >
                             <Award className="w-4 h-4" />
                           </button>
@@ -1798,19 +1791,19 @@ export const EspaceAmbassadeurs: React.FC = () => {
                       {isAdmin && (
                         <>
                           <button
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                            className="p-2 text-slate-400 hover:text-[#0f3d6c] hover:bg-slate-50 rounded-lg"
                             onClick={(e) => {
                               e.stopPropagation()
                               handleEditStagiaire(stagiaire)
                             }}
-                            title="Modifier le stagiaire"
+                            title="Modifier"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                             onClick={(e) => handleDeleteStagiaire(stagiaire.id, e)}
-                            title="Supprimer le stagiaire"
+                            title="Supprimer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -1818,7 +1811,8 @@ export const EspaceAmbassadeurs: React.FC = () => {
                       )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1979,38 +1973,43 @@ export const EspaceAmbassadeurs: React.FC = () => {
                         <img 
                           src={editingPhotoPreview} 
                           alt="Preview"
-                          className="w-24 h-24 rounded-full object-cover border-4 border-blue-400 shadow-md"
+                          className="w-24 h-24 rounded-xl object-cover object-[center_22%] border-2 border-[#0f3d6c] shadow-md"
                         />
                       ) : editingStagiaire.photo_url ? (
                         <img 
                           src={editingStagiaire.photo_url} 
                           alt={`${editingStagiaire.prenom} ${editingStagiaire.nom}`}
-                          className="w-24 h-24 rounded-full object-cover border-4 border-blue-400 shadow-md"
+                          className="w-24 h-24 rounded-xl object-cover object-[center_22%] border-2 border-[#0f3d6c] shadow-md"
                         />
                       ) : (
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-blue-400 shadow-md">
+                        <div className="w-24 h-24 rounded-xl bg-[#0f3d6c] flex items-center justify-center shadow-md">
                           <UserCircle className="w-12 h-12 text-white" />
                         </div>
                       )}
-                      <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700 transition-colors shadow-lg">
-                        <UploadCloud className="w-4 h-4" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              setEditingPhotoFile(file)
-                              const reader = new FileReader()
-                              reader.onloadend = () => {
-                                setEditingPhotoPreview(reader.result as string)
-                              }
-                              reader.readAsDataURL(file)
-                            }
-                          }}
-                        />
-                      </label>
+                      <div className="flex gap-2 mt-3">
+                        <label className="px-3 py-1.5 text-xs font-medium bg-[#0f3d6c] text-white rounded-lg cursor-pointer hover:bg-[#0c3258]">
+                          Modifier
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              e.target.value = ''
+                              if (file) await handleReplacePhoto(editingStagiaire, file)
+                            }}
+                          />
+                        </label>
+                        {(editingStagiaire.photo_url || editingPhotoPreview) && (
+                          <button
+                            type="button"
+                            className="px-3 py-1.5 text-xs font-medium border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
+                            onClick={() => void handleDeletePhoto(editingStagiaire)}
+                          >
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2143,13 +2142,38 @@ export const EspaceAmbassadeurs: React.FC = () => {
                           <img 
                             src={selectedStagiaire.photo_url} 
                             alt={`${selectedStagiaire.prenom} ${selectedStagiaire.nom}`}
-                            className="w-28 h-28 rounded-full object-cover border-4 border-blue-400 shadow-lg ring-2 ring-blue-100"
+                            className="w-28 h-28 rounded-xl object-cover object-[center_22%] border-2 border-[#0f3d6c] shadow-md"
                           />
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent pointer-events-none"></div>
                         </div>
                       ) : (
-                        <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-blue-400 shadow-lg ring-2 ring-blue-100">
+                        <div className="w-28 h-28 rounded-xl bg-[#0f3d6c] flex items-center justify-center shadow-md">
                           <UserCircle className="w-14 h-14 text-white" />
+                        </div>
+                      )}
+                      {isAdmin && (
+                        <div className="flex gap-2 mt-3">
+                          <label className="px-3 py-1.5 text-xs font-medium bg-[#0f3d6c] text-white rounded-lg cursor-pointer hover:bg-[#0c3258]">
+                            Modifier
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                e.target.value = ''
+                                if (file) void handleReplacePhoto(selectedStagiaire, file)
+                              }}
+                            />
+                          </label>
+                          {selectedStagiaire.photo_url && (
+                            <button
+                              type="button"
+                              className="px-3 py-1.5 text-xs font-medium border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
+                              onClick={() => void handleDeletePhoto(selectedStagiaire)}
+                            >
+                              Supprimer
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
