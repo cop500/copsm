@@ -20,6 +20,10 @@ import {
   downloadModeleImportAmbassadeurs,
   lireLigneAmbassadeurExcel,
 } from '@/lib/ambassadeursImport'
+import {
+  extraireActionsEnregistrees,
+  labelTypeAction,
+} from '@/lib/ambassadeursActions'
 
 interface StagiaireAmbassadeur {
   id: string
@@ -1632,6 +1636,37 @@ export const EspaceAmbassadeurs: React.FC = () => {
                         </p>
                       )}
                     </div>
+                    {stagiaire.actions.length > 0 && (
+                      <div className="mb-4 space-y-2">
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Actions</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Array.from(
+                            new Set(
+                              stagiaire.actions.flatMap((a) => [
+                                labelTypeAction(a.volet_action),
+                                ...extraireActionsEnregistrees(a.responsable_action),
+                              ])
+                            )
+                          )
+                            .filter(Boolean)
+                            .slice(0, 8)
+                            .map((label) => (
+                              <span
+                                key={label}
+                                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  label === 'Collective'
+                                    ? 'bg-purple-50 text-purple-800 border border-purple-200'
+                                    : label === 'Individuelle'
+                                      ? 'bg-sky-50 text-sky-800 border border-sky-200'
+                                      : 'bg-indigo-50 text-indigo-800 border border-indigo-100'
+                                }`}
+                              >
+                                {label}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Critères de notation simplifiés */}
                     {stagiaire.evaluation ? (
@@ -1843,8 +1878,14 @@ export const EspaceAmbassadeurs: React.FC = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${volets.find(v => v.value === action.volet_action)?.color || 'bg-gray-100 text-gray-800'}`}>
-                              {volets.find(v => v.value === action.volet_action)?.label || action.volet_action}
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              action.volet_action === 'collective'
+                                ? 'bg-purple-100 text-purple-800'
+                                : action.volet_action === 'individuelle'
+                                  ? 'bg-sky-100 text-sky-800'
+                                  : volets.find(v => v.value === action.volet_action)?.color || 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {labelTypeAction(action.volet_action) || volets.find(v => v.value === action.volet_action)?.label || action.volet_action}
                             </span>
                             <span className="text-sm text-gray-600">{action.nom_prenom_stagiaire}</span>
                           </div>
@@ -2283,11 +2324,21 @@ export const EspaceAmbassadeurs: React.FC = () => {
                       <div key={action.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${volets.find(v => v.value === action.volet_action)?.color || 'bg-gray-100 text-gray-800'}`}>
-                                {volets.find(v => v.value === action.volet_action)?.label || action.volet_action}
-                              </span>
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              {labelTypeAction(action.volet_action) && (
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  action.volet_action === 'collective'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : 'bg-sky-100 text-sky-800'
+                                }`}>
+                                  {labelTypeAction(action.volet_action)}
+                                </span>
+                              )}
                             </div>
+                            <p className="text-sm text-gray-900 font-medium mb-2">{action.responsable_action}</p>
+                            {action.equipe_participante && action.volet_action === 'collective' && (
+                              <p className="text-xs text-gray-500 mb-2">Groupe : {action.equipe_participante}</p>
+                            )}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                               <div className="flex items-center gap-2">
                                 <MapPin className="w-4 h-4" />
@@ -2296,14 +2347,6 @@ export const EspaceAmbassadeurs: React.FC = () => {
                               <div className="flex items-center gap-2">
                                 <Calendar className="w-4 h-4" />
                                 <span>{new Date(action.date_action).toLocaleDateString('fr-FR')}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <User className="w-4 h-4" />
-                                <span>{action.responsable_action}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4" />
-                                <span>{action.nombre_participants} participant(s)</span>
                               </div>
                             </div>
                           </div>

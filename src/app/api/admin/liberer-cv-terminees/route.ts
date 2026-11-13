@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { listerCvDemandesTerminees, supprimerPdfCandidatures } from '@/lib/libererCvTerminees'
+import {
+  listerCvDemandesTerminees,
+  listerDemandesTermineesAvecCv,
+  supprimerPdfCandidatures,
+} from '@/lib/libererCvTerminees'
 
 async function assertAdmin(request: NextRequest) {
   if (!supabaseAdmin) {
@@ -29,12 +33,16 @@ export async function GET(request: NextRequest) {
   try {
     const gate = await assertAdmin(request)
     if ('error' in gate && gate.error) return gate.error
-    const cibles = await listerCvDemandesTerminees(gate.admin!)
+    const [cibles, fileAttente] = await Promise.all([
+      listerCvDemandesTerminees(gate.admin!),
+      listerDemandesTermineesAvecCv(gate.admin!),
+    ])
     return NextResponse.json({
       ok: true,
       demandesTerminees: cibles.demandes,
       cvALiberer: cibles.candidaturesAvecCv,
       fichiersUniques: cibles.chemins.length,
+      fileAttente,
     })
   } catch (e) {
     console.error('preview liberer cv', e)

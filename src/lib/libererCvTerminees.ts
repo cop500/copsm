@@ -57,6 +57,46 @@ export async function listerCvDemandesTerminees(
   }
 }
 
+export async function listerDemandesTermineesAvecCv(admin: Admin) {
+  const { data: demandes, error } = await admin
+    .from('demandes_entreprises')
+    .select('id, entreprise_nom')
+    .eq('statut', 'terminee')
+  if (error) throw error
+  const list = demandes || []
+  if (list.length === 0) {
+    return [] as { id: string; entreprise_nom: string; cvRestants: number }[]
+  }
+
+  const ids = list.map((d) => d.id)
+  const counts = new Map<string, number>()
+  const page = 1000
+  for (let from = 0; from < 20000; from += page) {
+    const { data: rows, error: cErr } = await admin
+      .from('candidatures_stagiaires')
+      .select('id, cv_url, demande_entreprise_id')
+      .in('demande_entreprise_id', ids)
+      .not('cv_url', 'is', null)
+      .range(from, from + page - 1)
+    if (cErr) throw cErr
+    if (!rows?.length) break
+    for (const row of rows) {
+      if (!row.cv_url || !row.demande_entreprise_id) continue
+      counts.set(row.demande_entreprise_id, (counts.get(row.demande_entreprise_id) || 0) + 1)
+    }
+    if (rows.length < page) break
+  }
+
+  return list
+    .map((d) => ({
+      id: d.id,
+      entreprise_nom: d.entreprise_nom || 'Entreprise',
+      cvRestants: counts.get(d.id) || 0,
+    }))
+    .filter((d) => d.cvRestants > 0)
+    .sort((a, b) => a.entreprise_nom.localeCompare(b.entreprise_nom, 'fr'))
+}
+
 export async function supprimerPdfCandidatures(
   admin: Admin,
   cibles: { chemins: string[]; idsCandidatures: string[] }

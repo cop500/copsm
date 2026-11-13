@@ -72,6 +72,8 @@ const DashboardAdmin = () => {
   const [fichesResumes, setFichesResumes] = useState<FicheSourcingResume[]>([]);
   const [savingProfilKey, setSavingProfilKey] = useState<string | null>(null);
   const [duplicateDemande, setDuplicateDemande] = useState<DemandeEntreprise | null>(null);
+  const [cvEnAttente, setCvEnAttente] = useState<{ id: string; entreprise_nom: string; cvRestants: number }[]>([]);
+  const [validatingCvId, setValidatingCvId] = useState<string | null>(null);
 
   // Charger les demandes entreprises
   const loadDemandes = async () => {
@@ -147,6 +149,59 @@ const DashboardAdmin = () => {
     loadAllData();
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin) return
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const res = await fetch('/api/admin/equipe/prenom/', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${data.session?.access_token || ''}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Siham',
+            to: 'Sihame',
+            role: 'conseillere_carriere',
+          }),
+        })
+        const json = await res.json()
+        if (res.ok && json.misAJour > 0) {
+          await loadProfiles()
+        }
+      } catch {
+        /* ignore */
+      }
+    })()
+  }, [isAdmin]);
+
+  const adminAuthHeaders = async () => {
+    const { data } = await supabase.auth.getSession()
+    return {
+      Authorization: `Bearer ${data.session?.access_token || ''}`,
+      'Content-Type': 'application/json',
+    }
+  }
+
+  const loadCvEnAttente = async () => {
+    if (!isAdmin) return
+    try {
+      const res = await fetch('/api/admin/liberer-cv-terminees/', {
+        headers: await adminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (res.ok) setCvEnAttente(data.fileAttente || [])
+    } catch {
+      /* ignore */
+    }
+  }
+
+  useEffect(() => {
+    if (!isAdmin) return
+    void loadCvEnAttente()
+  }, [isAdmin]);
+
   // Assigner ou réassigner le suivi d'une demande
   const handleAssign = async (demandeId: string, userId: string) => {
     setAssigning(demandeId);
@@ -184,6 +239,12 @@ const DashboardAdmin = () => {
     if (passerTerminee && isAdmin) {
       const ok = window.confirm(
         'Passer cette demande en terminée ? Les PDF des CV seront retirés du stockage. Les fiches (noms, statuts, tri) restent consultables.'
+      )
+      if (!ok) return
+    }
+    if (passerTerminee && !isAdmin) {
+      const ok = window.confirm(
+        'Passer cette demande en terminée ? Les CV PDF restent jusqu’à validation de l’administrateur. Les fiches restent consultables.'
       )
       if (!ok) return
     }
@@ -242,6 +303,19 @@ const DashboardAdmin = () => {
           } catch {
             setMessage('Statut terminée, mais le retrait des PDF a échoué. Utilisez Paramètres si besoin.')
           }
+          await loadCvEnAttente()
+        } else if (passerTerminee && !isAdmin) {
+          const notif = await supabase.from('notifications_demandes').insert({
+            demande_id: demandeId,
+            message: 'Demande terminée : valider la suppression des CV PDF.',
+          })
+          if (notif.error) {
+            await supabase.from('notifications_demandes').insert({ demande_id: demandeId })
+          }
+          await loadNotifications()
+          setMessage(
+            'Demande terminée. Les CV restent jusqu’à validation de l’administrateur.'
+          )
         } else {
           setMessage("Statut mis à jour avec succès.");
         }
@@ -520,6 +594,62 @@ const DashboardAdmin = () => {
           </p>
         </div>
       {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">{message}</div>}
+      {isAdmin && cvEnAttente.length > 0 && (
+        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="font-semibold text-amber-950 mb-1">
+            {cvEnAttente.length} demande(s) terminée(s) : valider la suppression des CV PDF
+          </p>
+          <p className="text-sm text-amber-800 mb-3">
+            Les fiches restent. Sans validation, les fichiers restent en stockage.
+          </p>
+          <div className="space-y-2">
+            {cvEnAttente.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-2 bg-white border border-amber-200 rounded-lg px-3 py-2"
+              >
+                <span className="text-sm text-gray-800">
+                  {item.entreprise_nom}{' '}
+                  <span className="text-gray-500">({item.cvRestants} CV)</span>
+                </span>
+                <button
+                  type="button"
+                  disabled={validatingCvId === item.id}
+                  onClick={async () => {
+                    if (
+                      !window.confirm(
+                        `Retirer les PDF de « ${item.entreprise_nom} » ? Les fiches restent.`
+                      )
+                    ) {
+                      return
+                    }
+                    setValidatingCvId(item.id)
+                    try {
+                      const res = await fetch('/api/admin/liberer-cv-terminees/', {
+                        method: 'POST',
+                        headers: await adminAuthHeaders(),
+                        body: JSON.stringify({ demandeId: item.id }),
+                      })
+                      const data = await res.json()
+                      if (!res.ok) throw new Error(data.error || 'Erreur')
+                      setMessage(`${data.fichiersSupprimes || 0} PDF retiré(s) pour ${item.entreprise_nom}.`)
+                      await loadCvEnAttente()
+                    } catch (e) {
+                      setMessage((e as Error).message)
+                    } finally {
+                      setValidatingCvId(null)
+                      setTimeout(() => setMessage(''), 4000)
+                    }
+                  }}
+                  className="px-3 py-1.5 text-sm bg-amber-700 text-white rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                >
+                  {validatingCvId === item.id ? 'Validation…' : 'Valider la suppression'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {isAdmin && fichesResumes.filter((f) => f.statut === 'soumise').length > 0 && (
         <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
           <p className="font-semibold text-orange-900 mb-2">
