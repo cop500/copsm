@@ -1616,7 +1616,7 @@ export default function StagiairesPage() {
                 <FileText className="w-8 h-8 text-blue-600" />
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">CV Connect</h2>
-                  <p className="text-gray-600">Gestion automatisée des CV des stagiaires</p>
+                  <p className="text-gray-600">Service actuellement indisponible — dépôt public fermé le temps de libérer le stockage.</p>
                 </div>
               </div>
             </div>

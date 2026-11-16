@@ -9,6 +9,7 @@ import {
   Building, GraduationCap, Briefcase, Star, Shield, Clock,
   UserCheck, Award, Target, Zap, Crown, Diamond, Rocket, Trophy
 } from 'lucide-react'
+import { CV_CONNECT_SERVICE_DISPONIBLE, CV_CONNECT_MESSAGE_INDISPONIBLE } from '@/lib/cvConnectStatut'
 
 interface FormData {
   nom: string
@@ -60,6 +61,10 @@ export default function CVConnectPage() {
 
   // Charger les données initiales
   useEffect(() => {
+    if (!CV_CONNECT_SERVICE_DISPONIBLE) {
+      setLoading(false)
+      return
+    }
     loadInitialData()
   }, [])
 
@@ -291,6 +296,27 @@ export default function CVConnectPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (!CV_CONNECT_SERVICE_DISPONIBLE) {
+    return (
+      <div className="min-h-screen relative flex items-center justify-center px-4">
+        <div className="absolute inset-0">
+          <div
+            className="w-full h-full bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url('/background4.jpg')` }}
+          />
+          <div className="absolute inset-0 bg-[#0f3d6c]/40" />
+        </div>
+        <div className="relative z-10 max-w-lg w-full bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/80 p-8 text-center">
+          <div className="w-14 h-14 rounded-xl bg-[#0f3d6c] text-white flex items-center justify-center mx-auto mb-4">
+            <Clock className="w-7 h-7" />
+          </div>
+          <h1 className="text-2xl font-bold text-[#0f3d6c] mb-3">CV Connect</h1>
+          <p className="text-slate-700 leading-relaxed">{CV_CONNECT_MESSAGE_INDISPONIBLE}</p>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {

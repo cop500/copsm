@@ -151,7 +151,9 @@ export default function CVConnectAdminPage() {
                 <FileText className="w-8 h-8 text-blue-600" />
                 CV Connect - Administration
               </h1>
-              <p className="text-gray-600 mt-2">Gestion des soumissions de CV</p>
+              <p className="text-gray-600 mt-2">
+                Dépôt public fermé. Les CV déjà reçus peuvent être vidés depuis Paramètres (Vider CV Connect).
+              </p>
             </div>
             <button
               onClick={loadSubmissions}

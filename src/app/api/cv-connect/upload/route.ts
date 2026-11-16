@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { CV_CONNECT_SERVICE_DISPONIBLE, CV_CONNECT_MESSAGE_INDISPONIBLE } from '@/lib/cvConnectStatut'
 
 export async function POST(request: NextRequest) {
+  if (!CV_CONNECT_SERVICE_DISPONIBLE) {
+    return NextResponse.json(
+      { error: CV_CONNECT_MESSAGE_INDISPONIBLE },
+      { status: 503 }
+    )
+  }
+
   try {
     const formData = await request.formData()
     

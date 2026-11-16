@@ -21,7 +21,7 @@ export const PORTES_STAGIAIRE: PorteStagiaire[] = [
     id: 'cv',
     verbe: 'Je dépose',
     titre: 'CV Connect',
-    resume: 'Envoyer mon CV au COP, avec mon pôle et ma filière.',
+    resume: 'Service temporairement indisponible — de retour très prochainement.',
     path: '/cv-connect/public/',
     essentielle: true,
   },

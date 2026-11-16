@@ -9,6 +9,7 @@ import { useRole } from '@/hooks/useRole';
 import { useRouter } from 'next/navigation';
 import GeneralSettingsModule from '@/components/GeneralSettingsModule';
 import { LibererStockageCvTerminees } from '@/components/LibererStockageCvTerminees';
+import { ViderCvConnect } from '@/components/ViderCvConnect';
 import { Settings, Mail, Users, CalendarDays } from 'lucide-react';
 
 export default function ParametresPage() {
@@ -59,6 +60,7 @@ export default function ParametresPage() {
           <div className="mt-8">
             <GeneralSettingsModule />
             <LibererStockageCvTerminees />
+            <ViderCvConnect />
           </div>
         </div>
       )}
