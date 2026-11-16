@@ -29,6 +29,7 @@ import {
   pathPhotoAmbassadeur,
   PHOTO_AMBASSADEUR,
 } from '@/lib/photoAmbassadeur'
+import { MissionsAmbassadeursAdmin } from '@/components/MissionsAmbassadeursAdmin'
 
 interface StagiaireAmbassadeur {
   id: string
@@ -560,7 +561,7 @@ export const EspaceAmbassadeurs: React.FC = () => {
   const [showEvaluationModal, setShowEvaluationModal] = useState(false)
   const [allStagiaires, setAllStagiaires] = useState<any[]>([])
   const [loadingStagiaires, setLoadingStagiaires] = useState(false)
-  const [activeSection, setActiveSection] = useState<'stagiaires' | 'actions'>('stagiaires')
+  const [activeSection, setActiveSection] = useState<'stagiaires' | 'actions' | 'missions'>('stagiaires')
   const [showActionForm, setShowActionForm] = useState(false)
   const [showStagiaireForm, setShowStagiaireForm] = useState(false)
   const [stagiaireFormData, setStagiaireFormData] = useState({
@@ -1404,6 +1405,18 @@ export const EspaceAmbassadeurs: React.FC = () => {
               {stats.totalActions}
             </span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('missions')}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              activeSection === 'missions'
+                ? 'bg-[#0f3d6c] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Target className="w-4 h-4" />
+            Missions
+          </button>
         </div>
       </div>
 
@@ -1865,6 +1878,8 @@ export const EspaceAmbassadeurs: React.FC = () => {
             </div>
           </div>
         </div>
+      ) : activeSection === 'missions' ? (
+        <MissionsAmbassadeursAdmin />
       ) : null}
 
       {/* Modal de détail du stagiaire */}

@@ -35,6 +35,12 @@ export const TYPES_ACTION_AMBASSADEUR = [
     detailLabel: 'Thème de l’animation',
     placeholder: 'Ex. Atelier CV, simulation entretien…',
   },
+  {
+    id: 'autre',
+    label: 'Autre',
+    detailLabel: 'Précisez l’action',
+    placeholder: 'Décrivez l’action réalisée…',
+  },
 ] as const
 
 export type TypeActionAmbassadeurId = (typeof TYPES_ACTION_AMBASSADEUR)[number]['id']

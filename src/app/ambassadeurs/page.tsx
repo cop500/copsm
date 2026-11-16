@@ -5,6 +5,7 @@ import { Calendar, MapPin, Users, User, Building2, CheckCircle, AlertCircle, Loa
 import './formulaire.css'
 import Image from 'next/image'
 import { TYPES_ACTION_AMBASSADEUR } from '@/lib/ambassadeursActions'
+import { MissionsAmbassadeursPublic } from '@/components/MissionsAmbassadeursPublic'
 
 type Ambassadeur = {
   id: string
@@ -31,6 +32,7 @@ export default function FormulaireAmbassadeurs() {
   const [details, setDetails] = useState<Record<string, string>>({})
   const [dateAction, setDateAction] = useState(today)
   const [lieu, setLieu] = useState('')
+  const [vue, setVue] = useState<'missions' | 'actions'>('missions')
 
   useEffect(() => {
     fetch('/api/ambassadeurs/liste/', { cache: 'no-store' })
@@ -214,11 +216,34 @@ export default function FormulaireAmbassadeurs() {
               <Users className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-xl">
-              Formulaire de Suivi des Actions
+              Stagiaires Ambassadeurs
             </h1>
-            <p className="text-xl text-[#EDEDED] drop-shadow-lg">Stagiaires Ambassadeurs</p>
+            <p className="text-xl text-[#EDEDED] drop-shadow-lg mb-6">COP CMC Souss-Massa</p>
+            <div className="inline-flex p-1 rounded-xl bg-white/15 border border-white/30">
+              <button
+                type="button"
+                onClick={() => setVue('missions')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                  vue === 'missions' ? 'bg-white text-[#0f3d6c]' : 'text-white'
+                }`}
+              >
+                Missions disponibles
+              </button>
+              <button
+                type="button"
+                onClick={() => setVue('actions')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                  vue === 'actions' ? 'bg-white text-[#0f3d6c]' : 'text-white'
+                }`}
+              >
+                Déclarer une action
+              </button>
+            </div>
           </div>
 
+          {vue === 'missions' ? (
+            <MissionsAmbassadeursPublic />
+          ) : (
           <div className="backdrop-blur-md bg-white/10 rounded-3xl shadow-2xl p-8 border border-white/20">
             {error && (
               <div className="mb-6 p-4 bg-red-900 bg-opacity-50 backdrop-blur-sm border border-red-400 border-opacity-50 rounded-lg flex items-center gap-3">
@@ -467,6 +492,7 @@ export default function FormulaireAmbassadeurs() {
               </button>
             </form>
           </div>
+          )}
         </div>
       </div>
     </div>
