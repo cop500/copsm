@@ -140,12 +140,6 @@ export const EmployabilityDashboard: React.FC = () => {
     });
   };
 
-  // Fonction pour calculer la luminosité d'une couleur (0-255)
-  const getLuminance = (hex: string): number => {
-    const rgb = hex.match(/[A-Za-z0-9]{2}/g)?.map(v => parseInt(v, 16)) || [0, 0, 0];
-    return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]);
-  };
-
   // Fonction pour obtenir la couleur de fond selon le pôle
   const getPoleBackgroundColor = (poleName: string): string => {
     // Normaliser le nom du pôle (minuscules, sans accents, sans espaces multiples)
@@ -875,13 +869,6 @@ export const EmployabilityDashboard: React.FC = () => {
     }
   ];
 
-  // Debug: Afficher l'état des métriques au moment du rendu:
-  console.log('🔍 État des métriques au moment du rendu:');
-  console.log('📊 demandMetrics:', demandMetrics);
-  console.log('📈 eventMetrics:', eventMetrics);
-  console.log('🏢 enterpriseMetrics:', enterpriseMetrics);
-  console.log('🎯 KPI Demandes actives:', (demandMetrics || { activeDemands: 0 }).activeDemands);
-
   // Données pour les graphiques
   const voletChartData: ChartData = {
     labels: eventMetrics ? Object.keys(eventMetrics.eventsByVolet).map(volet => {
@@ -897,8 +884,8 @@ export const EmployabilityDashboard: React.FC = () => {
     datasets: [{
       label: 'Événements par volet',
       data: eventMetrics ? Object.values(eventMetrics.eventsByVolet) : [],
-      backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6B7280'],
-      borderColor: ['#2563EB', '#059669', '#D97706', '#DC2626', '#4B5563']
+      backgroundColor: ['#0f3d6c', '#0f3d6c', '#0f3d6c', '#0f3d6c', '#0f3d6c'],
+      borderColor: ['#0f3d6c', '#0f3d6c', '#0f3d6c', '#0f3d6c', '#0f3d6c']
     }]
   };
 
@@ -907,194 +894,104 @@ export const EmployabilityDashboard: React.FC = () => {
     datasets: [{
       label: 'Entreprises par secteur',
       data: enterpriseMetrics ? Object.values(enterpriseMetrics.sectors) : [],
-      backgroundColor: ['#8B5CF6', '#06B6D4', '#84CC16', '#F97316', '#EC4899'],
-      borderColor: ['#7C3AED', '#0891B2', '#65A30D', '#EA580C', '#DB2777']
+      backgroundColor: ['#0f3d6c', '#0f3d6c', '#0f3d6c', '#0f3d6c', '#0f3d6c'],
+      borderColor: ['#0f3d6c', '#0f3d6c', '#0f3d6c', '#0f3d6c', '#0f3d6c']
     }]
   };
 
+  const panel = 'rounded-xl border border-[#0f3d6c]/10 bg-[#f8f6f1] p-4'
+  const btn =
+    'inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-white disabled:opacity-50'
+  const row = 'flex justify-between items-center text-xs'
+  const rowVal = 'tabular-nums font-semibold text-[#0f3d6c]'
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-sm text-gray-600">Chargement des métriques...</span>
-        <div className="mt-2 text-xs text-gray-500">
-          {entreprisesLoading && 'Chargement des entreprises...'}
-          {evenementsLoading && 'Chargement des événements...'}
-          {demandMetrics === null && 'Chargement des demandes...'}
-        </div>
-        
+      <div className="flex items-center justify-center p-8 text-sm text-slate-500">
+        <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-[#0f3d6c] border-t-transparent" />
+        Chargement des métriques…
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-4">
-      {/* Header simplifié */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Métriques d'employabilité</h2>
-          <p className="text-sm text-gray-600">Vue d'ensemble des performances</p>
+          <h2 className="text-sm font-semibold text-[#0f3d6c]">Métriques d’employabilité</h2>
+          <p className="text-xs text-slate-500">Vue d’ensemble des performances</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
           >
             <option value="current_month">Ce mois</option>
             <option value="current_year">Cette année</option>
             <option value="all_time">Tout le temps</option>
           </select>
-          
-                       <button 
-              onClick={handleRefresh}
-              disabled={loading}
-              className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <Activity className="w-3 h-3" />
-              )}
-              Actualiser
-            </button>
-            
-                         {(isAdmin || isManager || isDirecteur || isConseiller) && (
-               <>
-                 <button 
-                   onClick={handleExport}
-                   disabled={exporting}
-                   className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                 >
-                   {exporting ? (
-                     <>
-                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                       Export Excel...
-                     </>
-                   ) : (
-                     <>
-                       <Download className="w-3 h-3" />
-                       Excel
-                     </>
-                   )}
-                 </button>
-                 
-                 <button 
-                   onClick={handleExportPDF}
-                   disabled={exportingPDF}
-                   className="flex items-center gap-1 px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                 >
-                   {exportingPDF ? (
-                     <>
-                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                       Export PDF...
-                     </>
-                   ) : (
-                     <>
-                       <FileDown className="w-3 h-3" />
-                       PDF
-                     </>
-                   )}
-                 </button>
-                 
-                 <button 
-                   onClick={handleExportPPTX}
-                   disabled={exportingPPTX}
-                   className="flex items-center gap-1 px-3 py-1 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                 >
-                   {exportingPPTX ? (
-                     <>
-                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                       Export PPTX...
-                     </>
-                   ) : (
-                     <>
-                       <Presentation className="w-3 h-3" />
-                       PowerPoint
-                     </>
-                   )}
-                 </button>
-               </>
-             )}
+          <button type="button" onClick={handleRefresh} disabled={loading} className={btn}>
+            <Activity className="h-3 w-3" />
+            Actualiser
+          </button>
+          {(isAdmin || isManager || isDirecteur || isConseiller) && (
+            <>
+              <button type="button" onClick={handleExport} disabled={exporting} className={btn}>
+                <Download className="h-3 w-3" />
+                Excel
+              </button>
+              <button type="button" onClick={handleExportPDF} disabled={exportingPDF} className={btn}>
+                <FileDown className="h-3 w-3" />
+                PDF
+              </button>
+              <button type="button" onClick={handleExportPPTX} disabled={exportingPPTX} className={btn}>
+                <Presentation className="h-3 w-3" />
+                PowerPoint
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* KPIs principaux */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map((kpi, index) => (
-          <div key={index} className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
-            {/* Motifs décoratifs */}
-            <div 
-              className="absolute inset-0 opacity-20 pointer-events-none"
-              style={{
-                backgroundImage: `
-                  radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.4) 2px, transparent 2px),
-                  radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.4) 2px, transparent 2px),
-                  linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.2) 49%, rgba(156, 163, 175, 0.2) 51%, transparent 52%),
-                  linear-gradient(-45deg, transparent 48%, rgba(156, 163, 175, 0.2) 49%, rgba(156, 163, 175, 0.2) 51%, transparent 52%)
-                `,
-                backgroundSize: '30px 30px, 40px 40px, 20px 20px, 20px 20px',
-                backgroundPosition: '0 0, 15px 15px, 0 0, 10px 10px'
-              }}
-            ></div>
-            
-            <div className="flex items-center justify-between relative z-10">
-              <div>
-                <p className="text-xs font-medium text-gray-600">{kpi.label}</p>
-                <p className="text-lg font-bold text-gray-900 mt-1">{kpi.value}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  {kpi.trendValue > 0 ? (
-                    <ArrowUpRight className="w-3 h-3 text-green-500" />
-                  ) : (
-                    <ArrowDownRight className="w-3 h-3 text-red-500" />
-                  )}
-                  <span className={`text-xs ${kpi.trendValue > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {kpi.trend}
-                  </span>
-                </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {kpiCards.map((kpi, index) => {
+          const Icon = kpi.icon
+          return (
+            <div key={index} className={panel}>
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 leading-snug">{kpi.label}</p>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0f3d6c] text-white">
+                  <Icon className="h-4 w-4" />
+                </span>
               </div>
-              <div className={`p-2 rounded-lg bg-${kpi.color}-100`}>
-                <kpi.icon className={`w-5 h-5 text-${kpi.color}-600`} />
-              </div>
+              <p className="font-serif text-2xl tabular-nums text-[#0f3d6c]">{kpi.value}</p>
+              <p className={`mt-1 inline-flex items-center gap-0.5 text-[11px] ${kpi.trendValue > 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                {kpi.trendValue > 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {kpi.trend}
+              </p>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {/* Graphiques et métriques détaillées */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Événements par volet */}
-        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
-          {/* Motifs décoratifs */}
-          <div 
-            className="absolute inset-0 opacity-15 pointer-events-none"
-            style={{
-              backgroundImage: `
-                radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-                radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
-              `,
-              backgroundSize: '25px 25px, 35px 35px, 15px 15px',
-              backgroundPosition: '0 0, 12px 12px, 0 0'
-            }}
-          ></div>
-          
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 relative z-10">Événements par volet</h3>
-          <div className="space-y-2 relative z-10">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className={panel}>
+          <h3 className="mb-3 text-sm font-semibold text-[#0f3d6c]">Événements par volet</h3>
+          <div className="space-y-2">
             {voletChartData.labels.map((label, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <span className="text-xs text-gray-600 truncate">{label}</span>
+              <div key={index} className="flex items-center justify-between gap-2">
+                <span className="truncate text-xs text-slate-600">{label}</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                    <div 
-                      className="h-1.5 rounded-full"
-                      style={{ 
-                        width: `${(voletChartData.datasets[0].data[index] / Math.max(...voletChartData.datasets[0].data)) * 100}%`,
-                        backgroundColor: voletChartData.datasets[0].backgroundColor[index]
+                  <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#0f3d6c]/10">
+                    <div
+                      className="h-1.5 rounded-full bg-[#0f3d6c]"
+                      style={{
+                        width: `${(voletChartData.datasets[0].data[index] / Math.max(...voletChartData.datasets[0].data, 1)) * 100}%`,
                       }}
-                    ></div>
+                    />
                   </div>
-                  <span className="text-xs font-medium text-gray-900">
+                  <span className="w-6 text-right text-xs font-semibold tabular-nums text-[#0f3d6c]">
                     {voletChartData.datasets[0].data[index]}
                   </span>
                 </div>
@@ -1102,39 +999,22 @@ export const EmployabilityDashboard: React.FC = () => {
             ))}
           </div>
         </div>
-
-        {/* Entreprises par secteur */}
-        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
-          {/* Motifs décoratifs */}
-          <div 
-            className="absolute inset-0 opacity-15 pointer-events-none"
-            style={{
-              backgroundImage: `
-                radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-                radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
-              `,
-              backgroundSize: '25px 25px, 35px 35px, 15px 15px',
-              backgroundPosition: '0 0, 12px 12px, 0 0'
-            }}
-          ></div>
-          
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 relative z-10">Entreprises par secteur</h3>
-          <div className="space-y-2 relative z-10">
+        <div className={panel}>
+          <h3 className="mb-3 text-sm font-semibold text-[#0f3d6c]">Entreprises par secteur</h3>
+          <div className="space-y-2">
             {sectorChartData.labels.map((label, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <span className="text-xs text-gray-600 truncate">{label}</span>
+              <div key={index} className="flex items-center justify-between gap-2">
+                <span className="truncate text-xs text-slate-600">{label}</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                    <div 
-                      className="h-1.5 rounded-full"
-                      style={{ 
-                        width: `${(sectorChartData.datasets[0].data[index] / Math.max(...sectorChartData.datasets[0].data)) * 100}%`,
-                        backgroundColor: sectorChartData.datasets[0].backgroundColor[index]
+                  <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#0f3d6c]/10">
+                    <div
+                      className="h-1.5 rounded-full bg-[#0f3d6c]"
+                      style={{
+                        width: `${(sectorChartData.datasets[0].data[index] / Math.max(...sectorChartData.datasets[0].data, 1)) * 100}%`,
                       }}
-                    ></div>
+                    />
                   </div>
-                  <span className="text-xs font-medium text-gray-900">
+                  <span className="w-6 text-right text-xs font-semibold tabular-nums text-[#0f3d6c]">
                     {sectorChartData.datasets[0].data[index]}
                   </span>
                 </div>
@@ -1144,218 +1024,95 @@ export const EmployabilityDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Métriques détaillées */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Métriques des événements */}
-        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
-          {/* Motifs décoratifs */}
-          <div 
-            className="absolute inset-0 opacity-15 pointer-events-none"
-            style={{
-              backgroundImage: `
-                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
-              `,
-              backgroundSize: '20px 20px, 30px 30px, 12px 12px',
-              backgroundPosition: '0 0, 10px 10px, 0 0'
-            }}
-          ></div>
-          
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2 relative z-10">
-            <Calendar className="w-4 h-4 text-blue-600" />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div className={panel}>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#0f3d6c]">
+            <Calendar className="h-4 w-4" />
             Événements
           </h3>
-          <div className="space-y-2 relative z-10">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Total</span>
-              <span className="text-sm font-semibold">{eventMetrics?.totalEvents}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Bénéficiaires</span>
-              <span className="text-sm font-semibold">{eventMetrics?.totalBeneficiaries}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Candidats reçus</span>
-              <span className="text-sm font-semibold">{eventMetrics?.totalCandidates}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Candidats retenus</span>
-              <span className="text-sm font-semibold">{eventMetrics?.totalRetained}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Taux de conversion</span>
-              <span className="text-sm font-semibold text-green-600">{eventMetrics?.conversionRate}%</span>
-            </div>
+          <div className="space-y-2">
+            <div className={row}><span className="text-slate-500">Total</span><span className={rowVal}>{eventMetrics?.totalEvents}</span></div>
+            <div className={row}><span className="text-slate-500">Bénéficiaires</span><span className={rowVal}>{eventMetrics?.totalBeneficiaries}</span></div>
+            <div className={row}><span className="text-slate-500">Candidats reçus</span><span className={rowVal}>{eventMetrics?.totalCandidates}</span></div>
+            <div className={row}><span className="text-slate-500">Candidats retenus</span><span className={rowVal}>{eventMetrics?.totalRetained}</span></div>
+            <div className={row}><span className="text-slate-500">Taux de conversion</span><span className={rowVal}>{eventMetrics?.conversionRate}%</span></div>
           </div>
         </div>
 
-        {/* Métriques des entreprises */}
-        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
-          {/* Motifs décoratifs */}
-          <div 
-            className="absolute inset-0 opacity-15 pointer-events-none"
-            style={{
-              backgroundImage: `
-                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
-              `,
-              backgroundSize: '20px 20px, 30px 30px, 12px 12px',
-              backgroundPosition: '0 0, 10px 10px, 0 0'
-            }}
-          ></div>
-          
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2 relative z-10">
-            <Building2 className="w-4 h-4 text-purple-600" />
+        <div className={panel}>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#0f3d6c]">
+            <Building2 className="h-4 w-4" />
             Entreprises
           </h3>
-          <div className="space-y-2 relative z-10">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Total</span>
-              <span className="text-sm font-semibold">{enterpriseMetrics?.totalEnterprises}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Prospects</span>
-              <span className="text-sm font-semibold text-orange-600">{enterpriseMetrics?.prospects}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600" title="Référentiel onglet Partenariats">
-                Partenaires (conventions)
-              </span>
-              <span className="text-sm font-semibold text-green-600">{enterpriseMetrics?.partners}</span>
-            </div>
-            {/* Séparateur pour les métriques de visites */}
-            <div className="border-t border-gray-300 my-2"></div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600 flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                Total visites
-              </span>
-              <span className="text-sm font-semibold text-purple-600">{enterpriseMetrics?.totalVisites || 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Visites planifiées</span>
-              <span className="text-sm font-semibold text-orange-600">{enterpriseMetrics?.visitesPlanifiees || 0}</span>
-            </div>
-            {/* Statut BD - Section améliorée et créative */}
-            <div className="border-t border-gray-300 my-3"></div>
-            <div className={`rounded-lg p-3 ${enterpriseMetrics?.statutBD.color || 'bg-gray-50'} border-2 ${enterpriseMetrics?.statutBD.label === 'BD EN DÉPLACEMENT' ? 'border-blue-300' : enterpriseMetrics?.statutBD.label === 'BD EN VISITE' ? 'border-orange-300' : 'border-gray-300'} shadow-sm`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{enterpriseMetrics?.statutBD.icon || '🏢'}</span>
-                <span className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                  {enterpriseMetrics?.statutBD.label || 'BD EN CMC'}
-                </span>
-              </div>
+          <div className="space-y-2">
+            <div className={row}><span className="text-slate-500">Total</span><span className={rowVal}>{enterpriseMetrics?.totalEnterprises}</span></div>
+            <div className={row}><span className="text-slate-500">Prospects</span><span className={rowVal}>{enterpriseMetrics?.prospects}</span></div>
+            <div className={row}><span className="text-slate-500">Partenaires (conventions)</span><span className={rowVal}>{enterpriseMetrics?.partners}</span></div>
+            <div className="my-1 border-t border-[#0f3d6c]/10" />
+            <div className={row}><span className="text-slate-500">Total visites</span><span className={rowVal}>{enterpriseMetrics?.totalVisites || 0}</span></div>
+            <div className={row}><span className="text-slate-500">Visites planifiées</span><span className={rowVal}>{enterpriseMetrics?.visitesPlanifiees || 0}</span></div>
+            <div className="mt-2 rounded-lg border border-[#0f3d6c]/15 bg-white px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#0f3d6c]">
+                {enterpriseMetrics?.statutBD.label || 'BD EN CMC'}
+              </p>
               {enterpriseMetrics?.statutBD.date && (
-                <div className="flex items-center gap-1 mt-1.5">
-                  <Calendar className="w-3 h-3 text-gray-600" />
-                  <span className="text-xs font-medium text-gray-700">
-                    {enterpriseMetrics.statutBD.date}
-                  </span>
-                </div>
+                <p className="mt-1 text-[11px] text-slate-500">{enterpriseMetrics.statutBD.date}</p>
               )}
             </div>
           </div>
         </div>
 
-                {/* Top entreprises */}
-        <div className="bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden">
-          {/* Motifs décoratifs */}
-          <div 
-            className="absolute inset-0 opacity-15 pointer-events-none"
-            style={{
-              backgroundImage: `
-                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-                linear-gradient(45deg, transparent 48%, rgba(156, 163, 175, 0.1) 49%, rgba(156, 163, 175, 0.1) 51%, transparent 52%)
-              `,
-              backgroundSize: '20px 20px, 30px 30px, 12px 12px',
-              backgroundPosition: '0 0, 10px 10px, 0 0'
-            }}
-          ></div>
-          
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2 relative z-10">
-            <Target className="w-4 h-4 text-red-600" />
+        <div className={panel}>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#0f3d6c]">
+            <Target className="h-4 w-4" />
             Top entreprises
           </h3>
-          <div className="space-y-2 relative z-10">
-            {entreprises && entreprises.filter(e => e.partenaire_privilegie).length > 0 ? (
+          <div className="space-y-2">
+            {entreprises && entreprises.filter((e) => e.partenaire_privilegie).length > 0 ? (
               entreprises
-                .filter(e => e.partenaire_privilegie)
+                .filter((e) => e.partenaire_privilegie)
                 .slice(0, 5)
                 .map((entreprise, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600 truncate">{entreprise.nom}</span>
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                      Partenaire privilégié
+                  <div key={index} className="flex items-center justify-between gap-2">
+                    <span className="truncate text-xs text-slate-700">{entreprise.nom}</span>
+                    <span className="shrink-0 rounded-full bg-[#0f3d6c]/10 px-2 py-0.5 text-[10px] font-medium text-[#0f3d6c]">
+                      Privilégié
                     </span>
                   </div>
                 ))
             ) : (
-              <div className="text-xs text-gray-500 text-center py-2">
-                Aucune entreprise marquée comme partenaire privilégié
-              </div>
+              <p className="py-2 text-center text-xs text-slate-500">Aucun partenaire privilégié</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Métriques par pôles */}
       {eventMetrics && Object.keys(eventMetrics.eventsByPole).length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-indigo-600" />
-            Métriques par Pôles
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(eventMetrics.eventsByPole).map(([poleName, eventCount]) => {
-              const backgroundColor = getPoleBackgroundColor(poleName);
-              const luminance = getLuminance(backgroundColor);
-              // Si la luminosité est faible (< 128), utiliser texte clair, sinon texte foncé
-              const useLightText = luminance < 128;
-              
-              return (
-              <div 
-                key={poleName} 
-                className="rounded-2xl shadow-lg border-2 border-black/20 p-4 relative overflow-hidden"
-                style={{
-                  backgroundColor: backgroundColor,
-                }}
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-[#0f3d6c]">Métriques par pôles</h3>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {Object.entries(eventMetrics.eventsByPole).map(([poleName, eventCount]) => (
+              <div
+                key={poleName}
+                className="rounded-xl border border-[#0f3d6c]/10 bg-[#f8f6f1] p-4"
+                style={{ borderLeftWidth: 3, borderLeftColor: getPoleBackgroundColor(poleName) }}
               >
-                {/* Motifs décoratifs - subtils pour les couleurs pastel */}
-                <div 
-                  className="absolute inset-0 opacity-8 pointer-events-none"
-                  style={{
-                    backgroundImage: `
-                      radial-gradient(circle at 25% 25%, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-                      radial-gradient(circle at 75% 75%, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-                      linear-gradient(45deg, transparent 48%, rgba(0, 0, 0, 0.05) 49%, rgba(0, 0, 0, 0.05) 51%, transparent 52%)
-                    `,
-                    backgroundSize: '20px 20px, 30px 30px, 12px 12px',
-                    backgroundPosition: '0 0, 10px 10px, 0 0'
-                  }}
-                ></div>
-                
-                <h4 className={`text-sm font-semibold mb-3 relative z-10 ${useLightText ? 'text-white' : 'text-gray-900'}`}>{poleName}</h4>
-                <div className="space-y-2 relative z-10">
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs ${useLightText ? 'text-gray-200' : 'text-gray-700'}`}>Événements</span>
-                    <span className={`text-sm font-semibold ${useLightText ? 'text-white' : 'text-gray-900'}`}>{eventCount}</span>
+                <h4 className="mb-2 text-sm font-semibold text-[#0f3d6c]">{poleName}</h4>
+                <div className="space-y-1.5">
+                  <div className={row}>
+                    <span className="text-slate-500">Événements</span>
+                    <span className={rowVal}>{eventCount}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs ${useLightText ? 'text-gray-200' : 'text-gray-700'}`}>Taux de conversion</span>
-                    <span className="text-sm font-semibold text-green-600">
-                      {eventMetrics.conversionRateByPole[poleName] || 0}%
-                    </span>
+                  <div className={row}>
+                    <span className="text-slate-500">Conversion</span>
+                    <span className={rowVal}>{eventMetrics.conversionRateByPole[poleName] || 0}%</span>
                   </div>
                 </div>
               </div>
-              );
-            })}
+            ))}
           </div>
         </div>
       )}
     </div>
-  );
-};
+  )
+}

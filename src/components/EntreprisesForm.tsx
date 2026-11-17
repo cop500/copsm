@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useEntreprises } from '@/hooks/useEntreprises';
 import { Plus, Edit, Trash2, Building, Phone, Mail, MapPin, Search, Filter, Paperclip, Download, Calendar, Upload, FileSpreadsheet, Target, Building2 } from 'lucide-react';
 import type { Entreprise } from '@/types';
@@ -21,8 +22,14 @@ const EntreprisesForm = () => {
   // Vérifier si l'utilisateur est admin
   const isAdmin = currentUser?.role === 'business_developer';
 
-  // Onglet actif
-  const [activeTab, setActiveTab] = useState<'liste' | 'visites'>('liste');
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<'liste' | 'visites'>(
+    searchParams.get('tab') === 'visites' ? 'visites' : 'liste'
+  )
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'visites') setActiveTab('visites')
+  }, [searchParams])
 
   const [showForm, setShowForm] = useState(false);
   const [editingEntreprise, setEditingEntreprise] = useState<Entreprise | null>(null);

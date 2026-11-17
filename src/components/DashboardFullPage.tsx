@@ -1,294 +1,296 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Home, Users, Building2, Calendar, FileText, Settings, 
-  Search, Bell, TrendingUp, Target, Activity, AlertCircle, 
-  CheckCircle, Mail, GraduationCap, Menu, X, User, LogOut, 
-  PlusCircle, Send, Trash2, MessageSquare, MoreVertical, ClipboardList
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import NotesModule from './NotesModule';
-import IndicateursDashboardCards from './IndicateursDashboardCards';
-import { useRole } from '@/hooks/useRole';
-import { EmployabilityDashboard } from './EmployabilityDashboard';
-import { getRoleLabel } from '@/utils/constants';
-import NouvellesDemandesEntreprises from './NouvellesDemandesEntreprises';
-import EvenementsPassesCarousel from './EvenementsPassesCarousel';
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  Users,
+  Building2,
+  Calendar,
+  LogOut,
+  ClipboardList,
+  TrendingUp,
+  Settings,
+  MapPin,
+} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import IndicateursDashboardCards from './IndicateursDashboardCards'
+import { useRole } from '@/hooks/useRole'
+import { EmployabilityDashboard } from './EmployabilityDashboard'
+import { getRoleLabel } from '@/utils/constants'
+import NouvellesDemandesEntreprises from './NouvellesDemandesEntreprises'
+import EvenementsPassesCarousel from './EvenementsPassesCarousel'
 
-// Types
-interface QuickAction {
-  name: string;
-  icon: React.ComponentType<any>;
-  href: string;
-  color: string;
+const NAVY = '#0f3d6c'
+const TZ = 'Africa/Casablanca'
+
+const LIGNES = [
+  'Chaque entretien ouvre un métier.',
+  'Orienter. Accompagner. Connecter.',
+  'Le COP, un bureau ouvert sur la région.',
+]
+
+function maintenantMaroc() {
+  const now = new Date()
+  const heure = Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: TZ,
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).format(now)
+  )
+  const salut = heure < 12 ? 'Bonjour' : heure < 18 ? 'Bon après-midi' : 'Bonsoir'
+  const date = now.toLocaleDateString('fr-FR', {
+    timeZone: TZ,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+  const heureStr = now.toLocaleTimeString('fr-FR', {
+    timeZone: TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  return { salut, date, heureStr }
 }
 
 const DashboardFullPage: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const { profile, signOut } = useAuth();
-  const { isAdmin, isDirecteur, isManager } = useRole();
-  const router = useRouter();
-  const canAccessAdmission = isAdmin || isManager;
+  const { profile, signOut } = useAuth()
+  const { isAdmin, isDirecteur, isManager } = useRole()
+  const router = useRouter()
+  const canAccessAdmission = isAdmin || isManager
+  const [horloge, setHorloge] = useState(maintenantMaroc)
+  const [ligne, setLigne] = useState(0)
 
-  // Actions rapides - Style professionnel éducatif
-  const quickActions: QuickAction[] = [
-    {
-      name: 'Candidatures',
-      icon: Users,
-      href: '/stagiaires',
-      color: 'bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg'
-    },
-    ...(canAccessAdmission
-      ? [{
-          name: 'Admission',
-          icon: ClipboardList,
-          href: '/admission',
-          color: 'bg-gradient-to-br from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white shadow-md hover:shadow-lg'
-        }]
-      : []),
-    {
-      name: 'Demandes entreprises',
-      icon: Building2,
-      href: '/dashboard-admin',
-      color: 'bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-md hover:shadow-lg'
-    },
-    {
-      name: 'Événements',
-      icon: Calendar,
-      href: '/evenements',
-      color: 'bg-gradient-to-br from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-md hover:shadow-lg'
-    }
-  ];
+  useEffect(() => {
+    const t = window.setInterval(() => setHorloge(maintenantMaroc()), 30000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    const t = window.setInterval(() => setLigne((i) => (i + 1) % LIGNES.length), 5600)
+    return () => window.clearInterval(t)
+  }, [])
+
+  const prenomAffiche = profile?.role === 'directeur' ? 'Habib' : profile?.prenom || ''
+  const nomAffiche = profile?.role === 'directeur' ? 'Aadi' : profile?.nom || ''
+  const roleAffiche =
+    profile?.role === 'directeur'
+      ? 'Directeur CMC'
+      : getRoleLabel(profile?.role || '', profile?.prenom)
+  const initiales =
+    profile?.role === 'directeur'
+      ? 'HA'
+      : `${prenomAffiche?.[0] || ''}${nomAffiche?.[0] || ''}`.toUpperCase() || 'U'
+
+  const quickActions = useMemo(
+    () => [
+      {
+        name: 'Candidatures',
+        hint: 'Offres partenaires et CV',
+        icon: Users,
+        href: '/stagiaires',
+      },
+      ...(canAccessAdmission
+        ? [
+            {
+              name: 'Admission',
+              hint: 'Parcours et dossiers',
+              icon: ClipboardList,
+              href: '/admission',
+            },
+          ]
+        : []),
+      {
+        name: 'Demandes',
+        hint: 'Entreprises qui sollicitent le COP',
+        icon: Building2,
+        href: '/dashboard-admin',
+      },
+      {
+        name: 'Événements',
+        hint: 'Ateliers, JPO, ambassadeurs',
+        icon: Calendar,
+        href: '/evenements',
+      },
+      ...(isAdmin
+        ? [
+            {
+              name: 'Visites entreprises',
+              hint: 'Annuaire partenaires et visites',
+              icon: MapPin,
+              href: '/entreprises-gestion/',
+            },
+          ]
+        : []),
+    ],
+    [canAccessAdmission, isAdmin]
+  )
 
   const handleNavigation = (href: string) => {
-    if (isDirecteur) {
-      // Pour le directeur, ajouter un paramètre pour indiquer le mode lecture seule
-      router.push(`${href}?mode=lecture`);
-    } else {
-      router.push(href);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-    }
-  };
+    if (isDirecteur) router.push(`${href}?mode=lecture`)
+    else router.push(href)
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-white">
-      {/* Header fixe - Recommandation 1 & 3 */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo/Titre à gauche */}
-            <div className="flex items-center gap-3">
-              <img
-                src="/cop-space-logo.jpg"
-                alt="COP Space"
-                className="h-12 w-auto object-contain"
-              />
-              <div className="hidden sm:block">
-                <h1 className="text-base font-semibold text-gray-900">
-                  Centre d&apos;Orientation Professionnelle
-                </h1>
-                <p className="text-xs text-gray-500">Tableau de bord</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#f4f1ea] text-slate-800">
+      <div
+        className="pointer-events-none fixed inset-0 opacity-70"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 40% at 0% -10%, rgba(15,61,108,0.12), transparent 55%), radial-gradient(ellipse 50% 30% at 100% 0%, rgba(15,61,108,0.08), transparent 50%)',
+        }}
+      />
 
-            {/* Avatar + infos utilisateur à droite */}
-            <div className="flex items-center gap-4">
-              {/* Barre de recherche */}
-              <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64 pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                />
-              </div>
-
-              {/* Profil utilisateur */}
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden lg:block">
-                  <p className="text-sm font-medium text-gray-900">
-                    {profile?.role === 'directeur' ? 'HABIB AADI' : `${profile?.prenom} ${profile?.nom}`}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {profile?.role === 'directeur' 
-                      ? 'Directeur CMC' 
-                      : getRoleLabel(profile?.role || '', profile?.prenom)}
-                  </p>
-                </div>
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center text-white font-semibold text-xs shadow-sm">
-                  {profile?.role === 'directeur' ? 'HA' : (profile?.prenom?.[0] || profile?.nom?.[0] || 'U')}
-                </div>
-                {!isDirecteur && (
-                  <button
-                    onClick={() => router.push('/dashboard')}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200 min-w-[44px] min-h-[44px]"
-                    title="Vue classique"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                  </button>
-                )}
-                <button
-                  onClick={handleSignOut}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 min-w-[44px] min-h-[44px]"
-                  title="Se déconnecter"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
+      <header className="sticky top-0 z-50 border-b border-[#0f3d6c]/15 bg-[#0f3d6c] text-white">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
+          <div className="flex items-center gap-3">
+            <img src="/cop-space-logo.jpg" alt="COP Space" className="h-10 w-auto rounded-md bg-white object-contain p-0.5" />
+            <div className="hidden sm:block leading-tight">
+              <p className="text-sm font-semibold tracking-wide">COP Space</p>
+              <p className="text-[11px] text-white/70">CMC Souss-Massa</p>
             </div>
+          </div>
+
+          <div className="hidden md:flex flex-col items-center leading-none">
+            <span className="font-serif text-xl tabular-nums tracking-wide">{horloge.heureStr}</span>
+            <span className="mt-1 text-[11px] capitalize text-white/70">{horloge.date}</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden text-right lg:block">
+              <p className="text-sm font-medium">
+                {prenomAffiche} {nomAffiche}
+              </p>
+              <p className="text-[11px] text-white/70">{roleAffiche}</p>
+            </div>
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-xs font-semibold"
+              style={{ color: NAVY }}
+            >
+              {initiales}
+            </div>
+            {isAdmin && (
+              <button
+                onClick={() => handleNavigation('/parametres')}
+                className="rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"
+                title="Paramètres"
+              >
+                <Settings className="h-5 w-5" />
+              </button>
+            )}
+            <button
+              onClick={() => void signOut()}
+              className="rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"
+              title="Se déconnecter"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Contenu principal - Recommandation 1: Layout asymétrique 2/3 + 1/3 */}
-      <main className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
-        {/* Message de bienvenue centré */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-full mb-4">
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-            <span className="text-xs font-medium text-blue-700">Tableau de bord</span>
+      <main className="relative mx-auto max-w-7xl px-5 py-8 lg:px-8">
+        <section className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#0f3d6c]/70">
+              Votre bureau
+            </p>
+            <h1 className="mt-2 font-serif text-3xl text-[#0f3d6c] sm:text-4xl">
+              {horloge.salut}
+              {prenomAffiche ? `, ${prenomAffiche}` : ''}.
+            </h1>
+            <p
+              key={ligne}
+              className="cop-ligne mt-2 min-h-[1.5rem] text-sm italic text-slate-600"
+            >
+              {LIGNES[ligne]}
+            </p>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-3 tracking-tight">
-            Bienvenue dans votre espace COP
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Gérez et suivez toutes vos actions en un seul endroit
-          </p>
+          <p className="text-sm text-slate-500 md:hidden capitalize">{horloge.date}</p>
+        </section>
+
+        <section className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {quickActions.map((action) => {
+            const Icon = action.icon
+            return (
+              <button
+                key={action.href}
+                type="button"
+                onClick={() => handleNavigation(action.href)}
+                className="group flex items-start gap-3 rounded-2xl border border-[#0f3d6c]/10 bg-white p-4 text-left shadow-[0_1px_0_rgba(15,61,108,0.06)] transition hover:-translate-y-0.5 hover:border-[#0f3d6c]/30 hover:shadow-md"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f3d6c] text-white">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-[#0f3d6c]">{action.name}</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">{action.hint}</span>
+                </span>
+              </button>
+            )
+          })}
+        </section>
+
+        <section className="mb-8 overflow-hidden rounded-2xl border border-[#0f3d6c]/10 bg-white">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3">
+            <Calendar className="h-4 w-4 text-[#0f3d6c]" />
+            <div>
+              <h2 className="text-sm font-semibold text-[#0f3d6c]">Mémoire du COP</h2>
+              <p className="text-xs text-slate-500">Événements déjà réalisés</p>
+            </div>
+          </div>
+          <div className="p-5" style={{ minHeight: 280 }}>
+            <EvenementsPassesCarousel />
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+          <div className="overflow-hidden rounded-2xl border border-[#0f3d6c]/10 bg-white lg:col-span-2">
+            <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3">
+              <TrendingUp className="h-4 w-4 text-[#0f3d6c]" />
+              <div>
+                <h2 className="text-sm font-semibold text-[#0f3d6c]">Bilan d’employabilité</h2>
+                <p className="text-xs text-slate-500">Insertion et performances</p>
+              </div>
+            </div>
+            <div className="p-5">
+              <EmployabilityDashboard />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-6">
+            <div className="overflow-hidden rounded-2xl border border-[#0f3d6c]/10 bg-white">
+              <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3">
+                <Building2 className="h-4 w-4 text-[#0f3d6c]" />
+                <div>
+                  <h2 className="text-sm font-semibold text-[#0f3d6c]">File des demandes</h2>
+                  <p className="text-xs text-slate-500">Priorité : en attente, puis en cours</p>
+                </div>
+              </div>
+              <div className="p-5">
+                <NouvellesDemandesEntreprises limite={8} />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Événements passés - Carousel */}
-        <div className="mb-8">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col flex-shrink-0" style={{ minHeight: '320px', maxHeight: '320px' }}>
-            <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-violet-50 to-purple-50 flex-shrink-0">
-              <div className="flex items-center justify-center gap-3">
-                <div className="p-2 bg-violet-100 rounded-lg">
-                  <Calendar className="w-5 h-5 text-violet-700" />
-                </div>
-                <div className="text-center">
-                  <h2 className="text-lg font-semibold text-gray-900">Événements passés</h2>
-                  <p className="text-xs text-gray-600">Retour sur nos événements récents</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 flex-1 overflow-hidden">
-              <EvenementsPassesCarousel />
-            </div>
-          </div>
-        </div>
-
-        {/* Layout asymétrique - Recommandation 1: 2/3 gauche + 1/3 droite */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 items-stretch">
-          {/* Colonne principale - 2/3 */}
-          <div className="lg:col-span-2 space-y-6 flex flex-col">
-            {/* Actions rapides - Recommandation 3 */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex-shrink-0">
-              <div className="flex items-center justify-center gap-2 mb-6">
-                <Target className="w-5 h-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Actions rapides</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {quickActions.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleNavigation(action.href)}
-                      className={`group relative p-5 rounded-lg ${action.color} transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] min-h-[100px]`}
-                    >
-                      <div className="relative z-10 flex flex-col items-center text-center">
-                        <div className="p-3 bg-white/20 rounded-lg mb-2 group-hover:bg-white/30 transition-colors">
-                          <Icon className="w-6 h-6" />
-                        </div>
-                        <span className="text-sm font-semibold">{action.name}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Bilan d'Employabilité */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex-1 min-h-0 flex flex-col">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50 flex-shrink-0">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-emerald-700" />
-                  </div>
-                  <div className="text-center">
-                    <h2 className="text-lg font-semibold text-gray-900">Bilan d'Employabilité</h2>
-                    <p className="text-xs text-gray-600">Métriques et performances d'insertion professionnelle</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 flex-1 overflow-y-auto min-h-0">
-                <EmployabilityDashboard />
-              </div>
-            </div>
-
-            {/* Grid responsive KPI - Recommandation 1: 4 colonnes desktop → 2 tablette → 1 mobile */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col flex-shrink-0">
-              <div className="p-6">
-                <IndicateursDashboardCards />
-              </div>
-            </div>
-
-          </div>
-
-          {/* Colonne droite - 1/3 - Recommandation 1 & 7: Zone d'Activité/Notifications */}
-          <div className="lg:col-span-1 flex flex-col gap-6">
-            {/* Section 1: Nouvelles demandes d'entreprises (hauteur fixe) */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col flex-shrink-0" style={{ minHeight: '400px', maxHeight: '400px' }}>
-              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50 flex-shrink-0">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <Building2 className="w-5 h-5 text-emerald-700" />
-                  </div>
-                  <div className="text-center">
-                    <h2 className="text-lg font-semibold text-gray-900">Nouvelles demandes entreprises</h2>
-                    <p className="text-xs text-gray-600">Dernières demandes reçues</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 flex-1 overflow-y-auto">
-                <NouvellesDemandesEntreprises />
-              </div>
-            </div>
-
-            {/* Section 3: Notes d'équipe - Alignée avec la fin du Bilan d'Employabilité */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col flex-1 min-h-0">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50 flex-shrink-0">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <MessageSquare className="w-5 h-5 text-indigo-700" />
-                  </div>
-                  <div className="text-center">
-                    <h2 className="text-lg font-semibold text-gray-900">Informations & Notes d'équipe</h2>
-                    <p className="text-xs text-gray-600">Partagez des informations avec l'équipe</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 flex-1 overflow-y-auto min-h-0">
-                <NotesModule />
-              </div>
-            </div>
-          </div>
+        <div className="mt-6 overflow-hidden rounded-2xl border border-[#0f3d6c]/10 bg-white p-5">
+          <IndicateursDashboardCards />
         </div>
       </main>
-    </div>
-  );
-};
 
-export default DashboardFullPage;
+      <style>{`
+        @keyframes copLigne {
+          0% { opacity: 0; transform: translateY(6px); }
+          14% { opacity: 1; transform: translateY(0); }
+          82% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        .cop-ligne { animation: copLigne 5.4s ease; }
+      `}</style>
+    </div>
+  )
+}
+
+export default DashboardFullPage
