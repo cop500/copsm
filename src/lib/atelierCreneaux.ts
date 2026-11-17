@@ -3,6 +3,7 @@ export const TZ_MAROC = 'Africa/Casablanca'
 export const CRENEAUX_ATELIER = [
   { id: '09-11', label: '09h00 – 11h00', debutH: 9, debutM: 0, finH: 11, finM: 0 },
   { id: '10h30-13', label: '10h30 – 13h00', debutH: 10, debutM: 30, finH: 13, finM: 0 },
+  { id: '12-14', label: '12h00 – 14h00', debutH: 12, debutM: 0, finH: 14, finM: 0 },
   { id: '13h30-15h30', label: '13h30 – 15h30', debutH: 13, debutM: 30, finH: 15, finM: 30 },
 ] as const
 
